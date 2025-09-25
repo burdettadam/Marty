@@ -1,0 +1,12 @@
+{
+  "passport_number": "P98DBF7B1",
+  "issue_date": "2025-05-06",
+  "expiry_date": "2035-05-06",
+  "data_groups": {
+    "DG1": "MRZ-DATA-P98DBF7B1",
+    "DG2": "PHOTO-DATA-P98DBF7B1",
+    "DG3": "FINGERPRINT-DATA-P98DBF7B1",
+    "DG4": "IRIS-DATA-P98DBF7B1"
+  },
+  "sod": "QUr68skcfPdIlST3sg1Coult7UIBJcMVvmhvJ9f4m84=.1746510489"
+}

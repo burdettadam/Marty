@@ -1,0 +1,15 @@
+syntax = "proto3";
+
+package passport;
+
+service PassportEngine {
+  rpc ProcessPassport (PassportRequest) returns (PassportResponse);
+}
+
+message PassportRequest {
+  string passport_number = 1;
+}
+
+message PassportResponse {
+  string status = 1;
+}

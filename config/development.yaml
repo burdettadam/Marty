@@ -1,0 +1,118 @@
+# Development environment configuration
+
+# Service ports
+ports:
+  csca_service: 8081
+  document_signer: 8082
+  passport_engine: 8084
+  inspection_system: 8083
+  trust_anchor: 8080
+
+# Service hosts
+hosts:
+  csca_service: localhost
+  document_signer: localhost
+  passport_engine: localhost
+  inspection_system: localhost
+  trust_anchor: localhost
+
+# Logging
+logging:
+  level: DEBUG
+  format: '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+  file: logs/dev.log
+
+# Database
+database:
+  host: localhost
+  port: 5432
+  user: dev_user
+  password: dev_password
+  name: marty_dev
+
+# Security
+security:
+  key_directory: 'data/keys'
+  key_rotation_days: 90
+  certificate_validity_days: 365
+
+# Feature flags
+features:
+  enable_debug_endpoints: true
+  enable_performance_tracking: true
+  enable_detailed_logging: true
+
+# CSCA & Master List Management Configuration
+csca_master_list:
+  # Paths for local storage
+  local_trust_store_path: "data/trust/csca"
+  local_crl_path: "data/trust/crls"
+  
+  # Certificate monitoring settings
+  cert_check_interval_hours: 24
+  cert_expiry_warning_days: 90
+  
+  # Synchronization settings
+  sync_interval_hours: 24
+  
+  # Trusted sources for auto-update
+  trusted_sources:
+    icao:
+      type: "icao_pkd"
+      url: "https://pkddownloadsg.icao.int/download/masterlist"
+      username: "your_pkd_username"
+      password: "your_pkd_password"
+      ignore_ssl: false
+    
+    usa:
+      type: "national_site"
+      url: "https://csca.state.gov/masterlist"
+      format: "asn1"
+    
+    local_backup:
+      type: "file"
+      path: "data/trust/backup/masterlist.ml"
+
+  # Notification settings
+  notifications:
+    email:
+      enabled: true
+      smtp_server: "smtp.example.com"
+      smtp_port: 587
+      from_address: "csca-alerts@example.com"
+      to_addresses: ["admin@example.com"]
+    
+    webhook:
+      enabled: false
+      url: "https://example.com/webhook"
+      auth_token: ""
+
+# OpenXPKI Integration Settings
+openxpki:
+  base_url: "https://openxpki.local/api/v2"
+  username: "pkiadmin"
+  password: "secret"
+  realm: "marty"
+  connection_timeout: 30
+  read_timeout: 60
+  # Certificate sync settings
+  sync_to_local: true
+  local_store_path: "data/trust/openxpki_sync"
+  trust_sync_interval_hours: 6
+
+# MDL & MDoc Engine Configuration
+mdl_engine:
+  host: "localhost"
+  port: 50051
+  # Add other MDL Engine specific configurations here
+
+mdoc_engine:
+  host: "localhost"
+  port: 50054 # As used in integration tests
+  document_signer_service_name: "document-signer"
+  # Add other MDoc Engine specific configurations here
+
+dtc_engine:
+  host: "localhost"
+  port: 50060
+  # Add other DTC Engine specific configurations here

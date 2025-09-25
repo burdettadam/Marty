@@ -1,0 +1,12 @@
+{
+  "passport_number": "PC93A7708C",
+  "issue_date": "2025-05-07",
+  "expiry_date": "2035-05-07",
+  "data_groups": {
+    "DG1": "MRZ-DATA-PC93A7708C",
+    "DG2": "PHOTO-DATA-PC93A7708C",
+    "DG3": "FINGERPRINT-DATA-PC93A7708C",
+    "DG4": "IRIS-DATA-PC93A7708C"
+  },
+  "sod": "E/RHG6SoD2QmuDDq/Hvg7/D8rIMgqQcEbXTnsg1j8Og=.1746632106"
+}

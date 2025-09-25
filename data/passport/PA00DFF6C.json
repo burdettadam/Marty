@@ -1,0 +1,12 @@
+{
+  "passport_number": "PA00DFF6C",
+  "issue_date": "2025-05-06",
+  "expiry_date": "2035-05-06",
+  "data_groups": {
+    "DG1": "MRZ-DATA-PA00DFF6C",
+    "DG2": "PHOTO-DATA-PA00DFF6C",
+    "DG3": "FINGERPRINT-DATA-PA00DFF6C",
+    "DG4": "IRIS-DATA-PA00DFF6C"
+  },
+  "sod": "4Yx8kQmBNJtm8umQGog44tc3PQjGFE6mmZDCq5Goejc=.1746516103"
+}

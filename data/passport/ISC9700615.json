@@ -1,0 +1,12 @@
+{
+  "passport_number": "ISC9700615",
+  "issue_date": "2025-05-06",
+  "expiry_date": "2035-05-06",
+  "data_groups": {
+    "DG1": "MRZ-DATA-ISC9700615",
+    "DG2": "PHOTO-DATA-ISC9700615",
+    "DG3": "FINGERPRINT-DATA-ISC9700615",
+    "DG4": "IRIS-DATA-ISC9700615"
+  },
+  "sod": "aObqfp7anfhyYIaiBF3UukcI2wx4oBJ/bq1czwrOpYo=.1746516100"
+}

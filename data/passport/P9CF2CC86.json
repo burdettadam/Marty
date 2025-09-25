@@ -1,0 +1,12 @@
+{
+  "passport_number": "P9CF2CC86",
+  "issue_date": "2025-05-07",
+  "expiry_date": "2035-05-07",
+  "data_groups": {
+    "DG1": "MRZ-DATA-P9CF2CC86",
+    "DG2": "PHOTO-DATA-P9CF2CC86",
+    "DG3": "FINGERPRINT-DATA-P9CF2CC86",
+    "DG4": "IRIS-DATA-P9CF2CC86"
+  },
+  "sod": "OyUwTjAqofZ1gI9impWIQWRygVVmg2XDMIGzO8ozqUQ=.1746632089"
+}

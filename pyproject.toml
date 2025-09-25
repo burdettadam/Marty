@@ -1,0 +1,267 @@
+[build-system]
+requires = ["setuptools>=61.0", "wheel", "setuptools_scm[toml]>=6.2"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "marty-grpc"
+version = "0.1.0"
+description = "Enterprise-grade microservices platform for secure digital identity document management (eMRTD, mDL, DTC) with ICAO PKI compliance"
+readme = "README.md"
+requires-python = ">=3.10"
+license = {text = "Proprietary"}
+dependencies = [
+    "grpcio>=1.59.0",
+    "grpcio-tools>=1.59.0",
+    "grpcio-health-checking>=1.59.0",
+    "grpcio-reflection>=1.59.0",
+    "mypy-protobuf>=3.4.0", # For generating .pyi type stubs
+    "pytest>=7.4.0",
+    "cryptography>=41.0.0",
+    "pyOpenSSL>=23.0.0",
+    "protobuf>=6.31.1,<7.0",
+    "asn1crypto>=1.5.1",
+    "pyscard>=2.1.1",
+    "xmlsec>=1.3.15",
+    "pydantic>=2.10.6",
+    "pytest-depends>=1.0.1",
+    "pytest-datafiles>=2.0.0",
+    # "py>=1.11.0", # Removed - has known vulnerability CVE-2022-42969
+    "oscrypto>=1.3.0",
+    "certvalidator>=0.11.1",
+    "cbor2>=5.6.0",
+    "qrcode>=7.4.2",
+    "pillow>=11.3.0", # Required by qrcode for image generation - fixed CVE-2025-48379
+    "PyYAML>=6.0", # Added YAML dependency
+    "requests>=2.32.4", # Added requests - fixed CVE-2024-47081
+    "SQLAlchemy>=2.0.0", # Added SQLAlchemy for ORM
+    "psycopg2-binary>=2.9.0", # Added PostgreSQL driver
+    "fastapi>=0.110.0", # UI web framework
+    "uvicorn[standard]>=0.23.0", # ASGI server for FastAPI app
+    "jinja2>=3.1.2", # Template rendering for UI
+    "python-multipart>=0.0.8", # Form parsing support for FastAPI
+    "playwright>=1.42.0", # UI end-to-end testing
+    "pydantic-settings>=2.8.1",
+    "pbr>=7.0.1",
+    "pytest-asyncio>=1.2.0",
+]
+
+[tool.pytest.ini_options]
+minversion = "6.0"
+addopts = [
+    "--strict-markers",
+    "--strict-config",
+    "--disable-warnings",
+]
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]
+markers = [
+    "slow: marks tests as slow",
+    "integration: marks tests as integration tests",
+    "e2e: marks tests as end-to-end tests",
+    "smoke: marks tests as smoke tests",
+    "ui: marks tests as UI tests",
+    "passport: marks tests as passport-related tests",
+    "mdl: marks tests as mobile driver license tests",
+    "admin: marks tests as admin interface tests",
+    "performance: marks tests as performance tests",
+]
+asyncio_mode = "auto"
+asyncio_default_fixture_loop_scope = "function"
+
+[project.scripts]
+compile-protos = "src.compile_protos:compile_all_protos"
+
+[tool.ruff]
+line-length = 100
+target-version = "py39"
+
+[tool.ruff.lint]
+select = [
+    "E",   # pycodestyle errors
+    "W",   # pycodestyle warnings
+    "F",   # pyflakes
+    "B",   # flake8-bugbear
+    "I",   # isort
+    "C90", # mccabe complexity
+    "UP",  # pyupgrade
+    "S",   # bandit (security)
+    "N",   # pep8-naming
+    "ANN", # flake8-annotations
+    "ASYNC", # flake8-async
+    "BLE", # flake8-blind-except
+    "COM", # flake8-commas
+    "C4",  # flake8-comprehensions
+    "DTZ", # flake8-datetimez
+    "EM",  # flake8-errmsg
+    "EXE", # flake8-executable
+    "FA",  # flake8-future-annotations
+    "ISC", # flake8-implicit-str-concat
+    "ICN", # flake8-import-conventions
+    "LOG", # flake8-logging
+    "PIE", # flake8-pie
+    "PYI", # flake8-pyi
+    "PT",  # flake8-pytest-style
+    "Q",   # flake8-quotes
+    "RSE", # flake8-raise
+    "RET", # flake8-return
+    "SLF", # flake8-self
+    "SLOT", # flake8-slots
+    "SIM", # flake8-simplify
+    "TID", # flake8-tidy-imports
+    "ARG", # flake8-unused-arguments
+    "PTH", # flake8-use-pathlib
+    "TD",  # flake8-todos
+    "FIX", # flake8-fixme
+    "ERA", # eradicate
+    "PD",  # pandas-vet
+    "PGH", # pygrep-hooks
+    "PL",  # pylint
+    "TRY", # tryceratops
+    "FLY", # flynt
+    "NPY", # numpy
+    "PERF", # perflint
+    "FURB", # refurb
+    "RUF", # ruff-specific rules
+]
+ignore = [
+    "ANN001", # Missing type annotation for function argument
+    "ANN002", # Missing type annotation for *args
+    "ANN003", # Missing type annotation for **kwargs
+    "COM812", # Missing trailing comma (conflicts with formatter)
+    "ISC001", # Single line implicit string concatenation (conflicts with formatter)
+    "D100",   # Missing docstring in public module
+    "D104",   # Missing docstring in public package
+    "S101",   # Use of assert (common in tests)
+    "PLR0913", # Too many arguments in function definition
+    "PLR2004", # Magic value used in comparison
+]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**/*.py" = [
+    "S101",    # Use of assert
+    "PLR2004", # Magic values in tests are OK
+    "ANN",     # Type annotations not required in tests
+]
+"src/tests/**/*.py" = [
+    "S101",    # Use of assert
+    "PLR2004", # Magic values in tests are OK
+    "ANN",     # Type annotations not required in tests
+]
+
+[tool.ruff.lint.mccabe]
+max-complexity = 10
+
+[tool.ruff.lint.pylint]
+max-args = 8
+max-branches = 12
+max-returns = 6
+max-statements = 50
+
+[tool.black]
+line-length = 100
+target-version = ["py39", "py310", "py311", "py312"]
+
+[tool.isort]
+profile = "black"
+line_length = 100
+multi_line_output = 3
+include_trailing_comma = true
+force_grid_wrap = 0
+use_parentheses = true
+ensure_newline_before_comments = true
+known_first_party = ["src", "marty_grpc"]
+sections = ["FUTURE", "STDLIB", "THIRDPARTY", "FIRSTPARTY", "LOCALFOLDER"]
+
+[tool.mypy]
+python_version = "3.9"
+warn_return_any = true
+warn_unused_configs = true
+disallow_untyped_defs = false
+disallow_incomplete_defs = false
+check_untyped_defs = true
+disallow_untyped_decorators = false
+no_implicit_optional = true
+warn_redundant_casts = true
+warn_unused_ignores = true
+warn_no_return = true
+warn_unreachable = true
+strict_equality = true
+ignore_missing_imports = true
+show_error_codes = true
+
+[[tool.mypy.overrides]]
+module = "tests.*"
+disallow_untyped_defs = false
+disallow_incomplete_defs = false
+
+[tool.bandit]
+exclude_dirs = ["tests", "src/tests"]
+skips = ["B101"]  # Skip assert_used test
+
+[tool.bandit.assert_used]
+skips = ["*_test.py", "*test*.py"]
+
+[tool.pydocstyle]
+convention = "google"
+add_ignore = ["D100", "D104", "D105", "D107"]
+match_dir = "(?!tests|migrations).*"
+
+[tool.xenon]
+max_average = "B"
+max_modules = "B"
+max_absolute = "B"
+ignore = ["migrations", "tests"]
+
+[tool.coverage.run]
+source = ["src"]
+omit = [
+    "*/tests/*",
+    "*/test_*",
+    "*/__pycache__/*",
+    "*/migrations/*",
+]
+
+[tool.coverage.report]
+exclude_lines = [
+    "pragma: no cover",
+    "def __repr__",
+    "if self.debug:",
+    "if settings.DEBUG",
+    "raise AssertionError",
+    "raise NotImplementedError",
+    "if 0:",
+    "if __name__ == .__main__.:",
+    "class .*\\bProtocol\\):",
+    "@(abc\\.)?abstractmethod",
+]
+
+
+
+[tool.uv]
+# UV-specific configurations - fixed format
+sources = { marty-grpc = { path = ".", editable = true } }
+
+[dependency-groups]
+dev = [
+    "playwright>=1.48.0",
+    "pytest-html>=4.1.1",
+    "pytest-xdist>=3.6.1",
+    "pytest-asyncio>=0.24.0",
+    # Code quality tools
+    "pre-commit>=3.6.0",
+    "black>=24.2.0",
+    "isort>=5.13.2",
+    "mypy>=1.8.0",
+    "bandit>=1.7.5",
+    "xenon>=0.9.1",
+    "pydocstyle>=6.3.0",
+    "safety>=3.0.0",
+    "radon>=6.0.1",
+    # Type stubs
+    "types-requests>=2.31.0",
+    "types-PyYAML>=6.0.0",
+    "grpcio-testing>=1.75.0",
+    "ruff>=0.13.2",
+]

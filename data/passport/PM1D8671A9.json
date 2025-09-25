@@ -1,0 +1,12 @@
+{
+  "passport_number": "PM1D8671A9",
+  "issue_date": "2025-05-06",
+  "expiry_date": "2035-05-06",
+  "data_groups": {
+    "DG1": "MRZ-DATA-PM1D8671A9",
+    "DG2": "PHOTO-DATA-PM1D8671A9",
+    "DG3": "FINGERPRINT-DATA-PM1D8671A9",
+    "DG4": "IRIS-DATA-PM1D8671A9"
+  },
+  "sod": "9IUbt/P5v/hkC0lNG8T2eqLo2XW2QZ8ai0ubF/1/daY=.1746509542"
+}

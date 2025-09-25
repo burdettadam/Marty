@@ -1,0 +1,45 @@
+# Production environment configuration
+
+# Service ports
+ports:
+  csca_service: 8081
+  document_signer: 8082
+  passport_engine: 8084
+  inspection_system: 8083
+  trust_anchor: 8080
+
+# Service hosts
+hosts:
+  csca_service: csca-service
+  document_signer: document-signer
+  passport_engine: passport-engine
+  inspection_system: inspection-system
+  trust_anchor: trust-anchor
+
+# Logging
+logging:
+  level: INFO
+  format: '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+  file: logs/production.log
+
+# Database
+database:
+  host: db
+  port: 5432
+  user: "${DB_USER}"
+  password: "${DB_PASSWORD}"
+  name: marty_production
+
+# Security
+security:
+  key_directory: '/secrets/keys'
+  key_rotation_days: 30
+  certificate_validity_days: 365
+  hsm_enabled: true
+  hsm_config: '/secrets/hsm/config.json'
+
+# Feature flags
+features:
+  enable_debug_endpoints: false
+  enable_performance_tracking: true
+  enable_detailed_logging: false

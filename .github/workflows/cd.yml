@@ -1,0 +1,90 @@
+name: Marty CD
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  build_and_publish:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+    - uses: actions/checkout@v3
+    
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v2
+
+    - name: Log in to GitHub Container Registry
+      uses: docker/login-action@v2
+      with:
+        registry: ghcr.io
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}
+        
+    - name: Extract version from tag
+      id: tag
+      run: echo "VERSION=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
+      
+    - name: Build and push csca-service
+      uses: docker/build-push-action@v4
+      with:
+        context: .
+        file: ./src/csca-service/Dockerfile
+        push: true
+        tags: |
+          ghcr.io/${{ github.repository }}/csca-service:latest
+          ghcr.io/${{ github.repository }}/csca-service:${{ steps.tag.outputs.VERSION }}
+        cache-from: type=gha
+        cache-to: type=gha,mode=max
+
+    - name: Build and push document-signer
+      uses: docker/build-push-action@v4
+      with:
+        context: .
+        file: ./src/document-signer/Dockerfile
+        push: true
+        tags: |
+          ghcr.io/${{ github.repository }}/document-signer:latest
+          ghcr.io/${{ github.repository }}/document-signer:${{ steps.tag.outputs.VERSION }}
+        cache-from: type=gha
+        cache-to: type=gha,mode=max
+
+    - name: Build and push passport-engine
+      uses: docker/build-push-action@v4
+      with:
+        context: .
+        file: ./src/passport-engine/Dockerfile
+        push: true
+        tags: |
+          ghcr.io/${{ github.repository }}/passport-engine:latest
+          ghcr.io/${{ github.repository }}/passport-engine:${{ steps.tag.outputs.VERSION }}
+        cache-from: type=gha
+        cache-to: type=gha,mode=max
+
+    - name: Build and push inspection-system
+      uses: docker/build-push-action@v4
+      with:
+        context: .
+        file: ./src/inspection-system/Dockerfile
+        push: true
+        tags: |
+          ghcr.io/${{ github.repository }}/inspection-system:latest
+          ghcr.io/${{ github.repository }}/inspection-system:${{ steps.tag.outputs.VERSION }}
+        cache-from: type=gha
+        cache-to: type=gha,mode=max
+
+    - name: Build and push trust-anchor
+      uses: docker/build-push-action@v4
+      with:
+        context: .
+        file: ./src/trust-anchor/Dockerfile
+        push: true
+        tags: |
+          ghcr.io/${{ github.repository }}/trust-anchor:latest
+          ghcr.io/${{ github.repository }}/trust-anchor:${{ steps.tag.outputs.VERSION }}
+        cache-from: type=gha
+        cache-to: type=gha,mode=max

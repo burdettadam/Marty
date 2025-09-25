@@ -1,0 +1,12 @@
+{
+  "passport_number": "PEF7D720C6",
+  "issue_date": "2025-05-07",
+  "expiry_date": "2035-05-07",
+  "data_groups": {
+    "DG1": "MRZ-DATA-PEF7D720C6",
+    "DG2": "PHOTO-DATA-PEF7D720C6",
+    "DG3": "FINGERPRINT-DATA-PEF7D720C6",
+    "DG4": "IRIS-DATA-PEF7D720C6"
+  },
+  "sod": "hxkVLXnhh4QTgWuKq9rdCRDZmZ10UG9E8L+jEld++R8=.1746632106"
+}

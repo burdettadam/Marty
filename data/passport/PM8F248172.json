@@ -1,0 +1,12 @@
+{
+  "passport_number": "PM8F248172",
+  "issue_date": "2025-05-06",
+  "expiry_date": "2035-05-06",
+  "data_groups": {
+    "DG1": "MRZ-DATA-PM8F248172",
+    "DG2": "PHOTO-DATA-PM8F248172",
+    "DG3": "FINGERPRINT-DATA-PM8F248172",
+    "DG4": "IRIS-DATA-PM8F248172"
+  },
+  "sod": "jXJfgDwLoh/vovK2M1FxmxRBFEcO4q34oGn2WHtW/cs=.1746510495"
+}

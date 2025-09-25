@@ -1,0 +1,121 @@
+syntax = "proto3";
+
+package trust;
+
+service TrustAnchor {
+  // Existing method
+  rpc VerifyTrust (TrustRequest) returns (TrustResponse);
+  
+  // OpenXPKI integration methods
+  rpc GetMasterList (GetMasterListRequest) returns (MasterListResponse);
+  rpc UploadMasterList (UploadMasterListRequest) returns (UploadMasterListResponse);
+  rpc VerifyCertificate (VerifyCertificateRequest) returns (VerificationResponse);
+  rpc SyncCertificateStore (SyncRequest) returns (SyncResponse);
+  rpc CheckExpiringCertificates (ExpiryCheckRequest) returns (ExpiryCheckResponse);
+  rpc GetServiceStatus (StatusRequest) returns (ServiceStatusResponse);
+}
+
+// Existing messages
+message TrustRequest {
+  string entity = 1;
+}
+
+message TrustResponse {
+  bool is_trusted = 1;
+}
+
+// New messages for OpenXPKI integration
+message GetMasterListRequest {
+  string format = 1; // "PEM", "DER", or "JSON"
+}
+
+message MasterListResponse {
+  bytes master_list_data = 1;
+  string format = 2;
+  int32 certificate_count = 3;
+  bool is_valid = 4;
+  string last_updated = 5;
+}
+
+message UploadMasterListRequest {
+  bytes master_list_data = 1;
+  string format = 2; // "PEM", "DER", or "JSON"
+}
+
+message UploadMasterListResponse {
+  bool success = 1;
+  int32 certificates_imported = 2;
+  repeated string errors = 3;
+  repeated CertificateInfo certificates = 4;
+}
+
+message CertificateInfo {
+  string subject = 1;
+  string issuer = 2;
+  string serial_number = 3;
+  string not_before = 4;
+  string not_after = 5;
+  string country_code = 6;
+  string fingerprint = 7;
+}
+
+message VerifyCertificateRequest {
+  bytes certificate = 1;
+  string format = 2; // "PEM" or "DER"
+  bool check_revocation = 3;
+}
+
+message VerificationResponse {
+  bool is_valid = 1;
+  string subject = 2;
+  string issuer = 3;
+  repeated string validation_errors = 4;
+  bool is_trusted = 5;
+  bool is_revoked = 6;
+  string revocation_reason = 7;
+}
+
+message SyncRequest {
+  bool force = 1;
+}
+
+message SyncResponse {
+  bool success = 1;
+  int32 certificates_synced = 2;
+  string sync_timestamp = 3;
+  repeated string errors = 4;
+}
+
+message ExpiryCheckRequest {
+  int32 days = 1; // Check for certificates expiring within this many days
+}
+
+message ExpiryCheckResponse {
+  repeated ExpiringCertificate expiring_certificates = 1;
+}
+
+message ExpiringCertificate {
+  string subject = 1;
+  string issuer = 2;
+  string serial_number = 3;
+  string not_after = 4;
+  int32 days_remaining = 5;
+  string country_code = 6;
+}
+
+message StatusRequest {
+}
+
+message ServiceStatusResponse {
+  bool is_healthy = 1;
+  ServiceStats stats = 2;
+  string version = 3;
+  string openxpki_status = 4;
+}
+
+message ServiceStats {
+  int32 total_certificates = 1;
+  int32 trusted_countries = 2;
+  string last_sync_time = 3;
+  int32 expiring_soon = 4;
+}

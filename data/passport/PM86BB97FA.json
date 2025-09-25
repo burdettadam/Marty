@@ -1,0 +1,12 @@
+{
+  "passport_number": "PM86BB97FA",
+  "issue_date": "2025-05-06",
+  "expiry_date": "2035-05-06",
+  "data_groups": {
+    "DG1": "MRZ-DATA-PM86BB97FA",
+    "DG2": "PHOTO-DATA-PM86BB97FA",
+    "DG3": "FINGERPRINT-DATA-PM86BB97FA",
+    "DG4": "IRIS-DATA-PM86BB97FA"
+  },
+  "sod": "lGaWw4lGw/TvkQxYb2UxyLxra928w4I8A1oUbYkncmA=.1746508368"
+}

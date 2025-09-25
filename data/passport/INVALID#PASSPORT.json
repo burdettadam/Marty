@@ -1,0 +1,12 @@
+{
+  "passport_number": "INVALID#PASSPORT",
+  "issue_date": "2025-05-07",
+  "expiry_date": "2035-05-07",
+  "data_groups": {
+    "DG1": "MRZ-DATA-INVALID#PASSPORT",
+    "DG2": "PHOTO-DATA-INVALID#PASSPORT",
+    "DG3": "FINGERPRINT-DATA-INVALID#PASSPORT",
+    "DG4": "IRIS-DATA-INVALID#PASSPORT"
+  },
+  "sod": "12JVguAMWBN5+xUUr86bQs5Fy9qlE2TQAchWKe6vttY=.1746632106"
+}

@@ -1,0 +1,15 @@
+syntax = "proto3";
+
+package inspection;
+
+service InspectionSystem {
+  rpc Inspect (InspectRequest) returns (InspectResponse);
+}
+
+message InspectRequest {
+  string item = 1;
+}
+
+message InspectResponse {
+  string result = 1;
+}

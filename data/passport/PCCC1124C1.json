@@ -1,0 +1,12 @@
+{
+  "passport_number": "PCCC1124C1",
+  "issue_date": "2025-05-07",
+  "expiry_date": "2035-05-07",
+  "data_groups": {
+    "DG1": "MRZ-DATA-PCCC1124C1",
+    "DG2": "PHOTO-DATA-PCCC1124C1",
+    "DG3": "FINGERPRINT-DATA-PCCC1124C1",
+    "DG4": "IRIS-DATA-PCCC1124C1"
+  },
+  "sod": "doPoDvRi15wbslHQyT18Ua8tS9+k+u2xQA4mREmeqDA=.1746632106"
+}

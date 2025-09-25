@@ -1,0 +1,12 @@
+{
+  "passport_number": "PMB09A5929",
+  "issue_date": "2025-05-06",
+  "expiry_date": "2035-05-06",
+  "data_groups": {
+    "DG1": "MRZ-DATA-PMB09A5929",
+    "DG2": "PHOTO-DATA-PMB09A5929",
+    "DG3": "FINGERPRINT-DATA-PMB09A5929",
+    "DG4": "IRIS-DATA-PMB09A5929"
+  },
+  "sod": "FkG8NAU7/B1xW/z5tqdx3TuSpo1v2f4mic+zzuScxU0=.1746516109"
+}

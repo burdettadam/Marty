@@ -1,0 +1,975 @@
+openapi: 3.0.3
+info:
+  title: Marty gRPC Service API
+  description: |
+    API documentation for the Marty gRPC service ecosystem for passport issuance and verification.
+    This documentation complements the gRPC service definitions and provides a RESTful interface
+    for easier testing and integration.
+  version: 1.0.0
+  contact:
+    name: Marty Development Team
+    email: support@marty.example.com
+  license:
+    name: Proprietary
+    
+servers:
+  - url: http://localhost:8080
+    description: Local development server
+  - url: https://api.marty.example.com
+    description: Production server
+
+tags:
+  - name: CSCA
+    description: Country Signing Certificate Authority operations
+  - name: Document Signer
+    description: Document Signer operations
+  - name: Passport Engine
+    description: Passport personalization operations
+  - name: Inspection System
+    description: Passport verification operations
+  - name: Trust Anchor
+    description: Trust anchor management operations
+  - name: PKD
+    description: ICAO Public Key Directory operations
+
+paths:
+  /v1/csca/certificates:
+    get:
+      tags:
+        - CSCA
+      summary: List CSCA certificates
+      description: Retrieve a list of active CSCA certificates
+      operationId: listCscaCertificates
+      responses:
+        '200':
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Certificate'
+    post:
+      tags:
+        - CSCA
+      summary: Generate new CSCA certificate
+      description: Generate a new CSCA certificate
+      operationId: generateCscaCertificate
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CertificateRequest'
+      responses:
+        '201':
+          description: Certificate created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Certificate'
+
+  /v1/document-signer/certificates:
+    get:
+      tags:
+        - Document Signer
+      summary: List Document Signer certificates
+      description: Retrieve a list of active Document Signer certificates
+      operationId: listDscCertificates
+      responses:
+        '200':
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Certificate'
+    post:
+      tags:
+        - Document Signer
+      summary: Generate new Document Signer certificate
+      description: Generate a new Document Signer certificate signed by CSCA
+      operationId: generateDscCertificate
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CertificateRequest'
+      responses:
+        '201':
+          description: Certificate created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Certificate'
+
+  /v1/passport-engine/personalize:
+    post:
+      tags:
+        - Passport Engine
+      summary: Personalize passport
+      description: Create a new personalized passport with data and signed SOD
+      operationId: personalizePassport
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PassportRequest'
+      responses:
+        '200':
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Passport'
+
+  /v1/inspection/verify:
+    post:
+      tags:
+        - Inspection System
+      summary: Verify passport
+      description: Verify a passport's authenticity and integrity
+      operationId: verifyPassport
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PassportVerificationRequest'
+      responses:
+        '200':
+          description: Verification results
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/VerificationResult'
+
+  /v1/pkd/masterlist:
+    get:
+      tags:
+        - PKD
+      summary: Download CSCA Master List
+      description: Retrieve the latest CSCA Master List
+      operationId: getMasterList
+      parameters:
+        - name: country
+          in: query
+          description: Filter master list by country code (ISO 3166-1 alpha-3)
+          required: false
+          schema:
+            type: string
+            example: USA
+      responses:
+        '200':
+          description: Successful operation
+          content:
+            application/octet-stream:
+              schema:
+                type: string
+                format: binary
+                description: ASN.1 encoded master list
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MasterListResponse'
+    post:
+      tags:
+        - PKD
+      summary: Upload CSCA Master List
+      description: Upload or update a CSCA Master List
+      operationId: uploadMasterList
+      requestBody:
+        required: true
+        content:
+          application/octet-stream:
+            schema:
+              type: string
+              format: binary
+              description: ASN.1 encoded master list
+      responses:
+        '201':
+          description: Master list uploaded successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MasterListUploadResponse'
+
+  /v1/pkd/masterlist/{country}:
+    get:
+      tags:
+        - PKD
+      summary: Get country-specific master list
+      description: Retrieve the CSCA Master List for a specific country
+      operationId: getCountryMasterList
+      parameters:
+        - name: country
+          in: path
+          description: Country code (ISO 3166-1 alpha-3)
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Successful operation
+          content:
+            application/octet-stream:
+              schema:
+                type: string
+                format: binary
+                description: ASN.1 encoded master list
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MasterListResponse'
+
+  /v1/pkd/dsclist:
+    get:
+      tags:
+        - PKD
+      summary: Download Document Signer Certificate List
+      description: Retrieve the latest DSC list
+      operationId: getDscList
+      parameters:
+        - name: country
+          in: query
+          description: Filter DSC list by country code (ISO 3166-1 alpha-3)
+          required: false
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Successful operation
+          content:
+            application/octet-stream:
+              schema:
+                type: string
+                format: binary
+                description: ASN.1 encoded DSC list
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DscListResponse'
+    post:
+      tags:
+        - PKD
+      summary: Upload Document Signer Certificate List
+      description: Upload or update a Document Signer Certificate List
+      operationId: uploadDscList
+      requestBody:
+        required: true
+        content:
+          application/octet-stream:
+            schema:
+              type: string
+              format: binary
+              description: ASN.1 encoded DSC list
+      responses:
+        '201':
+          description: DSC list uploaded successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DscListUploadResponse'
+
+  /v1/pkd/dsclist/{country}:
+    get:
+      tags:
+        - PKD
+      summary: Get country-specific DSC list
+      description: Retrieve Document Signer Certificates for a specific country
+      operationId: getCountryDscList
+      parameters:
+        - name: country
+          in: path
+          description: Country code (ISO 3166-1 alpha-3)
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Successful operation
+          content:
+            application/octet-stream:
+              schema:
+                type: string
+                format: binary
+                description: ASN.1 encoded DSC list
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DscListResponse'
+
+  /v1/pkd/crl:
+    get:
+      tags:
+        - PKD
+      summary: Download Certificate Revocation Lists
+      description: Retrieve the latest Certificate Revocation Lists
+      operationId: getCrlList
+      parameters:
+        - name: country
+          in: query
+          description: Filter CRL by country code (ISO 3166-1 alpha-3)
+          required: false
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Successful operation
+          content:
+            application/octet-stream:
+              schema:
+                type: string
+                format: binary
+                description: ASN.1 encoded CRL
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CrlResponse'
+    post:
+      tags:
+        - PKD
+      summary: Upload Certificate Revocation List
+      description: Upload or update a Certificate Revocation List
+      operationId: uploadCrl
+      requestBody:
+        required: true
+        content:
+          application/octet-stream:
+            schema:
+              type: string
+              format: binary
+              description: ASN.1 encoded CRL
+      responses:
+        '201':
+          description: CRL uploaded successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CrlUploadResponse'
+
+  /v1/pkd/crl/{country}:
+    get:
+      tags:
+        - PKD
+      summary: Get country-specific CRL
+      description: Retrieve the Certificate Revocation List for a specific country
+      operationId: getCountryCrl
+      parameters:
+        - name: country
+          in: path
+          description: Country code (ISO 3166-1 alpha-3)
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Successful operation
+          content:
+            application/octet-stream:
+              schema:
+                type: string
+                format: binary
+                description: ASN.1 encoded CRL
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CrlResponse'
+
+  /v1/pkd/deviationlist:
+    get:
+      tags:
+        - PKD
+      summary: Download Deviation List
+      description: Retrieve the latest Deviation List
+      operationId: getDeviationList
+      responses:
+        '200':
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DeviationListResponse'
+    post:
+      tags:
+        - PKD
+      summary: Upload Deviation List
+      description: Upload or update a Deviation List
+      operationId: uploadDeviationList
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DeviationListRequest'
+      responses:
+        '201':
+          description: Deviation list uploaded successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DeviationListUploadResponse'
+
+  /v1/pkd/sync:
+    post:
+      tags:
+        - PKD
+      summary: Trigger PKD Synchronization
+      description: Trigger synchronization with external PKD
+      operationId: syncPkd
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PkdSyncRequest'
+      responses:
+        '202':
+          description: Synchronization initiated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PkdSyncResponse'
+
+  /v1/pkd/sync/status:
+    get:
+      tags:
+        - PKD
+      summary: Check PKD Synchronization Status
+      description: Check the status of PKD synchronization
+      operationId: getPkdSyncStatus
+      responses:
+        '200':
+          description: Synchronization status
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PkdSyncStatusResponse'
+
+components:
+  schemas:
+    Certificate:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          example: "123e4567-e89b-12d3-a456-426614174000"
+        subject:
+          type: string
+          example: "CN=CSCA-USA,O=Department of State,C=US"
+        issuer:
+          type: string
+          example: "CN=CSCA-USA,O=Department of State,C=US"
+        validFrom:
+          type: string
+          format: date-time
+        validTo:
+          type: string
+          format: date-time
+        publicKey:
+          type: string
+        certificateData:
+          type: string
+          format: byte
+          description: Base64 encoded X.509 certificate
+        status:
+          type: string
+          enum:
+            - ACTIVE
+            - EXPIRED
+            - REVOKED
+      required:
+        - id
+        - subject
+        - issuer
+        - validFrom
+        - validTo
+        - certificateData
+        - status
+
+    CertificateRequest:
+      type: object
+      properties:
+        subject:
+          type: string
+          example: "CN=Document Signer 001,O=Department of State,C=US"
+        validityDays:
+          type: integer
+          example: 365
+        keyAlgorithm:
+          type: string
+          enum:
+            - RSA
+            - EC
+        keySize:
+          type: integer
+          example: 2048
+      required:
+        - subject
+        - validityDays
+        - keyAlgorithm
+
+    PassportRequest:
+      type: object
+      properties:
+        documentNumber:
+          type: string
+          example: "123456789"
+        issuingCountry:
+          type: string
+          example: "USA"
+        surname:
+          type: string
+          example: "SMITH"
+        givenNames:
+          type: string
+          example: "JOHN"
+        nationality:
+          type: string
+          example: "USA"
+        dateOfBirth:
+          type: string
+          format: date
+          example: "1990-01-01"
+        gender:
+          type: string
+          enum:
+            - M
+            - F
+            - X
+        dateOfExpiry:
+          type: string
+          format: date
+          example: "2030-01-01"
+        personalNumber:
+          type: string
+          example: "AB123456"
+        photo:
+          type: string
+          format: byte
+          description: Base64 encoded JPEG photo
+      required:
+        - documentNumber
+        - issuingCountry
+        - surname
+        - givenNames
+        - nationality
+        - dateOfBirth
+        - gender
+        - dateOfExpiry
+        - photo
+
+    Passport:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        documentData:
+          type: object
+          properties:
+            documentNumber:
+              type: string
+            issuingCountry:
+              type: string
+            surname:
+              type: string
+            givenNames:
+              type: string
+            nationality:
+              type: string
+            dateOfBirth:
+              type: string
+              format: date
+            gender:
+              type: string
+            dateOfExpiry:
+              type: string
+              format: date
+        mrz:
+          type: string
+        securityObject:
+          type: string
+          format: byte
+          description: Base64 encoded SOD
+        chipContent:
+          type: string
+          format: byte
+          description: Base64 encoded LDS data
+      required:
+        - id
+        - documentData
+        - mrz
+        - securityObject
+        - chipContent
+
+    PassportVerificationRequest:
+      type: object
+      properties:
+        passportData:
+          type: string
+          format: byte
+          description: Base64 encoded passport data
+        trustAnchorIds:
+          type: array
+          items:
+            type: string
+      required:
+        - passportData
+
+    VerificationResult:
+      type: object
+      properties:
+        valid:
+          type: boolean
+        documentNumber:
+          type: string
+        issuingCountry:
+          type: string
+        signerCertificateId:
+          type: string
+        signatureValid:
+          type: boolean
+        dataGroupsValid:
+          type: object
+          additionalProperties:
+            type: boolean
+        errors:
+          type: array
+          items:
+            type: string
+      required:
+        - valid
+        - documentNumber
+        - issuingCountry
+        - signatureValid
+
+    MasterListResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          example: "123e4567-e89b-12d3-a456-426614174000"
+        version:
+          type: integer
+          example: 42
+        created:
+          type: string
+          format: date-time
+        countries:
+          type: array
+          items:
+            type: string
+            example: "USA"
+        certificates:
+          type: array
+          items:
+            $ref: '#/components/schemas/Certificate'
+      required:
+        - id
+        - version
+        - created
+        - countries
+        - certificates
+
+    MasterListUploadResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        version:
+          type: integer
+        created:
+          type: string
+          format: date-time
+        status:
+          type: string
+          enum:
+            - PROCESSED
+            - PENDING
+            - ERROR
+        certificateCount:
+          type: integer
+      required:
+        - id
+        - version
+        - created
+        - status
+        - certificateCount
+
+    DscListResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        version:
+          type: integer
+        created:
+          type: string
+          format: date-time
+        countries:
+          type: array
+          items:
+            type: string
+        certificates:
+          type: array
+          items:
+            $ref: '#/components/schemas/Certificate'
+      required:
+        - id
+        - version
+        - created
+        - countries
+        - certificates
+
+    DscListUploadResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        version:
+          type: integer
+        created:
+          type: string
+          format: date-time
+        status:
+          type: string
+          enum:
+            - PROCESSED
+            - PENDING
+            - ERROR
+        certificateCount:
+          type: integer
+      required:
+        - id
+        - version
+        - created
+        - status
+        - certificateCount
+
+    CrlResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        version:
+          type: integer
+        created:
+          type: string
+          format: date-time
+        issuer:
+          type: string
+        thisUpdate:
+          type: string
+          format: date-time
+        nextUpdate:
+          type: string
+          format: date-time
+        revokedCertificates:
+          type: array
+          items:
+            $ref: '#/components/schemas/RevokedCertificate'
+      required:
+        - id
+        - version
+        - created
+        - issuer
+        - thisUpdate
+        - nextUpdate
+
+    CrlUploadResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        version:
+          type: integer
+        created:
+          type: string
+          format: date-time
+        status:
+          type: string
+          enum:
+            - PROCESSED
+            - PENDING
+            - ERROR
+        revokedCount:
+          type: integer
+      required:
+        - id
+        - version
+        - created
+        - status
+        - revokedCount
+
+    RevokedCertificate:
+      type: object
+      properties:
+        serialNumber:
+          type: string
+        revocationDate:
+          type: string
+          format: date-time
+        reasonCode:
+          type: integer
+      required:
+        - serialNumber
+        - revocationDate
+
+    DeviationListResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        version:
+          type: integer
+        created:
+          type: string
+          format: date-time
+        deviations:
+          type: array
+          items:
+            $ref: '#/components/schemas/Deviation'
+      required:
+        - id
+        - version
+        - created
+        - deviations
+
+    DeviationListRequest:
+      type: object
+      properties:
+        deviations:
+          type: array
+          items:
+            $ref: '#/components/schemas/Deviation'
+      required:
+        - deviations
+
+    DeviationListUploadResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        version:
+          type: integer
+        created:
+          type: string
+          format: date-time
+        status:
+          type: string
+          enum:
+            - PROCESSED
+            - PENDING
+            - ERROR
+        deviationCount:
+          type: integer
+      required:
+        - id
+        - version
+        - created
+        - status
+        - deviationCount
+
+    Deviation:
+      type: object
+      properties:
+        country:
+          type: string
+        type:
+          type: string
+          enum:
+            - CSCA_MISSING
+            - DSC_MISSING
+            - CRL_MISSING
+            - CRL_EXPIRED
+            - CERTIFICATE_INVALID
+        certificateId:
+          type: string
+        description:
+          type: string
+      required:
+        - country
+        - type
+
+    PkdSyncRequest:
+      type: object
+      properties:
+        syncSource:
+          type: string
+          example: "https://pkd.icao.int"
+        components:
+          type: array
+          items:
+            type: string
+            enum:
+              - MASTERLIST
+              - DSCLIST
+              - CRL
+              - DEVIATIONLIST
+        forceSync:
+          type: boolean
+      required:
+        - syncSource
+        - components
+
+    PkdSyncResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        status:
+          type: string
+          enum:
+            - INITIATED
+            - IN_PROGRESS
+            - COMPLETED
+            - FAILED
+        startTime:
+          type: string
+          format: date-time
+      required:
+        - id
+        - status
+        - startTime
+
+    PkdSyncStatusResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        status:
+          type: string
+          enum:
+            - NOT_STARTED
+            - IN_PROGRESS
+            - COMPLETED
+            - FAILED
+        startTime:
+          type: string
+          format: date-time
+        endTime:
+          type: string
+          format: date-time
+        components:
+          type: object
+          additionalProperties:
+            type: string
+            enum:
+              - PENDING
+              - IN_PROGRESS
+              - COMPLETED
+              - FAILED
+        errorMessage:
+          type: string
+      required:
+        - id
+        - status

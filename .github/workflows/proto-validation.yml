@@ -1,0 +1,71 @@
+name: Proto Validation
+
+on:
+  push:
+    branches: [ main, develop ]
+    paths:
+      - 'proto/**'
+      - 'src/compile_protos.py'
+      - '.github/workflows/proto-validation.yml'
+  pull_request:
+    branches: [ main, develop ]
+    paths:
+      - 'proto/**'
+      - 'src/compile_protos.py'
+      - '.github/workflows/proto-validation.yml'
+
+jobs:
+  validate-protos:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.9'
+        
+    - name: Install system dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y protobuf-compiler
+        
+    - name: Install Python dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install grpcio-tools protobuf
+        
+    - name: Compile protocol buffers
+      run: |
+        python -m src.compile_protos
+        
+    - name: Check for uncommitted proto changes
+      run: |
+        if [ -n "$(git status --porcelain src/proto/)" ]; then
+          echo "Error: Protocol buffer files are not up to date!"
+          echo "Please run 'python -m src.compile_protos' and commit the changes."
+          git status src/proto/
+          git diff src/proto/
+          exit 1
+        fi
+        
+    - name: Validate proto import consistency
+      run: |
+        # Check that all proto imports use the correct pattern
+        if grep -r "from proto import" src/ --include="*.py" --exclude-dir=proto; then
+          echo "Error: Found incorrect proto import patterns!"
+          echo "Please use 'from src.proto import' instead of 'from proto import'"
+          exit 1
+        fi
+        echo "All proto imports are consistent ✓"
+        
+    - name: Validate proto file syntax
+      run: |
+        # Validate all proto files can be compiled
+        for proto_file in proto/*.proto; do
+          echo "Validating $proto_file..."
+          protoc --proto_path=proto --python_out=/tmp "$proto_file"
+        done
+        echo "All proto files are syntactically valid ✓"

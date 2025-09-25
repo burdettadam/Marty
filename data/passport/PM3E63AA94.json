@@ -1,0 +1,12 @@
+{
+  "passport_number": "PM3E63AA94",
+  "issue_date": "2025-05-06",
+  "expiry_date": "2035-05-06",
+  "data_groups": {
+    "DG1": "MRZ-DATA-PM3E63AA94",
+    "DG2": "PHOTO-DATA-PM3E63AA94",
+    "DG3": "FINGERPRINT-DATA-PM3E63AA94",
+    "DG4": "IRIS-DATA-PM3E63AA94"
+  },
+  "sod": "Ylu++7C6SLkGgYRlSDBjB7u4ZW90uDfDHPo85y/f31s=.1746509542"
+}

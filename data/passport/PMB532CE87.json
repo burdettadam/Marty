@@ -1,0 +1,12 @@
+{
+  "passport_number": "PMB532CE87",
+  "issue_date": "2025-05-06",
+  "expiry_date": "2035-05-06",
+  "data_groups": {
+    "DG1": "MRZ-DATA-PMB532CE87",
+    "DG2": "PHOTO-DATA-PMB532CE87",
+    "DG3": "FINGERPRINT-DATA-PMB532CE87",
+    "DG4": "IRIS-DATA-PMB532CE87"
+  },
+  "sod": "CXSAngSYHSNXVHdGlyronHWxBHTzY19R/XFo/mlw9DM=.1746510495"
+}

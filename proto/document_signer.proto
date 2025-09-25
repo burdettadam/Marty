@@ -1,0 +1,25 @@
+syntax = "proto3";
+
+package document;
+
+service DocumentSigner {
+  rpc SignDocument (SignRequest) returns (SignResponse);
+}
+
+message SignRequest {
+  string document_id = 1;
+  bytes document_content = 2;
+  // string algorithm = 3; // Optional: As per service.py, can be added later if needed
+}
+
+message SignatureInfo {
+  string signature_date = 1; // ISO format YYYY-MM-DDTHH:MM:SSZ
+  string signer_id = 2;
+  bytes signature = 3;     // The actual signature bytes
+}
+
+message SignResponse {
+  bool success = 1;
+  string error_message = 2;
+  SignatureInfo signature_info = 3;
+}

@@ -1,0 +1,496 @@
+networks:
+  marty-network:
+    driver: bridge
+
+services:
+  postgres:
+    image: postgres:13
+    container_name: marty-postgres
+    environment:
+      POSTGRES_USER: martyuser
+      POSTGRES_PASSWORD: martypassword
+      POSTGRES_DB: martydb
+    ports:
+      - "5432:5432"
+    volumes:
+      - marty_postgres_data:/var/lib/postgresql/data
+    networks:
+      - marty-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U martyuser -d martydb"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  trust-anchor:
+    platform: linux/amd64
+    build:
+      context: .
+      dockerfile: docker/trust-anchor.Dockerfile
+    container_name: trust-anchor-service
+    ports:
+      - "9080:8080"
+    environment:
+      - ENV=production
+      - SERVICE_NAME=trust-anchor
+      - GRPC_PORT=8080
+      # Service discovery environment variables
+      - CSCA_SERVICE_HOST=csca-service
+      - CSCA_SERVICE_PORT=8081
+      - DOCUMENT_SIGNER_HOST=document-signer
+      - DOCUMENT_SIGNER_PORT=8082
+      - INSPECTION_SYSTEM_HOST=inspection-system
+      - INSPECTION_SYSTEM_PORT=8083
+      - PASSPORT_ENGINE_HOST=passport-engine
+      - PASSPORT_ENGINE_PORT=8084
+      - MDL_ENGINE_HOST=mdl-engine
+      - MDL_ENGINE_PORT=8085
+      - MDOC_ENGINE_HOST=mdoc-engine
+      - MDOC_ENGINE_PORT=8086
+      - DTC_ENGINE_HOST=dtc-engine
+      - DTC_ENGINE_PORT=8087
+    volumes:
+      - ./data/trust:/app/data
+    healthcheck:
+      test: ["CMD", "python", "-c", "import grpc; channel = grpc.insecure_channel('localhost:8080'); channel.close()"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - marty-network
+
+  csca-service:
+    platform: linux/amd64
+    build:
+      context: .
+      dockerfile: docker/csca-service.Dockerfile
+    container_name: csca-service
+    ports:
+      - "8081:8081"
+    environment:
+      - ENV=production
+      - SERVICE_NAME=csca-service
+      - GRPC_PORT=8081
+      # Service discovery environment variables
+      - TRUST_ANCHOR_HOST=trust-anchor
+      - TRUST_ANCHOR_PORT=8080
+      - DOCUMENT_SIGNER_HOST=document-signer
+      - DOCUMENT_SIGNER_PORT=8082
+      - INSPECTION_SYSTEM_HOST=inspection-system
+      - INSPECTION_SYSTEM_PORT=8083
+      - PASSPORT_ENGINE_HOST=passport-engine
+      - PASSPORT_ENGINE_PORT=8084
+      - MDL_ENGINE_HOST=mdl-engine
+      - MDL_ENGINE_PORT=8085
+      - MDOC_ENGINE_HOST=mdoc-engine
+      - MDOC_ENGINE_PORT=8086
+      - DTC_ENGINE_HOST=dtc-engine
+      - DTC_ENGINE_PORT=8087
+    volumes:
+      - ./data/csca:/app/data
+    healthcheck:
+      test: ["CMD", "python", "-c", "import grpc; channel = grpc.insecure_channel('localhost:8081'); channel.close()"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - marty-network
+
+  document-signer:
+    platform: linux/amd64
+    build:
+      context: .
+      dockerfile: docker/document-signer.Dockerfile
+    container_name: document-signer-service
+    ports:
+      - "8082:8082"
+    environment:
+      - ENV=production
+      - SERVICE_NAME=document-signer
+      - GRPC_PORT=8082
+      # Service discovery environment variables
+      - TRUST_ANCHOR_HOST=trust-anchor
+      - TRUST_ANCHOR_PORT=8080
+      - CSCA_SERVICE_HOST=csca-service
+      - CSCA_SERVICE_PORT=8081
+      - INSPECTION_SYSTEM_HOST=inspection-system
+      - INSPECTION_SYSTEM_PORT=8083
+      - PASSPORT_ENGINE_HOST=passport-engine
+      - PASSPORT_ENGINE_PORT=8084
+      - MDL_ENGINE_HOST=mdl-engine
+      - MDL_ENGINE_PORT=8085
+      - MDOC_ENGINE_HOST=mdoc-engine
+      - MDOC_ENGINE_PORT=8086
+      - DTC_ENGINE_HOST=dtc-engine
+      - DTC_ENGINE_PORT=8087
+    volumes:
+      - ./data/ds:/app/data
+    healthcheck:
+      test: ["CMD", "python", "-c", "import grpc; channel = grpc.insecure_channel('localhost:8082'); channel.close()"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    depends_on:
+      csca-service:
+        condition: service_healthy
+    networks:
+      - marty-network
+
+  inspection-system:
+    platform: linux/amd64
+    build:
+      context: .
+      dockerfile: docker/inspection-system.Dockerfile
+    container_name: inspection-system-service
+    ports:
+      - "8083:8083"
+    environment:
+      - ENV=production
+      - SERVICE_NAME=inspection-system
+      - GRPC_PORT=8083
+      # Service discovery environment variables
+      - TRUST_ANCHOR_HOST=trust-anchor
+      - TRUST_ANCHOR_PORT=8080
+      - CSCA_SERVICE_HOST=csca-service
+      - CSCA_SERVICE_PORT=8081
+      - DOCUMENT_SIGNER_HOST=document-signer
+      - DOCUMENT_SIGNER_PORT=8082
+      - PASSPORT_ENGINE_HOST=passport-engine
+      - PASSPORT_ENGINE_PORT=8084
+      - MDL_ENGINE_HOST=mdl-engine
+      - MDL_ENGINE_PORT=8085
+      - MDOC_ENGINE_HOST=mdoc-engine
+      - MDOC_ENGINE_PORT=8086
+      - DTC_ENGINE_HOST=dtc-engine
+      - DTC_ENGINE_PORT=8087
+      # Add path to passport data for verification
+      - PASSPORT_DATA_DIR=/app/passport_data
+      - MDL_DATA_DIR=/app/mdl_data
+      - MDOC_DATA_DIR=/app/mdoc_data
+    volumes:
+      - ./data/inspection:/app/data
+      - ./data/passport:/app/passport_data
+      - ./data/mdl:/app/mdl_data
+      - ./data/mdoc:/app/mdoc_data
+    healthcheck:
+      test: ["CMD", "python", "-c", "import grpc; channel = grpc.insecure_channel('localhost:8083'); channel.close()"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - marty-network
+
+  passport-engine:
+    platform: linux/amd64
+    build:
+      context: .
+      dockerfile: docker/passport-engine.Dockerfile
+    container_name: passport-engine-service
+    ports:
+      - "8084:8084"
+    environment:
+      - ENV=production
+      - SERVICE_NAME=passport-engine
+      - GRPC_PORT=8084
+      # Service discovery environment variables
+      - TRUST_ANCHOR_HOST=trust-anchor
+      - TRUST_ANCHOR_PORT=8080
+      - CSCA_SERVICE_HOST=csca-service
+      - CSCA_SERVICE_PORT=8081
+      - DOCUMENT_SIGNER_HOST=document-signer
+      - DOCUMENT_SIGNER_PORT=8082
+      - INSPECTION_SYSTEM_HOST=inspection-system
+      - INSPECTION_SYSTEM_PORT=8083
+      - MDL_ENGINE_HOST=mdl-engine
+      - MDL_ENGINE_PORT=8085
+      - MDOC_ENGINE_HOST=mdoc-engine
+      - MDOC_ENGINE_PORT=8086
+      - DTC_ENGINE_HOST=dtc-engine
+      - DTC_ENGINE_PORT=8087
+    volumes:
+      - ./data/passport:/app/data
+    healthcheck:
+      test: ["CMD", "python", "-c", "import grpc; channel = grpc.insecure_channel('localhost:8084'); channel.close()"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    depends_on:
+      document-signer:
+        condition: service_healthy
+    networks:
+      - marty-network
+      
+  mdl-engine:
+    platform: linux/amd64
+    build:
+      context: .
+      dockerfile: docker/mdl-engine.Dockerfile
+    container_name: mdl-engine-service
+    ports:
+      - "8085:8085"
+    environment:
+      - ENV=production
+      - SERVICE_NAME=mdl-engine
+      - GRPC_PORT=8085
+      - DATABASE_URL=postgresql://martyuser:martypassword@postgres:5432/martydb
+      # Service discovery environment variables
+      - TRUST_ANCHOR_HOST=trust-anchor
+      - TRUST_ANCHOR_PORT=8080
+      - CSCA_SERVICE_HOST=csca-service
+      - CSCA_SERVICE_PORT=8081
+      - DOCUMENT_SIGNER_HOST=document-signer
+      - DOCUMENT_SIGNER_PORT=8082
+      - INSPECTION_SYSTEM_HOST=inspection-system
+      - INSPECTION_SYSTEM_PORT=8083
+      - PASSPORT_ENGINE_HOST=passport-engine
+      - PASSPORT_ENGINE_PORT=8084
+      - MDOC_ENGINE_HOST=mdoc-engine
+      - MDOC_ENGINE_PORT=8086
+      - DTC_ENGINE_HOST=dtc-engine
+      - DTC_ENGINE_PORT=8087
+    volumes:
+      - ./data/mdl:/app/data
+    healthcheck:
+      test: ["CMD", "python", "-c", "import grpc; channel = grpc.insecure_channel('localhost:8085'); channel.close()"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    depends_on:
+      document-signer:
+        condition: service_healthy
+      postgres: # Added dependency on postgres
+        condition: service_healthy
+    networks:
+      - marty-network
+
+  mdoc-engine:
+    platform: linux/amd64
+    build:
+      context: .
+      dockerfile: docker/mdoc-engine.Dockerfile
+    container_name: mdoc-engine-service
+    ports:
+      - "8086:8086"
+    environment:
+      - ENV=production
+      - SERVICE_NAME=mdoc-engine
+      - GRPC_PORT=8086
+      - DATABASE_URL=postgresql://martyuser:martypassword@postgres:5432/martydb
+      # Service discovery environment variables
+      - TRUST_ANCHOR_HOST=trust-anchor
+      - TRUST_ANCHOR_PORT=8080
+      - CSCA_SERVICE_HOST=csca-service
+      - CSCA_SERVICE_PORT=8081
+      - DOCUMENT_SIGNER_HOST=document-signer
+      - DOCUMENT_SIGNER_PORT=8082
+      - INSPECTION_SYSTEM_HOST=inspection-system
+      - INSPECTION_SYSTEM_PORT=8083
+      - PASSPORT_ENGINE_HOST=passport-engine
+      - PASSPORT_ENGINE_PORT=8084
+      - MDL_ENGINE_HOST=mdl-engine
+      - MDL_ENGINE_PORT=8085
+      - DTC_ENGINE_HOST=dtc-engine
+      - DTC_ENGINE_PORT=8087
+    volumes:
+      - ./data/mdoc:/app/data
+    healthcheck:
+      test: ["CMD", "python", "-c", "import grpc; channel = grpc.insecure_channel('localhost:8086'); channel.close()"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    depends_on:
+      document-signer:
+        condition: service_healthy
+      postgres: # Added dependency on postgres
+        condition: service_healthy
+    networks:
+      - marty-network
+
+  dtc-engine:
+    platform: linux/amd64
+    build:
+      context: .
+      dockerfile: docker/dtc-engine.Dockerfile
+    container_name: dtc-engine-service
+    ports:
+      - "8087:8087"
+    environment:
+      - ENV=production
+      - SERVICE_NAME=dtc-engine
+      - GRPC_PORT=8087
+      # Service discovery environment variables
+      - TRUST_ANCHOR_HOST=trust-anchor
+      - TRUST_ANCHOR_PORT=8080
+      - CSCA_SERVICE_HOST=csca-service
+      - CSCA_SERVICE_PORT=8081
+      - DOCUMENT_SIGNER_HOST=document-signer
+      - DOCUMENT_SIGNER_PORT=8082
+      - INSPECTION_SYSTEM_HOST=inspection-system
+      - INSPECTION_SYSTEM_PORT=8083
+      - PASSPORT_ENGINE_HOST=passport-engine
+      - PASSPORT_ENGINE_PORT=8084
+      - MDL_ENGINE_HOST=mdl-engine
+      - MDL_ENGINE_PORT=8085
+      - MDOC_ENGINE_HOST=mdoc-engine
+      - MDOC_ENGINE_PORT=8086
+    volumes:
+      - ./data/dtc:/app/data
+    healthcheck:
+      test: ["CMD", "python", "-c", "import grpc; channel = grpc.insecure_channel('localhost:8087'); channel.close()"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    depends_on:
+      document-signer:
+        condition: service_healthy
+      passport-engine:
+        condition: service_healthy
+    networks:
+      - marty-network
+
+  grpc-test:
+    platform: linux/amd64
+    build:
+      context: .
+      dockerfile: docker/grpc-test.Dockerfile
+    container_name: grpc-test-service
+    ports:
+      - "50051:50051"
+    volumes:
+      - ./src:/app/src
+      - ./proto:/app/proto
+      - ./test_log.log:/app/test_log.log
+    environment:
+      - PYTHONUNBUFFERED=1
+      - TEST_MODE=true
+      # Service discovery environment variables
+      - TRUST_ANCHOR_HOST=trust-anchor
+      - TRUST_ANCHOR_PORT=8080
+      - CSCA_SERVICE_HOST=csca-service
+      - CSCA_SERVICE_PORT=8081
+      - DOCUMENT_SIGNER_HOST=document-signer
+      - DOCUMENT_SIGNER_PORT=8082
+      - INSPECTION_SYSTEM_HOST=inspection-system
+      - INSPECTION_SYSTEM_PORT=8083
+      - PASSPORT_ENGINE_HOST=passport-engine
+      - PASSPORT_ENGINE_PORT=8084
+      - MDL_ENGINE_HOST=mdl-engine
+      - MDL_ENGINE_PORT=8085
+      - MDOC_ENGINE_HOST=mdoc-engine
+      - MDOC_ENGINE_PORT=8086
+      - DTC_ENGINE_HOST=dtc-engine
+      - DTC_ENGINE_PORT=8087
+    depends_on:
+      trust-anchor:
+        condition: service_healthy
+      csca-service:
+        condition: service_healthy
+      document-signer:
+        condition: service_healthy
+      inspection-system:
+        condition: service_healthy
+      passport-engine:
+        condition: service_healthy
+      mdl-engine:
+        condition: service_healthy
+      mdoc-engine:
+        condition: service_healthy
+      dtc-engine:
+        condition: service_healthy
+      postgres: # Added dependency on postgres
+        condition: service_healthy
+    networks:
+      - marty-network
+
+  pkd-service:
+    platform: linux/amd64
+    build:
+      context: .
+      dockerfile: docker/pkd-service.Dockerfile
+    container_name: pkd-service
+    ports:
+      - "8088:8000"
+    environment:
+      - ENVIRONMENT=production
+      - PKD_API_KEY=your_secure_api_key_for_production
+      - SECRET_KEY=your_secure_secret_key_for_production_jwt
+      - API_V1_STR=/v1/pkd
+      # Service discovery environment variables
+      - CSCA_SERVICE_ENDPOINT=csca-service:8081
+      - DS_SERVICE_ENDPOINT=document-signer:8082
+      - TRUST_ANCHOR_ENDPOINT=trust-anchor:8080
+      # PKD synchronization configuration
+      - PKD_SYNC_INTERVAL_HOURS=24
+      - EXTERNAL_PKD_URL=https://pkd.icao.int
+      # Storage paths
+      - PKD_MASTERLIST_PATH=/data/pkd/masterlist
+      - PKD_DSCLIST_PATH=/data/pkd/dsclist
+      - PKD_CRL_PATH=/data/pkd/crl
+    volumes:
+      - ./data/pkd:/data/pkd
+    healthcheck:
+      test: ["CMD", "python", "-c", "import requests; requests.get('http://localhost:8000/v1/csca/health', timeout=5)"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 20s
+    depends_on:
+      csca-service:
+        condition: service_healthy
+      document-signer:
+        condition: service_healthy
+      trust-anchor:
+        condition: service_healthy
+    networks:
+      - marty-network
+
+  ui-app:
+    platform: linux/amd64
+    build:
+      context: .
+      dockerfile: docker/ui-app.Dockerfile
+    container_name: ui-app-service
+    ports:
+      - "8090:8090"
+    environment:
+      - SERVICE_NAME=ui-app
+      - UI_TITLE=Marty Operator Console
+      - UI_ENVIRONMENT=production
+      - UI_PASSPORT_ENGINE_ADDR=passport-engine:8084
+      - UI_INSPECTION_SYSTEM_ADDR=inspection-system:8083
+      - UI_MDL_ENGINE_ADDR=mdl-engine:8085
+      - UI_TRUST_ANCHOR_ADDR=trust-anchor:8080
+      - UI_GRPC_TIMEOUT_SECONDS=10
+      - UI_ENABLE_MOCK_DATA=false
+      - UI_THEME=light
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8090/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 20s
+    depends_on:
+      trust-anchor:
+        condition: service_healthy
+      csca-service:
+        condition: service_healthy
+      document-signer:
+        condition: service_healthy
+      inspection-system:
+        condition: service_healthy
+      passport-engine:
+        condition: service_healthy
+      mdl-engine:
+        condition: service_healthy
+      mdoc-engine:
+        condition: service_healthy
+      dtc-engine:
+        condition: service_healthy
+      pkd-service:
+        condition: service_healthy
+    networks:
+      - marty-network
+
+volumes:
+  marty_data:
+  marty_postgres_data: # Added volume for postgres data

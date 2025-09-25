@@ -1,0 +1,12 @@
+{
+  "passport_number": "PE0365774F",
+  "issue_date": "2025-05-06",
+  "expiry_date": "2035-05-06",
+  "data_groups": {
+    "DG1": "MRZ-DATA-PE0365774F",
+    "DG2": "PHOTO-DATA-PE0365774F",
+    "DG3": "FINGERPRINT-DATA-PE0365774F",
+    "DG4": "IRIS-DATA-PE0365774F"
+  },
+  "sod": "ld6uysqVkDxXOPWUwKUu2DZC1lTROzK4zlhjgosEJGg=.1746514305"
+}

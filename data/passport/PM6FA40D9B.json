@@ -1,0 +1,12 @@
+{
+  "passport_number": "PM6FA40D9B",
+  "issue_date": "2025-05-06",
+  "expiry_date": "2035-05-06",
+  "data_groups": {
+    "DG1": "MRZ-DATA-PM6FA40D9B",
+    "DG2": "PHOTO-DATA-PM6FA40D9B",
+    "DG3": "FINGERPRINT-DATA-PM6FA40D9B",
+    "DG4": "IRIS-DATA-PM6FA40D9B"
+  },
+  "sod": "0dInGCs2l28rRLKuy4r2+WLswvyfZRYbW2A92VNx/VU=.1746510230"
+}

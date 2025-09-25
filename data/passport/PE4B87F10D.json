@@ -1,0 +1,12 @@
+{
+  "passport_number": "PE4B87F10D",
+  "issue_date": "2025-05-07",
+  "expiry_date": "2035-05-07",
+  "data_groups": {
+    "DG1": "MRZ-DATA-PE4B87F10D",
+    "DG2": "PHOTO-DATA-PE4B87F10D",
+    "DG3": "FINGERPRINT-DATA-PE4B87F10D",
+    "DG4": "IRIS-DATA-PE4B87F10D"
+  },
+  "sod": "oVfVOQNehS1ODzq0Im3NZg3CZXHlfI6RARZwjls8B3w=.1746632106"
+}

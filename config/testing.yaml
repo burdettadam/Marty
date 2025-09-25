@@ -1,0 +1,134 @@
+# Testing environment configuration
+
+# Service ports
+ports:
+  csca_service: 9081
+  document_signer: 9082
+  passport_engine: 9084
+  inspection_system: 9083
+  trust_anchor: 9080
+
+# Service hosts
+hosts:
+  csca_service: localhost
+  document_signer: localhost
+  passport_engine: localhost
+  inspection_system: localhost
+  trust_anchor: localhost
+
+# Logging
+logging:
+  level: DEBUG
+  format: '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+  file: logs/test.log
+
+# Database
+database:
+  host: localhost
+  port: 5432
+  user: test_user
+  password: test_password
+  name: marty_test
+
+# Security
+security:
+  key_directory: 'tests/fixtures/keys'
+  key_rotation_days: 365
+  certificate_validity_days: 365
+
+# Feature flags
+features:
+  enable_debug_endpoints: true
+  enable_performance_tracking: false
+  enable_detailed_logging: true
+
+# Test orchestration settings
+orchestration:
+  max_startup_time: 60  # Maximum time to wait for all services to start
+  health_check_timeout: 30  # Timeout for individual service health checks
+  service_startup_delay: 5  # Default delay between service starts
+  cleanup_timeout: 30  # Time to wait for services to stop during cleanup
+
+# Service-specific configurations for orchestration
+services:
+  postgres:
+    startup_delay: 15  # Postgres needs more time to initialize
+    health_check_retries: 10
+    required_for: ["integration", "e2e"]
+  
+  trust-anchor:
+    startup_delay: 5
+    dependencies: ["postgres"]
+    required_for: ["integration", "e2e"]
+  
+  csca-service:
+    startup_delay: 5
+    dependencies: ["postgres", "trust-anchor"]
+    required_for: ["integration", "e2e"]
+  
+  document-signer:
+    startup_delay: 5
+    dependencies: ["postgres", "trust-anchor"]
+    required_for: ["e2e"]
+  
+  inspection-system:
+    startup_delay: 5
+    dependencies: ["postgres", "csca-service"]
+    required_for: ["e2e"]
+  
+  passport-engine:
+    startup_delay: 5
+    dependencies: ["postgres", "document-signer"]
+    required_for: ["e2e"]
+  
+  mdl-engine:
+    startup_delay: 5
+    dependencies: ["postgres"]
+    required_for: ["e2e"]
+  
+  mdoc-engine:
+    startup_delay: 5
+    dependencies: ["postgres"]
+    required_for: ["e2e"]
+  
+  dtc-engine:
+    startup_delay: 5
+    dependencies: ["postgres"]
+    required_for: ["e2e"]
+
+# Test environment modes
+test_modes:
+  unit:
+    description: "Unit tests with no service dependencies"
+    services_required: []
+    parallel_execution: true
+    
+  mock:
+    description: "Tests with mocked services"
+    services_required: []
+    parallel_execution: true
+    
+  integration:
+    description: "Integration tests with core services"
+    services_required: ["postgres", "trust-anchor", "csca-service"]
+    parallel_execution: false
+    
+  e2e:
+    description: "End-to-end tests with full service stack"
+    services_required: ["postgres", "trust-anchor", "csca-service", "document-signer", 
+                       "inspection-system", "passport-engine", "mdl-engine", "mdoc-engine", "dtc-engine"]
+    parallel_execution: false
+
+# Test isolation settings
+isolation:
+  cleanup_between_tests: true
+  reset_databases: true
+  clean_temp_files: true
+  isolation_level: "test_class"  # Options: test_function, test_class, test_module
+
+# Docker settings
+docker:
+  compose_file: "docker-compose.yml"
+  network: "marty-network"
+  build_timeout: 300
+  startup_timeout: 120

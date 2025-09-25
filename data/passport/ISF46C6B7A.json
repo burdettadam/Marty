@@ -1,0 +1,12 @@
+{
+  "passport_number": "ISF46C6B7A",
+  "issue_date": "2025-05-07",
+  "expiry_date": "2035-05-07",
+  "data_groups": {
+    "DG1": "MRZ-DATA-ISF46C6B7A",
+    "DG2": "PHOTO-DATA-ISF46C6B7A",
+    "DG3": "FINGERPRINT-DATA-ISF46C6B7A",
+    "DG4": "IRIS-DATA-ISF46C6B7A"
+  },
+  "sod": "+9UGlUfx+dHjVZ9PJrADuthSbVfF25CR6EIGcMwjP6M=.1746632102"
+}

@@ -1,0 +1,12 @@
+{
+  "passport_number": "PMC3DA221E",
+  "issue_date": "2025-05-06",
+  "expiry_date": "2035-05-06",
+  "data_groups": {
+    "DG1": "MRZ-DATA-PMC3DA221E",
+    "DG2": "PHOTO-DATA-PMC3DA221E",
+    "DG3": "FINGERPRINT-DATA-PMC3DA221E",
+    "DG4": "IRIS-DATA-PMC3DA221E"
+  },
+  "sod": "TNvAd0KKhvJ2cn47oIESJGzAUmKXDIjl/w180LIOVJI=.1746516109"
+}

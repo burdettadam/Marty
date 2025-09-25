@@ -1,0 +1,12 @@
+{
+  "passport_number": "PMF54B3700",
+  "issue_date": "2025-05-06",
+  "expiry_date": "2035-05-06",
+  "data_groups": {
+    "DG1": "MRZ-DATA-PMF54B3700",
+    "DG2": "PHOTO-DATA-PMF54B3700",
+    "DG3": "FINGERPRINT-DATA-PMF54B3700",
+    "DG4": "IRIS-DATA-PMF54B3700"
+  },
+  "sod": "7012CX3/FGln+RT8vN4RdyL9/urQc5sRjJ+MTlUjizs=.1746515356"
+}

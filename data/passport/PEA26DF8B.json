@@ -1,0 +1,12 @@
+{
+  "passport_number": "PEA26DF8B",
+  "issue_date": "2025-05-06",
+  "expiry_date": "2035-05-06",
+  "data_groups": {
+    "DG1": "MRZ-DATA-PEA26DF8B",
+    "DG2": "PHOTO-DATA-PEA26DF8B",
+    "DG3": "FINGERPRINT-DATA-PEA26DF8B",
+    "DG4": "IRIS-DATA-PEA26DF8B"
+  },
+  "sod": "VgKCmpbJwDlUZCx9xI5srunK/DFgHsIm64l8T05/9og=.1746510224"
+}

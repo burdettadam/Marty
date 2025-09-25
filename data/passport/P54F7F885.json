@@ -1,0 +1,12 @@
+{
+  "passport_number": "P54F7F885",
+  "issue_date": "2025-05-06",
+  "expiry_date": "2035-05-06",
+  "data_groups": {
+    "DG1": "MRZ-DATA-P54F7F885",
+    "DG2": "PHOTO-DATA-P54F7F885",
+    "DG3": "FINGERPRINT-DATA-P54F7F885",
+    "DG4": "IRIS-DATA-P54F7F885"
+  },
+  "sod": "rvqqMg6IcOcbWV1zc+FzZOJtZSyPEjA7dsXTzVbhrpY=.1746509536"
+}

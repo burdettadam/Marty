@@ -1,0 +1,12 @@
+{
+  "passport_number": "PM92032EB2",
+  "issue_date": "2025-05-06",
+  "expiry_date": "2035-05-06",
+  "data_groups": {
+    "DG1": "MRZ-DATA-PM92032EB2",
+    "DG2": "PHOTO-DATA-PM92032EB2",
+    "DG3": "FINGERPRINT-DATA-PM92032EB2",
+    "DG4": "IRIS-DATA-PM92032EB2"
+  },
+  "sod": "z4P6Zbdeq15A9zCyATlhQWuJkWoqobEcolCksA3stPs=.1746510230"
+}

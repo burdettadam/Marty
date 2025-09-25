@@ -1,0 +1,66 @@
+name: Marty CI
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: [3.10]
+
+    steps:
+    - uses: actions/checkout@v3
+    
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v4
+      with:
+        python-version: ${{ matrix.python-version }}
+        
+    - name: Install uv
+      run: pip install uv
+      
+    - name: Install dependencies
+      run: |
+        uv pip install -e .
+        
+    - name: Compile proto files
+      run: python -m src.compile_protos
+        
+    - name: Run unit tests
+      run: uv run -m pytest tests/unit
+      
+    - name: Run integration tests
+      run: uv run -m pytest tests/integration
+
+  lint:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v3
+    
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.10'
+        
+    - name: Install uv and linting tools
+      run: |
+        pip install uv
+        uv pip install black isort ruff mypy
+        
+    - name: Check code formatting with Black
+      run: uv run -m black --check src tests
+      
+    - name: Check import order with isort
+      run: uv run -m isort --check src tests
+      
+    - name: Lint with ruff
+      run: uv run -m ruff src tests
+        
+    - name: Type check with mypy
+      run: uv run -m mypy src

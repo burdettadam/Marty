@@ -1,0 +1,127 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+pip-wheel-metadata/
+share/python-wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# Virtual environments
+.env
+.venv
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Logs
+*.log
+logs/
+
+# Database
+*.db
+*.sqlite3
+
+# Docker
+docker-compose.override.yml
+
+# Certificates and keys - SECURITY SENSITIVE
+*.pem
+*.key
+*.crt
+*.p12
+*.pfx
+*.cer
+*.der
+private_keys/
+secrets/
+*.secret
+*.password
+config/secrets/
+data/sensitive/
+test_data/private/
+*_private*
+*secret*
+*password*
+private/
+
+# Test coverage
+.coverage
+htmlcov/
+.pytest_cache/
+
+# MyPy
+.mypy_cache/
+.dmypy.json
+dmypy.json
+
+# Ruff
+.ruff_cache/
+
+# UV
+uv.lock
+
+# Temporary files
+*.tmp
+*.temp
+*_temp.py
+*_demo.py
+integration_test.log
+docker_integration_test.log
+
+# Quality reports (can be regenerated)
+*_report.json
+*_report.txt
+bandit_report.json
+safety_report.json
+mypy_report.txt
+radon_*.json
+ruff_report.json
+CODE_QUALITY.md
+QUALITY_REPORT.md
+COMPREHENSIVE_TEST_ANALYSIS_REPORT.md
+PHASE1_CODE_QUALITY_REPORT.md
+
+# Test artifacts that might contain sensitive data
+test_*.py
+*_test_*.py
+fix_imports.py
+
+# Playwright artifacts
+.playwright-mcp/
+tests/e2e/traces/
+tests/e2e/videos/

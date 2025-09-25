@@ -1,0 +1,12 @@
+{
+  "passport_number": "P28933C2F",
+  "issue_date": "2025-05-06",
+  "expiry_date": "2035-05-06",
+  "data_groups": {
+    "DG1": "MRZ-DATA-P28933C2F",
+    "DG2": "PHOTO-DATA-P28933C2F",
+    "DG3": "FINGERPRINT-DATA-P28933C2F",
+    "DG4": "IRIS-DATA-P28933C2F"
+  },
+  "sod": "LXBUcQq8RaYw/4jwu+m/3RBXfMT8tBLNfDecY1YaQLI=.1746508364"
+}

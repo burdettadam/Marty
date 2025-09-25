@@ -1,0 +1,12 @@
+{
+  "passport_number": "PCDF718C2B",
+  "issue_date": "2025-05-07",
+  "expiry_date": "2035-05-07",
+  "data_groups": {
+    "DG1": "MRZ-DATA-PCDF718C2B",
+    "DG2": "PHOTO-DATA-PCDF718C2B",
+    "DG3": "FINGERPRINT-DATA-PCDF718C2B",
+    "DG4": "IRIS-DATA-PCDF718C2B"
+  },
+  "sod": "1DAMvWqo8aanDG8FcvNh/Daft7llP1Un1ufzO9gHVms=.1746632106"
+}

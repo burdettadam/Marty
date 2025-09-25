@@ -1,0 +1,12 @@
+{
+  "passport_number": "PEC00A0742",
+  "issue_date": "2025-05-06",
+  "expiry_date": "2035-05-06",
+  "data_groups": {
+    "DG1": "MRZ-DATA-PEC00A0742",
+    "DG2": "PHOTO-DATA-PEC00A0742",
+    "DG3": "FINGERPRINT-DATA-PEC00A0742",
+    "DG4": "IRIS-DATA-PEC00A0742"
+  },
+  "sod": "ZI+NqCK3MitnIsXMkiiKZgGxRHuDJAOfrPNscZb78WA=.1746515347"
+}

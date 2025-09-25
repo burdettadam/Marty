@@ -1,0 +1,12 @@
+{
+  "passport_number": "PME6737F14",
+  "issue_date": "2025-05-07",
+  "expiry_date": "2035-05-07",
+  "data_groups": {
+    "DG1": "MRZ-DATA-PME6737F14",
+    "DG2": "PHOTO-DATA-PME6737F14",
+    "DG3": "FINGERPRINT-DATA-PME6737F14",
+    "DG4": "IRIS-DATA-PME6737F14"
+  },
+  "sod": "S96zq1+mijfrZmWm/ljw8EZ8fVoavu0IOF+h98ZpImQ=.1746632095"
+}

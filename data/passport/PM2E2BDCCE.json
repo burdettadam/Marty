@@ -1,0 +1,12 @@
+{
+  "passport_number": "PM2E2BDCCE",
+  "issue_date": "2025-05-06",
+  "expiry_date": "2035-05-06",
+  "data_groups": {
+    "DG1": "MRZ-DATA-PM2E2BDCCE",
+    "DG2": "PHOTO-DATA-PM2E2BDCCE",
+    "DG3": "FINGERPRINT-DATA-PM2E2BDCCE",
+    "DG4": "IRIS-DATA-PM2E2BDCCE"
+  },
+  "sod": "lK+mWj4z20ChCZHlU8BdEQ4E5LROBrN8EvTpOCYCbbE=.1746509542"
+}
