@@ -88,7 +88,7 @@ pre-commit-update:
 	@echo "Updating pre-commit hooks..."
 	pre-commit autoupdate
 
-.PHONY: setup clean test lint format proto compile-protos clean-protos build run docker-build docker-run test-unit test-integration test-e2e test-cert-validator test-e2e-ui test-e2e-smoke test-e2e-ui-existing test-e2e-dashboard test-e2e-passport test-e2e-mdl test-e2e-responsive test-e2e-report playwright-install generate-test-data help run-ui run-service-ui run-services-dev check-services stop-services dev-environment demo-environment dev-minimal dev-full dev-status dev-logs dev-clean dev-restart wait-for-services show-endpoints
+.PHONY: setup clean test lint format proto compile-protos clean-protos build run docker-build docker-run test-unit test-integration test-e2e test-cert-validator test-e2e-ui test-e2e-smoke test-e2e-ui-existing test-e2e-dashboard test-e2e-passport test-e2e-mdl test-e2e-responsive test-e2e-report playwright-install generate-test-data help run-ui run-service-ui run-services-dev check-services stop-services dev-environment demo-environment dev-minimal dev-full dev-status dev-logs dev-clean dev-restart wait-for-services show-endpoints test-phase2 test-phase3 test-phase2-units test-phase2-integration test-phase3-units test-phase3-integration test-performance test-coverage test-quick test-security test-all-phases test-setup
 
 PYTHON := uv run python
 UV := uv
@@ -120,7 +120,7 @@ clean:
 	@find . -type f -name "*.log" -delete
 
 # Run all tests with proper orchestration
-test: test-unit test-integration test-e2e test-cert-validator
+test: test-unit test-integration test-e2e test-cert-validator test-all-phases
 
 # Run unit tests (no services needed)
 test-unit:
@@ -141,6 +141,82 @@ test-e2e: ## Run end-to-end tests
 test-cert-validator:
 	@echo "Running certificate validation tests..."
 	@$(UV) run pytest tests/cert_validator/ -v
+
+# =============================================================================
+# PHASE 2/3 PASSPORT VERIFICATION TESTING COMMANDS
+# =============================================================================
+
+# Install test dependencies for comprehensive testing
+test-setup:
+	@echo "Installing comprehensive test dependencies..."
+	@$(UV) add --dev pytest pytest-asyncio pytest-cov pytest-html pytest-xdist coverage psutil
+	@echo "✅ Test dependencies installed!"
+
+# Run all Phase 2 & 3 tests (comprehensive validation)
+test-all-phases: test-phase2 test-phase3 test-performance test-coverage
+	@echo "✅ All Phase 2/3 tests completed successfully!"
+
+# Run all Phase 2 RFID tests
+test-phase2: test-phase2-units test-phase2-integration
+	@echo "✅ Phase 2 RFID tests completed!"
+
+# Run all Phase 3 Security tests  
+test-phase3: test-phase3-units test-phase3-integration
+	@echo "✅ Phase 3 Security tests completed!"
+
+# Run Phase 2 unit tests (RFID components)
+test-phase2-units:
+	@echo "🧪 Running Phase 2 RFID Unit Tests..."
+	@$(UV) run pytest tests/test_phase2_units.py -v -m "unit or phase2 or rfid" --tb=short
+
+# Run Phase 2 integration tests (RFID workflow)
+test-phase2-integration:
+	@echo "🔗 Running Phase 2 RFID Integration Tests..."
+	@$(UV) run pytest tests/test_phase2_integration.py -v -m "integration or phase2 or rfid" --tb=short
+
+# Run Phase 3 unit tests (Security components)
+test-phase3-units:
+	@echo "🔐 Running Phase 3 Security Unit Tests..."
+	@$(UV) run pytest tests/test_phase3_units.py -v -m "unit or phase3 or security" --tb=short
+
+# Run Phase 3 integration tests (Security workflow)
+test-phase3-integration:
+	@echo "🔗 Running Phase 3 Security Integration Tests..."
+	@$(UV) run pytest tests/test_phase3_integration.py -v -m "integration or phase3 or security" --tb=short
+
+# Run performance and scalability tests
+test-performance:
+	@echo "⚡ Running Performance & Scalability Tests..."
+	@$(UV) run pytest tests/test_performance_suite.py -v -m "performance" --tb=short
+
+# Run security-focused tests
+test-security:
+	@echo "🛡️ Running Security Tests..."
+	@$(UV) run pytest tests/ -v -m "security" --tb=short
+
+# Run quick tests only (no slow/performance tests)
+test-quick:
+	@echo "🚀 Running Quick Tests..."
+	@$(UV) run pytest tests/test_phase2_units.py tests/test_phase3_units.py -v -m "not slow and not performance" --tb=short
+
+# Run comprehensive test coverage analysis
+test-coverage:
+	@echo "📊 Running Comprehensive Coverage Analysis..."
+	@if [ -f "generate_test_coverage.py" ]; then \
+		$(UV) run python generate_test_coverage.py; \
+	else \
+		echo "Running basic coverage analysis..."; \
+		$(UV) run pytest --cov=src --cov-report=html --cov-report=term-missing --cov-report=json --cov-fail-under=75 tests/test_phase2_units.py tests/test_phase2_integration.py tests/test_phase3_units.py tests/test_phase3_integration.py tests/test_performance_suite.py; \
+		echo "📈 Coverage report generated in htmlcov/index.html"; \
+	fi
+
+# Clean test artifacts and reports
+test-clean:
+	@echo "🧹 Cleaning test artifacts..."
+	@find . -name ".coverage*" -delete
+	@rm -rf htmlcov/ test-reports/ coverage-reports/ .pytest_cache/
+	@find . -type d -name "__pycache__" -exec rm -rf {} + 2>/dev/null || true
+	@echo "✅ Test artifacts cleaned!"
 
 # =============================================================================
 # PLAYWRIGHT E2E TESTING COMMANDS
@@ -508,6 +584,21 @@ help:
 	@echo "  test-integration   - Run integration tests"
 	@echo "  test-e2e           - Run end-to-end tests (orchestrator)"
 	@echo "  test-cert-validator - Run certificate validator tests"
+	@echo ""
+	@echo "🔐 Phase 2/3 Passport Verification Testing:"
+	@echo "  test-setup           - Install test dependencies"
+	@echo "  test-all-phases      - Run all Phase 2/3 tests (comprehensive)"
+	@echo "  test-phase2          - Run all Phase 2 RFID tests"
+	@echo "  test-phase3          - Run all Phase 3 Security tests"
+	@echo "  test-phase2-units    - Run Phase 2 RFID unit tests"
+	@echo "  test-phase2-integration - Run Phase 2 RFID integration tests"
+	@echo "  test-phase3-units    - Run Phase 3 Security unit tests"
+	@echo "  test-phase3-integration - Run Phase 3 Security integration tests"
+	@echo "  test-performance     - Run performance & scalability tests"
+	@echo "  test-security        - Run security-focused tests"
+	@echo "  test-quick           - Run quick tests (no slow/performance tests)"
+	@echo "  test-coverage        - Run comprehensive coverage analysis"
+	@echo "  test-clean           - Clean test artifacts and reports"
 	@echo ""
 	@echo "🎭 Playwright E2E Testing:"
 	@echo "  playwright-install    - Install Playwright browsers"

@@ -23,6 +23,18 @@ dependencies = [
     "pyscard>=2.1.1",
     "xmlsec>=1.3.15",
     "pydantic>=2.10.6",
+    # RFID and Smart Card Communication
+    "pyscard>=2.0.0", # PC/SC smart card operations (more compatible)
+    "nfcpy>=1.0.0,<=1.0.4", # Python NFC library (compatible version)
+    # Biometric Processing
+    "scikit-image>=0.21.0", # Advanced image processing
+    "numpy>=1.24.0", # Numerical computing foundation
+    "scipy>=1.11.0", # Scientific computing
+    "opencv-contrib-python>=4.8.0", # Extended OpenCV with face recognition
+    "face-recognition>=1.3.0", # Facial recognition library
+    # Hardware Integration
+    "pyusb>=1.2.1", # USB device interface
+    "pyserial>=3.5", # Serial communication
     "pytest-depends>=1.0.1",
     "pytest-datafiles>=2.0.0",
     # "py>=1.11.0", # Removed - has known vulnerability CVE-2022-42969
@@ -43,32 +55,65 @@ dependencies = [
     "pydantic-settings>=2.8.1",
     "pbr>=7.0.1",
     "pytest-asyncio>=1.2.0",
+    "opencv-python>=4.11.0.86",
 ]
 
 [tool.pytest.ini_options]
-minversion = "6.0"
+minversion = "7.0"
 addopts = [
+    "-v",  # Verbose output
+    "--tb=short",  # Short traceback format
     "--strict-markers",
     "--strict-config",
+    "--color=yes",  # Force colored output
+    "--durations=10",  # Show 10 slowest tests
+    "--maxfail=5",  # Stop after 5 failures
     "--disable-warnings",
 ]
 testpaths = ["tests"]
-python_files = ["test_*.py"]
-python_classes = ["Test*"]
+python_files = ["test_*.py", "*_test.py"]
+python_classes = ["Test*", "*Tests"]
 python_functions = ["test_*"]
 markers = [
-    "slow: marks tests as slow",
-    "integration: marks tests as integration tests",
+    "unit: Unit tests for individual components",
+    "integration: Integration tests for component workflows",
+    "performance: Performance and load tests",
+    "slow: Tests that take significant time to run",
+    "security: Security-focused tests",
+    "rfid: Phase 2 RFID component tests",
+    "phase2: Phase 2 component tests",
+    "phase3: Phase 3 security component tests",
     "e2e: marks tests as end-to-end tests",
     "smoke: marks tests as smoke tests",
     "ui: marks tests as UI tests",
     "passport: marks tests as passport-related tests",
     "mdl: marks tests as mobile driver license tests",
     "admin: marks tests as admin interface tests",
-    "performance: marks tests as performance tests",
 ]
 asyncio_mode = "auto"
 asyncio_default_fixture_loop_scope = "function"
+timeout = 300
+timeout_method = "thread"
+filterwarnings = [
+    "ignore::DeprecationWarning",
+    "ignore::PendingDeprecationWarning", 
+    "ignore::UserWarning:cryptography.*",
+    "ignore::pytest.PytestUnraisableExceptionWarning"
+]
+collect_ignore = [
+    "setup.py",
+    "docs/",
+    "build/",
+    "dist/",
+    ".tox/",
+    "venv/",
+    "env/",
+    "__pycache__/"
+]
+log_cli = true
+log_cli_level = "INFO"
+log_cli_format = "%(asctime)s [%(levelname)8s] %(name)s: %(message)s"
+log_cli_date_format = "%Y-%m-%d %H:%M:%S"
 
 [project.scripts]
 compile-protos = "src.compile_protos:compile_all_protos"
