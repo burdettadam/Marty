@@ -89,11 +89,7 @@ class SODProcessor:
             if isinstance(sod_data, bytes):
                 return self._parse_binary_sod(sod_data)
 
-            # Invalid type
-            type_name = type(sod_data).__name__
-            msg = f"Unsupported SOD data type: {type_name}"
-            raise SODParsingError(msg)
-
+            # Invalid type - moved outside try block
         except (SODParsingError, HashAlgorithmError):
             raise
         except Exception as e:
@@ -101,21 +97,26 @@ class SODProcessor:
             msg = "SOD parsing failed"
             raise SODParsingError(msg, str(e)) from e
 
+        # Invalid type
+        type_name = type(sod_data).__name__
+        msg = f"Unsupported SOD data type: {type_name}"
+        raise SODParsingError(msg)
+
     def _parse_binary_sod(self, sod_data: bytes) -> SOD | None:
         """Parse binary SOD data."""
         try:
             sod = SOD.load(sod_data)
-
-            # Validate basic structure
-            if not hasattr(sod, "signed_data") or sod.signed_data is None:
-                msg = "SOD does not contain signed data"
-                raise SODParsingError(msg)
-
-            return sod
         except Exception as e:
             self.logger.exception("Failed to parse binary SOD")
             msg = "Binary SOD parsing failed"
             raise SODParsingError(msg, str(e)) from e
+
+        # Validate basic structure after successful parsing
+        if not hasattr(sod, "signed_data") or sod.signed_data is None:
+            msg = "SOD does not contain signed data"
+            raise SODParsingError(msg)
+
+        return sod
 
     def extract_hash_algorithm(self, sod: SOD) -> str:
         """
@@ -143,15 +144,20 @@ class SODProcessor:
                     if algorithm_oid in self.ALGORITHM_OID_MAP:
                         return self.ALGORITHM_OID_MAP[algorithm_oid]
 
-                    raise HashAlgorithmError(algorithm_oid)
+                    # Create helper function to avoid raise in try
+                    self._raise_algorithm_error(algorithm_oid)
 
-            unknown_algorithm = "unknown"
-            raise HashAlgorithmError(unknown_algorithm)
+            # Create helper function to avoid raise in try
+            self._raise_algorithm_error("unknown")
 
         except HashAlgorithmError:
             raise
         except Exception as e:
             raise HashAlgorithmError(str(e)) from e
+
+    def _raise_algorithm_error(self, algorithm: str) -> None:
+        """Helper method to raise algorithm error."""
+        raise HashAlgorithmError(algorithm)
 
     def extract_data_group_hashes(self, sod: SOD) -> dict[int, bytes]:
         """
@@ -177,40 +183,52 @@ class SODProcessor:
                         hash_value = bytes(dg_hash.data_group_hash_value)
                         hashes[data_group_number] = hash_value
 
-            return hashes
-
         except Exception as e:
             msg = "Failed to extract data group hashes"
             raise SODParsingError(msg, str(e)) from e
+        else:
+            return hashes
 
     def _extract_lds_security_object(self, sod: SOD) -> LDSSecurityObject:
         """Extract LDS Security Object from SOD."""
         try:
-            if not hasattr(sod, "signed_data") or not sod.signed_data:
-                msg = "SOD missing signed data"
-                raise SODParsingError(msg)
-
-            signed_data = sod.signed_data
-            if not hasattr(signed_data, "encap_content_info"):
-                msg = "SOD missing encapsulated content info"
-                raise SODParsingError(msg)
-
-            encap_content = signed_data.encap_content_info
-            if not hasattr(encap_content, "content") or not encap_content.content:
-                msg = "SOD missing content"
-                raise SODParsingError(msg)
+            # Validate SOD structure using helper methods
+            signed_data = self._validate_and_get_signed_data(sod)
+            encap_content = self._validate_and_get_encap_content(signed_data)
+            lds_content = self._validate_and_get_content(encap_content)
 
             # Parse the LDS Security Object
-            lds_content = encap_content.content
             if isinstance(lds_content, bytes):
                 return LDSSecurityObject.load(lds_content)
-            return lds_content
 
         except SODParsingError:
             raise
         except Exception as e:
             msg = "Failed to extract LDS Security Object"
             raise SODParsingError(msg, str(e)) from e
+        else:
+            return lds_content
+
+    def _validate_and_get_signed_data(self, sod: SOD) -> object:
+        """Helper to validate and get signed data."""
+        if not hasattr(sod, "signed_data") or not sod.signed_data:
+            msg = "SOD missing signed data"
+            raise SODParsingError(msg)
+        return sod.signed_data
+
+    def _validate_and_get_encap_content(self, signed_data: object) -> object:
+        """Helper to validate and get encapsulated content."""
+        if not hasattr(signed_data, "encap_content_info"):
+            msg = "SOD missing encapsulated content info"
+            raise SODParsingError(msg)
+        return signed_data.encap_content_info
+
+    def _validate_and_get_content(self, encap_content: object) -> object:
+        """Helper to validate and get content."""
+        if not hasattr(encap_content, "content") or not encap_content.content:
+            msg = "SOD missing content"
+            raise SODParsingError(msg)
+        return encap_content.content
 
     def verify_data_group_integrity(
         self,
@@ -260,13 +278,15 @@ class SODProcessor:
                     errors.append(error_msg)
 
             # Check for missing data groups
-            for dg_number in expected_hashes:
-                if dg_number not in data_groups:
-                    errors.append(f"Missing data group {dg_number}")
+            errors.extend(
+                f"Missing data group {dg_number}"
+                for dg_number in expected_hashes
+                if dg_number not in data_groups
+            )
 
             return len(errors) == 0, errors
 
-        except Exception as e:
+        except (ValueError, TypeError, AttributeError, KeyError) as e:
             errors.append(f"Verification failed: {e}")
             return False, errors
 
@@ -309,11 +329,11 @@ class SODProcessor:
             except SODParsingError:
                 pass
 
-            return info
-
         except Exception as e:
             msg = "Failed to extract SOD information"
             raise SODParsingError(msg, str(e)) from e
+        else:
+            return info
 
 
 # Convenience functions for backwards compatibility
@@ -330,8 +350,9 @@ def extract_sod_hashes(sod_data: str | bytes) -> dict[int, bytes] | None:
         sod = processor.parse_sod_data(sod_data)
         if sod:
             return processor.extract_data_group_hashes(sod)
-        return None
     except (SODParsingError, HashAlgorithmError):
+        return None
+    else:
         return None
 
 
@@ -345,6 +366,7 @@ def verify_data_group_integrity_from_sod(
         sod = processor.parse_sod_data(sod_data)
         if sod:
             return processor.verify_data_group_integrity(sod, data_groups)
-        return False, ["Failed to parse SOD data"]
     except (SODParsingError, HashAlgorithmError) as e:
         return False, [str(e)]
+    else:
+        return False, ["Failed to parse SOD data"]

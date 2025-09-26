@@ -57,12 +57,13 @@ class DataGroupHashComputer:
         Raises:
             DataGroupHashingError: If hash computation fails
         """
+        # Validate algorithm first
+        if hash_algorithm not in self.sod_processor.SUPPORTED_HASH_ALGORITHMS:
+            msg = f"Unsupported hash algorithm: {hash_algorithm}"
+            raise DataGroupHashingError(msg)
+
         try:
             # Get hash function from SODProcessor's supported algorithms
-            if hash_algorithm not in self.sod_processor.SUPPORTED_HASH_ALGORITHMS:
-                msg = f"Unsupported hash algorithm: {hash_algorithm}"
-                raise DataGroupHashingError(msg)
-
             hash_func = self.sod_processor.SUPPORTED_HASH_ALGORITHMS[hash_algorithm]
             return hash_func(data_group_content).digest()
 
@@ -99,13 +100,13 @@ class DataGroupHashComputer:
                     f"Computed hash for DG{dg_number}: {computed_hash.hex()}"
                 )
 
-            return computed_hashes
-
         except DataGroupHashingError:
             raise
         except Exception as e:
             msg = "Failed to compute data group hashes"
             raise DataGroupHashingError(msg, str(e)) from e
+        else:
+            return computed_hashes
 
     def verify_data_group_integrity_with_sod(
         self,
@@ -131,10 +132,15 @@ class DataGroupHashComputer:
         try:
             # Parse the SOD
             sod = self.sod_processor.parse_sod_data(sod_data)
-            if not sod:
-                msg = "Failed to parse SOD data"
-                raise DataGroupHashingError(msg)
+        except Exception as e:
+            msg = "Failed to parse SOD data or perform verification"
+            raise DataGroupHashingError(msg, str(e)) from e
 
+        if not sod:
+            msg = "Failed to parse SOD data"
+            raise DataGroupHashingError(msg)
+
+        try:
             # Extract hash algorithm and expected hashes
             hash_algorithm = self.sod_processor.extract_hash_algorithm(sod)
             expected_hashes = self.sod_processor.extract_data_group_hashes(sod)
@@ -164,15 +170,18 @@ class DataGroupHashComputer:
                 "data_groups_expected": len(expected_hashes)
             }
 
-            return success, errors, details
-
         except (SODParsingError, DataGroupHashingError):
             raise
         except Exception as e:
             msg = "Data group integrity verification failed"
             raise DataGroupHashingError(msg, str(e)) from e
+        else:
+            return success, errors, details
 
-    def extract_data_group_content(self, data_group_raw: Any) -> bytes:
+    def extract_data_group_content(
+        self,
+        data_group_raw: bytes | str | dict[str, Any] | object
+    ) -> bytes:
         """
         Extract raw content from various data group formats.
 
@@ -186,39 +195,43 @@ class DataGroupHashComputer:
             DataGroupHashingError: If content extraction fails
         """
         try:
+            result: bytes = b""
+
             # Handle bytes directly
             if isinstance(data_group_raw, bytes):
-                return data_group_raw
+                result = data_group_raw
 
             # Handle hex strings
-            if isinstance(data_group_raw, str):
-                # Try to decode as hex
+            elif isinstance(data_group_raw, str):
                 try:
-                    return bytes.fromhex(data_group_raw.replace(" ", "").replace("\n", ""))
+                    result = bytes.fromhex(data_group_raw.replace(" ", "").replace("\n", ""))
                 except ValueError:
                     # If not hex, encode as UTF-8
-                    return data_group_raw.encode("utf-8")
+                    result = data_group_raw.encode("utf-8")
 
             # Handle dictionary with content field
-            if isinstance(data_group_raw, dict) and "content" in data_group_raw:
-                return self.extract_data_group_content(data_group_raw["content"])
+            elif isinstance(data_group_raw, dict) and "content" in data_group_raw:
+                result = self.extract_data_group_content(data_group_raw["content"])
 
             # Handle objects with content attribute
-            if hasattr(data_group_raw, "content"):
-                return self.extract_data_group_content(data_group_raw.content)
+            elif hasattr(data_group_raw, "content"):
+                result = self.extract_data_group_content(data_group_raw.content)
 
             # Handle Pydantic models with dict conversion
-            if hasattr(data_group_raw, "model_dump"):
+            elif hasattr(data_group_raw, "model_dump"):
                 # Convert to JSON bytes for consistent hashing
                 json_str = json.dumps(data_group_raw.model_dump(), sort_keys=True)
-                return json_str.encode("utf-8")
+                result = json_str.encode("utf-8")
 
             # Fallback: convert to string and encode
-            return str(data_group_raw).encode("utf-8")
+            else:
+                result = str(data_group_raw).encode("utf-8")
 
         except Exception as e:
             msg = "Failed to extract data group content"
             raise DataGroupHashingError(msg, str(e)) from e
+        else:
+            return result
 
     def prepare_data_groups_for_verification(
         self,
@@ -263,11 +276,11 @@ class DataGroupHashComputer:
                     f"Prepared DG{dg_number}: {len(content_bytes)} bytes"
                 )
 
-            return prepared
-
         except Exception as e:
             msg = "Failed to prepare data groups for verification"
             raise DataGroupHashingError(msg, str(e)) from e
+        else:
+            return prepared
 
 
 # Convenience functions for integration
@@ -277,7 +290,7 @@ def verify_passport_data_groups(
 ) -> tuple[bool, list[str], dict[str, Any]]:
     """
     Verify passport data groups using SOD.
-    
+
     Convenience function for passport verification integration.
     """
     try:
@@ -294,7 +307,7 @@ def compute_data_group_hash_simple(
 ) -> str:
     """
     Simple hash computation for individual data groups.
-    
+
     Returns hex-encoded hash string.
     """
     try:
