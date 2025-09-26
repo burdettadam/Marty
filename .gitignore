@@ -28,6 +28,11 @@ MANIFEST
 .venv
 env/
 venv/
+
+# Test data (scraped/sensitive data should not be tracked)
+tests/scraped_data/
+tests/data/scraped/
+**/scraped_data/
 ENV/
 env.bak/
 venv.bak/
