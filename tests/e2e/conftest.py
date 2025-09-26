@@ -22,6 +22,7 @@ from playwright.async_api import (
 
 from src.ui_app.app import create_app
 from src.ui_app.config import UiSettings
+
 from . import config
 
 
@@ -53,6 +54,9 @@ def ui_server():
         return
 
     # Start UI server in a separate thread
+    import os
+
+    os.environ["UI_ENABLE_MOCK_DATA"] = "true"  # Enable mock data for E2E tests
     ui_config = UiSettings()
     app = create_app(ui_config)
 

@@ -41,6 +41,7 @@ logger = logging.getLogger(__name__)
 
 class CSCAStatus(Enum):
     """CSCA certificate status types."""
+
     ACTIVE = "active"
     EXPIRED = "expired"
     REVOKED = "revoked"
@@ -51,19 +52,21 @@ class CSCAStatus(Enum):
 
 class TrustLevel(Enum):
     """Trust levels for CSCA certificates."""
-    FULL_TRUST = "full_trust"          # Directly trusted CSCA
-    CONDITIONAL_TRUST = "conditional"   # Trusted with conditions
-    UNTRUSTED = "untrusted"            # Not trusted
-    BLACKLISTED = "blacklisted"        # Explicitly blocked
+
+    FULL_TRUST = "full_trust"  # Directly trusted CSCA
+    CONDITIONAL_TRUST = "conditional"  # Trusted with conditions
+    UNTRUSTED = "untrusted"  # Not trusted
+    BLACKLISTED = "blacklisted"  # Explicitly blocked
 
 
 @dataclass
 class CountryInfo:
     """Information about a country and its passport issuance."""
-    country_code: str        # ISO 3166-1 alpha-3 code
+
+    country_code: str  # ISO 3166-1 alpha-3 code
     country_name: str
-    region: str             # Geographic region
-    passport_type: str      # MRP, MRV, etc.
+    region: str  # Geographic region
+    passport_type: str  # MRP, MRV, etc.
     issuing_authority: str
     security_features: list[str]
     supported_data_groups: list[int]
@@ -75,10 +78,22 @@ class CountryInfo:
         """Get ISO 3166-1 alpha-2 code if possible."""
         # Simple mapping for common countries
         mapping = {
-            "USA": "US", "GBR": "GB", "DEU": "DE", "FRA": "FR",
-            "ITA": "IT", "ESP": "ES", "CAN": "CA", "AUS": "AU",
-            "NLD": "NL", "BEL": "BE", "CHE": "CH", "AUT": "AT",
-            "SWE": "SE", "NOR": "NO", "DNK": "DK", "FIN": "FI"
+            "USA": "US",
+            "GBR": "GB",
+            "DEU": "DE",
+            "FRA": "FR",
+            "ITA": "IT",
+            "ESP": "ES",
+            "CAN": "CA",
+            "AUS": "AU",
+            "NLD": "NL",
+            "BEL": "BE",
+            "CHE": "CH",
+            "AUT": "AT",
+            "SWE": "SE",
+            "NOR": "NO",
+            "DNK": "DK",
+            "FIN": "FI",
         }
         return mapping.get(self.country_code)
 
@@ -86,6 +101,7 @@ class CountryInfo:
 @dataclass
 class CertificateProcessingResult:
     """Result of processing a single certificate file."""
+
     success: bool
     cert_id: str | None = None
     error: Exception | None = None
@@ -144,9 +160,9 @@ class CSCACertificateMetadata:
         """Check if certificate is currently valid."""
         now = datetime.now(timezone.utc)
         return (
-            self.valid_from <= now <= self.valid_until and
-            self.status == CSCAStatus.ACTIVE and
-            self.trust_level != TrustLevel.BLACKLISTED
+            self.valid_from <= now <= self.valid_until
+            and self.status == CSCAStatus.ACTIVE
+            and self.trust_level != TrustLevel.BLACKLISTED
         )
 
 
@@ -191,7 +207,7 @@ class CSCATrustStore:
         certificate: x509.Certificate,
         country_code: str | None = None,
         trust_level: TrustLevel = TrustLevel.FULL_TRUST,
-        source: str = "manual"
+        source: str = "manual",
     ) -> str:
         """
         Add a CSCA certificate to the trust store.
@@ -214,9 +230,7 @@ class CSCATrustStore:
             country_code = self._extract_country_code(certificate)
 
         # Create metadata
-        metadata = self._create_certificate_metadata(
-            certificate, country_code, trust_level, source
-        )
+        metadata = self._create_certificate_metadata(certificate, country_code, trust_level, source)
 
         # Store certificate and metadata
         self._certificates[cert_id] = certificate
@@ -246,7 +260,7 @@ class CSCATrustStore:
         directory: Path,
         country_code: str | None = None,
         trust_level: TrustLevel = TrustLevel.FULL_TRUST,
-        file_pattern: str = "*.pem"
+        file_pattern: str = "*.pem",
     ) -> list[str]:
         """
         Load CSCA certificates from a directory.
@@ -287,10 +301,7 @@ class CSCATrustStore:
         return cert_ids
 
     def _process_single_certificate(
-        self,
-        cert_file: Path,
-        country_code: str | None,
-        trust_level: TrustLevel
+        self, cert_file: Path, country_code: str | None, trust_level: TrustLevel
     ) -> CertificateProcessingResult:
         """Process a single certificate file and return result."""
         try:
@@ -316,10 +327,7 @@ class CSCATrustStore:
 
             # Add to trust store
             cert_id = self.add_csca_certificate(
-                certificate,
-                file_country,
-                trust_level,
-                f"file:{cert_file}"
+                certificate, file_country, trust_level, f"file:{cert_file}"
             )
             return CertificateProcessingResult(success=True, cert_id=cert_id)
 
@@ -346,8 +354,10 @@ class CSCATrustStore:
 
         trusted_certs = []
         for cert_id, trust_level in self._trust_levels.items():
-            if (trust_level in [TrustLevel.FULL_TRUST, TrustLevel.CONDITIONAL_TRUST] and
-                cert_id in self._certificates):
+            if (
+                trust_level in [TrustLevel.FULL_TRUST, TrustLevel.CONDITIONAL_TRUST]
+                and cert_id in self._certificates
+            ):
 
                 metadata = self._metadata[cert_id]
                 if metadata.is_valid:
@@ -356,9 +366,7 @@ class CSCATrustStore:
         return trusted_certs
 
     def verify_csca_certificate(
-        self,
-        certificate: x509.Certificate,
-        country_code: str | None = None
+        self, certificate: x509.Certificate, country_code: str | None = None
     ) -> tuple[bool, list[str]]:
         """
         Verify a CSCA certificate against the trust store.
@@ -382,9 +390,7 @@ class CSCATrustStore:
             return False, validation_messages
 
         # Perform signature verification
-        signature_valid = self._verify_certificate_signature(
-            certificate, validation_messages
-        )
+        signature_valid = self._verify_certificate_signature(certificate, validation_messages)
 
         if not signature_valid:
             return False, validation_messages
@@ -393,8 +399,7 @@ class CSCATrustStore:
         return True, validation_messages
 
     def _perform_certificate_validation_checks(
-        self, cert_id: str,
-        country_code: str | None, validation_messages: list[str]
+        self, cert_id: str, country_code: str | None, validation_messages: list[str]
     ) -> bool:
         """Perform basic validation checks on certificate."""
         # Check if certificate is in trust store
@@ -440,13 +445,13 @@ class CSCATrustStore:
                     certificate.signature,
                     certificate.tbs_certificate_bytes,
                     rsa.padding.PKCS1v15(),
-                    certificate.signature_hash_algorithm
+                    certificate.signature_hash_algorithm,
                 )
             elif isinstance(public_key, ec.EllipticCurvePublicKey):
                 public_key.verify(
                     certificate.signature,
                     certificate.tbs_certificate_bytes,
-                    ec.ECDSA(certificate.signature_hash_algorithm)
+                    ec.ECDSA(certificate.signature_hash_algorithm),
                 )
             else:
                 validation_messages.append(f"Unsupported key type: {type(public_key)}")
@@ -459,10 +464,7 @@ class CSCATrustStore:
         return True
 
     def update_certificate_trust_level(
-        self,
-        cert_id: str,
-        trust_level: TrustLevel,
-        reason: str | None = None
+        self, cert_id: str, trust_level: TrustLevel, reason: str | None = None
     ) -> bool:
         """Update trust level for a certificate."""
 
@@ -506,9 +508,9 @@ class CSCATrustStore:
         """Get certificates expiring within specified days."""
 
         expiring = [
-            metadata for metadata in self._metadata.values()
-            if (metadata.is_valid and
-                0 < metadata.days_until_expiry <= days_ahead)
+            metadata
+            for metadata in self._metadata.values()
+            if (metadata.is_valid and 0 < metadata.days_until_expiry <= days_ahead)
         ]
 
         return sorted(expiring, key=lambda m: m.days_until_expiry)
@@ -534,8 +536,7 @@ class CSCATrustStore:
 
         # Count by country
         country_counts = {
-            country: len(cert_ids)
-            for country, cert_ids in self._country_mapping.items()
+            country: len(cert_ids) for country, cert_ids in self._country_mapping.items()
         }
 
         # Expiry statistics
@@ -552,8 +553,8 @@ class CSCATrustStore:
             "country_distribution": country_counts,
             "expiry_warnings": {
                 "expiring_90_days": expiring_soon,
-                "expiring_30_days": expiring_critical
-            }
+                "expiring_30_days": expiring_critical,
+            },
         }
 
     def _generate_certificate_id(self, certificate: x509.Certificate) -> str:
@@ -580,10 +581,22 @@ class CSCATrustStore:
                     country_2_letter = attribute.value
                     # Convert ISO 3166-1 alpha-2 to alpha-3
                     mapping = {
-                        "US": "USA", "GB": "GBR", "DE": "DEU", "FR": "FRA",
-                        "IT": "ITA", "ES": "ESP", "CA": "CAN", "AU": "AUS",
-                        "NL": "NLD", "BE": "BEL", "CH": "CHE", "AT": "AUT",
-                        "SE": "SWE", "NO": "NOR", "DK": "DNK", "FI": "FIN"
+                        "US": "USA",
+                        "GB": "GBR",
+                        "DE": "DEU",
+                        "FR": "FRA",
+                        "IT": "ITA",
+                        "ES": "ESP",
+                        "CA": "CAN",
+                        "AU": "AUS",
+                        "NL": "NLD",
+                        "BE": "BEL",
+                        "CH": "CHE",
+                        "AT": "AUT",
+                        "SE": "SWE",
+                        "NO": "NOR",
+                        "DK": "DNK",
+                        "FI": "FIN",
                     }
                     return mapping.get(country_2_letter, country_2_letter)
 
@@ -610,15 +623,15 @@ class CSCATrustStore:
         certificate: x509.Certificate,
         country_code: str | None,
         trust_level: TrustLevel,
-        source: str
+        source: str,
     ) -> CSCACertificateMetadata:
         """Create comprehensive metadata for a certificate."""
 
         # Generate identifiers
         cert_id = self._generate_certificate_id(certificate)
-        fingerprint = hashlib.sha256(
-            certificate.public_bytes(serialization.Encoding.DER)
-        ).hexdigest().upper()
+        fingerprint = (
+            hashlib.sha256(certificate.public_bytes(serialization.Encoding.DER)).hexdigest().upper()
+        )
 
         # Extract certificate details
         subject_name = certificate.subject.rfc4514_string()
@@ -675,14 +688,11 @@ class CSCATrustStore:
             last_verified=None,
             source=source,
             added_date=now,
-            pkd_country_list=[]
+            pkd_country_list=[],
         )
 
     def _save_certificate(
-        self,
-        cert_id: str,
-        certificate: x509.Certificate,
-        metadata: CSCACertificateMetadata
+        self, cert_id: str, certificate: x509.Certificate, metadata: CSCACertificateMetadata
     ) -> None:
         """Save certificate and metadata to disk."""
 
@@ -716,14 +726,13 @@ class CSCATrustStore:
                 cert_id: {
                     "trust_level": trust.value,
                     "country_code": (
-                        self._metadata[cert_id].country_code
-                        if cert_id in self._metadata else None
-                    )
+                        self._metadata[cert_id].country_code if cert_id in self._metadata else None
+                    ),
                 }
                 for cert_id, trust in self._trust_levels.items()
             },
             "country_mapping": self._country_mapping,
-            "statistics": self.get_trust_store_statistics()
+            "statistics": self.get_trust_store_statistics(),
         }
 
         with index_path.open("w") as f:
@@ -791,18 +800,72 @@ class CSCATrustStore:
 
         # Basic country information (in real implementation, this would come from a database)
         countries = [
-            CountryInfo("USA", "United States", "North America", "MRP", "Department of State",
-                       ["RFID", "EAC", "BAC"], list(range(1, 17)), True, True),
-            CountryInfo("GBR", "United Kingdom", "Europe", "MRP", "HM Passport Office",
-                       ["RFID", "EAC", "BAC"], list(range(1, 17)), True, True),
-            CountryInfo("DEU", "Germany", "Europe", "MRP", "Federal Foreign Office",
-                       ["RFID", "EAC", "BAC"], list(range(1, 17)), True, True),
-            CountryInfo("FRA", "France", "Europe", "MRP", "Ministry of Interior",
-                       ["RFID", "EAC", "BAC"], list(range(1, 17)), True, True),
-            CountryInfo("CAN", "Canada", "North America", "MRP", "Passport Canada",
-                       ["RFID", "EAC", "BAC"], list(range(1, 17)), True, True),
-            CountryInfo("AUS", "Australia", "Oceania", "MRP", "Australian Passport Office",
-                       ["RFID", "EAC", "BAC"], list(range(1, 17)), True, True),
+            CountryInfo(
+                "USA",
+                "United States",
+                "North America",
+                "MRP",
+                "Department of State",
+                ["RFID", "EAC", "BAC"],
+                list(range(1, 17)),
+                True,
+                True,
+            ),
+            CountryInfo(
+                "GBR",
+                "United Kingdom",
+                "Europe",
+                "MRP",
+                "HM Passport Office",
+                ["RFID", "EAC", "BAC"],
+                list(range(1, 17)),
+                True,
+                True,
+            ),
+            CountryInfo(
+                "DEU",
+                "Germany",
+                "Europe",
+                "MRP",
+                "Federal Foreign Office",
+                ["RFID", "EAC", "BAC"],
+                list(range(1, 17)),
+                True,
+                True,
+            ),
+            CountryInfo(
+                "FRA",
+                "France",
+                "Europe",
+                "MRP",
+                "Ministry of Interior",
+                ["RFID", "EAC", "BAC"],
+                list(range(1, 17)),
+                True,
+                True,
+            ),
+            CountryInfo(
+                "CAN",
+                "Canada",
+                "North America",
+                "MRP",
+                "Passport Canada",
+                ["RFID", "EAC", "BAC"],
+                list(range(1, 17)),
+                True,
+                True,
+            ),
+            CountryInfo(
+                "AUS",
+                "Australia",
+                "Oceania",
+                "MRP",
+                "Australian Passport Office",
+                ["RFID", "EAC", "BAC"],
+                list(range(1, 17)),
+                True,
+                True,
+            ),
         ]
 
         for country in countries:
@@ -821,10 +884,8 @@ def create_default_csca_trust_store(trust_store_path: Path | None = None) -> CSC
     # (In real implementation, you'd load well-known CSCA certificates)
 
 
-
 def load_csca_from_pkd_master_list(
-    _master_list_path: Path,
-    _trust_store: CSCATrustStore
+    _master_list_path: Path, _trust_store: CSCATrustStore
 ) -> list[str]:
     """Load CSCA certificates from ICAO PKD Master List."""
 

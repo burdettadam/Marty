@@ -9,60 +9,56 @@ from google.protobuf import descriptor_pool as _descriptor_pool
 from google.protobuf import runtime_version as _runtime_version
 from google.protobuf import symbol_database as _symbol_database
 from google.protobuf.internal import builder as _builder
+
 _runtime_version.ValidateProtobufRuntimeVersion(
-    _runtime_version.Domain.PUBLIC,
-    6,
-    31,
-    1,
-    '',
-    'mdl_engine.proto'
+    _runtime_version.Domain.PUBLIC, 6, 31, 1, "", "mdl_engine.proto"
 )
 # @@protoc_insertion_point(imports)
 
 _sym_db = _symbol_database.Default()
 
 
-
-
-DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n\x10mdl_engine.proto\x12\x03mdl\"\xb2\x02\n\x10\x43reateMDLRequest\x12\x0f\n\x07user_id\x18\x01 \x01(\t\x12\x16\n\x0elicense_number\x18\x02 \x01(\t\x12\x12\n\nfirst_name\x18\x03 \x01(\t\x12\x11\n\tlast_name\x18\x04 \x01(\t\x12\x15\n\rdate_of_birth\x18\x05 \x01(\t\x12\x19\n\x11issuing_authority\x18\x06 \x01(\t\x12\x12\n\nissue_date\x18\x07 \x01(\t\x12\x13\n\x0b\x65xpiry_date\x18\x08 \x01(\t\x12\x10\n\x08portrait\x18\t \x01(\x0c\x12\x30\n\x12license_categories\x18\n \x03(\x0b\x32\x14.mdl.LicenseCategory\x12/\n\x11\x61\x64\x64itional_fields\x18\x0b \x03(\x0b\x32\x14.mdl.AdditionalField\"g\n\x0fLicenseCategory\x12\x15\n\rcategory_code\x18\x01 \x01(\t\x12\x12\n\nissue_date\x18\x02 \x01(\t\x12\x13\n\x0b\x65xpiry_date\x18\x03 \x01(\t\x12\x14\n\x0crestrictions\x18\x04 \x03(\t\":\n\x0f\x41\x64\x64itionalField\x12\x12\n\nfield_name\x18\x01 \x01(\t\x12\x13\n\x0b\x66ield_value\x18\x02 \x01(\t\"J\n\x11\x43reateMDLResponse\x12\x0e\n\x06mdl_id\x18\x01 \x01(\t\x12\x0e\n\x06status\x18\x02 \x01(\t\x12\x15\n\rerror_message\x18\x03 \x01(\t\"\'\n\rGetMDLRequest\x12\x16\n\x0elicense_number\x18\x01 \x01(\t\"\xff\x02\n\x0bMDLResponse\x12\x0e\n\x06mdl_id\x18\x01 \x01(\t\x12\x16\n\x0elicense_number\x18\x02 \x01(\t\x12\x12\n\nfirst_name\x18\x03 \x01(\t\x12\x11\n\tlast_name\x18\x04 \x01(\t\x12\x15\n\rdate_of_birth\x18\x05 \x01(\t\x12\x19\n\x11issuing_authority\x18\x06 \x01(\t\x12\x12\n\nissue_date\x18\x07 \x01(\t\x12\x13\n\x0b\x65xpiry_date\x18\x08 \x01(\t\x12\x10\n\x08portrait\x18\t \x01(\x0c\x12\x30\n\x12license_categories\x18\n \x03(\x0b\x32\x14.mdl.LicenseCategory\x12/\n\x11\x61\x64\x64itional_fields\x18\x0b \x03(\x0b\x32\x14.mdl.AdditionalField\x12*\n\x0esignature_info\x18\x0c \x01(\x0b\x32\x12.mdl.SignatureInfo\x12\x0e\n\x06status\x18\r \x01(\t\x12\x15\n\rerror_message\x18\x0e \x01(\t\"_\n\rSignatureInfo\x12\x16\n\x0esignature_date\x18\x01 \x01(\t\x12\x11\n\tsigner_id\x18\x02 \x01(\t\x12\x11\n\tsignature\x18\x03 \x01(\x0c\x12\x10\n\x08is_valid\x18\x04 \x01(\x08\" \n\x0eSignMDLRequest\x12\x0e\n\x06mdl_id\x18\x01 \x01(\t\"e\n\x0fSignMDLResponse\x12\x0f\n\x07success\x18\x01 \x01(\x08\x12*\n\x0esignature_info\x18\x02 \x01(\x0b\x32\x12.mdl.SignatureInfo\x12\x15\n\rerror_message\x18\x03 \x01(\t\"Y\n\x15GenerateQRCodeRequest\x12\x0e\n\x06mdl_id\x18\x01 \x01(\t\x12\x15\n\rinclude_photo\x18\x02 \x01(\x08\x12\x19\n\x11\x66ields_to_include\x18\x03 \x03(\t\"@\n\x16GenerateQRCodeResponse\x12\x0f\n\x07qr_code\x18\x01 \x01(\x0c\x12\x15\n\rerror_message\x18\x02 \x01(\t\"P\n\x12TransferMDLRequest\x12\x0e\n\x06mdl_id\x18\x01 \x01(\t\x12\x11\n\tdevice_id\x18\x02 \x01(\t\x12\x17\n\x0ftransfer_method\x18\x03 \x01(\t\"R\n\x13TransferMDLResponse\x12\x0f\n\x07success\x18\x01 \x01(\x08\x12\x13\n\x0btransfer_id\x18\x02 \x01(\t\x12\x15\n\rerror_message\x18\x03 \x01(\t\"{\n\x10VerifyMDLRequest\x12\x10\n\x06mdl_id\x18\x01 \x01(\tH\x00\x12\x16\n\x0cqr_code_data\x18\x02 \x01(\x0cH\x00\x12\x15\n\x0b\x64\x65vice_data\x18\x03 \x01(\x0cH\x00\x12\x1a\n\x12verification_level\x18\x04 \x01(\tB\n\n\x08mdl_data\"\x97\x01\n\x11VerifyMDLResponse\x12\x10\n\x08is_valid\x18\x01 \x01(\x08\x12\x35\n\x14verification_results\x18\x02 \x03(\x0b\x32\x17.mdl.VerificationResult\x12\"\n\x08mdl_data\x18\x03 \x01(\x0b\x32\x10.mdl.MDLResponse\x12\x15\n\rerror_message\x18\x04 \x01(\t\"I\n\x12VerificationResult\x12\x12\n\ncheck_name\x18\x01 \x01(\t\x12\x0e\n\x06passed\x18\x02 \x01(\x08\x12\x0f\n\x07\x64\x65tails\x18\x03 \x01(\t2\x81\x03\n\tMDLEngine\x12:\n\tCreateMDL\x12\x15.mdl.CreateMDLRequest\x1a\x16.mdl.CreateMDLResponse\x12.\n\x06GetMDL\x12\x12.mdl.GetMDLRequest\x1a\x10.mdl.MDLResponse\x12\x34\n\x07SignMDL\x12\x13.mdl.SignMDLRequest\x1a\x14.mdl.SignMDLResponse\x12L\n\x11GenerateMDLQRCode\x12\x1a.mdl.GenerateQRCodeRequest\x1a\x1b.mdl.GenerateQRCodeResponse\x12H\n\x13TransferMDLToDevice\x12\x17.mdl.TransferMDLRequest\x1a\x18.mdl.TransferMDLResponse\x12:\n\tVerifyMDL\x12\x15.mdl.VerifyMDLRequest\x1a\x16.mdl.VerifyMDLResponseb\x06proto3')
+DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(
+    b'\n\x10mdl_engine.proto\x12\x03mdl"\xb2\x02\n\x10\x43reateMDLRequest\x12\x0f\n\x07user_id\x18\x01 \x01(\t\x12\x16\n\x0elicense_number\x18\x02 \x01(\t\x12\x12\n\nfirst_name\x18\x03 \x01(\t\x12\x11\n\tlast_name\x18\x04 \x01(\t\x12\x15\n\rdate_of_birth\x18\x05 \x01(\t\x12\x19\n\x11issuing_authority\x18\x06 \x01(\t\x12\x12\n\nissue_date\x18\x07 \x01(\t\x12\x13\n\x0b\x65xpiry_date\x18\x08 \x01(\t\x12\x10\n\x08portrait\x18\t \x01(\x0c\x12\x30\n\x12license_categories\x18\n \x03(\x0b\x32\x14.mdl.LicenseCategory\x12/\n\x11\x61\x64\x64itional_fields\x18\x0b \x03(\x0b\x32\x14.mdl.AdditionalField"g\n\x0fLicenseCategory\x12\x15\n\rcategory_code\x18\x01 \x01(\t\x12\x12\n\nissue_date\x18\x02 \x01(\t\x12\x13\n\x0b\x65xpiry_date\x18\x03 \x01(\t\x12\x14\n\x0crestrictions\x18\x04 \x03(\t":\n\x0f\x41\x64\x64itionalField\x12\x12\n\nfield_name\x18\x01 \x01(\t\x12\x13\n\x0b\x66ield_value\x18\x02 \x01(\t"J\n\x11\x43reateMDLResponse\x12\x0e\n\x06mdl_id\x18\x01 \x01(\t\x12\x0e\n\x06status\x18\x02 \x01(\t\x12\x15\n\rerror_message\x18\x03 \x01(\t"\'\n\rGetMDLRequest\x12\x16\n\x0elicense_number\x18\x01 \x01(\t"\xff\x02\n\x0bMDLResponse\x12\x0e\n\x06mdl_id\x18\x01 \x01(\t\x12\x16\n\x0elicense_number\x18\x02 \x01(\t\x12\x12\n\nfirst_name\x18\x03 \x01(\t\x12\x11\n\tlast_name\x18\x04 \x01(\t\x12\x15\n\rdate_of_birth\x18\x05 \x01(\t\x12\x19\n\x11issuing_authority\x18\x06 \x01(\t\x12\x12\n\nissue_date\x18\x07 \x01(\t\x12\x13\n\x0b\x65xpiry_date\x18\x08 \x01(\t\x12\x10\n\x08portrait\x18\t \x01(\x0c\x12\x30\n\x12license_categories\x18\n \x03(\x0b\x32\x14.mdl.LicenseCategory\x12/\n\x11\x61\x64\x64itional_fields\x18\x0b \x03(\x0b\x32\x14.mdl.AdditionalField\x12*\n\x0esignature_info\x18\x0c \x01(\x0b\x32\x12.mdl.SignatureInfo\x12\x0e\n\x06status\x18\r \x01(\t\x12\x15\n\rerror_message\x18\x0e \x01(\t"_\n\rSignatureInfo\x12\x16\n\x0esignature_date\x18\x01 \x01(\t\x12\x11\n\tsigner_id\x18\x02 \x01(\t\x12\x11\n\tsignature\x18\x03 \x01(\x0c\x12\x10\n\x08is_valid\x18\x04 \x01(\x08" \n\x0eSignMDLRequest\x12\x0e\n\x06mdl_id\x18\x01 \x01(\t"e\n\x0fSignMDLResponse\x12\x0f\n\x07success\x18\x01 \x01(\x08\x12*\n\x0esignature_info\x18\x02 \x01(\x0b\x32\x12.mdl.SignatureInfo\x12\x15\n\rerror_message\x18\x03 \x01(\t"Y\n\x15GenerateQRCodeRequest\x12\x0e\n\x06mdl_id\x18\x01 \x01(\t\x12\x15\n\rinclude_photo\x18\x02 \x01(\x08\x12\x19\n\x11\x66ields_to_include\x18\x03 \x03(\t"@\n\x16GenerateQRCodeResponse\x12\x0f\n\x07qr_code\x18\x01 \x01(\x0c\x12\x15\n\rerror_message\x18\x02 \x01(\t"P\n\x12TransferMDLRequest\x12\x0e\n\x06mdl_id\x18\x01 \x01(\t\x12\x11\n\tdevice_id\x18\x02 \x01(\t\x12\x17\n\x0ftransfer_method\x18\x03 \x01(\t"R\n\x13TransferMDLResponse\x12\x0f\n\x07success\x18\x01 \x01(\x08\x12\x13\n\x0btransfer_id\x18\x02 \x01(\t\x12\x15\n\rerror_message\x18\x03 \x01(\t"{\n\x10VerifyMDLRequest\x12\x10\n\x06mdl_id\x18\x01 \x01(\tH\x00\x12\x16\n\x0cqr_code_data\x18\x02 \x01(\x0cH\x00\x12\x15\n\x0b\x64\x65vice_data\x18\x03 \x01(\x0cH\x00\x12\x1a\n\x12verification_level\x18\x04 \x01(\tB\n\n\x08mdl_data"\x97\x01\n\x11VerifyMDLResponse\x12\x10\n\x08is_valid\x18\x01 \x01(\x08\x12\x35\n\x14verification_results\x18\x02 \x03(\x0b\x32\x17.mdl.VerificationResult\x12"\n\x08mdl_data\x18\x03 \x01(\x0b\x32\x10.mdl.MDLResponse\x12\x15\n\rerror_message\x18\x04 \x01(\t"I\n\x12VerificationResult\x12\x12\n\ncheck_name\x18\x01 \x01(\t\x12\x0e\n\x06passed\x18\x02 \x01(\x08\x12\x0f\n\x07\x64\x65tails\x18\x03 \x01(\t2\x81\x03\n\tMDLEngine\x12:\n\tCreateMDL\x12\x15.mdl.CreateMDLRequest\x1a\x16.mdl.CreateMDLResponse\x12.\n\x06GetMDL\x12\x12.mdl.GetMDLRequest\x1a\x10.mdl.MDLResponse\x12\x34\n\x07SignMDL\x12\x13.mdl.SignMDLRequest\x1a\x14.mdl.SignMDLResponse\x12L\n\x11GenerateMDLQRCode\x12\x1a.mdl.GenerateQRCodeRequest\x1a\x1b.mdl.GenerateQRCodeResponse\x12H\n\x13TransferMDLToDevice\x12\x17.mdl.TransferMDLRequest\x1a\x18.mdl.TransferMDLResponse\x12:\n\tVerifyMDL\x12\x15.mdl.VerifyMDLRequest\x1a\x16.mdl.VerifyMDLResponseb\x06proto3'
+)
 
 _globals = globals()
 _builder.BuildMessageAndEnumDescriptors(DESCRIPTOR, _globals)
-_builder.BuildTopDescriptorsAndMessages(DESCRIPTOR, 'mdl_engine_pb2', _globals)
+_builder.BuildTopDescriptorsAndMessages(DESCRIPTOR, "mdl_engine_pb2", _globals)
 if not _descriptor._USE_C_DESCRIPTORS:
-  DESCRIPTOR._loaded_options = None
-  _globals['_CREATEMDLREQUEST']._serialized_start=26
-  _globals['_CREATEMDLREQUEST']._serialized_end=332
-  _globals['_LICENSECATEGORY']._serialized_start=334
-  _globals['_LICENSECATEGORY']._serialized_end=437
-  _globals['_ADDITIONALFIELD']._serialized_start=439
-  _globals['_ADDITIONALFIELD']._serialized_end=497
-  _globals['_CREATEMDLRESPONSE']._serialized_start=499
-  _globals['_CREATEMDLRESPONSE']._serialized_end=573
-  _globals['_GETMDLREQUEST']._serialized_start=575
-  _globals['_GETMDLREQUEST']._serialized_end=614
-  _globals['_MDLRESPONSE']._serialized_start=617
-  _globals['_MDLRESPONSE']._serialized_end=1000
-  _globals['_SIGNATUREINFO']._serialized_start=1002
-  _globals['_SIGNATUREINFO']._serialized_end=1097
-  _globals['_SIGNMDLREQUEST']._serialized_start=1099
-  _globals['_SIGNMDLREQUEST']._serialized_end=1131
-  _globals['_SIGNMDLRESPONSE']._serialized_start=1133
-  _globals['_SIGNMDLRESPONSE']._serialized_end=1234
-  _globals['_GENERATEQRCODEREQUEST']._serialized_start=1236
-  _globals['_GENERATEQRCODEREQUEST']._serialized_end=1325
-  _globals['_GENERATEQRCODERESPONSE']._serialized_start=1327
-  _globals['_GENERATEQRCODERESPONSE']._serialized_end=1391
-  _globals['_TRANSFERMDLREQUEST']._serialized_start=1393
-  _globals['_TRANSFERMDLREQUEST']._serialized_end=1473
-  _globals['_TRANSFERMDLRESPONSE']._serialized_start=1475
-  _globals['_TRANSFERMDLRESPONSE']._serialized_end=1557
-  _globals['_VERIFYMDLREQUEST']._serialized_start=1559
-  _globals['_VERIFYMDLREQUEST']._serialized_end=1682
-  _globals['_VERIFYMDLRESPONSE']._serialized_start=1685
-  _globals['_VERIFYMDLRESPONSE']._serialized_end=1836
-  _globals['_VERIFICATIONRESULT']._serialized_start=1838
-  _globals['_VERIFICATIONRESULT']._serialized_end=1911
-  _globals['_MDLENGINE']._serialized_start=1914
-  _globals['_MDLENGINE']._serialized_end=2299
+    DESCRIPTOR._loaded_options = None
+    _globals["_CREATEMDLREQUEST"]._serialized_start = 26
+    _globals["_CREATEMDLREQUEST"]._serialized_end = 332
+    _globals["_LICENSECATEGORY"]._serialized_start = 334
+    _globals["_LICENSECATEGORY"]._serialized_end = 437
+    _globals["_ADDITIONALFIELD"]._serialized_start = 439
+    _globals["_ADDITIONALFIELD"]._serialized_end = 497
+    _globals["_CREATEMDLRESPONSE"]._serialized_start = 499
+    _globals["_CREATEMDLRESPONSE"]._serialized_end = 573
+    _globals["_GETMDLREQUEST"]._serialized_start = 575
+    _globals["_GETMDLREQUEST"]._serialized_end = 614
+    _globals["_MDLRESPONSE"]._serialized_start = 617
+    _globals["_MDLRESPONSE"]._serialized_end = 1000
+    _globals["_SIGNATUREINFO"]._serialized_start = 1002
+    _globals["_SIGNATUREINFO"]._serialized_end = 1097
+    _globals["_SIGNMDLREQUEST"]._serialized_start = 1099
+    _globals["_SIGNMDLREQUEST"]._serialized_end = 1131
+    _globals["_SIGNMDLRESPONSE"]._serialized_start = 1133
+    _globals["_SIGNMDLRESPONSE"]._serialized_end = 1234
+    _globals["_GENERATEQRCODEREQUEST"]._serialized_start = 1236
+    _globals["_GENERATEQRCODEREQUEST"]._serialized_end = 1325
+    _globals["_GENERATEQRCODERESPONSE"]._serialized_start = 1327
+    _globals["_GENERATEQRCODERESPONSE"]._serialized_end = 1391
+    _globals["_TRANSFERMDLREQUEST"]._serialized_start = 1393
+    _globals["_TRANSFERMDLREQUEST"]._serialized_end = 1473
+    _globals["_TRANSFERMDLRESPONSE"]._serialized_start = 1475
+    _globals["_TRANSFERMDLRESPONSE"]._serialized_end = 1557
+    _globals["_VERIFYMDLREQUEST"]._serialized_start = 1559
+    _globals["_VERIFYMDLREQUEST"]._serialized_end = 1682
+    _globals["_VERIFYMDLRESPONSE"]._serialized_start = 1685
+    _globals["_VERIFYMDLRESPONSE"]._serialized_end = 1836
+    _globals["_VERIFICATIONRESULT"]._serialized_start = 1838
+    _globals["_VERIFICATIONRESULT"]._serialized_end = 1911
+    _globals["_MDLENGINE"]._serialized_start = 1914
+    _globals["_MDLENGINE"]._serialized_end = 2299
 # @@protoc_insertion_point(module_scope)

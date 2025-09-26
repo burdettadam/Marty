@@ -11,7 +11,9 @@ RUN apt-get update && apt-get install -y \
     gcc \
     g++ \
     make \
+    cmake \
     pkg-config \
+    protobuf-compiler \
     libpcsclite-dev \
     swig \
     && rm -rf /var/lib/apt/lists/*
@@ -32,30 +34,32 @@ RUN touch /app/src/__init__.py
 RUN mkdir -p /app/src/proto && touch /app/src/proto/__init__.py
 
 # Install Python dependencies from the lock file using UV
-RUN ~/.local/bin/uv pip install --system --no-cache -e .
+RUN ~/.local/bin/uv pip install --system --no-cache -e ".[biometric]"
 RUN ~/.local/bin/uv pip install --system grpcio
+RUN ~/.local/bin/uv pip install --system grpcio-health-checking
+RUN ~/.local/bin/uv pip install --system python-multipart
 
-# Compile protobufs and set up the src/proto package
-RUN python /app/src/compile_protos.py
+# Skip protobuf compilation since files are pre-generated
+# The generated proto files are already in src/proto/
 
 # Environment variables for UI
 ENV SERVICE_NAME=ui-app
 ENV UI_TITLE="Marty Operator Console"
 ENV UI_ENVIRONMENT=production
-ENV UI_PASSPORT_ENGINE_ADDR=passport-engine:8084
-ENV UI_INSPECTION_SYSTEM_ADDR=inspection-system:8083
+ENV UI_PASSPORT_ENGINE_ADDR=passport-engine:9084
+ENV UI_INSPECTION_SYSTEM_ADDR=inspection-system:9083
 ENV UI_MDL_ENGINE_ADDR=mdl-engine:8085
-ENV UI_TRUST_ANCHOR_ADDR=trust-anchor:8080
+ENV UI_TRUST_ANCHOR_ADDR=trust-anchor:9080
 ENV UI_GRPC_TIMEOUT_SECONDS=10
 ENV UI_ENABLE_MOCK_DATA=false
 ENV UI_THEME=light
 
 # Expose port
-EXPOSE 8090
+EXPOSE 9090
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=10s --start-period=20s --retries=3 \
-    CMD curl -f http://localhost:8090/health || exit 1
+    CMD curl -f http://localhost:9090/health || exit 1
 
 # Command to run when container starts
-CMD ["python", "-m", "uvicorn", "src.ui_app.app:app", "--host", "0.0.0.0", "--port", "8090"]
+CMD ["python", "-m", "uvicorn", "src.ui_app.app:app", "--host", "0.0.0.0", "--port", "9090"]

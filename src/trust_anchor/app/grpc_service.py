@@ -39,15 +39,10 @@ from src.proto.trust_anchor_pb2 import (
     UploadMasterListResponse,
     VerificationResponse,
 )
-from src.proto.trust_anchor_pb2_grpc import (
-    TrustAnchorServicer,
-    add_TrustAnchorServicer_to_server,
-)
+from src.proto.trust_anchor_pb2_grpc import TrustAnchorServicer, add_TrustAnchorServicer_to_server
 
 # Import our services
-from src.trust_anchor.app.services.certificate_expiry_service import (
-    CertificateExpiryService,
-)
+from src.trust_anchor.app.services.certificate_expiry_service import CertificateExpiryService
 from src.trust_anchor.app.services.openxpki_service import OpenXPKIService
 
 # Configure logging

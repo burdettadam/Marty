@@ -252,6 +252,15 @@
                   <dt>License Number:</dt><dd>{{ create_result.license_number }}</dd>
                   <dt>Document ID:</dt><dd>{{ create_result.mdl_id }}</dd>
                   <dt>Created:</dt><dd>{{ create_result.created_at }}</dd>
+                  {% if create_result.first_name %}
+                  <dt>First Name:</dt><dd>{{ create_result.first_name }}</dd>
+                  {% endif %}
+                  {% if create_result.last_name %}
+                  <dt>Last Name:</dt><dd>{{ create_result.last_name }}</dd>
+                  {% endif %}
+                  {% if create_result.user_id %}
+                  <dt>User ID:</dt><dd>{{ create_result.user_id }}</dd>
+                  {% endif %}
                 </dl>
                 
                 <!-- QR Code for the created MDL -->
@@ -293,7 +302,7 @@
     </details>
     
     <!-- MDL Lookup and Verification -->
-    <details>
+    <details open>
       <summary>MDL Lookup & Verification</summary>
       
       <div class="mdl-lookup-section">
@@ -397,7 +406,7 @@
         
         <!-- Lookup Results -->
         {% if lookup_result %}
-          <div class="lookup-results">
+          <div class="lookup-results result-panel">
             {% if lookup_result.error %}
               <div class="error-message">
                 <p class="error">{{ lookup_result.error }}</p>

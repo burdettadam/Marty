@@ -1,15 +1,16 @@
-import pytest
 import sys
-from pathlib import Path
 from datetime import date
+from pathlib import Path
+
+import pytest
 
 # Add project root to path
 project_root = Path(__file__).resolve().parents[3]
 sys.path.append(str(project_root))
 
 # Import from Marty's codebase
-from src.marty_common.models.passport import MRZData, Gender
-from src.marty_common.utils.mrz_utils import MRZParser, MRZFormatter, MRZException
+from src.marty_common.models.passport import Gender, MRZData
+from src.marty_common.utils.mrz_utils import MRZException, MRZFormatter, MRZParser
 
 
 def test_mrz_data_model():
@@ -25,9 +26,9 @@ def test_mrz_data_model():
         date_of_birth="900101",  # YYMMDD format
         gender=Gender.MALE,
         date_of_expiry="250101",  # YYMMDD format
-        personal_number="AB123456"
+        personal_number="AB123456",
     )
-    
+
     # Check that the properties are set correctly
     assert mrz_data.document_type == "P"
     assert mrz_data.issuing_country == "USA"
@@ -39,7 +40,7 @@ def test_mrz_data_model():
     assert mrz_data.gender == Gender.MALE
     assert mrz_data.date_of_expiry == "250101"
     assert mrz_data.personal_number == "AB123456"
-    
+
     # Test dictionary conversion
     mrz_dict = mrz_data.to_dict()
     assert mrz_dict["documentType"] == "P"
@@ -52,7 +53,7 @@ def test_mrz_data_model():
     assert mrz_dict["gender"] == "M"
     assert mrz_dict["dateOfExpiry"] == "250101"
     assert mrz_dict["personalNumber"] == "AB123456"
-    
+
     # Test reconstruction from dictionary
     mrz_reconstructed = MRZData.from_dict(mrz_dict)
     assert mrz_reconstructed.document_type == "P"
@@ -80,27 +81,29 @@ def test_mrz_formatter():
         date_of_birth="740812",  # YYMMDD format
         gender=Gender.FEMALE,
         date_of_expiry="120415",  # YYMMDD format
-        personal_number="ZE184226B"
+        personal_number="ZE184226B",
     )
-    
+
     # Generate MRZ string
     mrz_string = MRZFormatter.generate_td3_mrz(mrz_data)
-    
+
     # Verify basic structure
-    assert len(mrz_string.split('\n')) == 2
-    assert all(len(line) == 44 for line in mrz_string.split('\n'))
-    assert mrz_string.startswith('P<UTO')
+    assert len(mrz_string.split("\n")) == 2
+    assert all(len(line) == 44 for line in mrz_string.split("\n"))
+    assert mrz_string.startswith("P<UTO")
 
 
 def test_mrz_parser():
     """Test the MRZ parser functionality."""
     # TD3 format MRZ (passport) from ICAO 9303 part 4 Appendix B
-    mrz_string = ("P<UTOERIKSSON<<ANNA<MARIA<<<<<<<<<<<<<<<<<<<\n"
-                  "L898902C36UTO7408122F1204159ZE184226B<<<<<10")
-    
+    mrz_string = (
+        "P<UTOERIKSSON<<ANNA<MARIA<<<<<<<<<<<<<<<<<<<\n"
+        "L898902C36UTO7408122F1204159ZE184226B<<<<<10"
+    )
+
     # Parse the MRZ string
     mrz_data = MRZParser.parse_td3_mrz(mrz_string)
-    
+
     # Verify parsed data
     assert mrz_data.document_type == "P"
     assert mrz_data.issuing_country == "UTO"
@@ -117,18 +120,22 @@ def test_mrz_parser():
 def test_mrz_validation():
     """Test MRZ validation functionality."""
     # Valid MRZ
-    valid_mrz = ("P<UTOERIKSSON<<ANNA<MARIA<<<<<<<<<<<<<<<<<<<\n"
-                "L898902C36UTO7408122F1204159ZE184226B<<<<<10")
-    
+    valid_mrz = (
+        "P<UTOERIKSSON<<ANNA<MARIA<<<<<<<<<<<<<<<<<<<\n"
+        "L898902C36UTO7408122F1204159ZE184226B<<<<<10"
+    )
+
     assert MRZParser.parse_mrz(valid_mrz) is not None
-    
+
     # Invalid MRZs - test with wrong format
     with pytest.raises(MRZException):
         MRZParser.parse_mrz("Invalid MRZ")
-    
+
     # Invalid MRZ - wrong document type
-    invalid_doc_type = ("I<UTOERIKSSON<<ANNA<MARIA<<<<<<<<<<<<<<<<<<<\n"
-                      "L898902C36UTO7408122F1204159ZE184226B<<<<<10")
-    
+    invalid_doc_type = (
+        "I<UTOERIKSSON<<ANNA<MARIA<<<<<<<<<<<<<<<<<<<\n"
+        "L898902C36UTO7408122F1204159ZE184226B<<<<<10"
+    )
+
     with pytest.raises(MRZException):
         MRZParser.parse_td3_mrz(invalid_doc_type)

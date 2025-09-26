@@ -1,5 +1,5 @@
 # coding: utf-8
-from __future__ import unicode_literals, division, absolute_import, print_function
+from __future__ import absolute_import, division, print_function, unicode_literals
 
 import os
 import sys
@@ -14,6 +14,7 @@ else:
 
 
 if sys.version_info >= (3, 5):
+
     class ModCryptoMetaFinder(importlib.abc.MetaPathFinder):
         def setup(self):
             self.modules = {}
@@ -24,7 +25,7 @@ if sys.version_info >= (3, 5):
                 self.modules[package_name] = package_path
 
         def find_spec(self, fullname, path, target=None):
-            name_parts = fullname.split('.')
+            name_parts = fullname.split(".")
             if name_parts[0] not in self.modules:
                 return None
 
@@ -44,10 +45,7 @@ if sys.version_info >= (3, 5):
                 return None
 
             return importlib.util.spec_from_file_location(
-                fullname,
-                filename,
-                loader=None,
-                submodule_search_locations=submodule_locations
+                fullname, filename, loader=None, submodule_search_locations=submodule_locations
             )
 
     CUSTOM_FINDER = ModCryptoMetaFinder()
@@ -78,17 +76,17 @@ def _import_from(mod, path, mod_dir=None):
     if mod_dir is None:
         full_mod = mod
     else:
-        full_mod = mod_dir.replace(os.sep, '.')
+        full_mod = mod_dir.replace(os.sep, ".")
 
     if mod_dir is None:
-        mod_dir = mod.replace('.', os.sep)
+        mod_dir = mod.replace(".", os.sep)
 
     if not os.path.exists(path):
         return None
 
-    source_path = os.path.join(path, mod_dir, '__init__.py')
+    source_path = os.path.join(path, mod_dir, "__init__.py")
     if not os.path.exists(source_path):
-        source_path = os.path.join(path, mod_dir + '.py')
+        source_path = os.path.join(path, mod_dir + ".py")
 
     if not os.path.exists(source_path):
         return None
@@ -103,8 +101,8 @@ def _import_from(mod, path, mod_dir=None):
             return imp.load_module(mod, *mod_info)
 
         else:
-            package = mod.split('.', 1)[0]
-            package_dir = full_mod.split('.', 1)[0]
+            package = mod.split(".", 1)[0]
+            package_dir = full_mod.split(".", 1)[0]
             package_path = os.path.join(path, package_dir)
             CUSTOM_FINDER.add_module(package, package_path)
 
@@ -142,10 +140,7 @@ def test_classes():
     # Make sure the module is loaded from this source folder
     tests_dir = os.path.dirname(os.path.abspath(__file__))
 
-    _import_from(
-        'certvalidator',
-        os.path.join(tests_dir, '..')
-    )
+    _import_from("certvalidator", os.path.join(tests_dir, ".."))
 
     from .test_certificate_validator import CertificateValidatorTests
     from .test_crl_client import CRLClientTests
@@ -158,5 +153,5 @@ def test_classes():
         CRLClientTests,
         OCSPClientTests,
         RegistryTests,
-        ValidateTests
+        ValidateTests,
     ]

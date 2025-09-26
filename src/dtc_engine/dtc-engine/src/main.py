@@ -10,6 +10,7 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(
 
 # Import DTC engine servicer
 from dtc_engine_service import DTCEngineService
+
 from marty_common.config import Config
 from src.proto import dtc_engine_pb2_grpc
 

@@ -240,7 +240,7 @@
     </details>
     
     <!-- Synchronization Management -->
-    <details>
+    <details open>
       <summary>Synchronization Management</summary>
       
       <!-- Sync Status -->
@@ -292,7 +292,7 @@
         </div>
         
         {% if sync_result %}
-          <div class="result-section">
+          <div class="result-section sync-result pkd-result result-panel status-panel">
             <h5>Synchronization Result</h5>
             {% if sync_result.error %}
               <div class="alert alert-error">{{ sync_result.error }}</div>

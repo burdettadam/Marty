@@ -88,12 +88,24 @@ pre-commit-update:
 	@echo "Updating pre-commit hooks..."
 	pre-commit autoupdate
 
-.PHONY: setup clean test lint format proto compile-protos clean-protos build run docker-build docker-run test-unit test-integration test-e2e test-cert-validator test-e2e-ui test-e2e-smoke test-e2e-ui-existing test-e2e-dashboard test-e2e-passport test-e2e-mdl test-e2e-responsive test-e2e-report playwright-install generate-test-data help run-ui run-service-ui run-services-dev check-services stop-services dev-environment demo-environment dev-minimal dev-full dev-status dev-logs dev-clean dev-restart wait-for-services show-endpoints test-phase2 test-phase3 test-phase2-units test-phase2-integration test-phase3-units test-phase3-integration test-performance test-coverage test-quick test-security test-all-phases test-setup
+setup-openxpki:
+	@echo "Setting up OpenXPKI for certificate management..."
+	@if [ ! -f ./scripts/development/setup_openxpki.sh ]; then \
+		echo "Error: OpenXPKI setup script not found"; \
+		exit 1; \
+	fi
+	@chmod +x ./scripts/development/setup_openxpki.sh
+	@./scripts/development/setup_openxpki.sh
+	@echo "OpenXPKI setup completed!"
+	@echo "Access the OpenXPKI web interface at: https://localhost:8443/openxpki/"
+	@echo "Default credentials: pkiadmin / secret"
+
+.PHONY: setup clean test lint format proto compile-protos clean-protos build run docker-build docker-run test-unit test-integration test-integration-docker test-e2e test-e2e-docker test-cert-validator test-unit-orchestrated test-mock start-integration-services start-e2e-services stop-orchestrated-services test-e2e-ui playwright-install generate-test-data help run-ui run-service-ui run-services-dev check-services stop-services dev-environment demo-environment dev-minimal dev-full dev-status dev-logs dev-clean dev-restart wait-for-services show-endpoints test-performance test-coverage test-security test-setup setup-openxpki
 
 PYTHON := uv run python
 UV := uv
 DOCKER := docker
-DOCKER_COMPOSE := docker compose
+DOCKER_COMPOSE := docker compose -f docker/docker-compose.yml
 
 # Default target
 all: help
@@ -120,7 +132,7 @@ clean:
 	@find . -type f -name "*.log" -delete
 
 # Run all tests with proper orchestration
-test: test-unit test-integration test-e2e test-cert-validator test-all-phases
+test: test-unit test-integration test-e2e test-cert-validator
 
 # Run unit tests (no services needed)
 test-unit:
@@ -132,10 +144,20 @@ test-integration:
 	@echo "Running integration tests..."
 	@$(UV) run pytest tests/integration/ -v --maxfail=3 --disable-warnings
 
+# Run integration tests with Docker services (using TestOrchestrator)
+test-integration-docker:
+	@echo "Running integration tests with TestOrchestrator..."
+	@$(UV) run python -m tests.test_orchestrator integration tests/integration/
+
 # Run end-to-end tests (with full service stack)
 test-e2e: ## Run end-to-end tests
 	@echo "Running end-to-end tests..."
 	@$(UV) run pytest tests/e2e/ -v --maxfail=3 --disable-warnings
+
+# Run E2E tests with Docker services (using TestOrchestrator)
+test-e2e-docker:
+	@echo "Running E2E tests with TestOrchestrator..."
+	@$(UV) run python -m tests.test_orchestrator e2e tests/e2e/
 
 # Run certificate validator tests (no services needed)
 test-cert-validator:
@@ -143,7 +165,60 @@ test-cert-validator:
 	@$(UV) run pytest tests/cert_validator/ -v
 
 # =============================================================================
-# PHASE 2/3 PASSPORT VERIFICATION TESTING COMMANDS
+# TEST ORCHESTRATOR COMMANDS (Recommended)
+# =============================================================================
+
+# Run unit tests (no services)
+test-unit-orchestrated:
+	@echo "Running unit tests with TestOrchestrator..."
+	@$(UV) run python -m tests.test_orchestrator unit tests/unit/
+
+# Run mock tests
+test-mock:
+	@echo "Running mock tests with TestOrchestrator..."
+	@$(UV) run python -m tests.test_orchestrator mock tests/
+
+# Start services for development (integration mode)
+start-integration-services:
+	@echo "Starting services for integration testing..."
+	@$(UV) run python -c "from tests.test_orchestrator import get_orchestrator, TestMode; get_orchestrator().start_services_for_mode(TestMode.INTEGRATION)"
+
+# Start services for development (e2e mode)
+start-e2e-services:
+	@echo "Starting services for E2E testing..."
+	@$(UV) run python -c "from tests.test_orchestrator import get_orchestrator, TestMode; get_orchestrator().start_services_for_mode(TestMode.E2E)"
+
+# Stop all orchestrated services
+stop-orchestrated-services:
+	@echo "Stopping all orchestrated services..."
+	@$(UV) run python -c "from tests.test_orchestrator import get_orchestrator; get_orchestrator().stop_all_services()"
+
+# New orchestrated test targets with fixed base class
+test-integration-orchestrated:
+	@echo "Running integration tests with orchestrated services..."
+	@$(UV) run pytest tests/integration/docker/e2e/test_passport_orchestrated_clean.py::PassportFlowE2ETest::test_service_connectivity -v
+	@$(UV) run pytest tests/integration/docker/e2e/test_passport_orchestrated_clean.py::PassportFlowE2ETest::test_service_health_checks -v
+
+test-e2e-orchestrated:
+	@echo "Running E2E tests with orchestrated services..."
+	@$(UV) run pytest tests/integration/docker/e2e/test_passport_orchestrated_clean.py::PassportFlowE2ETest::test_passport_flow_with_injected_data -v
+
+test-orchestrator-validation:
+	@echo "Validating TestOrchestrator functionality..."
+	@cd tests && $(UV) run python test_orchestrator.py integration tests/
+
+# Test the orchestrator base class specifically
+test-orchestrator-base:
+	@echo "Testing orchestrator base class functionality..."
+	@$(UV) run pytest tests/integration/docker/e2e/test_passport_orchestrated_clean.py -v
+
+# Legacy integration test (with conflicts - deprecated)
+test-integration-legacy:
+	@echo "Running legacy integration tests (may have conflicts)..."
+	@$(UV) run pytest tests/integration/docker/e2e/test_passport_flow.py -v
+
+# =============================================================================
+# ADDITIONAL TESTING COMMANDS
 # =============================================================================
 
 # Install test dependencies for comprehensive testing
@@ -151,38 +226,6 @@ test-setup:
 	@echo "Installing comprehensive test dependencies..."
 	@$(UV) add --dev pytest pytest-asyncio pytest-cov pytest-html pytest-xdist coverage psutil
 	@echo "✅ Test dependencies installed!"
-
-# Run all Phase 2 & 3 tests (comprehensive validation)
-test-all-phases: test-phase2 test-phase3 test-performance test-coverage
-	@echo "✅ All Phase 2/3 tests completed successfully!"
-
-# Run all Phase 2 RFID tests
-test-phase2: test-phase2-units test-phase2-integration
-	@echo "✅ Phase 2 RFID tests completed!"
-
-# Run all Phase 3 Security tests  
-test-phase3: test-phase3-units test-phase3-integration
-	@echo "✅ Phase 3 Security tests completed!"
-
-# Run Phase 2 unit tests (RFID components)
-test-phase2-units:
-	@echo "🧪 Running Phase 2 RFID Unit Tests..."
-	@$(UV) run pytest tests/test_phase2_units.py -v -m "unit or phase2 or rfid" --tb=short
-
-# Run Phase 2 integration tests (RFID workflow)
-test-phase2-integration:
-	@echo "🔗 Running Phase 2 RFID Integration Tests..."
-	@$(UV) run pytest tests/test_phase2_integration.py -v -m "integration or phase2 or rfid" --tb=short
-
-# Run Phase 3 unit tests (Security components)
-test-phase3-units:
-	@echo "🔐 Running Phase 3 Security Unit Tests..."
-	@$(UV) run pytest tests/test_phase3_units.py -v -m "unit or phase3 or security" --tb=short
-
-# Run Phase 3 integration tests (Security workflow)
-test-phase3-integration:
-	@echo "🔗 Running Phase 3 Security Integration Tests..."
-	@$(UV) run pytest tests/test_phase3_integration.py -v -m "integration or phase3 or security" --tb=short
 
 # Run performance and scalability tests
 test-performance:
@@ -194,11 +237,6 @@ test-security:
 	@echo "🛡️ Running Security Tests..."
 	@$(UV) run pytest tests/ -v -m "security" --tb=short
 
-# Run quick tests only (no slow/performance tests)
-test-quick:
-	@echo "🚀 Running Quick Tests..."
-	@$(UV) run pytest tests/test_phase2_units.py tests/test_phase3_units.py -v -m "not slow and not performance" --tb=short
-
 # Run comprehensive test coverage analysis
 test-coverage:
 	@echo "📊 Running Comprehensive Coverage Analysis..."
@@ -206,7 +244,7 @@ test-coverage:
 		$(UV) run python generate_test_coverage.py; \
 	else \
 		echo "Running basic coverage analysis..."; \
-		$(UV) run pytest --cov=src --cov-report=html --cov-report=term-missing --cov-report=json --cov-fail-under=75 tests/test_phase2_units.py tests/test_phase2_integration.py tests/test_phase3_units.py tests/test_phase3_integration.py tests/test_performance_suite.py; \
+		$(UV) run pytest --cov=src --cov-report=html --cov-report=term-missing --cov-report=json --cov-fail-under=75 tests/unit/ tests/integration/ tests/e2e/ tests/test_performance_suite.py; \
 		echo "📈 Coverage report generated in htmlcov/index.html"; \
 	fi
 
@@ -219,7 +257,7 @@ test-clean:
 	@echo "✅ Test artifacts cleaned!"
 
 # =============================================================================
-# PLAYWRIGHT E2E TESTING COMMANDS
+# E2E TESTING COMMANDS
 # =============================================================================
 
 # Install Playwright browsers (required for E2E UI tests)
@@ -228,27 +266,22 @@ playwright-install:
 	@$(UV) run python -m playwright install chromium
 	@echo "Playwright browsers installed!"
 
-# Run Playwright E2E tests (requires UI service)
-test-e2e-ui:
-	@echo "Running Playwright E2E tests..."
-	@echo "Starting UI service for testing..."
-	@docker run -d -p 8090:8090 --name e2e-ui-test --env UI_ENABLE_MOCK_DATA=true marty-ui-app || \
-		(echo "Building UI image first..." && $(DOCKER_COMPOSE) build ui-app && \
-		 docker run -d -p 8090:8090 --name e2e-ui-test --env UI_ENABLE_MOCK_DATA=true marty-ui-app)
-	@echo "Waiting for UI service to be ready..."
-	@timeout=30; while [ $$timeout -gt 0 ]; do \
-		if curl -s http://localhost:8090/health >/dev/null 2>&1; then \
-			echo "✅ UI Service is ready for testing"; break; \
-		fi; \
-		echo "⏳ Waiting for UI Service... ($$timeout seconds left)"; \
-		sleep 2; timeout=$$((timeout-2)); \
-	done
-	@echo "Running E2E tests..."
-	@$(UV) run pytest tests/e2e/ -v --tb=short || TEST_RESULT=$$?; \
-		echo "Cleaning up test container..."; \
-		docker stop e2e-ui-test >/dev/null 2>&1; \
-		docker rm e2e-ui-test >/dev/null 2>&1; \
-		exit $${TEST_RESULT:-0}
+# Run MVP E2E tests with mock data
+test-e2e-mvp:
+	@echo "Running MVP E2E tests..."
+	@$(UV) run pytest tests/e2e/ -m mvp -v --tb=short
+
+# Run all E2E tests (MVP + integration)
+test-e2e-all:
+	@echo "Running all E2E tests..."
+	@$(UV) run pytest tests/e2e/ -v --tb=short
+
+# Run E2E tests with HTML report generation  
+test-e2e-report-mvp:
+	@echo "Running E2E tests with HTML report generation..."
+	@mkdir -p tests/e2e/reports
+	@$(UV) run pytest tests/e2e/ -m mvp --html=tests/e2e/reports/report.html --self-contained-html -v
+	@echo "📊 Test report generated: tests/e2e/reports/report.html"
 
 # Run only smoke tests (quick validation)
 test-e2e-smoke:
@@ -282,6 +315,18 @@ test-e2e-ui-existing:
 	fi
 	@echo "✅ UI service detected, running tests..."
 	@$(UV) run pytest tests/e2e/ -v --tb=short
+
+# Run Playwright tests requiring the full real service stack (no UI_ENABLE_MOCK_DATA)
+test-e2e-ui-integration:
+	@echo "Running full-stack Playwright integration UI tests (real services)..."
+	@echo "Starting minimal service stack for integration tests..."
+	@docker compose -f docker/docker-compose.integration.yml up --build -d
+	@echo "Waiting for services to be ready..."
+	@sleep 10
+	@echo "Running integration tests..."
+	@$(UV) run pytest tests/e2e/ -m "integration and ui" -v --tb=short || (docker compose -f docker/docker-compose.integration.yml down && exit 1)
+	@echo "Stopping services..."
+	@docker compose -f docker/docker-compose.integration.yml down
 
 # Run specific E2E test categories
 test-e2e-dashboard:
@@ -573,17 +618,13 @@ help:
 	@echo ""
 	@echo "🔧 Build & Setup:"
 	@echo "  setup              - Set up virtual environment and install dependencies"
+	@echo "  setup-openxpki     - Set up OpenXPKI certificate management system"
 	@echo "  build              - Build the project (compile protos + install)"
 	@echo "  compile-protos     - Compile protocol buffers"
 	@echo "  clean              - Clean build artifacts"
 	@echo "  clean-protos       - Clean compiled protocol buffers"
 	@echo ""
-	@echo "🧪 Testing:"
-	@echo "  test               - Run all tests"
-	@echo "  test-unit          - Run unit tests"
-	@echo "  test-integration   - Run integration tests"
-	@echo "  test-e2e           - Run end-to-end tests (orchestrator)"
-	@echo "  test-cert-validator - Run certificate validator tests"
+		@echo \"🧪 Testing:\"\n\t@echo \"  test               - Run all tests\"\n\t@echo \"  test-unit          - Run unit tests\"\n\t@echo \"  test-integration   - Run integration tests\"\n\t@echo \"  test-integration-docker - Run integration tests with Docker services\"\n\t@echo \"  test-e2e           - Run end-to-end tests (orchestrator)\"\n\t@echo \"  test-e2e-docker    - Run E2E tests with Docker services\"\n\t@echo \"  test-cert-validator - Run certificate validator tests\"
 	@echo ""
 	@echo "🔐 Phase 2/3 Passport Verification Testing:"
 	@echo "  test-setup           - Install test dependencies"

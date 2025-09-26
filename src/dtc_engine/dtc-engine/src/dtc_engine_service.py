@@ -23,7 +23,9 @@ import qrcode
 # Import common utilities
 from src.marty_common.config import Config
 from src.marty_common.crypto import generate_hash
+from src.marty_common.grpc_client import GRPCClient as GrpcClient
 from src.marty_common.logging_config import get_logger
+from src.proto.document_signer_pb2_grpc import DocumentSignerStub
 
 # Import proto-generated modules
 from src.proto.dtc_engine_pb2 import (
@@ -38,9 +40,7 @@ from src.proto.dtc_engine_pb2 import (
     VerifyDTCResponse,
 )
 from src.proto.dtc_engine_pb2_grpc import DTCEngineServicer
-from src.proto.document_signer_pb2_grpc import DocumentSignerStub
 from src.proto.passport_engine_pb2_grpc import PassportEngineStub
-from src.marty_common.grpc_client import GRPCClient as GrpcClient
 
 # Configure logger
 logger = get_logger(__name__)
@@ -76,7 +76,7 @@ class DTCEngineService(DTCEngineServicer):
         )
 
         self.passport_engine_client = GrpcClient(
-            service_name="passport-engine", 
+            service_name="passport-engine",
             stub_class=PassportEngineStub,
             config=config,
         )

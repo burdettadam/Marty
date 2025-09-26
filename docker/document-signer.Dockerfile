@@ -3,7 +3,10 @@ FROM python:3.10-slim
 
 # Install build dependencies for pyscard and xmlsec
 RUN apt-get update && apt-get install -y --no-install-recommends \
+    gcc \
+    cmake \
     pkg-config \
+    protobuf-compiler \
     libxml2-dev \
     xmlsec1 \
     libxmlsec1-dev \
@@ -35,19 +38,20 @@ RUN touch /app/proto/__init__.py
 RUN touch /app/src/__init__.py
 RUN touch /app/src/proto/__init__.py
 
-# Install dependencies after source code is copied
+# Install dependencies after source code is copied (base profile without biometric extras)
 RUN uv pip install --system -e .
 RUN uv pip install --system grpcio
+RUN uv pip install --system grpcio-health-checking
 
-# Generate Python code from proto files using the proper compilation script
-RUN cd /app && python src/compile_protos.py
+# Skip protobuf compilation since files are pre-generated
+# The generated proto files are already in src/proto/
 
 # Create data directories
 RUN mkdir -p /app/data
 
 # Command to run when container starts
 ENV SERVICE_NAME=document-signer
-ENV GRPC_PORT=8082
+ENV GRPC_PORT=9082
 ENV PYTHONPATH=/app
 
 CMD ["python", "/app/src/main.py"]

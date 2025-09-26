@@ -21,9 +21,7 @@ project_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(_
 if project_root not in sys.path:
     sys.path.insert(0, project_root)
 
-from src.marty_common.error_handling import (
-    GrpcErrorHandler,
-)
+from src.marty_common.error_handling import GrpcErrorHandler
 from src.marty_common.grpc_logging import LoggingStreamerServicer
 from src.marty_common.logging_config import setup_logging
 

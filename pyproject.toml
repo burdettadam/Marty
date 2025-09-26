@@ -10,52 +10,31 @@ readme = "README.md"
 requires-python = ">=3.10"
 license = {text = "Proprietary"}
 dependencies = [
+    "fastapi>=0.104.1",
+    "uvicorn[standard]>=0.24.0",
     "grpcio>=1.59.0",
     "grpcio-tools>=1.59.0",
-    "grpcio-health-checking>=1.59.0",
-    "grpcio-reflection>=1.59.0",
-    "mypy-protobuf>=3.4.0", # For generating .pyi type stubs
-    "pytest>=7.4.0",
-    "cryptography>=41.0.0",
-    "pyOpenSSL>=23.0.0",
-    "protobuf>=6.31.1,<7.0",
-    "asn1crypto>=1.5.1",
-    "pyscard>=2.1.1",
-    "xmlsec>=1.3.15",
-    "pydantic>=2.10.6",
-    # RFID and Smart Card Communication
-    "pyscard>=2.0.0", # PC/SC smart card operations (more compatible)
-    "nfcpy>=1.0.0,<=1.0.4", # Python NFC library (compatible version)
-    # Biometric Processing
-    "scikit-image>=0.21.0", # Advanced image processing
-    "numpy>=1.24.0", # Numerical computing foundation
-    "scipy>=1.11.0", # Scientific computing
-    "opencv-contrib-python>=4.8.0", # Extended OpenCV with face recognition
-    "face-recognition>=1.3.0", # Facial recognition library
-    # Hardware Integration
-    "pyusb>=1.2.1", # USB device interface
-    "pyserial>=3.5", # Serial communication
-    "pytest-depends>=1.0.1",
-    "pytest-datafiles>=2.0.0",
-    # "py>=1.11.0", # Removed - has known vulnerability CVE-2022-42969
-    "oscrypto>=1.3.0",
-    "certvalidator>=0.11.1",
-    "cbor2>=5.6.0",
-    "qrcode>=7.4.2",
-    "pillow>=11.3.0", # Required by qrcode for image generation - fixed CVE-2025-48379
-    "PyYAML>=6.0", # Added YAML dependency
-    "requests>=2.32.4", # Added requests - fixed CVE-2024-47081
-    "SQLAlchemy>=2.0.0", # Added SQLAlchemy for ORM
-    "psycopg2-binary>=2.9.0", # Added PostgreSQL driver
-    "fastapi>=0.110.0", # UI web framework
-    "uvicorn[standard]>=0.23.0", # ASGI server for FastAPI app
-    "jinja2>=3.1.2", # Template rendering for UI
-    "python-multipart>=0.0.8", # Form parsing support for FastAPI
-    "playwright>=1.42.0", # UI end-to-end testing
-    "pydantic-settings>=2.8.1",
-    "pbr>=7.0.1",
-    "pytest-asyncio>=1.2.0",
-    "opencv-python>=4.11.0.86",
+    "protobuf>=4.24.4",
+    "pydantic>=2.4.2",
+    "pydantic-settings>=2.0.0",
+    "python-multipart>=0.0.6",
+    "watchdog>=3.0.0",
+    "cryptography>=41.0.7",
+    "pillow>=10.1.0",
+    "scipy>=1.11.4",
+    "playwright>=1.40.0",
+    "pytest>=7.4.3",
+    "pytest-asyncio>=0.21.1",
+    "pytest-html>=4.1.1",
+    "loguru>=0.7.2",
+    "requests>=2.32.5",
+]
+
+[project.optional-dependencies]
+biometric = [
+    "face-recognition>=1.3.0",
+    "opencv-contrib-python>=4.8.1.78",
+    "scikit-image>=0.22.0",
 ]
 
 [tool.pytest.ini_options]
@@ -76,39 +55,34 @@ python_classes = ["Test*", "*Tests"]
 python_functions = ["test_*"]
 markers = [
     "unit: Unit tests for individual components",
-    "integration: Integration tests for component workflows",
+    "integration: Integration tests for component workflows and real docker-compose service stack (no UI mock data)",
     "performance: Performance and load tests",
     "slow: Tests that take significant time to run",
     "security: Security-focused tests",
-    "rfid: Phase 2 RFID component tests",
-    "phase2: Phase 2 component tests",
-    "phase3: Phase 3 security component tests",
     "e2e: marks tests as end-to-end tests",
     "smoke: marks tests as smoke tests",
     "ui: marks tests as UI tests",
     "passport: marks tests as passport-related tests",
     "mdl: marks tests as mobile driver license tests",
     "admin: marks tests as admin interface tests",
+    "mvp: marks tests that cover the defined MVP feature set",
 ]
 asyncio_mode = "auto"
 asyncio_default_fixture_loop_scope = "function"
-timeout = 300
-timeout_method = "thread"
 filterwarnings = [
     "ignore::DeprecationWarning",
     "ignore::PendingDeprecationWarning", 
     "ignore::UserWarning:cryptography.*",
     "ignore::pytest.PytestUnraisableExceptionWarning"
 ]
-collect_ignore = [
-    "setup.py",
-    "docs/",
-    "build/",
-    "dist/",
-    ".tox/",
-    "venv/",
-    "env/",
-    "__pycache__/"
+norecursedirs = [
+    "docs",
+    "build",
+    "dist",
+    ".tox",
+    "venv",
+    "env",
+    "__pycache__"
 ]
 log_cli = true
 log_cli_level = "INFO"
@@ -206,7 +180,7 @@ max-statements = 50
 
 [tool.black]
 line-length = 100
-target-version = ["py39", "py310", "py311", "py312"]
+target-version = ["py39", "py310", "py311"]
 
 [tool.isort]
 profile = "black"

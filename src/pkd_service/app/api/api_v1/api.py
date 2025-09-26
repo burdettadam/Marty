@@ -2,15 +2,8 @@
 Main API router aggregating all v1 endpoints
 """
 
+from app.api.api_v1.endpoints import crl, deviationlist, dsclist, masterlist, sync
 from fastapi import APIRouter
-
-from app.api.api_v1.endpoints import (
-    crl,
-    deviationlist,
-    dsclist,
-    masterlist,
-    sync,
-)
 
 api_router = APIRouter()
 

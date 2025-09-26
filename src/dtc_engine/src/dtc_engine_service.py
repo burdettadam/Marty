@@ -19,8 +19,8 @@ from typing import Any
 import grpc
 import qrcode
 
-from src.marty_common import crypto
 from src.marty_common.config import Config
+from src.marty_common.crypto import hash_password, verify_password, verify_signature
 from src.marty_common.grpc_client import GRPCClient
 from src.proto import (
     common_services_pb2_grpc,
@@ -54,7 +54,7 @@ class DTCEngineService(dtc_engine_pb2_grpc.DTCEngineServicer):
         try:
             self.document_signer_client = GRPCClient(
                 service_name="document-signer",
-                stub_class=document_signer_pb2_grpc.DocumentSignerServiceStub,
+                stub_class=document_signer_pb2_grpc.DocumentSignerStub,
                 config=config,
             )
             self.logger.info("Successfully connected to Document Signer service")
@@ -113,7 +113,7 @@ class DTCEngineService(dtc_engine_pb2_grpc.DTCEngineServicer):
                 ],
                 "dtc_type": request.dtc_type,
                 "access_control": request.access_control,
-                "access_key_hash": crypto.hash_password(request.access_key),
+                "access_key_hash": hash_password(request.access_key),
                 "creation_date": datetime.now().isoformat(),
                 "dtc_valid_from": request.dtc_valid_from,
                 "dtc_valid_until": request.dtc_valid_until,
@@ -172,10 +172,7 @@ class DTCEngineService(dtc_engine_pb2_grpc.DTCEngineServicer):
         try:
             # Check if DTC exists
             dtc_file_path = os.path.join(self.dtc_storage_dir, f"{request.dtc_id}.json")
-            if os.path.exists(dtc_file_path):
-                with open(dtc_file_path) as f:
-                    dtc_data = json.load(f)
-            else:
+            if not os.path.exists(dtc_file_path):
                 dtc_data = self._dtc_store.get(request.dtc_id)
                 if not dtc_data:
                     self.logger.error(f"DTC with ID {request.dtc_id} not found")
@@ -184,9 +181,13 @@ class DTCEngineService(dtc_engine_pb2_grpc.DTCEngineServicer):
                         error_message=f"DTC with ID {request.dtc_id} not found",
                         dtc_id="",
                     )
+            else:
+                # Read DTC data
+                with open(dtc_file_path) as f:
+                    dtc_data = json.load(f)
 
             # Verify access key
-            if not crypto.verify_password(request.access_key, dtc_data["access_key_hash"]):
+            if not verify_password(request.access_key, dtc_data["access_key_hash"]):
                 self.logger.error(f"Access denied for DTC with ID {request.dtc_id}")
                 return SimpleNamespace(
                     status="ACCESS_DENIED",
@@ -300,7 +301,7 @@ class DTCEngineService(dtc_engine_pb2_grpc.DTCEngineServicer):
                     )
 
             # Verify access key
-            if not crypto.verify_password(request.access_key, dtc_data["access_key_hash"]):
+            if not verify_password(request.access_key, dtc_data["access_key_hash"]):
                 self.logger.error(f"Access denied for DTC with ID {request.dtc_id}")
                 return dtc_engine_pb2.SignDTCResponse(
                     success=False, error_message="Access denied: Invalid access key"
@@ -411,7 +412,7 @@ class DTCEngineService(dtc_engine_pb2_grpc.DTCEngineServicer):
                 dtc_data = json.load(f)
 
             # Verify access key
-            if not crypto.verify_password(request.access_key, dtc_data["access_key_hash"]):
+            if not verify_password(request.access_key, dtc_data["access_key_hash"]):
                 self.logger.error(f"Access denied for DTC with ID {request.dtc_id}")
                 return dtc_engine_pb2.RevokeDTCResponse(
                     success=False, error_message="Access denied: Invalid access key"
@@ -474,7 +475,7 @@ class DTCEngineService(dtc_engine_pb2_grpc.DTCEngineServicer):
                     )
 
             # Verify access key
-            if not crypto.verify_password(request.access_key, dtc_data["access_key_hash"]):
+            if not verify_password(request.access_key, dtc_data["access_key_hash"]):
                 self.logger.error(f"Access denied for DTC with ID {request.dtc_id}")
                 return SimpleNamespace(
                     success=False,
@@ -584,7 +585,7 @@ class DTCEngineService(dtc_engine_pb2_grpc.DTCEngineServicer):
                 dtc_data = json.load(f)
 
             # Verify access key
-            if not crypto.verify_password(request.access_key, dtc_data["access_key_hash"]):
+            if not verify_password(request.access_key, dtc_data["access_key_hash"]):
                 self.logger.error(f"Access denied for DTC with ID {request.dtc_id}")
                 return SimpleNamespace(
                     success=False,
@@ -644,7 +645,7 @@ class DTCEngineService(dtc_engine_pb2_grpc.DTCEngineServicer):
 
             # Verify the signature
             # In this simplified demo, treat signer_id as a public key placeholder
-            is_valid = crypto.verify_signature(
+            is_valid = verify_signature(
                 data_to_verify,
                 signature,
                 dtc_data["signature_info"].get("signer_id", "").encode("utf-8"),

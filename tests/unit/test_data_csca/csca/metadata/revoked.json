@@ -178,5 +178,75 @@
         "certificate_id": "68a3e07f-c5e4-4498-87c7-a9dc939e7349",
         "revocation_date": "2025-09-25T21:09:04.828706+00:00",
         "revocation_reason": "SUPERSEDED"
+    },
+    "c3cd753c-85b6-497d-9e6c-79b206180d6e": {
+        "certificate_id": "c3cd753c-85b6-497d-9e6c-79b206180d6e",
+        "revocation_date": "2025-09-26T17:27:19.775661+00:00",
+        "revocation_reason": "KEY_COMPROMISE"
+    },
+    "a0a79856-3ec4-42f2-b67d-0d44eb4afae4": {
+        "certificate_id": "a0a79856-3ec4-42f2-b67d-0d44eb4afae4",
+        "revocation_date": "2025-09-26T17:27:20.079904+00:00",
+        "revocation_reason": "SUPERSEDED"
+    },
+    "13190dea-05cd-4df9-923a-8cba50ee4162": {
+        "certificate_id": "13190dea-05cd-4df9-923a-8cba50ee4162",
+        "revocation_date": "2025-09-26T19:42:19.972566+00:00",
+        "revocation_reason": "KEY_COMPROMISE"
+    },
+    "465a574e-1fa5-4802-935f-09fae35b1728": {
+        "certificate_id": "465a574e-1fa5-4802-935f-09fae35b1728",
+        "revocation_date": "2025-09-26T19:42:20.180986+00:00",
+        "revocation_reason": "SUPERSEDED"
+    },
+    "d2ca4910-1d37-408d-a716-8d42acc4507e": {
+        "certificate_id": "d2ca4910-1d37-408d-a716-8d42acc4507e",
+        "revocation_date": "2025-09-26T19:47:33.425656+00:00",
+        "revocation_reason": "KEY_COMPROMISE"
+    },
+    "57ce3442-5847-4ce6-b906-6bcfefc69c60": {
+        "certificate_id": "57ce3442-5847-4ce6-b906-6bcfefc69c60",
+        "revocation_date": "2025-09-26T19:47:33.761814+00:00",
+        "revocation_reason": "SUPERSEDED"
+    },
+    "d7ccce62-2776-4eb5-9382-b8c4bf5e7d02": {
+        "certificate_id": "d7ccce62-2776-4eb5-9382-b8c4bf5e7d02",
+        "revocation_date": "2025-09-26T19:52:43.863269+00:00",
+        "revocation_reason": "KEY_COMPROMISE"
+    },
+    "2bae0f87-28e5-4d9e-a83c-b58356858f12": {
+        "certificate_id": "2bae0f87-28e5-4d9e-a83c-b58356858f12",
+        "revocation_date": "2025-09-26T19:52:44.075413+00:00",
+        "revocation_reason": "SUPERSEDED"
+    },
+    "3b7e6f21-8628-4d21-b6cd-452ba0444830": {
+        "certificate_id": "3b7e6f21-8628-4d21-b6cd-452ba0444830",
+        "revocation_date": "2025-09-26T20:05:41.852233+00:00",
+        "revocation_reason": "KEY_COMPROMISE"
+    },
+    "a0d98478-ccc8-4007-879e-649b1237c76e": {
+        "certificate_id": "a0d98478-ccc8-4007-879e-649b1237c76e",
+        "revocation_date": "2025-09-26T20:05:42.273527+00:00",
+        "revocation_reason": "SUPERSEDED"
+    },
+    "a5d78208-d878-4804-8a2b-92e2723f18c9": {
+        "certificate_id": "a5d78208-d878-4804-8a2b-92e2723f18c9",
+        "revocation_date": "2025-09-26T20:28:01.453658+00:00",
+        "revocation_reason": "KEY_COMPROMISE"
+    },
+    "7234b4f0-e9fd-4105-ae9b-a1e25d02fd72": {
+        "certificate_id": "7234b4f0-e9fd-4105-ae9b-a1e25d02fd72",
+        "revocation_date": "2025-09-26T20:28:01.652733+00:00",
+        "revocation_reason": "SUPERSEDED"
+    },
+    "71285d5e-2bd1-4dd5-9fe5-b0c3c0182799": {
+        "certificate_id": "71285d5e-2bd1-4dd5-9fe5-b0c3c0182799",
+        "revocation_date": "2025-09-26T20:29:57.352496+00:00",
+        "revocation_reason": "KEY_COMPROMISE"
+    },
+    "bc8a3db2-0927-401a-ad4b-7afde945a19c": {
+        "certificate_id": "bc8a3db2-0927-401a-ad4b-7afde945a19c",
+        "revocation_date": "2025-09-26T20:29:57.516795+00:00",
+        "revocation_reason": "SUPERSEDED"
     }
 }

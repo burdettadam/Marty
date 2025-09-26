@@ -39,11 +39,7 @@ class DataGroupHashComputer:
         self.logger = logger
         self.sod_processor = SODProcessor()
 
-    def compute_data_group_hash(
-        self,
-        data_group_content: bytes,
-        hash_algorithm: str
-    ) -> bytes:
+    def compute_data_group_hash(self, data_group_content: bytes, hash_algorithm: str) -> bytes:
         """
         Compute hash for a single data group.
 
@@ -72,9 +68,7 @@ class DataGroupHashComputer:
             raise DataGroupHashingError(msg, str(e)) from e
 
     def compute_all_data_group_hashes(
-        self,
-        data_groups: dict[int, bytes],
-        hash_algorithm: str
+        self, data_groups: dict[int, bytes], hash_algorithm: str
     ) -> dict[int, bytes]:
         """
         Compute hashes for all provided data groups.
@@ -96,9 +90,7 @@ class DataGroupHashComputer:
                 computed_hash = self.compute_data_group_hash(dg_content, hash_algorithm)
                 computed_hashes[dg_number] = computed_hash
 
-                self.logger.debug(
-                    f"Computed hash for DG{dg_number}: {computed_hash.hex()}"
-                )
+                self.logger.debug(f"Computed hash for DG{dg_number}: {computed_hash.hex()}")
 
         except DataGroupHashingError:
             raise
@@ -109,9 +101,7 @@ class DataGroupHashComputer:
             return computed_hashes
 
     def verify_data_group_integrity_with_sod(
-        self,
-        sod_data: str | bytes,
-        data_groups: dict[int, bytes]
+        self, sod_data: str | bytes, data_groups: dict[int, bytes]
     ) -> tuple[bool, list[str], dict[str, Any]]:
         """
         Verify data group integrity using SOD.
@@ -146,28 +136,22 @@ class DataGroupHashComputer:
             expected_hashes = self.sod_processor.extract_data_group_hashes(sod)
 
             # Compute actual hashes
-            computed_hashes = self.compute_all_data_group_hashes(
-                data_groups, hash_algorithm
-            )
+            computed_hashes = self.compute_all_data_group_hashes(data_groups, hash_algorithm)
 
             # Verify integrity using SOD processor
-            success, errors = self.sod_processor.verify_data_group_integrity(
-                sod, data_groups
-            )
+            success, errors = self.sod_processor.verify_data_group_integrity(sod, data_groups)
 
             # Compile detailed results
             details = {
                 "hash_algorithm": hash_algorithm,
                 "expected_hashes": {
-                    dg_num: hash_val.hex()
-                    for dg_num, hash_val in expected_hashes.items()
+                    dg_num: hash_val.hex() for dg_num, hash_val in expected_hashes.items()
                 },
                 "computed_hashes": {
-                    dg_num: hash_val.hex()
-                    for dg_num, hash_val in computed_hashes.items()
+                    dg_num: hash_val.hex() for dg_num, hash_val in computed_hashes.items()
                 },
                 "data_groups_verified": len(computed_hashes),
-                "data_groups_expected": len(expected_hashes)
+                "data_groups_expected": len(expected_hashes),
             }
 
         except (SODParsingError, DataGroupHashingError):
@@ -179,8 +163,7 @@ class DataGroupHashComputer:
             return success, errors, details
 
     def extract_data_group_content(
-        self,
-        data_group_raw: bytes | str | dict[str, Any] | object
+        self, data_group_raw: bytes | str | dict[str, Any] | object
     ) -> bytes:
         """
         Extract raw content from various data group formats.
@@ -234,8 +217,7 @@ class DataGroupHashComputer:
             return result
 
     def prepare_data_groups_for_verification(
-        self,
-        data_groups_dict: dict[str, Any]
+        self, data_groups_dict: dict[str, Any]
     ) -> dict[int, bytes]:
         """
         Prepare data groups dictionary for hash verification.
@@ -272,9 +254,7 @@ class DataGroupHashComputer:
                 content_bytes = self.extract_data_group_content(dg_content)
                 prepared[dg_number] = content_bytes
 
-                self.logger.debug(
-                    f"Prepared DG{dg_number}: {len(content_bytes)} bytes"
-                )
+                self.logger.debug(f"Prepared DG{dg_number}: {len(content_bytes)} bytes")
 
         except Exception as e:
             msg = "Failed to prepare data groups for verification"
@@ -285,8 +265,7 @@ class DataGroupHashComputer:
 
 # Convenience functions for integration
 def verify_passport_data_groups(
-    sod_data: str | bytes,
-    data_groups: dict[str, Any]
+    sod_data: str | bytes, data_groups: dict[str, Any]
 ) -> tuple[bool, list[str], dict[str, Any]]:
     """
     Verify passport data groups using SOD.
@@ -301,10 +280,7 @@ def verify_passport_data_groups(
         return False, [str(e)], {}
 
 
-def compute_data_group_hash_simple(
-    content: bytes,
-    algorithm: str = "sha256"
-) -> str:
+def compute_data_group_hash_simple(content: bytes, algorithm: str = "sha256") -> str:
     """
     Simple hash computation for individual data groups.
 

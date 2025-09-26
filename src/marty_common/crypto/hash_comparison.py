@@ -24,11 +24,13 @@ from .sod_parser import HashAlgorithm
 @dataclass
 class DataGroupHashResult:
     """Result of data group hash computation."""
+
     data_group: int
     hash_value: bytes
     algorithm: HashAlgorithm
     success: bool = True
     error_message: str | None = None
+
 
 # Define DataGroupType enum since it's used for hash comparison validation
 class DataGroupType(Enum):
@@ -66,15 +68,18 @@ class DataGroupType(Enum):
             DataGroupType.DG12_ADDITIONAL_DOCUMENT: "Additional document details",
             DataGroupType.DG13_OPTIONAL_DETAILS: "Optional details",
             DataGroupType.DG14_SECURITY_INFOS: "Security infos",
-            DataGroupType.DG15_ACTIVE_AUTH: "Active authentication public key info"
+            DataGroupType.DG15_ACTIVE_AUTH: "Active authentication public key info",
         }
         return descriptions.get(self, f"Unknown data group {self.value}")
 
     @property
     def is_biometric(self) -> bool:
         """Check if this data group contains biometric data."""
-        return self in {DataGroupType.DG2_FACE, DataGroupType.DG3_FINGERPRINT,
-                       DataGroupType.DG4_IRIS}
+        return self in {
+            DataGroupType.DG2_FACE,
+            DataGroupType.DG3_FINGERPRINT,
+            DataGroupType.DG4_IRIS,
+        }
 
     @property
     def is_mandatory(self) -> bool:
@@ -87,6 +92,7 @@ logger = logging.getLogger(__name__)
 
 class ComparisonResult(Enum):
     """Result types for hash comparison."""
+
     MATCH = "match"
     MISMATCH = "mismatch"
     MISSING_EXPECTED = "missing_expected"
@@ -96,6 +102,7 @@ class ComparisonResult(Enum):
 
 class SeverityLevel(Enum):
     """Severity levels for comparison issues."""
+
     INFO = "info"
     WARNING = "warning"
     ERROR = "error"
@@ -105,6 +112,7 @@ class SeverityLevel(Enum):
 @dataclass
 class HashComparisonEntry:
     """Individual hash comparison entry."""
+
     data_group: DataGroupType
     result: ComparisonResult
     severity: SeverityLevel
@@ -132,14 +140,14 @@ class HashComparisonEntry:
     def is_critical_error(self) -> bool:
         """Check if this is a critical security error."""
         return self.severity == SeverityLevel.CRITICAL or (
-            self.result == ComparisonResult.MISMATCH and
-            self.data_group.is_mandatory
+            self.result == ComparisonResult.MISMATCH and self.data_group.is_mandatory
         )
 
 
 @dataclass
 class IntegrityVerificationReport:
     """Comprehensive integrity verification report."""
+
     timestamp: datetime
     total_data_groups: int
     successful_verifications: int
@@ -167,18 +175,15 @@ class IntegrityVerificationReport:
     def is_passport_valid(self) -> bool:
         """Determine if passport is valid based on verification."""
         return (
-            not self.has_critical_errors and
-            self.successful_verifications >= self.mandatory_data_groups_count and
-            self.success_rate >= 80.0  # Allow some tolerance for optional DGs
+            not self.has_critical_errors
+            and self.successful_verifications >= self.mandatory_data_groups_count
+            and self.success_rate >= 80.0  # Allow some tolerance for optional DGs
         )
 
     @property
     def mandatory_data_groups_count(self) -> int:
         """Count mandatory data groups in the verification."""
-        return sum(
-            1 for entry in self.comparison_entries
-            if entry.data_group.is_mandatory
-        )
+        return sum(1 for entry in self.comparison_entries if entry.data_group.is_mandatory)
 
     def get_critical_errors(self) -> list[HashComparisonEntry]:
         """Get list of critical error entries."""
@@ -187,8 +192,7 @@ class IntegrityVerificationReport:
     def get_mismatches(self) -> list[HashComparisonEntry]:
         """Get list of hash mismatch entries."""
         return [
-            entry for entry in self.comparison_entries
-            if entry.result == ComparisonResult.MISMATCH
+            entry for entry in self.comparison_entries if entry.result == ComparisonResult.MISMATCH
         ]
 
     def to_dict(self) -> dict[str, Any]:
@@ -204,7 +208,7 @@ class IntegrityVerificationReport:
                 "warnings": self.warnings,
                 "overall_status": self.overall_status,
                 "is_passport_valid": self.is_passport_valid,
-                "execution_time_ms": self.execution_time_ms
+                "execution_time_ms": self.execution_time_ms,
             },
             "algorithm": self.algorithm_used.value,
             "mandatory_data_groups": self.mandatory_data_groups_count,
@@ -219,10 +223,10 @@ class IntegrityVerificationReport:
                     "expected_hash": entry.expected_hex,
                     "computed_hash": entry.computed_hex,
                     "message": entry.message,
-                    "is_valid": entry.is_valid
+                    "is_valid": entry.is_valid,
                 }
                 for entry in self.comparison_entries
-            ]
+            ],
         }
 
 
@@ -243,7 +247,7 @@ class HashComparisonEngine:
         self,
         computed_hashes: list[DataGroupHashResult],
         expected_hashes: dict[int, bytes],
-        algorithm: HashAlgorithm
+        algorithm: HashAlgorithm,
     ) -> IntegrityVerificationReport:
         """
         Compare computed hashes against expected values from SOD.
@@ -272,26 +276,32 @@ class HashComparisonEngine:
         execution_time = (datetime.now(timezone.utc) - start_time).total_seconds() * 1000
 
         report = self._create_verification_report(
-            start_time, comparison_entries, stats, algorithm,
-            overall_status, execution_time
+            start_time, comparison_entries, stats, algorithm, overall_status, execution_time
         )
 
         self._log_comparison_results(overall_status, stats, execution_time)
         return report
 
     def _log_comparison_start(
-        self, computed_hashes: list[DataGroupHashResult],
-        expected_hashes: dict[int, bytes], algorithm: HashAlgorithm
+        self,
+        computed_hashes: list[DataGroupHashResult],
+        expected_hashes: dict[int, bytes],
+        algorithm: HashAlgorithm,
     ) -> None:
         """Log the start of hash comparison."""
         self.logger.info(
             "Starting hash comparison for %d computed hashes against %d expected "
-            "hashes using %s", len(computed_hashes), len(expected_hashes), algorithm.value
+            "hashes using %s",
+            len(computed_hashes),
+            len(expected_hashes),
+            algorithm.value,
         )
 
     def _process_hash_comparisons(
-        self, computed_lookup: dict[int, DataGroupHashResult],
-        expected_hashes: dict[int, bytes], algorithm: HashAlgorithm
+        self,
+        computed_lookup: dict[int, DataGroupHashResult],
+        expected_hashes: dict[int, bytes],
+        algorithm: HashAlgorithm,
     ) -> tuple[list[HashComparisonEntry], dict[str, int]]:
         """Process all hash comparisons and return entries and statistics."""
         comparison_entries = []
@@ -309,16 +319,17 @@ class HashComparisonEngine:
         # Process computed hashes without expected values
         for dg_number, computed_result in computed_lookup.items():
             if dg_number not in expected_hashes:
-                entry = self._create_missing_expected_entry(
-                    computed_result, algorithm
-                )
+                entry = self._create_missing_expected_entry(computed_result, algorithm)
                 comparison_entries.append(entry)
 
         return comparison_entries, stats
 
     def _process_expected_hash(
-        self, dg_number: int, expected_hash: bytes,
-        computed_lookup: dict[int, DataGroupHashResult], algorithm: HashAlgorithm
+        self,
+        dg_number: int,
+        expected_hash: bytes,
+        computed_lookup: dict[int, DataGroupHashResult],
+        algorithm: HashAlgorithm,
     ) -> tuple[HashComparisonEntry | None, dict[str, int]]:
         """Process a single expected hash entry."""
         try:
@@ -356,11 +367,10 @@ class HashComparisonEngine:
         return HashComparisonEntry(
             data_group=dg_type,
             result=ComparisonResult.MISSING_COMPUTED,
-            severity=(SeverityLevel.CRITICAL if dg_type.is_mandatory
-                     else SeverityLevel.WARNING),
+            severity=(SeverityLevel.CRITICAL if dg_type.is_mandatory else SeverityLevel.WARNING),
             expected_hash=expected_hash,
             algorithm=algorithm,
-            message=f"Computed hash missing for {dg_type.description}"
+            message=f"Computed hash missing for {dg_type.description}",
         )
 
     def _create_missing_expected_entry(
@@ -378,7 +388,7 @@ class HashComparisonEngine:
             severity=SeverityLevel.INFO,
             computed_hash=computed_result.hash_value,
             algorithm=algorithm,
-            message=f"No expected hash in SOD for {dg_type.description}"
+            message=f"No expected hash in SOD for {dg_type.description}",
         )
 
     def _update_stats(self, stats: dict[str, int], entry_stats: dict[str, int]) -> None:
@@ -402,9 +412,13 @@ class HashComparisonEngine:
         return "PASSED - All verifications successful"
 
     def _create_verification_report(
-        self, start_time: datetime, comparison_entries: list[HashComparisonEntry],
-        stats: dict[str, int], algorithm: HashAlgorithm, overall_status: str,
-        execution_time: float
+        self,
+        start_time: datetime,
+        comparison_entries: list[HashComparisonEntry],
+        stats: dict[str, int],
+        algorithm: HashAlgorithm,
+        overall_status: str,
+        execution_time: float,
     ) -> IntegrityVerificationReport:
         """Create the final verification report."""
         return IntegrityVerificationReport(
@@ -417,7 +431,7 @@ class HashComparisonEngine:
             algorithm_used=algorithm,
             comparison_entries=sorted(comparison_entries, key=lambda e: e.data_group.value),
             overall_status=overall_status,
-            execution_time_ms=execution_time
+            execution_time_ms=execution_time,
         )
 
     def _log_comparison_results(
@@ -425,9 +439,12 @@ class HashComparisonEngine:
     ) -> None:
         """Log the final comparison results."""
         self.logger.info(
-            "Hash comparison completed: %s (%d successful, %d failed, %d critical) "
-            "in %.2fms", overall_status, stats.get("successful", 0),
-            stats.get("failed", 0), stats.get("critical", 0), execution_time
+            "Hash comparison completed: %s (%d successful, %d failed, %d critical) " "in %.2fms",
+            overall_status,
+            stats.get("successful", 0),
+            stats.get("failed", 0),
+            stats.get("critical", 0),
+            execution_time,
         )
 
     def _compare_single_hash(
@@ -435,7 +452,7 @@ class HashComparisonEngine:
         dg_type: DataGroupType,
         expected_hash: bytes,
         computed_result: DataGroupHashResult,
-        algorithm: HashAlgorithm
+        algorithm: HashAlgorithm,
     ) -> HashComparisonEntry:
         """Compare a single hash pair."""
 
@@ -451,7 +468,7 @@ class HashComparisonEngine:
                 message=(
                     f"Algorithm mismatch: expected {algorithm.value}, "
                     f"got {computed_result.algorithm.value}"
-                )
+                ),
             )
 
         # Verify hash sizes match
@@ -466,7 +483,7 @@ class HashComparisonEngine:
                 message=(
                     f"Hash size mismatch: expected {len(expected_hash)} bytes, "
                     f"got {len(computed_result.hash_value)} bytes"
-                )
+                ),
             )
 
         # Compare hash values
@@ -478,7 +495,7 @@ class HashComparisonEngine:
                 expected_hash=expected_hash,
                 computed_hash=computed_result.hash_value,
                 algorithm=algorithm,
-                message=f"Hash verification successful for {dg_type.description}"
+                message=f"Hash verification successful for {dg_type.description}",
             )
         severity = SeverityLevel.CRITICAL if dg_type.is_mandatory else SeverityLevel.WARNING
         return HashComparisonEntry(
@@ -488,12 +505,11 @@ class HashComparisonEngine:
             expected_hash=expected_hash,
             computed_hash=computed_result.hash_value,
             algorithm=algorithm,
-            message=f"Hash mismatch detected for {dg_type.description}"
+            message=f"Hash mismatch detected for {dg_type.description}",
         )
 
     def generate_detailed_mismatch_report(
-        self,
-        report: IntegrityVerificationReport
+        self, report: IntegrityVerificationReport
     ) -> dict[str, Any]:
         """
         Generate detailed analysis of hash mismatches.
@@ -510,7 +526,7 @@ class HashComparisonEngine:
             return {
                 "summary": "No hash mismatches detected",
                 "total_mismatches": 0,
-                "analysis": "All data group hashes match their expected values"
+                "analysis": "All data group hashes match their expected values",
             }
 
         mismatch_analysis = {
@@ -519,7 +535,7 @@ class HashComparisonEngine:
             "critical_mismatches": sum(1 for m in mismatches if m.is_critical_error),
             "mandatory_dg_mismatches": sum(1 for m in mismatches if m.data_group.is_mandatory),
             "biometric_dg_mismatches": sum(1 for m in mismatches if m.data_group.is_biometric),
-            "detailed_mismatches": []
+            "detailed_mismatches": [],
         }
 
         for mismatch in mismatches:
@@ -531,7 +547,8 @@ class HashComparisonEngine:
                 else:
                     # Check if it's completely different or partially similar
                     matching_bytes = sum(
-                        1 for i in range(len(mismatch.expected_hash))
+                        1
+                        for i in range(len(mismatch.expected_hash))
                         if mismatch.expected_hash[i] == mismatch.computed_hash[i]
                     )
                     similarity_percent = (matching_bytes / len(mismatch.expected_hash)) * 100
@@ -552,23 +569,26 @@ class HashComparisonEngine:
                 "is_biometric": mismatch.data_group.is_biometric,
                 "expected_hash": mismatch.expected_hex,
                 "computed_hash": mismatch.computed_hex,
-                "hash_size_bytes": len(mismatch.expected_hash) if mismatch.expected_hash else 0
+                "hash_size_bytes": len(mismatch.expected_hash) if mismatch.expected_hash else 0,
             }
 
-            if (mismatch_type in ["partially_different", "minor_difference"]
-                and mismatch.expected_hash and mismatch.computed_hash):
+            if (
+                mismatch_type in ["partially_different", "minor_difference"]
+                and mismatch.expected_hash
+                and mismatch.computed_hash
+            ):
                 # Add similarity analysis for partially matching hashes
-                min_len = min(len(mismatch.expected_hash),
-                             len(mismatch.computed_hash))
+                min_len = min(len(mismatch.expected_hash), len(mismatch.computed_hash))
                 matching_bytes = sum(
-                    1 for i in range(min_len)
+                    1
+                    for i in range(min_len)
                     if mismatch.expected_hash[i] == mismatch.computed_hash[i]
                 )
                 total_bytes = max(len(mismatch.expected_hash), len(mismatch.computed_hash))
                 mismatch_detail["similarity_analysis"] = {
                     "matching_bytes": matching_bytes,
                     "total_bytes": total_bytes,
-                    "similarity_percent": round((matching_bytes / total_bytes) * 100, 2)
+                    "similarity_percent": round((matching_bytes / total_bytes) * 100, 2),
                 }
 
             mismatch_analysis["detailed_mismatches"].append(mismatch_detail)
@@ -579,8 +599,7 @@ class HashComparisonEngine:
         return mismatch_analysis
 
     def _assess_security_implications(
-        self,
-        mismatches: list[HashComparisonEntry]
+        self, mismatches: list[HashComparisonEntry]
     ) -> dict[str, Any]:
         """Assess security implications of hash mismatches."""
 
@@ -608,38 +627,42 @@ class HashComparisonEngine:
             "affected_mandatory_dgs": mandatory_count,
             "affected_biometric_dgs": biometric_count,
             "total_affected_dgs": len(mismatches),
-            "recommendations": self._generate_security_recommendations(risk_level, mismatches)
+            "recommendations": self._generate_security_recommendations(risk_level, mismatches),
         }
 
     def _generate_security_recommendations(
-        self,
-        risk_level: str,
-        mismatches: list[HashComparisonEntry]
+        self, risk_level: str, mismatches: list[HashComparisonEntry]
     ) -> list[str]:
         """Generate security recommendations based on mismatch analysis."""
 
         recommendations = []
 
         if risk_level == "HIGH":
-            recommendations.extend([
-                "REJECT passport - critical security failure detected",
-                "Verify passport authenticity through alternative means",
-                "Report potential document tampering to authorities",
-                "Do not rely on digital verification for this document"
-            ])
+            recommendations.extend(
+                [
+                    "REJECT passport - critical security failure detected",
+                    "Verify passport authenticity through alternative means",
+                    "Report potential document tampering to authorities",
+                    "Do not rely on digital verification for this document",
+                ]
+            )
         elif risk_level == "MEDIUM":
-            recommendations.extend([
-                "Exercise caution - moderate security concerns detected",
-                "Perform additional manual verification steps",
-                "Consider secondary authentication methods",
-                "Review biometric data integrity if affected"
-            ])
+            recommendations.extend(
+                [
+                    "Exercise caution - moderate security concerns detected",
+                    "Perform additional manual verification steps",
+                    "Consider secondary authentication methods",
+                    "Review biometric data integrity if affected",
+                ]
+            )
         else:  # LOW risk
-            recommendations.extend([
-                "Proceed with caution - minor integrity issues detected",
-                "Document findings for audit trail",
-                "Consider re-scanning if possible"
-            ])
+            recommendations.extend(
+                [
+                    "Proceed with caution - minor integrity issues detected",
+                    "Document findings for audit trail",
+                    "Consider re-scanning if possible",
+                ]
+            )
 
         # Add specific recommendations based on affected data groups
         mandatory_mismatches = [m for m in mismatches if m.data_group.is_mandatory]
@@ -659,7 +682,7 @@ class HashComparisonEngine:
 def compare_passport_hashes(
     computed_hashes: list[DataGroupHashResult],
     expected_hashes: dict[int, bytes],
-    algorithm: HashAlgorithm = HashAlgorithm.SHA256
+    algorithm: HashAlgorithm = HashAlgorithm.SHA256,
 ) -> IntegrityVerificationReport:
     """Compare passport hashes using default engine."""
     engine = HashComparisonEngine()
@@ -667,8 +690,7 @@ def compare_passport_hashes(
 
 
 def generate_verification_report_json(
-    report: IntegrityVerificationReport,
-    include_mismatch_analysis: bool = True
+    report: IntegrityVerificationReport, include_mismatch_analysis: bool = True
 ) -> str:
     """Generate JSON verification report."""
     report_dict = report.to_dict()

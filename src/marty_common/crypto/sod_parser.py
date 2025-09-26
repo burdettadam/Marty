@@ -51,7 +51,7 @@ class SODProcessor:
 
     # Algorithm OID mappings for ICAO standards
     ALGORITHM_OID_MAP: ClassVar[dict[str, str]] = {
-        "1.3.14.3.2.26": "sha1",         # SHA-1
+        "1.3.14.3.2.26": "sha1",  # SHA-1
         "2.16.840.1.101.3.4.2.1": "sha256",  # SHA-256
         "2.16.840.1.101.3.4.2.2": "sha384",  # SHA-384
         "2.16.840.1.101.3.4.2.3": "sha512",  # SHA-512
@@ -231,9 +231,7 @@ class SODProcessor:
         return encap_content.content
 
     def verify_data_group_integrity(
-        self,
-        sod: SOD,
-        data_groups: dict[int, bytes]
+        self, sod: SOD, data_groups: dict[int, bytes]
     ) -> tuple[bool, list[str]]:
         """
         Verify integrity of data groups against SOD hashes.
@@ -306,7 +304,7 @@ class SODProcessor:
                 "hash_algorithm": None,
                 "data_groups": {},
                 "signer_info": {},
-                "certificates": []
+                "certificates": [],
             }
 
             # Extract hash algorithm
@@ -357,8 +355,7 @@ def extract_sod_hashes(sod_data: str | bytes) -> dict[int, bytes] | None:
 
 
 def verify_data_group_integrity_from_sod(
-    sod_data: str | bytes,
-    data_groups: dict[int, bytes]
+    sod_data: str | bytes, data_groups: dict[int, bytes]
 ) -> tuple[bool, list[str]]:
     """Verify data group integrity using SOD data."""
     try:

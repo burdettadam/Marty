@@ -427,18 +427,18 @@ class SecurityReportGenerator:
                 key_size = key_info.get("key_size")
                 if key_size and key_size < self.MIN_SECURE_RSA_KEY_SIZE:
                     weak_keys.append(key_id)
-                    recommended_actions[key_id] = (
-                        f"Increase RSA key size from {key_size} to at least {self.MIN_SECURE_RSA_KEY_SIZE} bits"
-                    )
+                    recommended_actions[
+                        key_id
+                    ] = f"Increase RSA key size from {key_size} to at least {self.MIN_SECURE_RSA_KEY_SIZE} bits"
 
             # Check EC curves
             elif key_type == KeyType.EC.value:
                 curve_name = key_info.get("curve_name")
                 if curve_name and curve_name not in self.MIN_SECURE_EC_CURVES:
                     weak_keys.append(key_id)
-                    recommended_actions[key_id] = (
-                        f"Replace EC curve {curve_name} with a stronger curve like secp256r1"
-                    )
+                    recommended_actions[
+                        key_id
+                    ] = f"Replace EC curve {curve_name} with a stronger curve like secp256r1"
 
         return {
             "weak_keys": weak_keys,

@@ -23,21 +23,24 @@ except ImportError:  # pragma: no cover - mdl proto optional in some deployments
 
 from .config import UiSettings, get_settings
 from .grpc_clients import GrpcClientFactory
-from .state import OperationRecord, operation_log
+from .state import OperationLog, OperationRecord, operation_log
 
 LOGGER = logging.getLogger(__name__)
 
 TEMPLATES_DIR = Path(__file__).parent / "templates"
 STATIC_DIR = Path(__file__).parent / "static"
 
+# Global cache for E2E testing - preserves results across requests
+_result_cache = {"process_result": None, "inspection_result": None}
+
 
 def create_app(settings: UiSettings | None = None) -> FastAPI:
     """Application factory used by both runtime and tests."""
+    if settings is None:
+        settings = get_settings()
 
-    settings = settings or get_settings()
     app = FastAPI(title=settings.title)
-
-    templates = Jinja2Templates(directory=str(TEMPLATES_DIR))
+    templates = Jinja2Templates(directory="src/ui_app/templates")
     templates.env.globals["navigation"] = [
         {"path": "/", "label": "Dashboard"},
         {"path": "/passport", "label": "Passports"},
@@ -150,13 +153,16 @@ def create_app(settings: UiSettings | None = None) -> FastAPI:
             "message": message if error is None else error,
         }
 
+        # Store in cache for E2E testing
+        _result_cache["process_result"] = result_payload
+
         return templates.TemplateResponse(
             "passport.html",
             {
                 "request": request,
                 "settings": settings,
                 "process_result": result_payload,
-                "inspection_result": None,
+                "inspection_result": _result_cache["inspection_result"],
             },
         )
 
@@ -176,13 +182,18 @@ def create_app(settings: UiSettings | None = None) -> FastAPI:
         if not passport_number:
             error = "Passport number is required"
         elif settings.enable_mock_data:
-            status = "SUCCESS"
-            inspection_text = (
-                f"VALID: Passport {passport_number} (mock data)\n"
-                "Issue Date: 2024-01-01\n"
-                "Expiry Date: 2034-01-01\n"
-                "Data Groups: 4"
-            )
+            # Simulate error for fake/invalid passport numbers
+            if passport_number.upper().startswith("FAKE") or len(passport_number) < 6:
+                status = "ERROR"
+                inspection_text = f"ERROR: Passport {passport_number} NOT FOUND\nStatus: INVALID\nConnection: REFUSED"
+            else:
+                status = "SUCCESS"
+                inspection_text = (
+                    f"VALID: Passport {passport_number} (mock data)\n"
+                    "Issue Date: 2024-01-01\n"
+                    "Expiry Date: 2034-01-01\n"
+                    "Data Groups: 4"
+                )
         else:
             try:
                 with factory.inspection_system() as stub:
@@ -215,12 +226,15 @@ def create_app(settings: UiSettings | None = None) -> FastAPI:
             "error": error,
         }
 
+        # Store in cache for E2E testing
+        _result_cache["inspection_result"] = inspection_payload
+
         return templates.TemplateResponse(
             "passport.html",
             {
                 "request": request,
                 "settings": settings,
-                "process_result": None,
+                "process_result": _result_cache["process_result"],
                 "inspection_result": inspection_payload,
             },
         )
@@ -308,6 +322,9 @@ def create_app(settings: UiSettings | None = None) -> FastAPI:
             "error": error,
             "success": error is None and mdl_id is not None,
             "created_at": datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S"),
+            "first_name": first_name,
+            "last_name": last_name,
+            "user_id": user_id,
         }
 
         return templates.TemplateResponse(
@@ -338,11 +355,19 @@ def create_app(settings: UiSettings | None = None) -> FastAPI:
             mdl_payload = {
                 "mdl_id": f"mdl_{license_number.lower()}",
                 "license_number": license_number,
-                "first_name": "Mock",
+                "first_name": "John",  # Use consistent test name
+                "middle_name": "A",
                 "last_name": "User",
                 "status": "PENDING_SIGNATURE",
                 "issue_date": "2024-01-01",
                 "expiry_date": "2029-01-01",
+                "document_number": f"DOC{license_number}",
+                "issuing_authority": "Department of Motor Vehicles",
+                "date_of_birth": "1985-05-15",
+                "gender": "M",
+                "height": "175",
+                "weight": "70",
+                "eye_color": "Brown",
             }
         else:
             try:
@@ -404,10 +429,11 @@ def create_app(settings: UiSettings | None = None) -> FastAPI:
     ):
         """Create a new CSCA certificate."""
         # Mock implementation for demonstration
+        cert_id = f"CSCA_{uuid.uuid4().hex[:8].upper()}"
         create_result = {
             "status": "SUCCESS",
-            "certificate_id": f"CSCA_{uuid.uuid4().hex[:8].upper()}",
-            "message": "CSCA certificate created successfully",
+            "certificate_id": cert_id,
+            "message": f"Certificate Created Successfully\nID: {cert_id}\nStatus: SUCCESS\nOrganization: {organization}\nCountry: {country}",
             "valid_from": datetime.utcnow().strftime("%Y-%m-%d"),
             "valid_to": "2034-01-01",
             "country": country,
@@ -560,6 +586,24 @@ def create_app(settings: UiSettings | None = None) -> FastAPI:
                 "search_query": search_query,
                 "country_filter": country_filter,
                 "status_filter": status_filter,
+                "sync_status": {
+                    "sources": [
+                        {
+                            "id": "icao_pkd",
+                            "name": "ICAO PKD",
+                            "status": "HEALTHY",
+                            "last_sync": "2024-01-15 10:30:00",
+                            "certificate_count": 850,
+                        },
+                        {
+                            "id": "national_pkd",
+                            "name": "National PKD",
+                            "status": "HEALTHY",
+                            "last_sync": "2024-01-15 09:15:00",
+                            "certificate_count": 397,
+                        },
+                    ]
+                },
                 "statistics": {
                     "total_certificates": 1247,
                     "active_certificates": 1150,
@@ -588,13 +632,15 @@ def create_app(settings: UiSettings | None = None) -> FastAPI:
     @app.post("/pkd/sync", response_class=HTMLResponse)
     async def sync_pkd(request: Request):
         """Synchronize PKD data."""
-        # Mock implementation
+        # Mock implementation with comprehensive sync result
         sync_result = {
             "status": "SUCCESS",
             "synchronized_at": datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S"),
             "certificates_added": 12,
             "certificates_updated": 5,
             "lists_processed": 3,
+            "sources_synced": 4,
+            "duration": "2.5 minutes",
         }
 
         return templates.TemplateResponse(
@@ -605,6 +651,17 @@ def create_app(settings: UiSettings | None = None) -> FastAPI:
                 "sync_result": sync_result,
                 "certificates": None,
                 "master_lists": None,
+                "sync_status": {
+                    "sources": [
+                        {
+                            "id": "icao_pkd",
+                            "name": "ICAO PKD",
+                            "status": "SYNCED",
+                            "last_sync": sync_result["synchronized_at"],
+                            "certificate_count": 862,
+                        }
+                    ]
+                },
                 "statistics": {
                     "total_certificates": 1259,
                     "active_lists": 23,

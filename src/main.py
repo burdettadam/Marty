@@ -46,6 +46,7 @@ logger = logging.getLogger(__name__)
 
 # Import the generated gRPC modules for each service
 try:
+    from services.certificate_lifecycle_monitor import CertificateLifecycleMonitor
     from src.proto import (
         csca_service_pb2_grpc,
         document_signer_pb2_grpc,
@@ -56,7 +57,6 @@ try:
         passport_engine_pb2_grpc,
         trust_anchor_pb2_grpc,
     )
-    from services.certificate_lifecycle_monitor import CertificateLifecycleMonitor
 
     logger.info("Successfully imported core gRPC modules")
 except ImportError:

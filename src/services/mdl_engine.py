@@ -36,11 +36,7 @@ from src.marty_common.grpc_logging import LoggingStreamerServicer
 from src.marty_common.logging_config import setup_logging
 from src.proto import document_signer_pb2  # For SignDocumentRequest
 from src.proto import document_signer_pb2_grpc  # For DocumentSignerStub
-from src.proto import (
-    common_services_pb2_grpc,
-    mdl_engine_pb2,
-    mdl_engine_pb2_grpc,
-)
+from src.proto import common_services_pb2_grpc, mdl_engine_pb2, mdl_engine_pb2_grpc
 
 # --- END Project-Specific Imports ---
 

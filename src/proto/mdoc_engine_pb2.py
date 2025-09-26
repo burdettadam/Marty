@@ -9,72 +9,68 @@ from google.protobuf import descriptor_pool as _descriptor_pool
 from google.protobuf import runtime_version as _runtime_version
 from google.protobuf import symbol_database as _symbol_database
 from google.protobuf.internal import builder as _builder
+
 _runtime_version.ValidateProtobufRuntimeVersion(
-    _runtime_version.Domain.PUBLIC,
-    6,
-    31,
-    1,
-    '',
-    'mdoc_engine.proto'
+    _runtime_version.Domain.PUBLIC, 6, 31, 1, "", "mdoc_engine.proto"
 )
 # @@protoc_insertion_point(imports)
 
 _sym_db = _symbol_database.Default()
 
 
-
-
-DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n\x11mdoc_engine.proto\x12\x04mdoc\"\xa7\x02\n\x11\x43reateMDocRequest\x12\x0f\n\x07user_id\x18\x01 \x01(\t\x12\x15\n\rdocument_type\x18\x02 \x01(\t\x12\x13\n\x0btemplate_id\x18\x03 \x01(\t\x12\x17\n\x0f\x64ocument_number\x18\x04 \x01(\t\x12\x19\n\x11issuing_authority\x18\x05 \x01(\t\x12\x12\n\nissue_date\x18\x06 \x01(\t\x12\x13\n\x0b\x65xpiry_date\x18\x07 \x01(\t\x12%\n\x0bperson_info\x18\x08 \x01(\x0b\x32\x10.mdoc.PersonInfo\x12,\n\x0f\x64ocument_fields\x18\t \x03(\x0b\x32\x13.mdoc.DocumentField\x12#\n\x06images\x18\n \x03(\x0b\x32\x13.mdoc.DocumentImage\"\xb5\x01\n\nPersonInfo\x12\x12\n\nfirst_name\x18\x01 \x01(\t\x12\x11\n\tlast_name\x18\x02 \x01(\t\x12\x15\n\rdate_of_birth\x18\x03 \x01(\t\x12\x16\n\x0eplace_of_birth\x18\x04 \x01(\t\x12\x13\n\x0bnationality\x18\x05 \x01(\t\x12\x0e\n\x06gender\x18\x06 \x01(\t\x12,\n\x0f\x61\x64\x64itional_info\x18\x07 \x03(\x0b\x32\x13.mdoc.DocumentField\"a\n\rDocumentField\x12\x12\n\nfield_name\x18\x01 \x01(\t\x12\x13\n\x0b\x66ield_value\x18\x02 \x01(\t\x12\x14\n\x0cis_mandatory\x18\x03 \x01(\x08\x12\x11\n\tnamespace\x18\x04 \x01(\t\"G\n\rDocumentImage\x12\x12\n\nimage_type\x18\x01 \x01(\t\x12\x12\n\nimage_data\x18\x02 \x01(\x0c\x12\x0e\n\x06\x66ormat\x18\x03 \x01(\t\"L\n\x12\x43reateMDocResponse\x12\x0f\n\x07mdoc_id\x18\x01 \x01(\t\x12\x0e\n\x06status\x18\x02 \x01(\t\x12\x15\n\rerror_message\x18\x03 \x01(\t\"!\n\x0eGetMDocRequest\x12\x0f\n\x07mdoc_id\x18\x01 \x01(\t\"\xf5\x02\n\x0cMDocResponse\x12\x0f\n\x07mdoc_id\x18\x01 \x01(\t\x12\x15\n\rdocument_type\x18\x02 \x01(\t\x12\x17\n\x0f\x64ocument_number\x18\x03 \x01(\t\x12\x19\n\x11issuing_authority\x18\x04 \x01(\t\x12\x12\n\nissue_date\x18\x05 \x01(\t\x12\x13\n\x0b\x65xpiry_date\x18\x06 \x01(\t\x12%\n\x0bperson_info\x18\x07 \x01(\x0b\x32\x10.mdoc.PersonInfo\x12,\n\x0f\x64ocument_fields\x18\x08 \x03(\x0b\x32\x13.mdoc.DocumentField\x12#\n\x06images\x18\t \x03(\x0b\x32\x13.mdoc.DocumentImage\x12+\n\x0esignature_info\x18\n \x01(\x0b\x32\x13.mdoc.SignatureInfo\x12\x0e\n\x06status\x18\x0b \x01(\t\x12\x15\n\rerror_message\x18\x0c \x01(\t\x12\x12\n\ncreated_at\x18\r \x01(\t\"_\n\rSignatureInfo\x12\x16\n\x0esignature_date\x18\x01 \x01(\t\x12\x11\n\tsigner_id\x18\x02 \x01(\t\x12\x11\n\tsignature\x18\x03 \x01(\x0c\x12\x10\n\x08is_valid\x18\x04 \x01(\x08\"\"\n\x0fSignMDocRequest\x12\x0f\n\x07mdoc_id\x18\x01 \x01(\t\"g\n\x10SignMDocResponse\x12\x0f\n\x07success\x18\x01 \x01(\x08\x12+\n\x0esignature_info\x18\x02 \x01(\x0b\x32\x13.mdoc.SignatureInfo\x12\x15\n\rerror_message\x18\x03 \x01(\t\"b\n\x15GenerateQRCodeRequest\x12\x0f\n\x07mdoc_id\x18\x01 \x01(\t\x12\x1d\n\x15namespaces_to_include\x18\x02 \x03(\t\x12\x19\n\x11\x66ields_to_include\x18\x03 \x03(\t\"@\n\x16GenerateQRCodeResponse\x12\x0f\n\x07qr_code\x18\x01 \x01(\x0c\x12\x15\n\rerror_message\x18\x02 \x01(\t\"R\n\x13TransferMDocRequest\x12\x0f\n\x07mdoc_id\x18\x01 \x01(\t\x12\x11\n\tdevice_id\x18\x02 \x01(\t\x12\x17\n\x0ftransfer_method\x18\x03 \x01(\t\"S\n\x14TransferMDocResponse\x12\x0f\n\x07success\x18\x01 \x01(\x08\x12\x13\n\x0btransfer_id\x18\x02 \x01(\t\x12\x15\n\rerror_message\x18\x03 \x01(\t\"\xb6\x01\n\x11VerifyMDocRequest\x12\x11\n\x07mdoc_id\x18\x01 \x01(\tH\x00\x12\x16\n\x0cqr_code_data\x18\x02 \x01(\x0cH\x00\x12\x15\n\x0b\x64\x65vice_data\x18\x03 \x01(\x0cH\x00\x12\x1c\n\x14requested_namespaces\x18\x04 \x03(\t\x12\x18\n\x10requested_fields\x18\x05 \x03(\t\x12\x1a\n\x12verification_level\x18\x06 \x01(\tB\x0b\n\tmdoc_data\"\x9c\x01\n\x12VerifyMDocResponse\x12\x10\n\x08is_valid\x18\x01 \x01(\x08\x12\x36\n\x14verification_results\x18\x02 \x03(\x0b\x32\x18.mdoc.VerificationResult\x12%\n\tmdoc_data\x18\x03 \x01(\x0b\x32\x12.mdoc.MDocResponse\x12\x15\n\rerror_message\x18\x04 \x01(\t\"I\n\x12VerificationResult\x12\x12\n\ncheck_name\x18\x01 \x01(\t\x12\x0e\n\x06passed\x18\x02 \x01(\x08\x12\x0f\n\x07\x64\x65tails\x18\x03 \x01(\t\"\xba\x01\n\x15\x43reateTemplateRequest\x12\x15\n\rtemplate_name\x18\x01 \x01(\t\x12\x15\n\rdocument_type\x18\x02 \x01(\t\x12,\n\x0frequired_fields\x18\x03 \x03(\x0b\x32\x13.mdoc.DocumentField\x12,\n\x0foptional_fields\x18\x04 \x03(\x0b\x32\x13.mdoc.DocumentField\x12\x17\n\x0frequired_images\x18\x05 \x03(\t\"U\n\x16\x43reateTemplateResponse\x12\x13\n\x0btemplate_id\x18\x01 \x01(\t\x12\x0f\n\x07success\x18\x02 \x01(\x08\x12\x15\n\rerror_message\x18\x03 \x01(\t\",\n\x13GetTemplatesRequest\x12\x15\n\rdocument_type\x18\x01 \x01(\t\"A\n\x14GetTemplatesResponse\x12)\n\ttemplates\x18\x01 \x03(\x0b\x32\x16.mdoc.DocumentTemplate\"\xca\x01\n\x10\x44ocumentTemplate\x12\x13\n\x0btemplate_id\x18\x01 \x01(\t\x12\x15\n\rtemplate_name\x18\x02 \x01(\t\x12\x15\n\rdocument_type\x18\x03 \x01(\t\x12,\n\x0frequired_fields\x18\x04 \x03(\x0b\x32\x13.mdoc.DocumentField\x12,\n\x0foptional_fields\x18\x05 \x03(\x0b\x32\x13.mdoc.DocumentField\x12\x17\n\x0frequired_images\x18\x06 \x03(\t2\xc6\x04\n\nMDocEngine\x12?\n\nCreateMDoc\x12\x17.mdoc.CreateMDocRequest\x1a\x18.mdoc.CreateMDocResponse\x12\x33\n\x07GetMDoc\x12\x14.mdoc.GetMDocRequest\x1a\x12.mdoc.MDocResponse\x12\x39\n\x08SignMDoc\x12\x15.mdoc.SignMDocRequest\x1a\x16.mdoc.SignMDocResponse\x12O\n\x12GenerateMDocQRCode\x12\x1b.mdoc.GenerateQRCodeRequest\x1a\x1c.mdoc.GenerateQRCodeResponse\x12M\n\x14TransferMDocToDevice\x12\x19.mdoc.TransferMDocRequest\x1a\x1a.mdoc.TransferMDocResponse\x12?\n\nVerifyMDoc\x12\x17.mdoc.VerifyMDocRequest\x1a\x18.mdoc.VerifyMDocResponse\x12W\n\x1a\x43reateDocumentTypeTemplate\x12\x1b.mdoc.CreateTemplateRequest\x1a\x1c.mdoc.CreateTemplateResponse\x12M\n\x14GetDocumentTemplates\x12\x19.mdoc.GetTemplatesRequest\x1a\x1a.mdoc.GetTemplatesResponseb\x06proto3')
+DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(
+    b'\n\x11mdoc_engine.proto\x12\x04mdoc"\xa7\x02\n\x11\x43reateMDocRequest\x12\x0f\n\x07user_id\x18\x01 \x01(\t\x12\x15\n\rdocument_type\x18\x02 \x01(\t\x12\x13\n\x0btemplate_id\x18\x03 \x01(\t\x12\x17\n\x0f\x64ocument_number\x18\x04 \x01(\t\x12\x19\n\x11issuing_authority\x18\x05 \x01(\t\x12\x12\n\nissue_date\x18\x06 \x01(\t\x12\x13\n\x0b\x65xpiry_date\x18\x07 \x01(\t\x12%\n\x0bperson_info\x18\x08 \x01(\x0b\x32\x10.mdoc.PersonInfo\x12,\n\x0f\x64ocument_fields\x18\t \x03(\x0b\x32\x13.mdoc.DocumentField\x12#\n\x06images\x18\n \x03(\x0b\x32\x13.mdoc.DocumentImage"\xb5\x01\n\nPersonInfo\x12\x12\n\nfirst_name\x18\x01 \x01(\t\x12\x11\n\tlast_name\x18\x02 \x01(\t\x12\x15\n\rdate_of_birth\x18\x03 \x01(\t\x12\x16\n\x0eplace_of_birth\x18\x04 \x01(\t\x12\x13\n\x0bnationality\x18\x05 \x01(\t\x12\x0e\n\x06gender\x18\x06 \x01(\t\x12,\n\x0f\x61\x64\x64itional_info\x18\x07 \x03(\x0b\x32\x13.mdoc.DocumentField"a\n\rDocumentField\x12\x12\n\nfield_name\x18\x01 \x01(\t\x12\x13\n\x0b\x66ield_value\x18\x02 \x01(\t\x12\x14\n\x0cis_mandatory\x18\x03 \x01(\x08\x12\x11\n\tnamespace\x18\x04 \x01(\t"G\n\rDocumentImage\x12\x12\n\nimage_type\x18\x01 \x01(\t\x12\x12\n\nimage_data\x18\x02 \x01(\x0c\x12\x0e\n\x06\x66ormat\x18\x03 \x01(\t"L\n\x12\x43reateMDocResponse\x12\x0f\n\x07mdoc_id\x18\x01 \x01(\t\x12\x0e\n\x06status\x18\x02 \x01(\t\x12\x15\n\rerror_message\x18\x03 \x01(\t"!\n\x0eGetMDocRequest\x12\x0f\n\x07mdoc_id\x18\x01 \x01(\t"\xf5\x02\n\x0cMDocResponse\x12\x0f\n\x07mdoc_id\x18\x01 \x01(\t\x12\x15\n\rdocument_type\x18\x02 \x01(\t\x12\x17\n\x0f\x64ocument_number\x18\x03 \x01(\t\x12\x19\n\x11issuing_authority\x18\x04 \x01(\t\x12\x12\n\nissue_date\x18\x05 \x01(\t\x12\x13\n\x0b\x65xpiry_date\x18\x06 \x01(\t\x12%\n\x0bperson_info\x18\x07 \x01(\x0b\x32\x10.mdoc.PersonInfo\x12,\n\x0f\x64ocument_fields\x18\x08 \x03(\x0b\x32\x13.mdoc.DocumentField\x12#\n\x06images\x18\t \x03(\x0b\x32\x13.mdoc.DocumentImage\x12+\n\x0esignature_info\x18\n \x01(\x0b\x32\x13.mdoc.SignatureInfo\x12\x0e\n\x06status\x18\x0b \x01(\t\x12\x15\n\rerror_message\x18\x0c \x01(\t\x12\x12\n\ncreated_at\x18\r \x01(\t"_\n\rSignatureInfo\x12\x16\n\x0esignature_date\x18\x01 \x01(\t\x12\x11\n\tsigner_id\x18\x02 \x01(\t\x12\x11\n\tsignature\x18\x03 \x01(\x0c\x12\x10\n\x08is_valid\x18\x04 \x01(\x08""\n\x0fSignMDocRequest\x12\x0f\n\x07mdoc_id\x18\x01 \x01(\t"g\n\x10SignMDocResponse\x12\x0f\n\x07success\x18\x01 \x01(\x08\x12+\n\x0esignature_info\x18\x02 \x01(\x0b\x32\x13.mdoc.SignatureInfo\x12\x15\n\rerror_message\x18\x03 \x01(\t"b\n\x15GenerateQRCodeRequest\x12\x0f\n\x07mdoc_id\x18\x01 \x01(\t\x12\x1d\n\x15namespaces_to_include\x18\x02 \x03(\t\x12\x19\n\x11\x66ields_to_include\x18\x03 \x03(\t"@\n\x16GenerateQRCodeResponse\x12\x0f\n\x07qr_code\x18\x01 \x01(\x0c\x12\x15\n\rerror_message\x18\x02 \x01(\t"R\n\x13TransferMDocRequest\x12\x0f\n\x07mdoc_id\x18\x01 \x01(\t\x12\x11\n\tdevice_id\x18\x02 \x01(\t\x12\x17\n\x0ftransfer_method\x18\x03 \x01(\t"S\n\x14TransferMDocResponse\x12\x0f\n\x07success\x18\x01 \x01(\x08\x12\x13\n\x0btransfer_id\x18\x02 \x01(\t\x12\x15\n\rerror_message\x18\x03 \x01(\t"\xb6\x01\n\x11VerifyMDocRequest\x12\x11\n\x07mdoc_id\x18\x01 \x01(\tH\x00\x12\x16\n\x0cqr_code_data\x18\x02 \x01(\x0cH\x00\x12\x15\n\x0b\x64\x65vice_data\x18\x03 \x01(\x0cH\x00\x12\x1c\n\x14requested_namespaces\x18\x04 \x03(\t\x12\x18\n\x10requested_fields\x18\x05 \x03(\t\x12\x1a\n\x12verification_level\x18\x06 \x01(\tB\x0b\n\tmdoc_data"\x9c\x01\n\x12VerifyMDocResponse\x12\x10\n\x08is_valid\x18\x01 \x01(\x08\x12\x36\n\x14verification_results\x18\x02 \x03(\x0b\x32\x18.mdoc.VerificationResult\x12%\n\tmdoc_data\x18\x03 \x01(\x0b\x32\x12.mdoc.MDocResponse\x12\x15\n\rerror_message\x18\x04 \x01(\t"I\n\x12VerificationResult\x12\x12\n\ncheck_name\x18\x01 \x01(\t\x12\x0e\n\x06passed\x18\x02 \x01(\x08\x12\x0f\n\x07\x64\x65tails\x18\x03 \x01(\t"\xba\x01\n\x15\x43reateTemplateRequest\x12\x15\n\rtemplate_name\x18\x01 \x01(\t\x12\x15\n\rdocument_type\x18\x02 \x01(\t\x12,\n\x0frequired_fields\x18\x03 \x03(\x0b\x32\x13.mdoc.DocumentField\x12,\n\x0foptional_fields\x18\x04 \x03(\x0b\x32\x13.mdoc.DocumentField\x12\x17\n\x0frequired_images\x18\x05 \x03(\t"U\n\x16\x43reateTemplateResponse\x12\x13\n\x0btemplate_id\x18\x01 \x01(\t\x12\x0f\n\x07success\x18\x02 \x01(\x08\x12\x15\n\rerror_message\x18\x03 \x01(\t",\n\x13GetTemplatesRequest\x12\x15\n\rdocument_type\x18\x01 \x01(\t"A\n\x14GetTemplatesResponse\x12)\n\ttemplates\x18\x01 \x03(\x0b\x32\x16.mdoc.DocumentTemplate"\xca\x01\n\x10\x44ocumentTemplate\x12\x13\n\x0btemplate_id\x18\x01 \x01(\t\x12\x15\n\rtemplate_name\x18\x02 \x01(\t\x12\x15\n\rdocument_type\x18\x03 \x01(\t\x12,\n\x0frequired_fields\x18\x04 \x03(\x0b\x32\x13.mdoc.DocumentField\x12,\n\x0foptional_fields\x18\x05 \x03(\x0b\x32\x13.mdoc.DocumentField\x12\x17\n\x0frequired_images\x18\x06 \x03(\t2\xc6\x04\n\nMDocEngine\x12?\n\nCreateMDoc\x12\x17.mdoc.CreateMDocRequest\x1a\x18.mdoc.CreateMDocResponse\x12\x33\n\x07GetMDoc\x12\x14.mdoc.GetMDocRequest\x1a\x12.mdoc.MDocResponse\x12\x39\n\x08SignMDoc\x12\x15.mdoc.SignMDocRequest\x1a\x16.mdoc.SignMDocResponse\x12O\n\x12GenerateMDocQRCode\x12\x1b.mdoc.GenerateQRCodeRequest\x1a\x1c.mdoc.GenerateQRCodeResponse\x12M\n\x14TransferMDocToDevice\x12\x19.mdoc.TransferMDocRequest\x1a\x1a.mdoc.TransferMDocResponse\x12?\n\nVerifyMDoc\x12\x17.mdoc.VerifyMDocRequest\x1a\x18.mdoc.VerifyMDocResponse\x12W\n\x1a\x43reateDocumentTypeTemplate\x12\x1b.mdoc.CreateTemplateRequest\x1a\x1c.mdoc.CreateTemplateResponse\x12M\n\x14GetDocumentTemplates\x12\x19.mdoc.GetTemplatesRequest\x1a\x1a.mdoc.GetTemplatesResponseb\x06proto3'
+)
 
 _globals = globals()
 _builder.BuildMessageAndEnumDescriptors(DESCRIPTOR, _globals)
-_builder.BuildTopDescriptorsAndMessages(DESCRIPTOR, 'mdoc_engine_pb2', _globals)
+_builder.BuildTopDescriptorsAndMessages(DESCRIPTOR, "mdoc_engine_pb2", _globals)
 if not _descriptor._USE_C_DESCRIPTORS:
-  DESCRIPTOR._loaded_options = None
-  _globals['_CREATEMDOCREQUEST']._serialized_start=28
-  _globals['_CREATEMDOCREQUEST']._serialized_end=323
-  _globals['_PERSONINFO']._serialized_start=326
-  _globals['_PERSONINFO']._serialized_end=507
-  _globals['_DOCUMENTFIELD']._serialized_start=509
-  _globals['_DOCUMENTFIELD']._serialized_end=606
-  _globals['_DOCUMENTIMAGE']._serialized_start=608
-  _globals['_DOCUMENTIMAGE']._serialized_end=679
-  _globals['_CREATEMDOCRESPONSE']._serialized_start=681
-  _globals['_CREATEMDOCRESPONSE']._serialized_end=757
-  _globals['_GETMDOCREQUEST']._serialized_start=759
-  _globals['_GETMDOCREQUEST']._serialized_end=792
-  _globals['_MDOCRESPONSE']._serialized_start=795
-  _globals['_MDOCRESPONSE']._serialized_end=1168
-  _globals['_SIGNATUREINFO']._serialized_start=1170
-  _globals['_SIGNATUREINFO']._serialized_end=1265
-  _globals['_SIGNMDOCREQUEST']._serialized_start=1267
-  _globals['_SIGNMDOCREQUEST']._serialized_end=1301
-  _globals['_SIGNMDOCRESPONSE']._serialized_start=1303
-  _globals['_SIGNMDOCRESPONSE']._serialized_end=1406
-  _globals['_GENERATEQRCODEREQUEST']._serialized_start=1408
-  _globals['_GENERATEQRCODEREQUEST']._serialized_end=1506
-  _globals['_GENERATEQRCODERESPONSE']._serialized_start=1508
-  _globals['_GENERATEQRCODERESPONSE']._serialized_end=1572
-  _globals['_TRANSFERMDOCREQUEST']._serialized_start=1574
-  _globals['_TRANSFERMDOCREQUEST']._serialized_end=1656
-  _globals['_TRANSFERMDOCRESPONSE']._serialized_start=1658
-  _globals['_TRANSFERMDOCRESPONSE']._serialized_end=1741
-  _globals['_VERIFYMDOCREQUEST']._serialized_start=1744
-  _globals['_VERIFYMDOCREQUEST']._serialized_end=1926
-  _globals['_VERIFYMDOCRESPONSE']._serialized_start=1929
-  _globals['_VERIFYMDOCRESPONSE']._serialized_end=2085
-  _globals['_VERIFICATIONRESULT']._serialized_start=2087
-  _globals['_VERIFICATIONRESULT']._serialized_end=2160
-  _globals['_CREATETEMPLATEREQUEST']._serialized_start=2163
-  _globals['_CREATETEMPLATEREQUEST']._serialized_end=2349
-  _globals['_CREATETEMPLATERESPONSE']._serialized_start=2351
-  _globals['_CREATETEMPLATERESPONSE']._serialized_end=2436
-  _globals['_GETTEMPLATESREQUEST']._serialized_start=2438
-  _globals['_GETTEMPLATESREQUEST']._serialized_end=2482
-  _globals['_GETTEMPLATESRESPONSE']._serialized_start=2484
-  _globals['_GETTEMPLATESRESPONSE']._serialized_end=2549
-  _globals['_DOCUMENTTEMPLATE']._serialized_start=2552
-  _globals['_DOCUMENTTEMPLATE']._serialized_end=2754
-  _globals['_MDOCENGINE']._serialized_start=2757
-  _globals['_MDOCENGINE']._serialized_end=3339
+    DESCRIPTOR._loaded_options = None
+    _globals["_CREATEMDOCREQUEST"]._serialized_start = 28
+    _globals["_CREATEMDOCREQUEST"]._serialized_end = 323
+    _globals["_PERSONINFO"]._serialized_start = 326
+    _globals["_PERSONINFO"]._serialized_end = 507
+    _globals["_DOCUMENTFIELD"]._serialized_start = 509
+    _globals["_DOCUMENTFIELD"]._serialized_end = 606
+    _globals["_DOCUMENTIMAGE"]._serialized_start = 608
+    _globals["_DOCUMENTIMAGE"]._serialized_end = 679
+    _globals["_CREATEMDOCRESPONSE"]._serialized_start = 681
+    _globals["_CREATEMDOCRESPONSE"]._serialized_end = 757
+    _globals["_GETMDOCREQUEST"]._serialized_start = 759
+    _globals["_GETMDOCREQUEST"]._serialized_end = 792
+    _globals["_MDOCRESPONSE"]._serialized_start = 795
+    _globals["_MDOCRESPONSE"]._serialized_end = 1168
+    _globals["_SIGNATUREINFO"]._serialized_start = 1170
+    _globals["_SIGNATUREINFO"]._serialized_end = 1265
+    _globals["_SIGNMDOCREQUEST"]._serialized_start = 1267
+    _globals["_SIGNMDOCREQUEST"]._serialized_end = 1301
+    _globals["_SIGNMDOCRESPONSE"]._serialized_start = 1303
+    _globals["_SIGNMDOCRESPONSE"]._serialized_end = 1406
+    _globals["_GENERATEQRCODEREQUEST"]._serialized_start = 1408
+    _globals["_GENERATEQRCODEREQUEST"]._serialized_end = 1506
+    _globals["_GENERATEQRCODERESPONSE"]._serialized_start = 1508
+    _globals["_GENERATEQRCODERESPONSE"]._serialized_end = 1572
+    _globals["_TRANSFERMDOCREQUEST"]._serialized_start = 1574
+    _globals["_TRANSFERMDOCREQUEST"]._serialized_end = 1656
+    _globals["_TRANSFERMDOCRESPONSE"]._serialized_start = 1658
+    _globals["_TRANSFERMDOCRESPONSE"]._serialized_end = 1741
+    _globals["_VERIFYMDOCREQUEST"]._serialized_start = 1744
+    _globals["_VERIFYMDOCREQUEST"]._serialized_end = 1926
+    _globals["_VERIFYMDOCRESPONSE"]._serialized_start = 1929
+    _globals["_VERIFYMDOCRESPONSE"]._serialized_end = 2085
+    _globals["_VERIFICATIONRESULT"]._serialized_start = 2087
+    _globals["_VERIFICATIONRESULT"]._serialized_end = 2160
+    _globals["_CREATETEMPLATEREQUEST"]._serialized_start = 2163
+    _globals["_CREATETEMPLATEREQUEST"]._serialized_end = 2349
+    _globals["_CREATETEMPLATERESPONSE"]._serialized_start = 2351
+    _globals["_CREATETEMPLATERESPONSE"]._serialized_end = 2436
+    _globals["_GETTEMPLATESREQUEST"]._serialized_start = 2438
+    _globals["_GETTEMPLATESREQUEST"]._serialized_end = 2482
+    _globals["_GETTEMPLATESRESPONSE"]._serialized_start = 2484
+    _globals["_GETTEMPLATESRESPONSE"]._serialized_end = 2549
+    _globals["_DOCUMENTTEMPLATE"]._serialized_start = 2552
+    _globals["_DOCUMENTTEMPLATE"]._serialized_end = 2754
+    _globals["_MDOCENGINE"]._serialized_start = 2757
+    _globals["_MDOCENGINE"]._serialized_end = 3339
 # @@protoc_insertion_point(module_scope)

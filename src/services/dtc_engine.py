@@ -15,15 +15,11 @@ import qrcode
 # Add the parent directory to sys.path to be able to import other modules
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
+from proto import document_signer_pb2, document_signer_pb2_grpc, dtc_engine_pb2, dtc_engine_pb2_grpc
+
 # Import the proto-generated files
 # Import common utilities
 from src.marty_common.config import load_config
-from proto import (
-    document_signer_pb2,
-    document_signer_pb2_grpc,
-    dtc_engine_pb2,
-    dtc_engine_pb2_grpc,
-)
 
 
 class DTCEngineServicer(dtc_engine_pb2_grpc.DTCEngineServicer):

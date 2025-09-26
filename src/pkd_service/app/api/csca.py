@@ -6,11 +6,7 @@ import logging
 from typing import Any, Optional
 
 from app.controllers.csca_manager import CscaManager
-from app.models.pkd_models import (
-    MasterListResponse,
-    MasterListUploadResponse,
-    VerificationResult,
-)
+from app.models.pkd_models import MasterListResponse, MasterListUploadResponse, VerificationResult
 from fastapi import APIRouter, File, HTTPException, UploadFile
 from fastapi.responses import Response
 

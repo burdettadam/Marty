@@ -28,6 +28,7 @@ def data(provider_method, first_param_name_suffix=False):
         test_func._provider_method = provider_method
         test_func._provider_name_suffix = first_param_name_suffix
         return test_func
+
     return test_func_decorator
 
 
@@ -43,7 +44,7 @@ def data_decorator(cls):
             params = params[1:]
         else:
             data_name = num
-        expanded_name = f'test_{name}_{data_name}'
+        expanded_name = f"test_{name}_{data_name}"
 
         # We used expanded variable names here since this line is present in
         # backtraces that are generated from test failures.
@@ -54,7 +55,7 @@ def data_decorator(cls):
 
     for name in dir(cls):
         func = getattr(cls, name)
-        if hasattr(func, '_provider_method'):
+        if hasattr(func, "_provider_method"):
             num = 1
             for params in getattr(cls, func._provider_method)():
                 generate_test_func(name, func, num, params)

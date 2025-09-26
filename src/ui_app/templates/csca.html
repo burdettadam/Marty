@@ -66,7 +66,9 @@
             <div class="alert alert-success">
               <strong>Certificate Created Successfully</strong><br>
               <strong>ID:</strong> {{ create_result.certificate_id }}<br>
-              <strong>Status:</strong> {{ create_result.status }}
+              <strong>Status:</strong> {{ create_result.status }}<br>
+              <strong>Organization:</strong> {{ create_result.organization }}<br>
+              <strong>Country:</strong> {{ create_result.country }}
             </div>
             {% if create_result.certificate_data %}
               <details>

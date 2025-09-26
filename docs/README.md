@@ -1,42 +1,22 @@
-# Documentation Structure
+# Documentation
 
-This directory contains comprehensive documentation for the Marty passport verification system.
+Essential documentation for the Marty digital identity platform, organized by audience.
 
-## Directory Organization
+## For Business Stakeholders
 
-### `/quality/`
-Code quality analysis and improvement documentation:
-- `CODE_QUALITY.md` - General code quality guidelines and standards
-- `CODE_QUALITY_IMPROVEMENTS_REPORT.md` - Detailed improvements made during quality refactoring
-- `COMPREHENSIVE_TEST_ANALYSIS_REPORT.md` - Complete analysis of testing coverage and strategy
-- `PHASE1_CODE_QUALITY_REPORT.md` - Phase 1 quality assessment results
-- `QUALITY_REPORT.md` - Overall quality metrics and assessments
+📊 **[BUSINESS_OVERVIEW.md](BUSINESS_OVERVIEW.md)** - Executive summary, ROI analysis, implementation timeline, and business benefits
 
-### `/reports/`
-Project milestone and progress reports:
-- `PHASE_2_3_COMPLETION_SUMMARY.md` - Summary of Phase 2-3 implementation completion
-- `PRIORITY_123_SUCCESS_REPORT.md` - Success metrics for priority 1-3 tasks
-- `PRIORITY_3_PROGRESS_REPORT.md` - Detailed progress on priority 3 implementations
+## For Developers & Integrators
 
-### Root Documentation Files
-- `CERTIFICATE_EXPIRY_SERVICE.md` - Certificate lifecycle monitoring system
-- `CERTIFICATE_LIFECYCLE_MANAGEMENT.md` - Certificate management processes
-- `ENHANCED_E2E_TESTING_STRATEGY.md` - End-to-end testing approach
-- `IMPLEMENTATION_SUMMARY.md` - Overall implementation summary
-- `OPENXPKI_INTEGRATION.md` - OpenXPKI integration documentation
-- `PHASE2_RFID_ARCHITECTURE.md` - RFID system architecture for Phase 2
-- `PLAYWRIGHT_TESTING_GUIDE.md` - Browser automation testing guide
-- `UI_DESIGN.md` - User interface design specifications
+�️ **[DEVELOPER_GUIDE.md](DEVELOPER_GUIDE.md)** - Complete technical documentation with architecture details, advanced examples, and best practices
 
-### `/api/`
-API documentation and specifications (existing)
+## For Quick Integration
 
-## Usage
+⚡ **[USER_GUIDE.md](USER_GUIDE.md)** - Get started in minutes with essential code examples
 
-This documentation is organized to support different audiences:
-- **Developers**: Technical implementation details and code quality metrics
-- **Project Managers**: Progress reports and milestone summaries  
-- **System Architects**: Architectural decisions and system design
+## API Reference
+
+📄 **[api/openapi.yaml](api/openapi.yaml)** - Complete REST API specification
 - **QA Engineers**: Testing strategies and quality assessments
 
 All documentation follows Markdown standards and can be viewed in any Markdown-compatible viewer or IDE.

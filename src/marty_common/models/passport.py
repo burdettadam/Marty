@@ -334,7 +334,7 @@ class ICaoPassport(BaseModel):
     issue_date: str  # ISO format date string
     expiry_date: str  # ISO format date string
     data_groups: dict[str, str]  # Data groups keyed by type
-    sod: str  # Signed Object Document as string
+    sod: str = ""  # Signed Object Document as string (empty if not signed)
 
     model_config = {
         "validate_assignment": True,
@@ -438,7 +438,7 @@ class Passport(BaseModel):
             dgs = {k: str(v.data) for k, v in self.data_groups.items()}
 
         # Generate SOD if not present
-        sod = self.security_object or "UNSIGNED.0"
+        sod = self.security_object or ""
 
         return ICaoPassport(
             passport_number=self.passport_data.document_number,
@@ -474,7 +474,7 @@ class Passport(BaseModel):
     def verify_sod_certificate(self) -> bool:
         """
         Verify the SOD (Security Object of the Document) certificate.
-        
+
         Returns:
             bool: True if the SOD certificate is valid and trusted, False otherwise
         """
@@ -482,24 +482,24 @@ class Passport(BaseModel):
             if not self.security_object:
                 logger.warning("No SOD present in passport data")
                 return False
-            
+
             # First try to use our SOD parser for enhanced validation
             try:
                 from ..crypto.sod_parser import SODProcessor
-                
+
                 processor = SODProcessor()
                 sod = processor.parse_sod_data(self.security_object)
-                
+
                 if sod:
                     # Extract SOD information for validation
                     sod_info = processor.extract_sod_info(sod)
-                    
+
                     logger.info(f"SOD certificate validation using enhanced parser")
                     logger.info(f"SOD content type: {sod_info.get('content_type', 'unknown')}")
                     logger.info(f"Has certificate: {sod_info.get('has_certificate', False)}")
-                    
+
                     # Basic structural validation passed
-                    if sod_info.get('has_certificate'):
+                    if sod_info.get("has_certificate"):
                         logger.info("SOD contains certificate - structure validation passed")
                         # In a full implementation, this would verify certificate chain
                         # against CSCA (Country Signing Certificate Authority) roots
@@ -509,17 +509,18 @@ class Passport(BaseModel):
                         return False
                 else:
                     logger.warning("SOD parsing failed, falling back to basic validation")
-                    
+
             except ImportError:
                 logger.warning("SOD parser not available, falling back to certificate service")
-                
+
             # Try to use the certificate validation service
             try:
                 from ..services.certificate_validation import validate_sod_certificate
+
                 return validate_sod_certificate(self.security_object)
             except ImportError:
                 logger.warning("Certificate validation service not available")
-                
+
             # Fallback to basic validation
             logger.info("Using basic SOD validation")
             if isinstance(self.security_object, str):
@@ -529,9 +530,9 @@ class Passport(BaseModel):
                     return False
                 # Additional basic validations could be added here
                 return len(self.security_object) > 10  # Reasonable minimum length
-            
+
             return bool(self.security_object)
-            
+
         except Exception:
             logger.exception("SOD certificate verification failed")
             return False
@@ -539,10 +540,10 @@ class Passport(BaseModel):
     def verify_data_group_integrity(self) -> bool:
         """
         Verify the integrity of data groups using the SOD.
-        
+
         This method checks that the hash values in the SOD match
         the computed hashes of the data groups.
-        
+
         Returns:
             bool: True if all data group hashes are valid, False otherwise
         """
@@ -550,10 +551,10 @@ class Passport(BaseModel):
             if not self.security_object or not self.data_groups:
                 logger.warning("Missing SOD or data groups for integrity verification")
                 return False
-            
+
             # Import the new data group hash verification service
             from ..crypto.data_group_hasher import verify_passport_data_groups
-            
+
             # Convert security_object to appropriate format
             if isinstance(self.security_object, str):
                 # Handle string format (hex or base64)
@@ -561,30 +562,32 @@ class Passport(BaseModel):
             else:
                 # Handle other formats (should be converted to string/bytes)
                 sod_data = str(self.security_object)
-            
+
             # Prepare data groups for verification
             # Convert DataGroup objects to dictionary format for verification
             dg_dict = {}
             for dg_key, dg_obj in self.data_groups.items():
-                if hasattr(dg_obj, 'model_dump'):
+                if hasattr(dg_obj, "model_dump"):
                     # Use Pydantic model serialization for consistent hashing
                     dg_dict[f"DG{dg_key}"] = dg_obj
                 else:
                     dg_dict[f"DG{dg_key}"] = dg_obj
-            
+
             # Perform verification using the new service
             success, errors, details = verify_passport_data_groups(sod_data, dg_dict)
-            
+
             if not success:
                 logger.warning(f"Data group integrity verification failed: {'; '.join(errors)}")
                 return False
-                
-            logger.info(f"Data group integrity verified successfully. "
-                       f"Verified {details.get('data_groups_verified', 0)} data groups "
-                       f"using {details.get('hash_algorithm', 'unknown')} algorithm.")
-            
+
+            logger.info(
+                f"Data group integrity verified successfully. "
+                f"Verified {details.get('data_groups_verified', 0)} data groups "
+                f"using {details.get('hash_algorithm', 'unknown')} algorithm."
+            )
+
             return True
-            
+
         except ImportError:
             logger.warning("Data group hash verification service not available, using fallback")
             # Fallback to basic validation
@@ -600,10 +603,10 @@ class Passport(BaseModel):
     def perform_active_authentication(self) -> bool:
         """
         Perform active authentication with the passport chip.
-        
+
         This method executes a cryptographic challenge-response protocol
         to verify the authenticity of the chip and prevent cloning.
-        
+
         Returns:
             bool: True if active authentication succeeds, False otherwise
         """
@@ -613,21 +616,21 @@ class Passport(BaseModel):
             # 2. Send the challenge to the passport chip
             # 3. Receive and verify the cryptographic response
             # 4. Validate the response using the chip's public key
-            
+
             # For now, simulate successful authentication if chip content exists
             # This is a placeholder that needs RFID communication and cryptographic verification
             return self.chip_content is not None
-            
+
         except Exception:
             return False
 
     def read_data_groups(self) -> bool:
         """
         Read data groups from the passport chip.
-        
+
         This method communicates with the physical passport chip via RFID
         to read and decode the data groups.
-        
+
         Returns:
             bool: True if data groups were successfully read, False otherwise
         """
@@ -638,21 +641,21 @@ class Passport(BaseModel):
             # 3. Read each data group from the chip
             # 4. Decode the ASN.1 encoded data
             # 5. Populate the data_groups dictionary
-            
+
             # For now, simulate reading if MRZ is available (needed for BAC)
             if self.mrz:
                 # Create a basic DG1 from MRZ if not already present
                 if "DG1" not in self.data_groups:
                     dg1 = DataGroup(
                         type=DataGroupType.DG1,
-                        data=self.mrz.encode('utf-8'),
-                        hash_algorithm="SHA-256"
+                        data=self.mrz.encode("utf-8"),
+                        hash_algorithm="SHA-256",
                     )
                     self.add_data_group(dg1)
                 return True
-                
+
             return False
-            
+
         except Exception:
             return False
 

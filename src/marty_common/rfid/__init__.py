@@ -32,16 +32,7 @@ __all__ = [
 
 # Core APDU command processing
 from .apdu_commands import APDUCommand, APDUResponse, PassportAPDU
-# Elementary file parsing for passport data
-from .elementary_files import (
-    BiometricInfo,
-    DataGroup,
-    EFData,
-    ElementaryFileParser,
-    MRZInfo,
-)
-# Secure messaging for BAC/EAC protocols
-from .secure_messaging import BACKeys, SecureMessaging, SessionKeys
+
 # Biometric template processing
 from .biometric_templates import (
     BiometricTemplateProcessor,
@@ -50,6 +41,10 @@ from .biometric_templates import (
     FingerprintTemplate,
     IrisTemplate,
 )
+
+# Elementary file parsing for passport data
+from .elementary_files import BiometricInfo, DataGroup, EFData, ElementaryFileParser, MRZInfo
+
 # NFC protocol handling for mobile integration
 from .nfc_protocols import (
     MockNFCInterface,
@@ -58,3 +53,6 @@ from .nfc_protocols import (
     NFCProtocol,
     NFCProtocolHandler,
 )
+
+# Secure messaging for BAC/EAC protocols
+from .secure_messaging import BACKeys, SecureMessaging, SessionKeys

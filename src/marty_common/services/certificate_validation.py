@@ -27,38 +27,36 @@ class CertificateValidationError(Exception):
 class MacOSCompatibleCertValidator:
     """
     A certificate validator that works around macOS-specific oscrypto issues.
-    
+
     This implementation provides fallback mechanisms for certificate validation
     when the oscrypto library encounters OSStatus errors on macOS.
     """
-    
+
     def __init__(self, certificate_directory: Optional[Path] = None):
         """Initialize the validator with optional certificate directory."""
         self.certificate_directory = certificate_directory or Path("data/csca")
         self._setup_environment()
-    
+
     def _setup_environment(self) -> None:
         """Set up environment variables to improve macOS compatibility."""
         # Disable oscrypto's use of the macOS Security framework if possible
         os.environ.setdefault("OSCRYPTO_USE_OPENSSL", "1")
         os.environ.setdefault("OSCRYPTO_USE_CTYPES", "1")
-        
+
         # Create certificate directory if it doesn't exist
         if not self.certificate_directory.exists():
             self.certificate_directory.mkdir(parents=True, exist_ok=True)
-    
+
     def validate_certificate_chain(
-        self, 
-        certificate_data: bytes,
-        trust_roots: Optional[list[bytes]] = None
+        self, certificate_data: bytes, trust_roots: Optional[list[bytes]] = None
     ) -> bool:
         """
         Validate a certificate chain with macOS compatibility.
-        
+
         Args:
             certificate_data: The certificate to validate as bytes
             trust_roots: Optional list of trust root certificates
-            
+
         Returns:
             bool: True if certificate chain is valid, False otherwise
         """
@@ -71,23 +69,21 @@ class MacOSCompatibleCertValidator:
                 return self._validate_with_fallback(certificate_data)
             logger.exception("Certificate validation failed")
             return False
-    
+
     def _validate_with_certvalidator(
-        self, 
-        certificate_data: bytes,
-        trust_roots: Optional[list[bytes]] = None
+        self, certificate_data: bytes, trust_roots: Optional[list[bytes]] = None
     ) -> bool:
         """Try validation using the certvalidator library."""
         try:
-            from certvalidator import validate_path, ValidationContext
             from asn1crypto import x509
-            
+            from certvalidator import ValidationContext, validate_path
+
             # Parse the certificate
             cert = x509.Certificate.load(certificate_data)
-            
+
             # Create validation context
             context = ValidationContext()
-            
+
             # Add trust roots if provided
             if trust_roots:
                 trust_certs = []
@@ -99,18 +95,18 @@ class MacOSCompatibleCertValidator:
                         logger.debug("Failed to parse trust root certificate")
                         continue
                 context = ValidationContext(trust_roots=trust_certs)
-            
+
             # Build and validate the certificate path
             registry = context.certificate_registry
             paths = registry.build_paths(cert)
-            
+
             if not paths:
                 return False
-                
+
             # Validate the first available path
             validate_path(context, paths[0])
             return True
-            
+
         except ImportError:
             logger.warning("certvalidator not available for certificate validation")
             return False
@@ -120,52 +116,50 @@ class MacOSCompatibleCertValidator:
         except Exception:
             logger.warning("Certificate validation failed with certvalidator")
             return False
-    
+
     def _validate_with_fallback(self, certificate_data: bytes) -> bool:
         """
         Fallback validation method that doesn't use macOS Security Framework.
-        
+
         This is a simplified validation that checks basic certificate structure
         and validity dates without full cryptographic verification.
         """
         try:
-            from asn1crypto import x509
             from datetime import datetime, timezone
-            
+
+            from asn1crypto import x509
+
             # Parse the certificate
             cert = x509.Certificate.load(certificate_data)
-            
+
             # Check basic certificate structure
             if not cert.subject or not cert.issuer:
                 return False
-            
+
             # Check validity dates
             now = datetime.now(tz=timezone.utc)
             not_before = cert["tbs_certificate"]["validity"]["not_before"].native
             not_after = cert["tbs_certificate"]["validity"]["not_after"].native
-            
+
             if now < not_before or now > not_after:
                 logger.warning(f"Certificate expired or not yet valid: {not_before} - {not_after}")
                 return False
-            
+
             # Basic structure validation passed
             logger.info("Certificate passed basic validation (fallback mode)")
             return True
-            
+
         except Exception:
             logger.exception("Fallback certificate validation failed")
             return False
-    
-    def validate_sod_certificate(
-        self, 
-        sod_data: Union[str, bytes]
-    ) -> bool:
+
+    def validate_sod_certificate(self, sod_data: Union[str, bytes]) -> bool:
         """
         Validate an SOD certificate with compatibility fixes.
-        
+
         Args:
             sod_data: Security Object of the Document data
-            
+
         Returns:
             bool: True if SOD certificate is valid, False otherwise
         """
@@ -174,42 +168,42 @@ class MacOSCompatibleCertValidator:
             if isinstance(sod_data, str):
                 # For now, treat any non-unsigned SOD as potentially valid
                 return sod_data != "UNSIGNED.0"
-            
+
             # Handle binary SOD data
             if isinstance(sod_data, bytes) and len(sod_data) > 0:
                 # Try to validate the embedded certificate
                 return self.validate_certificate_chain(sod_data)
-            
+
             return False
-            
+
         except Exception:
             logger.exception("SOD certificate validation failed")
             return False
-    
+
     def load_trust_roots(self, directory: Optional[Path] = None) -> list[bytes]:
         """
         Load trust root certificates from directory.
-        
+
         Args:
             directory: Path to directory containing trust root certificates
-            
+
         Returns:
             List of certificate data as bytes
         """
         cert_dir = directory or self.certificate_directory
         trust_roots = []
-        
+
         if not cert_dir.exists():
             logger.warning(f"Certificate directory does not exist: {cert_dir}")
             return trust_roots
-        
+
         for cert_file in cert_dir.glob("*.crt"):
             try:
                 cert_data = cert_file.read_bytes()
                 trust_roots.append(cert_data)
             except OSError as e:
                 logger.warning(f"Failed to load certificate {cert_file}: {e}")
-        
+
         logger.info(f"Loaded {len(trust_roots)} trust root certificates")
         return trust_roots
 
@@ -227,16 +221,15 @@ def get_certificate_validator() -> MacOSCompatibleCertValidator:
 
 
 def validate_certificate(
-    certificate_data: bytes,
-    trust_roots: Optional[list[bytes]] = None
+    certificate_data: bytes, trust_roots: Optional[list[bytes]] = None
 ) -> bool:
     """
     Convenience function to validate a certificate.
-    
+
     Args:
         certificate_data: Certificate to validate as bytes
         trust_roots: Optional trust root certificates
-        
+
     Returns:
         bool: True if certificate is valid, False otherwise
     """
@@ -247,10 +240,10 @@ def validate_certificate(
 def validate_sod_certificate(sod_data: Union[str, bytes]) -> bool:
     """
     Convenience function to validate an SOD certificate.
-    
+
     Args:
         sod_data: Security Object of the Document data
-        
+
     Returns:
         bool: True if SOD certificate is valid, False otherwise
     """

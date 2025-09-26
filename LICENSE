@@ -1,21 +1,42 @@
-MIT License
+EDUCATIONAL USE ONLY LICENSE
 
-Copyright (c) 2025 Adam Burdett
+Copyright (c) 2024-2025 Adam Burdett
 
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
+EDUCATIONAL AND PORTFOLIO USE ONLY
 
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
+This software and associated documentation files (the "Software") are provided 
+for educational, learning, and portfolio demonstration purposes only.
 
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-SOFTWARE.
+PERMITTED USES:
+- Educational use and learning about ICAO standards
+- Academic study and research
+- Portfolio review and demonstration
+- Code review for educational purposes
+- Personal learning and skill development
+
+PROHIBITED USES:
+- Commercial use of any kind
+- Production deployment in any environment
+- Use in real document issuance or verification systems
+- Distribution or redistribution without explicit written permission
+- Any use that could affect real identity documents or systems
+- Integration into production applications or services
+
+DISCLAIMER:
+This software is provided "as is" for educational purposes only. This 
+implementation is NOT suitable for production use and should NEVER be used 
+for actual document issuance, verification, or any other real-world 
+application. Real-world digital identity document systems require proper 
+certification, security audits, regulatory compliance, and validation that 
+this educational implementation does not provide.
+
+The author makes no warranties, express or implied, regarding the fitness 
+of this software for any purpose other than education and learning.
+
+LIABILITY:
+In no event shall the author be liable for any claim, damages, or other 
+liability arising from the use of this software, whether in contract, tort, 
+or otherwise.
+
+For questions regarding permitted educational use or portfolio review, 
+contact the repository owner.

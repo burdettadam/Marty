@@ -3,6 +3,25 @@
 <section class="grid">
   <article class="card">
     <header>
+      <h2>System Status</h2>
+    </header>
+    <div class="system-status">
+      <div class="health-indicator">
+        <span class="status-label">System Health:</span>
+        <span class="health status-healthy">HEALTHY</span>
+      </div>
+      <div class="environment-indicator">
+        <span class="status-label">Environment:</span>
+        <span class="environment">{{ settings.environment|upper }}</span>
+      </div>
+      <div class="service-status">
+        <span class="status-label">Services:</span>
+        <span class="status status-active">ACTIVE</span>
+      </div>
+    </div>
+  </article>
+  <article class="card">
+    <header>
       <h2>Recent Activity</h2>
     </header>
     {% if operation_log %}

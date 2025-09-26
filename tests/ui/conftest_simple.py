@@ -2,15 +2,15 @@
 Pytest configuration with improved service handling for E2E tests.
 """
 
-import pytest
 import socket
 import threading
 import time
 from contextlib import closing
 from typing import Iterator
 
+import pytest
 import uvicorn
-from playwright.sync_api import sync_playwright, Browser, Page
+from playwright.sync_api import Browser, Page, sync_playwright
 
 from ui_app.app import create_app
 from ui_app.config import UiSettings
@@ -24,12 +24,12 @@ def ui_settings_with_services() -> UiSettings:
         environment="test",
         # Try real services first, fallback handled in app
         passport_engine_target="localhost:8084",
-        inspection_system_target="localhost:8083", 
+        inspection_system_target="localhost:8083",
         mdl_engine_target="localhost:8085",
         trust_anchor_target="localhost:8080",
         grpc_timeout_seconds=5,  # Short timeout to fail fast
         enable_mock_data=True,  # Enable fallback to mock
-        theme="light"
+        theme="light",
     )
 
 
@@ -38,14 +38,14 @@ def ui_settings_mock_only() -> UiSettings:
     """Provide UI settings for pure mock mode."""
     return UiSettings(
         title="Test Marty UI",
-        environment="test", 
+        environment="test",
         passport_engine_target="mock",
         inspection_system_target="mock",
-        mdl_engine_target="mock", 
+        mdl_engine_target="mock",
         trust_anchor_target="mock",
         grpc_timeout_seconds=2,
         enable_mock_data=True,
-        theme="light"
+        theme="light",
     )
 
 
@@ -74,7 +74,7 @@ def ui_server_with_services(ui_settings_with_services: UiSettings) -> Iterator[s
         except Exception:
             pass
         time.sleep(0.1)
-    
+
     try:
         yield f"http://{host}:{port}"
     finally:
@@ -84,7 +84,7 @@ def ui_server_with_services(ui_settings_with_services: UiSettings) -> Iterator[s
 
 @pytest.fixture(scope="session")
 def ui_server_mock_only(ui_settings_mock_only: UiSettings) -> Iterator[str]:
-    """Start UI server in pure mock mode.""" 
+    """Start UI server in pure mock mode."""
     app = create_app(ui_settings_mock_only)
 
     with closing(socket.socket(socket.AF_INET, socket.SOCK_STREAM)) as sock:
@@ -107,7 +107,7 @@ def ui_server_mock_only(ui_settings_mock_only: UiSettings) -> Iterator[str]:
         except Exception:
             pass
         time.sleep(0.1)
-    
+
     try:
         yield f"http://{host}:{port}"
     finally:
@@ -120,12 +120,7 @@ def browser() -> Iterator[Browser]:
     """Provide a shared browser instance."""
     with sync_playwright() as playwright:
         browser = playwright.chromium.launch(
-            headless=True,
-            args=[
-                "--no-sandbox",
-                "--disable-dev-shm-usage",
-                "--disable-gpu"
-            ]
+            headless=True, args=["--no-sandbox", "--disable-dev-shm-usage", "--disable-gpu"]
         )
         yield browser
         browser.close()
@@ -134,12 +129,10 @@ def browser() -> Iterator[Browser]:
 @pytest.fixture
 def page(browser: Browser) -> Iterator[Page]:
     """Provide a fresh page for each test."""
-    context = browser.new_context(
-        viewport={"width": 1280, "height": 720}
-    )
+    context = browser.new_context(viewport={"width": 1280, "height": 720})
     page = context.new_page()
     page.set_default_timeout(10000)
-    
+
     try:
         yield page
     finally:

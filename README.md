@@ -2,22 +2,32 @@
 
 [![CI](https://github.com/burdettadam/Marty/workflows/Marty%20CI/badge.svg)](https://github.com/burdettadam/Marty/actions)
 [![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/downloads/)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![License: Educational Use Only](https://img.shields.io/badge/License-Educational%20Use%20Only-red.svg)](#license)
 [![gRPC](https://img.shields.io/badge/gRPC-1.59+-green.svg)](https://grpc.io/)
 [![Docker](https://img.shields.io/badge/Docker-Compose-blue.svg)](https://docs.docker.com/compose/)
 
-🛂 **A comprehensive microservices platform for secure digital identity document management**
+🎓 **Educational Portfolio Project - ICAO Standards Learning Implementation**
 
-Marty is an enterprise-grade gRPC service ecosystem that implements ICAO PKI standards for electronic passport (eMRTD) issuance and verification, mobile driving licenses (mDL), and digital travel credentials (DTC). Built with security-first architecture and production-ready scalability.
+> ⚠️ **EDUCATIONAL USE ONLY** - This project is developed for learning ICAO standards and portfolio demonstration purposes. Not intended for production use.
 
-## 🔑 Key Features
+Marty is a comprehensive learning project that implements ICAO PKI standards for electronic passport (eMRTD) issuance and verification, mobile driving licenses (mDL), and digital travel credentials (DTC). This project serves as both a portfolio demonstration and a practical exploration of international digital identity standards.
 
-- **ICAO Compliant**: Full adherence to ICAO Doc 9303 and ISO/IEC 18013-5 standards
-- **Microservices Architecture**: Scalable, maintainable service-oriented design
-- **Enterprise Security**: OpenXPKI integration for certificate lifecycle management
-- **Multi-Document Support**: eMRTDs, mDLs, mDocs, and Digital Travel Credentials
-- **Production Ready**: Comprehensive testing, monitoring, and deployment automation
-- **Modern Stack**: Python 3.10+, gRPC, Docker, PostgreSQL
+## 🎯 Educational Goals
+
+This project was developed to:
+- **Learn ICAO Standards**: Practical implementation of ICAO Doc 9303 and ISO/IEC 18013-5
+- **Portfolio Demonstration**: Showcase microservices architecture and cryptographic implementations
+- **Standards Exploration**: Deep dive into international digital identity document specifications
+- **Security Learning**: Hands-on experience with PKI, certificate management, and cryptographic protocols
+
+## 🔑 Key Features (Educational Implementation)
+
+- **ICAO Compliant**: Educational implementation of ICAO Doc 9303 and ISO/IEC 18013-5 standards
+- **Microservices Architecture**: Learning-focused service-oriented design patterns
+- **Cryptographic Implementation**: Educational exploration of PKI and certificate management
+- **Multi-Document Support**: Academic study of eMRTDs, mDLs, mDocs, and Digital Travel Credentials
+- **Modern Development Practices**: Portfolio demonstration using Python 3.10+, gRPC, Docker, PostgreSQL
+- **Standards Research**: Comprehensive documentation and implementation notes
 
 ## 🏗️ Architecture Overview
 
@@ -30,79 +40,67 @@ Marty is an enterprise-grade gRPC service ecosystem that implements ICAO PKI sta
           └──────────────────────┼──────────────────────┘
                                  │
                     ┌────────────▼────────────┐
-                    │     gRPC Gateway        │
-                    │   (Load Balancer)       │
+                    │      UI App Service     │
+                    │     (Port 8090)        │
+                    │    gRPC Gateway        │
                     └────────────┬────────────┘
                                  │
         ┌────────────────────────┼────────────────────────┐
         │                       │                        │
         ▼                       ▼                        ▼
 ┌──────────────┐    ┌──────────────────┐    ┌──────────────────┐
-│ Passport     │    │   MDL Engine     │    │   DTC Engine     │
-│ Engine       │    │  (ISO 18013-5)   │    │ (Digital Travel) │
-│ (ICAO 9303)  │    └─────────┬────────┘    └─────────┬────────┘
+│ Passport     │    │   MDL Engine     │    │   mDoc Engine    │
+│ Engine       │    │  (ISO 18013-5)   │    │  (ISO 18013-5)   │
+│ (ICAO 9303)  │    │   Port 8085      │    │   Port 8086      │
+│ Port 8084    │    └─────────┬────────┘    └─────────┬────────┘
 └──────┬───────┘              │                       │
        │                      │                       │
-       └──────────────────────┼───────────────────────┘
-                              │
-              ┌───────────────▼───────────────┐
-              │    Document Signer Service    │
-              │      (Certificate Mgmt)       │
-              └───────────────┬───────────────┘
-                              │
-    ┌─────────────────────────┼─────────────────────────┐
-    │                         │                         │
-    ▼                         ▼                         ▼
-┌────────┐        ┌─────────────────┐        ┌─────────────┐
-│ CSCA   │        │  Trust Anchor   │        │ PKD Service │
-│Service │        │   Management    │        │ (OpenXPKI) │
-└────────┘        └─────────────────┘        └─────────────┘
-    │                         │                         │
-    └─────────────────────────┼─────────────────────────┘
-                              │
-                    ┌─────────▼─────────┐
-                    │   PostgreSQL      │
-                    │ (Certificate DB)  │
-                    └───────────────────┘
+       └──────────────────────┼───────────────────────┤
+                              │                       │
+                              │           ┌──────────────────┐
+                              │           │   DTC Engine     │
+                              │           │ (Digital Travel) │
+                              │           │   Port 8087      │
+                              │           └─────────┬────────┘
+                              │                     │
+                              └─────────────────────┤
+                                                    │
+                        ┌───────────────▼───────────▼───┐
+                        │    Document Signer Service    │
+                        │      (Certificate Mgmt)       │
+                        │         Port 8082             │
+                        └───────────────┬───────────────┘
+                                        │
+          ┌─────────────────────────────┼─────────────────────────────┐
+          │                             │                             │
+          ▼                             ▼                             ▼
+┌─────────────┐           ┌─────────────────┐           ┌─────────────────┐
+│ CSCA Service│           │  Trust Anchor   │           │  Inspection     │
+│ Port 8081   │           │   Management    │           │   System        │
+└──────┬──────┘           │ Port 9080/8080  │           │  Port 8083      │
+       │                  └─────────┬───────┘           └─────────┬───────┘
+       │                            │                             │
+       └────────────────────────────┼─────────────────────────────┘
+                                    │
+                        ┌───────────▼───────────┐
+                        │    PKD Service        │
+                        │  (OpenXPKI Bridge)   │
+                        │    Port 8088          │
+                        └───────────┬───────────┘
+                                    │
+                          ┌─────────▼─────────┐
+                          │   PostgreSQL      │
+                          │ (Certificate DB)  │
+                          │   Port 5432       │
+                          └───────────────────┘
+                                    │
+                          ┌─────────▼─────────┐
+                          │     OpenXPKI      │
+                          │  (External PKI)   │
+                          └───────────────────┘
 ```
 
-## � Phase 1: Cryptographic Core Implementation
-
-**Recently Completed (Q4 2024)**: Comprehensive cryptographic verification system for passport authentication.
-
-### Core Features Implemented:
-- **SOD Parser**: ICAO Doc 9303 compliant Security Object parsing with full ASN.1 support
-- **Data Group Hasher**: Multi-algorithm hash computation (SHA-1/256/384/512) with integrity verification
-- **Certificate Validation**: Enhanced certificate chain validation with CSCA integration
-- **Production Quality**: Zero security vulnerabilities, comprehensive test coverage, quality-assured code
-
-### Technical Highlights:
-```python
-# Example: Real passport verification (replacing mocked implementations)
-from src.marty_common.crypto.sod_parser import SODProcessor
-from src.marty_common.crypto.data_group_hasher import DataGroupHashComputer
-
-processor = SODProcessor()
-hasher = DataGroupHashComputer()
-
-# Parse and verify Security Object Document
-sod_data = processor.parse_sod_data(raw_sod_bytes)
-hash_algorithm = processor.extract_hash_algorithm(sod_data)
-
-# Compute and verify data group hashes
-computed_hash = hasher.compute_data_group_hash(data_group_1, hash_algorithm)
-is_valid = hasher.verify_data_group_integrity_with_sod(data_groups, sod_data)
-```
-
-### Quality Metrics:
-- **2,800+ lines** of production-ready cryptographic and biometric code
-- **Zero critical security vulnerabilities** (Bandit analysis)
-- **A-B grade** complexity ratings (Radon analysis)
-- **Comprehensive ICAO Doc 9303 compliance** (BAC, AA, EAC, Biometric Processing)
-- **Advanced Security Features**: Active Authentication, EAC protocols, Enhanced Biometric Processing
-- **Complete RFID/NFC stack** with hardware abstraction layer
-
-## �📁 Project Structure
+## 📁 Project Structure
 
 The project follows a modular service-oriented architecture:
 
@@ -119,7 +117,7 @@ The project follows a modular service-oriented architecture:
 - `/proto/` - Protocol buffer definition files (.proto)
 - `/config/` - Environment-specific configuration files
 - `/scripts/` - Utility scripts for development and operations
-- `/docs/` - Project documentation
+- `/docs/` - User documentation and API specifications
 - `/tests/` - Test suites organized by type
 - `/data/` - Directory for data files used during development
 
@@ -132,26 +130,23 @@ Get Marty running in under 5 minutes:
 git clone https://github.com/burdettadam/Marty.git
 cd Marty
 
-# Install UV (Python package manager)
-pip install uv
-
-# Set up the development environment
+# Set up the development environment (installs UV and dependencies)
 make setup
 
 # Start all services with Docker
-docker-compose up --build
+make dev-environment
 
 # Run the test suite
 make test
 ```
 
-**🎯 Verify installation**: Open http://localhost:8080 to access the operator UI, or check service health with `make health-check`.
+**🎯 Verify installation**: Open http://localhost:8090 to access the operator UI, or check service status with `make dev-status`.
 
 > **💡 Tip**: Use `make help` to see all available commands and development shortcuts.
 
 ## Certificate Management with OpenXPKI
 
-This project uses OpenXPKI as its certificate management system for CSCA and Master List operations. OpenXPKI provides enterprise-grade PKI functionality including:
+This educational project demonstrates integration with OpenXPKI for certificate management in CSCA and Master List operations. OpenXPKI provides enterprise-grade PKI functionality including:
 
 - Complete certificate lifecycle management
 - Master list import and validation
@@ -161,19 +156,33 @@ This project uses OpenXPKI as its certificate management system for CSCA and Mas
 
 ### Setting up OpenXPKI
 
-A Docker Compose configuration is provided to easily deploy OpenXPKI:
+Use the provided make command to set up OpenXPKI:
 
 ```bash
-# Set up OpenXPKI with the provided script
-./scripts/setup_openxpki.sh
+# Set up OpenXPKI with all necessary configuration
+make setup-openxpki
 ```
 
-This script will:
+Or run the setup script manually:
+
+```bash
+# Alternative: Run setup script directly
+./scripts/development/setup_openxpki.sh
+```
+
+This will:
 1. Create necessary directories
 2. Start OpenXPKI using Docker Compose
-3. Configure the system for use with the CSCA & Master List Management feature
+3. Configure the system for CSCA & Master List Management
+4. Display connection information
 
-See `docker-compose.openxpki.yml` for detailed configuration.
+**Access OpenXPKI**:
+- Web UI: https://localhost:8443/openxpki/
+- API Endpoint: https://localhost:8443/api/v2
+- Username: `pkiadmin`
+- Password: `secret`
+
+> ⚠️ **Educational Note**: Default credentials are for learning purposes only. Production systems require proper authentication configuration.
 
 ### OpenXPKI Integration
 
@@ -195,8 +204,6 @@ The Trust Anchor service includes a Certificate Expiry Notification Service that
 - Configurable notification thresholds (e.g., 30, 15, 7, 5, 3, 1 days before expiry)
 - Tracking of sent notifications to prevent duplicates
 - Integration with the Trust Anchor gRPC service
-
-For complete documentation on the Certificate Expiry Notification Service, see [docs/CERTIFICATE_EXPIRY_SERVICE.md](docs/CERTIFICATE_EXPIRY_SERVICE.md).
 
 ## Development Setup
 
@@ -277,7 +284,7 @@ uv pip sync
 The project includes Docker configuration for all services. Build and run with:
 
 ```bash
-docker-compose up --build
+docker-compose -f docker/docker-compose.yml up --build
 ```
 
 Each service uses UV for dependency management inside its container.
@@ -478,9 +485,19 @@ export GRPC_PORT=8081
 make run
 ```
 
+## Documentation
+
+� **[Business Overview](docs/BUSINESS_OVERVIEW.md)** - Executive summary and ROI analysis for stakeholders
+
+⚡ **[Quick Integration Guide](docs/USER_GUIDE.md)** - Get started in minutes with code examples
+
+🛠️ **[Developer Guide](docs/DEVELOPER_GUIDE.md)** - Complete technical documentation and architecture details
+
+📄 **[API Reference](docs/api/openapi.yaml)** - OpenAPI specification for REST endpoints
+
 ## API Documentation
 
-REST API documentation is available in OpenAPI format at `/docs/api/openapi.yaml`. This documentation complements the gRPC service definitions and provides an easier interface for testing.
+REST API documentation is available in OpenAPI format at `docs/api/openapi.yaml`. This documentation complements the gRPC service definitions and provides an easier interface for testing.
 
 ## Shared Library
 
@@ -490,6 +507,32 @@ Common code that's used across multiple services is located in the `src/marty_co
 - Data validation (`src/marty_common/validation.py`)
 - Configuration management (`src/marty_common/config.py`)
 - Shared data models (`src/marty_common/models/`)
+
+## License
+
+**EDUCATIONAL USE ONLY - RESTRICTIVE LICENSE**
+
+This project is licensed under a restrictive educational license:
+
+- ✅ **Permitted**: Educational use, learning, research, portfolio review
+- ✅ **Permitted**: Academic study of ICAO standards implementation
+- ✅ **Permitted**: Code review for educational purposes
+- ❌ **Prohibited**: Commercial use of any kind
+- ❌ **Prohibited**: Production deployment
+- ❌ **Prohibited**: Distribution without explicit permission
+- ❌ **Prohibited**: Use in real document issuance systems
+
+> ⚠️ **IMPORTANT**: This implementation is for educational purposes only. Real-world digital identity document systems require proper certification, security audits, and compliance validation. This project should never be used for actual document issuance or verification in production environments.
+
+## Educational Context
+
+This project serves as:
+- A **portfolio piece** demonstrating software architecture and implementation skills
+- A **learning exercise** for understanding complex international standards (ICAO, ISO)
+- An **educational tool** for exploring cryptographic implementations
+- A **reference implementation** for academic study of digital identity systems
+
+For questions about educational use or portfolio review, please contact the repository owner.
 
 ## CI/CD Pipeline
 

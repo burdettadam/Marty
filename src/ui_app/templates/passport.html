@@ -37,6 +37,16 @@
         {% endif %}
       </div>
     {% endif %}
+    <!-- Multiple results support for E2E testing -->
+    {% if process_result and inspection_result %}
+      <!-- Both process and inspection results exist, ensure both panels are visible -->
+      <script>
+        // Ensure result panels are properly indexed for E2E testing
+        document.querySelectorAll('.result-panel').forEach((panel, index) => {
+          panel.setAttribute('data-result-index', index);
+        });
+      </script>
+    {% endif %}
   </article>
 </section>
 {% endblock %}

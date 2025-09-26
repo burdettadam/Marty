@@ -17,6 +17,7 @@ logger = logging.getLogger(__name__)
 
 class NFCProtocol(Enum):
     """Supported NFC protocols."""
+
     ISO14443_TYPE_A = "ISO14443-A"
     ISO14443_TYPE_B = "ISO14443-B"
     ISO15693 = "ISO15693"
@@ -26,6 +27,7 @@ class NFCProtocol(Enum):
 
 class NFCCommand(Enum):
     """Common NFC commands."""
+
     POLL = "poll"
     SELECT = "select"
     READ = "read"
@@ -36,37 +38,38 @@ class NFCCommand(Enum):
 @dataclass
 class NFCDevice:
     """NFC device information."""
+
     device_id: str
     protocol: NFCProtocol
     uid: bytes
     atqa: Optional[bytes] = None  # Answer to Request Type A
-    sak: Optional[int] = None     # Select Acknowledge
-    ats: Optional[bytes] = None   # Answer to Select
+    sak: Optional[int] = None  # Select Acknowledge
+    ats: Optional[bytes] = None  # Answer to Select
 
 
 class NFCInterface(ABC):
     """Abstract interface for NFC operations."""
-    
+
     @abstractmethod
     def initialize(self) -> bool:
         """Initialize NFC interface."""
         ...
-    
+
     @abstractmethod
     def poll_devices(self, protocols: list[NFCProtocol]) -> list[NFCDevice]:
         """Poll for NFC devices."""
         ...
-    
+
     @abstractmethod
     def connect_device(self, device: NFCDevice) -> bool:
         """Connect to NFC device."""
         ...
-    
+
     @abstractmethod
     def send_command(self, command: bytes) -> bytes:
         """Send command to connected device."""
         ...
-    
+
     @abstractmethod
     def disconnect(self) -> None:
         """Disconnect from current device."""
@@ -75,23 +78,23 @@ class NFCInterface(ABC):
 
 class MockNFCInterface(NFCInterface):
     """Mock NFC interface for testing."""
-    
+
     def __init__(self) -> None:
         self.initialized = False
         self.connected_device: Optional[NFCDevice] = None
         self.logger = logging.getLogger(__name__)
-    
+
     def initialize(self) -> bool:
         """Initialize mock NFC interface."""
         self.initialized = True
         self.logger.info("Mock NFC interface initialized")
         return True
-    
+
     def poll_devices(self, protocols: list[NFCProtocol]) -> list[NFCDevice]:
         """Return mock NFC devices."""
         if not self.initialized:
             return []
-        
+
         # Mock passport device
         mock_passport = NFCDevice(
             device_id="mock_passport",
@@ -99,30 +102,30 @@ class MockNFCInterface(NFCInterface):
             uid=bytes.fromhex("08010203"),
             atqa=bytes.fromhex("5000"),
             sak=0x20,
-            ats=bytes.fromhex("0575F7C0021000")
+            ats=bytes.fromhex("0575F7C0021000"),
         )
-        
+
         return [mock_passport]
-    
+
     def connect_device(self, device: NFCDevice) -> bool:
         """Connect to mock device."""
         self.connected_device = device
         self.logger.info("Connected to mock device: %s", device.device_id)
         return True
-    
+
     def send_command(self, command: bytes) -> bytes:
         """Send mock command."""
         if not self.connected_device:
             msg = "No device connected"
             raise RuntimeError(msg)
-        
+
         # Mock passport application selection
         if command == bytes.fromhex("00A4040C07A0000002471001"):
             return bytes.fromhex("9000")  # Success
-        
+
         # Mock data reading
         return bytes.fromhex("6F108408A000000247100187020100009000")
-    
+
     def disconnect(self) -> None:
         """Disconnect from device."""
         if self.connected_device:
@@ -132,11 +135,11 @@ class MockNFCInterface(NFCInterface):
 
 class AndroidHCEInterface(NFCInterface):
     """Android Host Card Emulation interface."""
-    
+
     def __init__(self) -> None:
         self.logger = logging.getLogger(__name__)
         self._try_import_android_deps()
-    
+
     def _try_import_android_deps(self) -> None:
         """Try to import Android-specific dependencies."""
         try:
@@ -146,26 +149,26 @@ class AndroidHCEInterface(NFCInterface):
             pass
         except ImportError:
             self.logger.warning("Android NFC dependencies not available")
-    
+
     def initialize(self) -> bool:
         """Initialize Android NFC."""
         # Android-specific initialization
         self.logger.info("Android HCE interface initialized")
         return True
-    
+
     def poll_devices(self, protocols: list[NFCProtocol]) -> list[NFCDevice]:
         """Poll for Android NFC devices."""
         # Android-specific device polling
         return []
-    
+
     def connect_device(self, device: NFCDevice) -> bool:
         """Connect to Android NFC device."""
         return False
-    
+
     def send_command(self, command: bytes) -> bytes:
         """Send command via Android NFC."""
         return b""
-    
+
     def disconnect(self) -> None:
         """Disconnect Android NFC."""
         pass
@@ -173,11 +176,11 @@ class AndroidHCEInterface(NFCInterface):
 
 class iOSCoreNFCInterface(NFCInterface):
     """iOS Core NFC interface."""
-    
+
     def __init__(self) -> None:
         self.logger = logging.getLogger(__name__)
         self._try_import_ios_deps()
-    
+
     def _try_import_ios_deps(self) -> None:
         """Try to import iOS-specific dependencies."""
         try:
@@ -186,24 +189,24 @@ class iOSCoreNFCInterface(NFCInterface):
             pass
         except ImportError:
             self.logger.warning("iOS Core NFC dependencies not available")
-    
+
     def initialize(self) -> bool:
         """Initialize iOS Core NFC."""
         self.logger.info("iOS Core NFC interface initialized")
         return True
-    
+
     def poll_devices(self, protocols: list[NFCProtocol]) -> list[NFCDevice]:
         """Poll for iOS NFC devices."""
         return []
-    
+
     def connect_device(self, device: NFCDevice) -> bool:
         """Connect to iOS NFC device."""
         return False
-    
+
     def send_command(self, command: bytes) -> bytes:
         """Send command via iOS Core NFC."""
         return b""
-    
+
     def disconnect(self) -> None:
         """Disconnect iOS NFC."""
         pass
@@ -211,17 +214,17 @@ class iOSCoreNFCInterface(NFCInterface):
 
 class NFCProtocolHandler:
     """Cross-platform NFC protocol handler."""
-    
+
     def __init__(self) -> None:
         self.interface: Optional[NFCInterface] = None
         self.logger = logging.getLogger(__name__)
-    
+
     def get_available_interface(self) -> Optional[NFCInterface]:
         """Get the best available NFC interface for current platform."""
         import platform
-        
+
         system = platform.system().lower()
-        
+
         if system == "android":
             return AndroidHCEInterface()
         elif system == "darwin":  # iOS
@@ -233,77 +236,78 @@ class NFCProtocolHandler:
             except ImportError:
                 self.logger.warning("No NFC libraries available, using mock")
                 return MockNFCInterface()
-    
+
     def _get_nfcpy_interface(self) -> NFCInterface:
         """Get nfcpy-based interface for desktop systems."""
         try:
             import nfc
+
             return NFCPyInterface(nfc)
         except ImportError as e:
             raise ImportError("nfcpy library not available") from e
-    
+
     def initialize_best_interface(self) -> bool:
         """Initialize the best available NFC interface."""
         self.interface = self.get_available_interface()
         if self.interface:
             return self.interface.initialize()
         return False
-    
+
     def scan_for_passports(self) -> list[NFCDevice]:
         """Scan for passport-compatible NFC devices."""
         if not self.interface:
             return []
-        
+
         # Focus on passport-compatible protocols
         protocols = [
             NFCProtocol.ISO14443_TYPE_B,  # Most common for passports
             NFCProtocol.ISO14443_TYPE_A,  # Alternative passport format
         ]
-        
+
         return self.interface.poll_devices(protocols)
-    
+
     def read_passport_data(self, device: NFCDevice) -> dict[str, bytes]:
         """Read passport data from NFC device."""
         if not self.interface:
             msg = "No NFC interface available"
             raise RuntimeError(msg)
-        
+
         if not self.interface.connect_device(device):
             msg = f"Failed to connect to device {device.device_id}"
             raise RuntimeError(msg)
-        
+
         try:
             # Select passport application
             passport_aid = bytes.fromhex("A0000002471001")
             select_cmd = bytes([0x00, 0xA4, 0x04, 0x0C, len(passport_aid)]) + passport_aid
-            
+
             response = self.interface.send_command(select_cmd)
-            
+
             if len(response) < 2 or response[-2:] != bytes([0x90, 0x00]):
                 msg = "Failed to select passport application"
                 raise RuntimeError(msg)
-            
+
             # Read basic passport data (would be expanded)
             data = {
                 "application_selected": True,
                 "atr": device.uid,
             }
-            
+
             return data
-            
+
         finally:
             self.interface.disconnect()
 
 
 class NFCPyInterface(NFCInterface):
     """nfcpy-based NFC interface for desktop systems."""
-    
+
     def __init__(self, nfc_module) -> None:
         self.nfc = nfc_module
         self.clf = None
         self.target = None
         self.logger = logging.getLogger(__name__)
-    
+
     def initialize(self) -> bool:
         """Initialize nfcpy interface."""
         try:
@@ -314,26 +318,26 @@ class NFCPyInterface(NFCInterface):
         except Exception as e:
             self.logger.error("Failed to initialize nfcpy: %s", str(e))
         return False
-    
+
     def poll_devices(self, protocols: list[NFCProtocol]) -> list[NFCDevice]:
         """Poll for devices using nfcpy."""
         devices = []
-        
+
         if not self.clf:
             return devices
-        
+
         try:
             # Configure polling based on requested protocols
             rdwr_options = {
                 "on-connect": lambda tag: False,  # Don't connect automatically
             }
-            
+
             target = self.clf.sense(
                 self.nfc.clf.RemoteTarget("106A"),  # ISO14443 Type A
                 self.nfc.clf.RemoteTarget("106B"),  # ISO14443 Type B
-                iterations=1
+                iterations=1,
             )
-            
+
             if target:
                 device = NFCDevice(
                     device_id=f"nfcpy_{target.uid.hex()}",
@@ -341,22 +345,22 @@ class NFCPyInterface(NFCInterface):
                     uid=target.uid,
                 )
                 devices.append(device)
-                
+
         except Exception as e:
             self.logger.error("Error polling NFC devices: %s", str(e))
-        
+
         return devices
-    
+
     def connect_device(self, device: NFCDevice) -> bool:
         """Connect to nfcpy device."""
         # nfcpy connection logic would go here
         return True
-    
+
     def send_command(self, command: bytes) -> bytes:
         """Send command via nfcpy."""
         # nfcpy command sending logic
         return b"\x90\x00"
-    
+
     def disconnect(self) -> None:
         """Disconnect nfcpy interface."""
         if self.clf:

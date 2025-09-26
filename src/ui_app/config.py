@@ -19,11 +19,11 @@ class UiSettings(BaseSettings):
 
     title: str = Field(default="Marty Operator Console", alias="UI_TITLE")
     environment: str = Field(default="development", alias="UI_ENVIRONMENT")
-    passport_engine_target: str = Field(default="localhost:8084", alias="UI_PASSPORT_ENGINE_ADDR")
+    passport_engine_target: str = Field(default="localhost:9084", alias="UI_PASSPORT_ENGINE_ADDR")
     inspection_system_target: str = Field(
-        default="localhost:8083", alias="UI_INSPECTION_SYSTEM_ADDR"
+        default="localhost:9083", alias="UI_INSPECTION_SYSTEM_ADDR"
     )
-    mdl_engine_target: str = Field(default="localhost:8085", alias="UI_MDL_ENGINE_ADDR")
+    mdl_engine_target: str = Field(default="localhost:9085", alias="UI_MDL_ENGINE_ADDR")
     trust_anchor_target: str = Field(default="localhost:9080", alias="UI_TRUST_ANCHOR_ADDR")
     grpc_timeout_seconds: int = Field(default=5, alias="UI_GRPC_TIMEOUT_SECONDS")
     enable_mock_data: bool = Field(default=False, alias="UI_ENABLE_MOCK_DATA")

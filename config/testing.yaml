@@ -128,7 +128,7 @@ isolation:
 
 # Docker settings
 docker:
-  compose_file: "docker-compose.yml"
+  compose_file: "docker/docker-compose.yml"
   network: "marty-network"
   build_timeout: 300
   startup_timeout: 120

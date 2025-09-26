@@ -47,27 +47,27 @@ def generate_key_pair(algorithm: KeyAlgorithm = "RSA", key_size: int = 2048) -> 
     private_key = os.urandom(key_size // 8)
     # Derive public key (in real implementation, this would use the algorithm)
     public_key = hashlib.sha256(private_key).digest()
-    
+
     return private_key, public_key
 
 
 def generate_hash(data: str | bytes, algorithm: HashAlgorithm = "SHA-256") -> str:
     """
     Generate a hash of the provided data.
-    
+
     Args:
         data: The data to hash (string or bytes)
         algorithm: The hash algorithm to use
-        
+
     Returns:
         Hexadecimal string representation of the hash
-        
+
     Raises:
         ValueError: If an unsupported algorithm is provided
     """
     if isinstance(data, str):
         data = data.encode("utf-8")
-        
+
     if algorithm == "SHA-256":
         hash_obj = hashlib.sha256(data)
     elif algorithm == "SHA-384":
@@ -77,7 +77,7 @@ def generate_hash(data: str | bytes, algorithm: HashAlgorithm = "SHA-256") -> st
     else:
         msg = f"Unsupported hash algorithm: {algorithm}"
         raise ValueError(msg)
-        
+
     return hash_obj.hexdigest()
 
 

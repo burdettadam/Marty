@@ -1,12 +1,6 @@
 """Security utilities for Marty services."""
 
-from .hsm import (
-    HSMInterface,
-    HSMKeyType,
-    HSMOperationError,
-    MockHSMService,
-    create_hsm_service,
-)
+from .hsm import HSMInterface, HSMKeyType, HSMOperationError, MockHSMService, create_hsm_service
 from .key_rotation import (
     DatabaseKeyStore,
     KeyDistributor,

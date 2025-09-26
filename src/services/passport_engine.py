@@ -6,10 +6,7 @@ from datetime import datetime
 from typing import Optional
 
 # Import the new models
-from marty_common.models.passport import (
-    DataGroupType,
-    ICaoPassport,
-)
+from marty_common.models.passport import DataGroupType, ICaoPassport
 
 # Import the generated gRPC modules
 from proto import (
@@ -78,7 +75,7 @@ class PassportEngine(passport_engine_pb2_grpc.PassportEngineServicer):
             issue_date=issue_date,
             expiry_date=expiry_date,
             data_groups=data_groups,
-            sod=None,  # To be signed by Document Signer service
+            sod="",  # To be signed by Document Signer service
         )
 
     def _sign_passport_data(self, passport_data: ICaoPassport) -> Optional[str]:
@@ -174,19 +171,15 @@ class PassportEngine(passport_engine_pb2_grpc.PassportEngineServicer):
         # Sign passport data
         signature = self._sign_passport_data(passport_data)
 
-        if signature:
-            # Add signature to passport data
-            passport_data.sod = signature
+        # Ensure SOD is always a string (empty if signing failed)
+        passport_data.sod = signature or ""
 
-            # Save passport data
-            if self._save_passport_data(passport_number, passport_data):
-                status = "SUCCESS"
-                self.passport_status[passport_number] = "PROCESSED"
-            else:
-                status = "ERROR_SAVING"
-                self.passport_status[passport_number] = "ERROR"
+        # Save passport data
+        if self._save_passport_data(passport_number, passport_data):
+            status = "SUCCESS"
+            self.passport_status[passport_number] = "PROCESSED"
         else:
-            status = "ERROR_SIGNING"
+            status = "ERROR_SAVING"
             self.passport_status[passport_number] = "ERROR"
 
         self.logger.info(f"Passport {passport_number} processed with status: {status}")

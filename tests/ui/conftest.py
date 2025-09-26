@@ -1,14 +1,14 @@
 """Pytest configuration for UI end-to-end tests."""
 
-import pytest
 import socket
 import threading
 import time
 from contextlib import closing
 from typing import Iterator
 
+import pytest
 import uvicorn
-from playwright.sync_api import sync_playwright, Browser, Page
+from playwright.sync_api import Browser, Page, sync_playwright
 
 from ui_app.app import create_app
 from ui_app.config import UiSettings
@@ -21,12 +21,12 @@ def ui_settings() -> UiSettings:
         title="Test Marty UI",
         environment="test",
         passport_engine_target="mock",
-        inspection_system_target="mock", 
+        inspection_system_target="mock",
         mdl_engine_target="mock",
         trust_anchor_target="mock",
         grpc_timeout_seconds=10,
         enable_mock_data=True,
-        theme="light"
+        theme="light",
     )
 
 
@@ -54,9 +54,10 @@ def ui_server(ui_settings: UiSettings) -> Iterator[str]:
         raise RuntimeError("UI server failed to start within timeout")
 
     base_url = f"http://{host}:{port}"
-    
+
     # Wait for server to be responsive
     import requests
+
     for _ in range(50):  # 5 second timeout
         try:
             response = requests.get(base_url, timeout=1)
@@ -64,7 +65,7 @@ def ui_server(ui_settings: UiSettings) -> Iterator[str]:
                 break
         except requests.exceptions.RequestException:
             time.sleep(0.1)
-    
+
     try:
         yield base_url
     finally:
@@ -83,8 +84,8 @@ def browser() -> Iterator[Browser]:
                 "--disable-dev-shm-usage",
                 "--disable-gpu",
                 "--disable-web-security",
-                "--allow-running-insecure-content"
-            ]
+                "--allow-running-insecure-content",
+            ],
         )
         yield browser
         browser.close()
@@ -93,16 +94,13 @@ def browser() -> Iterator[Browser]:
 @pytest.fixture
 def page(browser: Browser) -> Iterator[Page]:
     """Provide a fresh page for each test with extended timeout."""
-    context = browser.new_context(
-        viewport={"width": 1280, "height": 720},
-        ignore_https_errors=True
-    )
+    context = browser.new_context(viewport={"width": 1280, "height": 720}, ignore_https_errors=True)
     page = context.new_page()
     page.set_default_timeout(10000)  # 10 second timeout
     page.set_default_navigation_timeout(10000)
-    
+
     yield page
-    
+
     context.close()
 
 
@@ -112,29 +110,29 @@ def mobile_page(browser: Browser) -> Iterator[Page]:
     context = browser.new_context(
         viewport={"width": 375, "height": 667},
         user_agent="Mozilla/5.0 (iPhone; CPU iPhone OS 14_0 like Mac OS X) AppleWebKit/605.1.15",
-        ignore_https_errors=True
+        ignore_https_errors=True,
     )
     page = context.new_page()
     page.set_default_timeout(10000)
-    
+
     yield page
-    
+
     context.close()
 
 
 @pytest.fixture
 def tablet_page(browser: Browser) -> Iterator[Page]:
-    """Provide a tablet-sized page for responsive testing.""" 
+    """Provide a tablet-sized page for responsive testing."""
     context = browser.new_context(
         viewport={"width": 768, "height": 1024},
         user_agent="Mozilla/5.0 (iPad; CPU OS 14_0 like Mac OS X) AppleWebKit/605.1.15",
-        ignore_https_errors=True
+        ignore_https_errors=True,
     )
     page = context.new_page()
     page.set_default_timeout(10000)
-    
+
     yield page
-    
+
     context.close()
 
 
@@ -158,7 +156,7 @@ def sample_certificate_data():
         "organization": "Test Organization",
         "common_name": "Test Certificate",
         "key_size": "2048",
-        "validity_years": "10"
+        "validity_years": "10",
     }
 
 
@@ -172,22 +170,22 @@ def sample_passport_data():
         "date_of_birth": "1990-01-15",
         "nationality": "US",
         "issue_date": "2024-01-01",
-        "expiry_date": "2034-01-01"
+        "expiry_date": "2034-01-01",
     }
 
 
-@pytest.fixture  
+@pytest.fixture
 def sample_mdl_data():
     """Provide sample MDL data for testing."""
     return {
         "license_number": "LIC123456789",
         "first_name": "Jane",
-        "last_name": "Smith", 
+        "last_name": "Smith",
         "date_of_birth": "1985-06-20",
         "issuing_authority": "State DMV",
         "license_class": "C",
         "issue_date": "2024-01-01",
-        "expiry_date": "2029-01-01"
+        "expiry_date": "2029-01-01",
     }
 
 
@@ -197,21 +195,21 @@ def sample_dtc_data():
     return {
         "emergency": {
             "person_name": "Emergency Traveler",
-            "original_passport": "P987654321", 
+            "original_passport": "P987654321",
             "emergency_contact": "+1-555-EMBASSY",
             "emergency_reason": "Passport stolen during travel",
-            "destination_country": "United States"
+            "destination_country": "United States",
         },
         "visitor": {
             "person_name": "Business Visitor",
             "visit_purpose": "Business meeting",
             "sponsor_organization": "TechCorp Inc.",
-            "visit_duration": "7"
+            "visit_duration": "7",
         },
         "temporary": {
-            "person_name": "Temporary Resident", 
+            "person_name": "Temporary Resident",
             "temporary_reason": "Work assignment",
             "validity_period": "90",
-            "sponsor_details": "Host Organization"
-        }
+            "sponsor_details": "Host Organization",
+        },
     }

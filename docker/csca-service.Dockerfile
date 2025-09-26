@@ -2,14 +2,15 @@
 FROM python:3.10-slim
 
 # Install system dependencies for building Python packages
-RUN apt-get update && apt-get install -y --no-install-recommends \ 
-    gcc \ 
-    pkg-config \ 
-    libxml2-dev \ 
-    libxslt1-dev \ 
-    libxmlsec1-dev \ 
-    swig \ 
-    libpcsclite-dev \ 
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    gcc \
+    cmake \
+    pkg-config \
+    libxml2-dev \
+    libxslt1-dev \
+    libxmlsec1-dev \
+    swig \
+    libpcsclite-dev \
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app

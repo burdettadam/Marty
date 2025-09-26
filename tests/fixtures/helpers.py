@@ -11,6 +11,7 @@ def create_test_image(width: int = 100, height: int = 100):
     """Create a test image for OCR/MRZ testing."""
     try:
         import numpy as np
+
         return np.ones((height, width), dtype=np.uint8) * 255
     except ImportError:
         pytest.skip("numpy not available for image creation")

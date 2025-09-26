@@ -38,6 +38,7 @@ logger = logging.getLogger(__name__)
 
 class ValidationResult(Enum):
     """Certificate validation result types."""
+
     VALID = "valid"
     INVALID = "invalid"
     EXPIRED = "expired"
@@ -52,8 +53,9 @@ class ValidationResult(Enum):
 
 class CertificateType(Enum):
     """Types of certificates in the passport PKI."""
-    CSCA = "csca"              # Country Signing Certificate Authority
-    DOCUMENT_SIGNER = "ds"      # Document Signer Certificate
+
+    CSCA = "csca"  # Country Signing Certificate Authority
+    DOCUMENT_SIGNER = "ds"  # Document Signer Certificate
     INTERMEDIATE = "intermediate"  # Intermediate CA Certificate
     UNKNOWN = "unknown"
 
@@ -61,6 +63,7 @@ class CertificateType(Enum):
 @dataclass
 class ValidationError:
     """Individual certificate validation error."""
+
     certificate_subject: str
     error_type: ValidationResult
     error_message: str
@@ -75,6 +78,7 @@ class ValidationError:
 @dataclass
 class CertificateInfo:
     """Detailed information about a certificate."""
+
     certificate: x509.Certificate
     cert_type: CertificateType
     subject: str
@@ -116,6 +120,7 @@ class CertificateInfo:
 @dataclass
 class ChainValidationResult:
     """Result of certificate chain validation."""
+
     is_valid: bool
     trust_anchor: x509.Certificate | None
     validation_path: list[CertificateInfo]
@@ -200,7 +205,7 @@ class CertificateChainValidator:
         self,
         end_entity_cert: x509.Certificate,
         intermediate_certs: list[x509.Certificate] | None = None,
-        validation_time: datetime | None = None
+        validation_time: datetime | None = None,
     ) -> ChainValidationResult:
         """
         Validate a complete certificate chain.
@@ -221,9 +226,7 @@ class CertificateChainValidator:
         if cache_key in self._validation_cache:
             cached_result = self._validation_cache[cache_key]
             # 5 min cache
-            if (
-                validation_time - cached_result.validation_time
-            ).total_seconds() < 300:
+            if (validation_time - cached_result.validation_time).total_seconds() < 300:
                 return cached_result
 
         self.logger.info(
@@ -246,9 +249,7 @@ class CertificateChainValidator:
                 validation_path.append(cert_info)
 
                 # Validate individual certificate
-                cert_errors, cert_warnings = self._validate_single_certificate(
-                    cert_info
-                )
+                cert_errors, cert_warnings = self._validate_single_certificate(cert_info)
                 errors.extend(cert_errors)
                 warnings.extend(cert_warnings)
 
@@ -266,18 +267,20 @@ class CertificateChainValidator:
 
         except Exception:
             self.logger.exception("Certificate chain validation failed")
-            errors.append(ValidationError(
-                certificate_subject=self._get_subject_name(end_entity_cert),
-                error_type=ValidationResult.UNKNOWN_ERROR,
-                error_message="Validation process failed",
-                severity="critical"
-            ))
+            errors.append(
+                ValidationError(
+                    certificate_subject=self._get_subject_name(end_entity_cert),
+                    error_type=ValidationResult.UNKNOWN_ERROR,
+                    error_message="Validation process failed",
+                    severity="critical",
+                )
+            )
 
         # Determine overall validation result
         is_valid = (
-            len([e for e in errors if e.is_critical]) == 0 and
-            signature_verified and
-            trust_anchor is not None
+            len([e for e in errors if e.is_critical]) == 0
+            and signature_verified
+            and trust_anchor is not None
         )
 
         result = ChainValidationResult(
@@ -287,7 +290,7 @@ class CertificateChainValidator:
             errors=errors,
             warnings=warnings,
             validation_time=validation_time,
-            signature_verified=signature_verified
+            signature_verified=signature_verified,
         )
 
         # Cache result
@@ -301,9 +304,7 @@ class CertificateChainValidator:
         return result
 
     def _build_certificate_path(
-        self,
-        end_entity_cert: x509.Certificate,
-        intermediate_certs: list[x509.Certificate]
+        self, end_entity_cert: x509.Certificate, intermediate_certs: list[x509.Certificate]
     ) -> list[x509.Certificate]:
         """Build ordered certificate path from end entity to root."""
 
@@ -350,8 +351,7 @@ class CertificateChainValidator:
         return cert_path
 
     def _validate_single_certificate(
-        self,
-        cert_info: CertificateInfo
+        self, cert_info: CertificateInfo
     ) -> tuple[list[ValidationError], list[ValidationError]]:
         """Validate a single certificate."""
 
@@ -360,65 +360,76 @@ class CertificateChainValidator:
 
         # Time validity validation
         if cert_info.is_expired:
-            errors.append(ValidationError(
-                certificate_subject=cert_info.subject,
-                error_type=ValidationResult.EXPIRED,
-                error_message=f"Certificate expired on {cert_info.valid_until}",
-                severity="critical"
-            ))
+            errors.append(
+                ValidationError(
+                    certificate_subject=cert_info.subject,
+                    error_type=ValidationResult.EXPIRED,
+                    error_message=f"Certificate expired on {cert_info.valid_until}",
+                    severity="critical",
+                )
+            )
         elif cert_info.is_not_yet_valid:
-            errors.append(ValidationError(
-                certificate_subject=cert_info.subject,
-                error_type=ValidationResult.NOT_YET_VALID,
-                error_message=f"Certificate not valid until {cert_info.valid_from}",
-                severity="critical"
-            ))
+            errors.append(
+                ValidationError(
+                    certificate_subject=cert_info.subject,
+                    error_type=ValidationResult.NOT_YET_VALID,
+                    error_message=f"Certificate not valid until {cert_info.valid_from}",
+                    severity="critical",
+                )
+            )
 
         # Expiry warning (within 30 days)
         if cert_info.days_until_expiry <= 30 and cert_info.days_until_expiry > 0:
-            warnings.append(ValidationError(
-                certificate_subject=cert_info.subject,
-                error_type=ValidationResult.VALID,
-                error_message=f"Certificate expires in {cert_info.days_until_expiry} days",
-                severity="warning"
-            ))
+            warnings.append(
+                ValidationError(
+                    certificate_subject=cert_info.subject,
+                    error_type=ValidationResult.VALID,
+                    error_message=f"Certificate expires in {cert_info.days_until_expiry} days",
+                    severity="warning",
+                )
+            )
 
         # Key usage validation
         if cert_info.cert_type == CertificateType.DOCUMENT_SIGNER:
             if not any(usage in cert_info.key_usage for usage in ["digital_signature"]):
-                errors.append(ValidationError(
-                    certificate_subject=cert_info.subject,
-                    error_type=ValidationResult.INVALID_KEY_USAGE,
-                    error_message="Document Signer certificate lacks digital signature key usage",
-                    severity="critical"
-                ))
+                errors.append(
+                    ValidationError(
+                        certificate_subject=cert_info.subject,
+                        error_type=ValidationResult.INVALID_KEY_USAGE,
+                        error_message="Document Signer certificate lacks digital signature key usage",
+                        severity="critical",
+                    )
+                )
 
         elif cert_info.cert_type == CertificateType.CSCA:
             required_usages = ["key_cert_sign"]
             if not any(usage in cert_info.key_usage for usage in required_usages):
-                errors.append(ValidationError(
-                    certificate_subject=cert_info.subject,
-                    error_type=ValidationResult.INVALID_KEY_USAGE,
-                    error_message="CSCA certificate lacks certificate signing key usage",
-                    severity="critical"
-                ))
+                errors.append(
+                    ValidationError(
+                        certificate_subject=cert_info.subject,
+                        error_type=ValidationResult.INVALID_KEY_USAGE,
+                        error_message="CSCA certificate lacks certificate signing key usage",
+                        severity="critical",
+                    )
+                )
 
         # Key size validation
         if cert_info.key_size:
             min_key_size = 2048 if "RSA" in cert_info.signature_algorithm else 256
             if cert_info.key_size < min_key_size:
-                errors.append(ValidationError(
-                    certificate_subject=cert_info.subject,
-                    error_type=ValidationResult.INVALID,
-                    error_message=f"Key size {cert_info.key_size} below minimum {min_key_size}",
-                    severity="critical"
-                ))
+                errors.append(
+                    ValidationError(
+                        certificate_subject=cert_info.subject,
+                        error_type=ValidationResult.INVALID,
+                        error_message=f"Key size {cert_info.key_size} below minimum {min_key_size}",
+                        severity="critical",
+                    )
+                )
 
         return errors, warnings
 
     def _verify_signature_chain(
-        self,
-        cert_path: list[x509.Certificate]
+        self, cert_path: list[x509.Certificate]
     ) -> tuple[bool, list[ValidationError]]:
         """Verify the signature chain from leaf to root."""
 
@@ -445,13 +456,13 @@ class CertificateChainValidator:
                         current_cert.signature,
                         current_cert.tbs_certificate_bytes,
                         padding.PKCS1v15(),
-                        current_cert.signature_hash_algorithm
+                        current_cert.signature_hash_algorithm,
                     )
                 elif isinstance(issuer_public_key, ec.EllipticCurvePublicKey):
                     issuer_public_key.verify(
                         current_cert.signature,
                         current_cert.tbs_certificate_bytes,
-                        ec.ECDSA(current_cert.signature_hash_algorithm)
+                        ec.ECDSA(current_cert.signature_hash_algorithm),
                     )
                 else:
                     _raise_unsupported_key_type(type(issuer_public_key))
@@ -463,40 +474,45 @@ class CertificateChainValidator:
 
             except InvalidSignature:
                 all_signatures_valid = False
-                errors.append(ValidationError(
-                    certificate_subject=self._get_subject_name(current_cert),
-                    error_type=ValidationResult.INVALID_SIGNATURE,
-                    error_message=(
-                        f"Invalid signature from issuer {self._get_subject_name(issuer_cert)}"
-                    ),
-                    severity="critical"
-                ))
+                errors.append(
+                    ValidationError(
+                        certificate_subject=self._get_subject_name(current_cert),
+                        error_type=ValidationResult.INVALID_SIGNATURE,
+                        error_message=(
+                            f"Invalid signature from issuer {self._get_subject_name(issuer_cert)}"
+                        ),
+                        severity="critical",
+                    )
+                )
             except (ValueError, AttributeError) as e:
                 all_signatures_valid = False
-                errors.append(ValidationError(
-                    certificate_subject=self._get_subject_name(current_cert),
-                    error_type=ValidationResult.UNKNOWN_ERROR,
-                    error_message=f"Signature verification failed: {e}",
-                    severity="critical"
-                ))
+                errors.append(
+                    ValidationError(
+                        certificate_subject=self._get_subject_name(current_cert),
+                        error_type=ValidationResult.UNKNOWN_ERROR,
+                        error_message=f"Signature verification failed: {e}",
+                        severity="critical",
+                    )
+                )
 
         return all_signatures_valid, errors
 
     def _validate_trust_anchor(
-        self,
-        cert_path: list[x509.Certificate]
+        self, cert_path: list[x509.Certificate]
     ) -> tuple[x509.Certificate | None, list[ValidationError]]:
         """Validate trust anchor (root certificate)."""
 
         errors = []
 
         if not cert_path:
-            errors.append(ValidationError(
-                certificate_subject="Unknown",
-                error_type=ValidationResult.UNTRUSTED,
-                error_message="Empty certificate path",
-                severity="critical"
-            ))
+            errors.append(
+                ValidationError(
+                    certificate_subject="Unknown",
+                    error_type=ValidationResult.UNTRUSTED,
+                    error_message="Empty certificate path",
+                    severity="critical",
+                )
+            )
             return None, errors
 
         root_cert = cert_path[-1]
@@ -504,12 +520,14 @@ class CertificateChainValidator:
 
         # Check if root certificate is in our trust store
         if root_key not in self._csca_certificates:
-            errors.append(ValidationError(
-                certificate_subject=self._get_subject_name(root_cert),
-                error_type=ValidationResult.UNTRUSTED,
-                error_message="Root certificate not found in trust store",
-                severity="critical"
-            ))
+            errors.append(
+                ValidationError(
+                    certificate_subject=self._get_subject_name(root_cert),
+                    error_type=ValidationResult.UNTRUSTED,
+                    error_message="Root certificate not found in trust store",
+                    severity="critical",
+                )
+            )
             return None, errors
 
         trusted_cert = self._csca_certificates[root_key]
@@ -522,36 +540,39 @@ class CertificateChainValidator:
                     root_cert.signature,
                     root_cert.tbs_certificate_bytes,
                     padding.PKCS1v15(),
-                    root_cert.signature_hash_algorithm
+                    root_cert.signature_hash_algorithm,
                 )
             elif isinstance(root_public_key, ec.EllipticCurvePublicKey):
                 root_public_key.verify(
                     root_cert.signature,
                     root_cert.tbs_certificate_bytes,
-                    ec.ECDSA(root_cert.signature_hash_algorithm)
+                    ec.ECDSA(root_cert.signature_hash_algorithm),
                 )
         except InvalidSignature:
-            errors.append(ValidationError(
-                certificate_subject=self._get_subject_name(root_cert),
-                error_type=ValidationResult.INVALID_SIGNATURE,
-                error_message="Root certificate self-signature verification failed",
-                severity="critical"
-            ))
+            errors.append(
+                ValidationError(
+                    certificate_subject=self._get_subject_name(root_cert),
+                    error_type=ValidationResult.INVALID_SIGNATURE,
+                    error_message="Root certificate self-signature verification failed",
+                    severity="critical",
+                )
+            )
             return None, errors
         except (ValueError, AttributeError) as e:
-            errors.append(ValidationError(
-                certificate_subject=self._get_subject_name(root_cert),
-                error_type=ValidationResult.UNKNOWN_ERROR,
-                error_message=f"Root certificate validation failed: {e}",
-                severity="critical"
-            ))
+            errors.append(
+                ValidationError(
+                    certificate_subject=self._get_subject_name(root_cert),
+                    error_type=ValidationResult.UNKNOWN_ERROR,
+                    error_message=f"Root certificate validation failed: {e}",
+                    severity="critical",
+                )
+            )
             return None, errors
 
         return trusted_cert, errors
 
     def _validate_icao_requirements(
-        self,
-        validation_path: list[CertificateInfo]
+        self, validation_path: list[CertificateInfo]
     ) -> list[ValidationError]:
         """Validate ICAO-specific requirements."""
 
@@ -568,20 +589,24 @@ class CertificateChainValidator:
                 csca_cert = cert_info
 
         if not ds_cert:
-            errors.append(ValidationError(
-                certificate_subject="Chain",
-                error_type=ValidationResult.INVALID,
-                error_message="No Document Signer certificate found in chain",
-                severity="critical"
-            ))
+            errors.append(
+                ValidationError(
+                    certificate_subject="Chain",
+                    error_type=ValidationResult.INVALID,
+                    error_message="No Document Signer certificate found in chain",
+                    severity="critical",
+                )
+            )
 
         if not csca_cert:
-            errors.append(ValidationError(
-                certificate_subject="Chain",
-                error_type=ValidationResult.UNTRUSTED,
-                error_message="No CSCA certificate found in chain",
-                severity="critical"
-            ))
+            errors.append(
+                ValidationError(
+                    certificate_subject="Chain",
+                    error_type=ValidationResult.UNTRUSTED,
+                    error_message="No CSCA certificate found in chain",
+                    severity="critical",
+                )
+            )
 
         # Validate certificate purposes
         if ds_cert and "code_signing" not in ds_cert.extended_key_usage:
@@ -591,9 +616,7 @@ class CertificateChainValidator:
         return errors
 
     def _extract_certificate_info(
-        self,
-        cert: x509.Certificate,
-        is_end_entity: bool = False
+        self, cert: x509.Certificate, is_end_entity: bool = False
     ) -> CertificateInfo:
         """Extract detailed information from a certificate."""
 
@@ -623,7 +646,7 @@ class CertificateChainValidator:
             key_usage=key_usage,
             extended_key_usage=ext_key_usage,
             is_ca=is_ca,
-            path_length=path_length
+            path_length=path_length,
         )
 
     def _extract_key_usage(self, cert: x509.Certificate) -> list[str]:
@@ -664,9 +687,7 @@ class CertificateChainValidator:
         is_ca = False
         path_length = None
         try:
-            bc_ext = cert.extensions.get_extension_for_oid(
-                x509.oid.ExtensionOID.BASIC_CONSTRAINTS
-            )
+            bc_ext = cert.extensions.get_extension_for_oid(x509.oid.ExtensionOID.BASIC_CONSTRAINTS)
             bc = bc_ext.value
             is_ca = bc.ca
             path_length = bc.path_length
@@ -687,9 +708,7 @@ class CertificateChainValidator:
         return None
 
     def _determine_certificate_type(
-        self,
-        cert: x509.Certificate,
-        is_end_entity: bool
+        self, cert: x509.Certificate, is_end_entity: bool
     ) -> CertificateType:
         """Determine the type of certificate based on its characteristics."""
 
@@ -715,18 +734,13 @@ class CertificateChainValidator:
         return CertificateType.UNKNOWN
 
     def _is_issuer(
-        self,
-        potential_issuer: x509.Certificate,
-        subject_cert: x509.Certificate
+        self, potential_issuer: x509.Certificate, subject_cert: x509.Certificate
     ) -> bool:
         """Check if potential_issuer is the issuer of subject_cert."""
 
         # Compare issuer name of subject with subject name of potential issuer
         try:
-            return (
-                subject_cert.issuer.rfc4514_string() ==
-                potential_issuer.subject.rfc4514_string()
-            )
+            return subject_cert.issuer.rfc4514_string() == potential_issuer.subject.rfc4514_string()
         except (ValueError, AttributeError):
             return False
 
@@ -759,9 +773,7 @@ class CertificateChainValidator:
             return "Unknown Issuer"
 
     def _generate_cache_key(
-        self,
-        end_entity: x509.Certificate,
-        intermediates: list[x509.Certificate]
+        self, end_entity: x509.Certificate, intermediates: list[x509.Certificate]
     ) -> str:
         """Generate cache key for validation result."""
 
@@ -785,7 +797,7 @@ class CertificateChainValidator:
 def validate_passport_certificate_chain(
     document_signer_cert: x509.Certificate,
     intermediate_certs: list[x509.Certificate] | None = None,
-    csca_certs: list[x509.Certificate] | None = None
+    csca_certs: list[x509.Certificate] | None = None,
 ) -> ChainValidationResult:
     """Validate passport certificate chain with default validator."""
 
@@ -795,14 +807,11 @@ def validate_passport_certificate_chain(
     if csca_certs:
         validator.load_csca_certificates(csca_certs)
 
-    return validator.validate_certificate_chain(
-        document_signer_cert,
-        intermediate_certs or []
-    )
+    return validator.validate_certificate_chain(document_signer_cert, intermediate_certs or [])
 
 
 def create_passport_validator_with_trust_store(
-    csca_certificates: list[x509.Certificate]
+    csca_certificates: list[x509.Certificate],
 ) -> CertificateChainValidator:
     """Create a certificate validator with pre-loaded CSCA certificates."""
 
