@@ -1,5 +1,3 @@
-# coding: utf-8
-from __future__ import absolute_import, division, print_function, unicode_literals
 
 import os
 import sys
@@ -100,13 +98,12 @@ def _import_from(mod, path, mod_dir=None):
             mod_info = imp.find_module(mod_dir, [path])
             return imp.load_module(mod, *mod_info)
 
-        else:
-            package = mod.split(".", 1)[0]
-            package_dir = full_mod.split(".", 1)[0]
-            package_path = os.path.join(path, package_dir)
-            CUSTOM_FINDER.add_module(package, package_path)
+        package = mod.split(".", 1)[0]
+        package_dir = full_mod.split(".", 1)[0]
+        package_path = os.path.join(path, package_dir)
+        CUSTOM_FINDER.add_module(package, package_path)
 
-            return importlib.import_module(mod)
+        return importlib.import_module(mod)
 
     except ImportError:
         return None

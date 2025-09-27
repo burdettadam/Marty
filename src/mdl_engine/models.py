@@ -1,9 +1,8 @@
 import datetime
 import enum
 
-from sqlalchemy import JSON, Column, DateTime
+from sqlalchemy import JSON, Column, DateTime, Integer, String
 from sqlalchemy import Enum as SAEnum
-from sqlalchemy import Integer, String
 
 # Removed ForeignKey and relationship as they are unused for now
 from src.shared.database import Base

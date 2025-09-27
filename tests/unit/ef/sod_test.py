@@ -1,4 +1,3 @@
-import os
 import sys
 from pathlib import Path
 
@@ -9,8 +8,7 @@ project_root = Path(__file__).resolve().parents[3]
 sys.path.append(str(project_root))
 
 # Import from Marty's codebase
-from src.marty_common.models.asn1_structures import SOD, DataGroupHash, LDSSecurityObject
-from src.marty_common.models.passport import DataGroupType
+from src.marty_common.models.asn1_structures import SOD, LDSSecurityObject
 
 # Directory containing test certificates
 CERTS_DIR = Path(__file__).resolve().parent.parent / "pki" / "certs"
@@ -57,7 +55,7 @@ def test_sod_basic():
             assert certificate["tbs_certificate"]["issuer"].native is not None
 
     except Exception as e:
-        pytest.skip(f"SOD test skipped due to: {str(e)}. The SOD implementation may be incomplete.")
+        pytest.skip(f"SOD test skipped due to: {e!s}. The SOD implementation may be incomplete.")
 
 
 def test_signed_object():

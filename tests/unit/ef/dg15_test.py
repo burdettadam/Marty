@@ -46,7 +46,7 @@ def test_dg15_parsing():
     except Exception as e:
         # If the parsing fails, your implementation might be incomplete
         pytest.skip(
-            f"DG15 parsing test skipped due to: {str(e)}. The implementation may be incomplete."
+            f"DG15 parsing test skipped due to: {e!s}. The implementation may be incomplete."
         )
 
 

@@ -3,8 +3,8 @@
 import socket
 import threading
 import time
+from collections.abc import Iterator
 from contextlib import closing
-from typing import Iterator
 
 import pytest
 import uvicorn

@@ -15,7 +15,6 @@ Usage:
     python tests/ui/setup_tests.py
 """
 
-import os
 import subprocess
 import sys
 from pathlib import Path
@@ -52,10 +51,9 @@ def check_python_version():
     if version.major == 3 and version.minor >= 8:
         print(f"   ✅ Python {version.major}.{version.minor}.{version.micro} is compatible")
         return True
-    else:
-        print(f"   ❌ Python {version.major}.{version.minor}.{version.micro} is too old")
-        print("   Please upgrade to Python 3.8 or higher")
-        return False
+    print(f"   ❌ Python {version.major}.{version.minor}.{version.micro} is too old")
+    print("   Please upgrade to Python 3.8 or higher")
+    return False
 
 
 def install_core_dependencies():
@@ -188,7 +186,7 @@ def create_vs_code_settings():
         try:
             import json
 
-            with open(settings_path, "r") as f:
+            with open(settings_path) as f:
                 existing_settings = json.load(f)
         except Exception:
             pass

@@ -14,6 +14,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libssl-dev \
     libgcrypt20-dev \
     libpcsclite-dev \
+    protobuf-compiler \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 

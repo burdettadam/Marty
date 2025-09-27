@@ -7,15 +7,11 @@ and PACE (Password Authenticated Connection Establishment) protocols.
 from __future__ import annotations
 
 import hashlib
-import hmac
 import logging
 from dataclasses import dataclass
 from typing import Optional
 
-from cryptography.hazmat.primitives import hashes, serialization
-from cryptography.hazmat.primitives.asymmetric import rsa
 from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
-from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
 
 logger = logging.getLogger(__name__)
 

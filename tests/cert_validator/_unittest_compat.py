@@ -1,5 +1,3 @@
-# coding: utf-8
-from __future__ import absolute_import, division, print_function, unicode_literals
 
 import re
 import sys
@@ -115,7 +113,7 @@ def _assert_raises_regex(
         callable_obj(*args, **kwargs)
 
 
-class _AssertRaisesContext(object):
+class _AssertRaisesContext:
     def __init__(self, expected, test_case, expected_regexp=None):
         self.expected = expected
         self.failureException = test_case.failureException
@@ -141,6 +139,6 @@ class _AssertRaisesContext(object):
         expected_regexp = self.expected_regexp
         if not expected_regexp.search(str(exc_value)):
             raise self.failureException(
-                f'"{expected_regexp.pattern}" does not match "{str(exc_value)}"'
+                f'"{expected_regexp.pattern}" does not match "{exc_value!s}"'
             )
         return True

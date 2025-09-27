@@ -5,8 +5,8 @@ Pytest configuration with improved service handling for E2E tests.
 import socket
 import threading
 import time
+from collections.abc import Iterator
 from contextlib import closing
-from typing import Iterator
 
 import pytest
 import uvicorn

@@ -9,9 +9,13 @@ from google.protobuf import descriptor_pool as _descriptor_pool
 from google.protobuf import runtime_version as _runtime_version
 from google.protobuf import symbol_database as _symbol_database
 from google.protobuf.internal import builder as _builder
-
 _runtime_version.ValidateProtobufRuntimeVersion(
-    _runtime_version.Domain.PUBLIC, 6, 31, 1, "", "common_services.proto"
+    _runtime_version.Domain.PUBLIC,
+    6,
+    31,
+    1,
+    '',
+    'common_services.proto'
 )
 # @@protoc_insertion_point(imports)
 
@@ -20,23 +24,24 @@ _sym_db = _symbol_database.Default()
 
 from google.protobuf import timestamp_pb2 as google_dot_protobuf_dot_timestamp__pb2
 
-DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(
-    b'\n\x15\x63ommon_services.proto\x12\x0f\x63ommon_services\x1a\x1fgoogle/protobuf/timestamp.proto"\xf0\x01\n\x08LogEntry\x12-\n\ttimestamp\x18\x01 \x01(\x0b\x32\x1a.google.protobuf.Timestamp\x12\r\n\x05level\x18\x02 \x01(\t\x12\x14\n\x0cservice_name\x18\x03 \x01(\t\x12\x13\n\x0blogger_name\x18\x04 \x01(\t\x12\x0f\n\x07message\x18\x05 \x01(\t\x12\x39\n\x08metadata\x18\x06 \x03(\x0b\x32\'.common_services.LogEntry.MetadataEntry\x1a/\n\rMetadataEntry\x12\x0b\n\x03key\x18\x01 \x01(\t\x12\r\n\x05value\x18\x02 \x01(\t:\x02\x38\x01"\x13\n\x11StreamLogsRequest2`\n\x0fLoggingStreamer\x12M\n\nStreamLogs\x12".common_services.StreamLogsRequest\x1a\x19.common_services.LogEntry0\x01\x62\x06proto3'
-)
+
+DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n\x15\x63ommon_services.proto\x12\x0f\x63ommon_services\x1a\x1fgoogle/protobuf/timestamp.proto\"\'\n\x06Status\x12\x0c\n\x04\x63ode\x18\x01 \x01(\x05\x12\x0f\n\x07message\x18\x02 \x01(\t\"\xf0\x01\n\x08LogEntry\x12-\n\ttimestamp\x18\x01 \x01(\x0b\x32\x1a.google.protobuf.Timestamp\x12\r\n\x05level\x18\x02 \x01(\t\x12\x14\n\x0cservice_name\x18\x03 \x01(\t\x12\x13\n\x0blogger_name\x18\x04 \x01(\t\x12\x0f\n\x07message\x18\x05 \x01(\t\x12\x39\n\x08metadata\x18\x06 \x03(\x0b\x32\'.common_services.LogEntry.MetadataEntry\x1a/\n\rMetadataEntry\x12\x0b\n\x03key\x18\x01 \x01(\t\x12\r\n\x05value\x18\x02 \x01(\t:\x02\x38\x01\"\x13\n\x11StreamLogsRequest2`\n\x0fLoggingStreamer\x12M\n\nStreamLogs\x12\".common_services.StreamLogsRequest\x1a\x19.common_services.LogEntry0\x01\x62\x06proto3')
 
 _globals = globals()
 _builder.BuildMessageAndEnumDescriptors(DESCRIPTOR, _globals)
-_builder.BuildTopDescriptorsAndMessages(DESCRIPTOR, "common_services_pb2", _globals)
+_builder.BuildTopDescriptorsAndMessages(DESCRIPTOR, 'common_services_pb2', _globals)
 if not _descriptor._USE_C_DESCRIPTORS:
-    DESCRIPTOR._loaded_options = None
-    _globals["_LOGENTRY_METADATAENTRY"]._loaded_options = None
-    _globals["_LOGENTRY_METADATAENTRY"]._serialized_options = b"8\001"
-    _globals["_LOGENTRY"]._serialized_start = 76
-    _globals["_LOGENTRY"]._serialized_end = 316
-    _globals["_LOGENTRY_METADATAENTRY"]._serialized_start = 269
-    _globals["_LOGENTRY_METADATAENTRY"]._serialized_end = 316
-    _globals["_STREAMLOGSREQUEST"]._serialized_start = 318
-    _globals["_STREAMLOGSREQUEST"]._serialized_end = 337
-    _globals["_LOGGINGSTREAMER"]._serialized_start = 339
-    _globals["_LOGGINGSTREAMER"]._serialized_end = 435
+  DESCRIPTOR._loaded_options = None
+  _globals['_LOGENTRY_METADATAENTRY']._loaded_options = None
+  _globals['_LOGENTRY_METADATAENTRY']._serialized_options = b'8\001'
+  _globals['_STATUS']._serialized_start=75
+  _globals['_STATUS']._serialized_end=114
+  _globals['_LOGENTRY']._serialized_start=117
+  _globals['_LOGENTRY']._serialized_end=357
+  _globals['_LOGENTRY_METADATAENTRY']._serialized_start=310
+  _globals['_LOGENTRY_METADATAENTRY']._serialized_end=357
+  _globals['_STREAMLOGSREQUEST']._serialized_start=359
+  _globals['_STREAMLOGSREQUEST']._serialized_end=378
+  _globals['_LOGGINGSTREAMER']._serialized_start=380
+  _globals['_LOGGINGSTREAMER']._serialized_end=476
 # @@protoc_insertion_point(module_scope)

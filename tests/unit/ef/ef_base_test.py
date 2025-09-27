@@ -19,7 +19,7 @@ def test_ef_base():
     with pytest.raises(
         ValueError, match="Insufficient data - 1 bytes requested but only 0 available"
     ):
-        ElementaryFile.load(bytes())
+        ElementaryFile.load(b"")
     with pytest.raises(
         ValueError, match="Insufficient data - 1 bytes requested but only 0 available"
     ):

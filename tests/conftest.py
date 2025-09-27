@@ -24,6 +24,7 @@ def pytest_configure(config):
     config.addinivalue_line("markers", "mrz: mark test as MRZ related")
     config.addinivalue_line("markers", "ocr: mark test as OCR related")
     config.addinivalue_line("markers", "pdf: mark test as PDF related")
+    config.addinivalue_line("markers", "document_processing: mark test as document processing service related")
 
 
 # Collection settings
@@ -42,6 +43,10 @@ def pytest_collection_modifyitems(config, items):
         if "docker" in str(item.fspath):
             item.add_marker(pytest.mark.docker)
 
+        # Add document processing marker
+        if "document_processing" in str(item.fspath):
+            item.add_marker(pytest.mark.document_processing)
+
         # Add specific markers based on file names
         if "mrz" in item.name.lower():
             item.add_marker(pytest.mark.mrz)
@@ -55,7 +60,6 @@ def pytest_collection_modifyitems(config, items):
 @pytest.fixture(scope="session", autouse=True)
 def test_environment_setup():
     """Set up test environment."""
-    import os
 
     # Set test environment variables
     original_env = os.environ.copy()
@@ -106,9 +110,9 @@ def pytest_report_teststatus(report, config):
     if report.when == "call":
         if report.outcome == "passed":
             return report.outcome, "P", f"PASSED {report.nodeid}"
-        elif report.outcome == "failed":
+        if report.outcome == "failed":
             return report.outcome, "F", f"FAILED {report.nodeid}"
-        elif report.outcome == "skipped":
+        if report.outcome == "skipped":
             return report.outcome, "S", f"SKIPPED {report.nodeid}"
     return None
 
@@ -162,7 +166,6 @@ class MockPassportEngineStub:
 
     def ProcessPassport(self, request):
         """Mock ProcessPassport method."""
-        from unittest.mock import Mock
 
         mock_response = Mock()
         mock_response.status = "SUCCESS"
@@ -175,7 +178,6 @@ class MockCscaServiceStub:
 
     def CreateCertificate(self, request):
         """Mock CreateCertificate method."""
-        from unittest.mock import Mock
 
         mock_response = Mock()
         mock_response.status = "SUCCESS"
@@ -184,7 +186,6 @@ class MockCscaServiceStub:
 
     def CheckExpiringCertificates(self, request):
         """Mock CheckExpiringCertificates method."""
-        from unittest.mock import Mock
 
         mock_response = Mock()
         mock_response.certificates = []
@@ -225,7 +226,6 @@ def mock_passport():
 @pytest.fixture
 def temp_directory():
     """Provide a temporary directory for test files."""
-    import tempfile
 
     with tempfile.TemporaryDirectory() as temp_dir:
         yield Path(temp_dir)
@@ -234,7 +234,6 @@ def temp_directory():
 @pytest.fixture
 def mock_grpc_channel():
     """Provide a mock gRPC channel."""
-    from unittest.mock import Mock
 
     mock_channel = Mock()
     mock_channel.__enter__ = Mock(return_value=mock_channel)
@@ -245,7 +244,6 @@ def mock_grpc_channel():
 @pytest.fixture
 def mock_grpc_stub():
     """Provide a mock gRPC stub."""
-    from unittest.mock import Mock
 
     return Mock()
 
@@ -281,7 +279,6 @@ def test_config():
 @pytest.fixture
 def mock_service_response():
     """Provide mock service response."""
-    from unittest.mock import Mock
 
     mock_response = Mock()
     mock_response.status = "SUCCESS"
@@ -400,7 +397,6 @@ class EnhancedMockPassportEngineStub:
 
     def ProcessPassport(self, request):
         """Mock ProcessPassport method with real passport data."""
-        from unittest.mock import Mock
 
         mock_response = Mock()
         mock_response.status = "SUCCESS"
@@ -425,7 +421,6 @@ class EnhancedMockCscaServiceStub:
 
     def CreateCertificate(self, request):
         """Mock CreateCertificate method."""
-        from unittest.mock import Mock
 
         mock_response = Mock()
         mock_response.status = "SUCCESS"
@@ -436,7 +431,6 @@ class EnhancedMockCscaServiceStub:
 
     def CheckExpiringCertificates(self, request):
         """Mock CheckExpiringCertificates method with real lifecycle data."""
-        from unittest.mock import Mock
 
         mock_response = Mock()
 

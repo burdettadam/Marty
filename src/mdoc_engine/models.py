@@ -1,9 +1,8 @@
 import datetime
 import enum
 
-from sqlalchemy import JSON, Column, DateTime  # type: ignore
+from sqlalchemy import JSON, Column, DateTime, Integer, String  # type: ignore  # type: ignore
 from sqlalchemy import Enum as SAEnum
-from sqlalchemy import Integer, String  # type: ignore
 
 from src.shared.database import Base
 

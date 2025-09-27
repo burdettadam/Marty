@@ -5,7 +5,6 @@ from typing import Optional
 
 # Import the generated gRPC modules
 from src.proto import (
-    common_services_pb2_grpc,
     inspection_system_pb2,
     inspection_system_pb2_grpc,
     trust_anchor_pb2,

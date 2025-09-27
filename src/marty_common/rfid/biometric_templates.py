@@ -110,13 +110,12 @@ class BiometricTemplateProcessor:
         try:
             if biometric_type == BiometricType.FACIAL_IMAGE:
                 return self.parse_facial_image_template(data)
-            elif biometric_type == BiometricType.FINGERPRINT:
+            if biometric_type == BiometricType.FINGERPRINT:
                 return self.parse_fingerprint_template(data)
-            elif biometric_type == BiometricType.IRIS:
+            if biometric_type == BiometricType.IRIS:
                 return self.parse_iris_template(data)
-            else:
-                msg = f"Unsupported biometric type: {biometric_type}"
-                raise ValueError(msg)
+            msg = f"Unsupported biometric type: {biometric_type}"
+            raise ValueError(msg)
 
         except Exception as e:
             self.logger.error("Failed to parse biometric template: %s", str(e))

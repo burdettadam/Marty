@@ -12,9 +12,11 @@ from typing import Any, Optional
 
 import grpc
 
-from src.proto import document_signer_pb2  # type: ignore
-from src.proto import mdoc_engine_pb2  # type: ignore
-from src.proto import mdoc_engine_pb2_grpc  # type: ignore
+from src.proto import (
+    document_signer_pb2,  # type: ignore
+    mdoc_engine_pb2,  # type: ignore
+    mdoc_engine_pb2_grpc,  # type: ignore
+)
 
 try:
     import qrcode  # type: ignore
@@ -195,9 +197,7 @@ class MDocEngineServicer(mdoc_engine_pb2_grpc.MDocEngineServicer):  # type: igno
         # Ensure we always produce a non-empty deterministic signature if upstream mock
         # didn't supply one so that verification tests that only assert is_valid pass.
         if not raw_signature:
-            deterministic_payload = f"{mdoc.mdoc_id}:{mdoc.document_type}:{signature_date}".encode(
-                "utf-8"
-            )
+            deterministic_payload = f"{mdoc.mdoc_id}:{mdoc.document_type}:{signature_date}".encode()
             raw_signature = deterministic_payload
         sig_kwargs: dict[str, Any] = {
             "signature_date": signature_date,

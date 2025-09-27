@@ -15,7 +15,6 @@ from sqlalchemy.orm.attributes import flag_modified
 # Assuming models.py defines MDLStatus correctly with a DRAFT member
 from src.mdl_engine.models import MDLStatus, MobileDrivingLicense
 from src.proto import (
-    common_services_pb2_grpc,
     document_signer_pb2,
     document_signer_pb2_grpc,
     mdl_engine_pb2,

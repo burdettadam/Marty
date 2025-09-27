@@ -8,13 +8,7 @@ from contextlib import contextmanager
 import grpc
 
 from src.proto import (
-    csca_service_pb2,
-    csca_service_pb2_grpc,
-    document_signer_pb2,
-    document_signer_pb2_grpc,
-    inspection_system_pb2,
     inspection_system_pb2_grpc,
-    passport_engine_pb2,
     passport_engine_pb2_grpc,
 )
 

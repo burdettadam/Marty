@@ -100,7 +100,7 @@ setup-openxpki:
 	@echo "Access the OpenXPKI web interface at: https://localhost:8443/openxpki/"
 	@echo "Default credentials: pkiadmin / secret"
 
-.PHONY: setup clean test lint format proto compile-protos clean-protos build run docker-build docker-run test-unit test-integration test-integration-docker test-e2e test-e2e-docker test-cert-validator test-unit-orchestrated test-mock start-integration-services start-e2e-services stop-orchestrated-services test-e2e-ui playwright-install generate-test-data help run-ui run-service-ui run-services-dev check-services stop-services dev-environment demo-environment dev-minimal dev-full dev-status dev-logs dev-clean dev-restart wait-for-services show-endpoints test-performance test-coverage test-security test-setup setup-openxpki
+.PHONY: setup clean test lint format proto compile-protos clean-protos build run docker-build docker-run test-unit test-integration test-integration-docker test-e2e test-e2e-docker test-cert-validator test-unit-orchestrated test-mock start-integration-services start-e2e-services stop-orchestrated-services test-integration-orchestrated test-e2e-orchestrated test-orchestrator-validation test-orchestrator-base test-e2e-ui playwright-install generate-test-data help run-ui run-service-ui run-services-dev check-services stop-services dev-environment demo-environment dev-minimal dev-full dev-status dev-logs dev-clean dev-restart wait-for-services show-endpoints test-performance test-coverage test-security test-setup setup-openxpki test-doc-processing test-doc-processing-unit test-doc-processing-integration test-doc-processing-e2e test-doc-processing-docker test-doc-processing-api test-doc-processing-health doc-processing-start doc-processing-stop doc-processing-status doc-processing-logs doc-processing-clean
 
 PYTHON := uv run python
 UV := uv
@@ -144,9 +144,9 @@ test-integration:
 	@echo "Running integration tests..."
 	@$(UV) run pytest tests/integration/ -v --maxfail=3 --disable-warnings
 
-# Run integration tests with Docker services (using TestOrchestrator)
+# Run integration tests with Docker services (using TestEnvironmentManager)
 test-integration-docker:
-	@echo "Running integration tests with TestOrchestrator..."
+	@echo "Running integration tests with TestEnvironmentManager..."
 	@$(UV) run python -m tests.test_orchestrator integration tests/integration/
 
 # Run end-to-end tests (with full service stack)
@@ -154,9 +154,9 @@ test-e2e: ## Run end-to-end tests
 	@echo "Running end-to-end tests..."
 	@$(UV) run pytest tests/e2e/ -v --maxfail=3 --disable-warnings
 
-# Run E2E tests with Docker services (using TestOrchestrator)
+# Run E2E tests with Docker services (using TestEnvironmentManager)
 test-e2e-docker:
-	@echo "Running E2E tests with TestOrchestrator..."
+	@echo "Running E2E tests with TestEnvironmentManager..."
 	@$(UV) run python -m tests.test_orchestrator e2e tests/e2e/
 
 # Run certificate validator tests (no services needed)
@@ -165,17 +165,17 @@ test-cert-validator:
 	@$(UV) run pytest tests/cert_validator/ -v
 
 # =============================================================================
-# TEST ORCHESTRATOR COMMANDS (Recommended)
+# TEST ENVIRONMENT MANAGER COMMANDS (Recommended)
 # =============================================================================
 
 # Run unit tests (no services)
 test-unit-orchestrated:
-	@echo "Running unit tests with TestOrchestrator..."
+	@echo "Running unit tests with TestEnvironmentManager..."
 	@$(UV) run python -m tests.test_orchestrator unit tests/unit/
 
 # Run mock tests
 test-mock:
-	@echo "Running mock tests with TestOrchestrator..."
+	@echo "Running mock tests with TestEnvironmentManager..."
 	@$(UV) run python -m tests.test_orchestrator mock tests/
 
 # Start services for development (integration mode)
@@ -204,12 +204,12 @@ test-e2e-orchestrated:
 	@$(UV) run pytest tests/integration/docker/e2e/test_passport_orchestrated_clean.py::PassportFlowE2ETest::test_passport_flow_with_injected_data -v
 
 test-orchestrator-validation:
-	@echo "Validating TestOrchestrator functionality..."
-	@cd tests && $(UV) run python test_orchestrator.py integration tests/
+	@echo "Validating TestEnvironmentManager functionality..."
+	@$(UV) run python -m tests.test_orchestrator integration tests/integration/
 
-# Test the orchestrator base class specifically
-test-orchestrator-base:
-	@echo "Testing orchestrator base class functionality..."
+# Test the environment manager base class specifically
+test-environment-manager-base:
+	@echo "Testing environment manager base class functionality..."
 	@$(UV) run pytest tests/integration/docker/e2e/test_passport_orchestrated_clean.py -v
 
 # Legacy integration test (with conflicts - deprecated)
@@ -597,6 +597,111 @@ mdl_mdoc_integration_tests: proto
 	exit $$RESULT
 
 # =============================================================================
+# =============================================================================
+# DOCUMENT PROCESSING API TESTS
+# =============================================================================
+
+# Document Processing service port
+DOC_PROCESSING_PORT := 8091
+DOC_PROCESSING_BASE_URL := http://localhost:$(DOC_PROCESSING_PORT)
+
+# Run all document processing tests
+test-doc-processing: test-doc-processing-unit test-doc-processing-integration test-doc-processing-e2e
+	@echo "✅ All document processing tests completed!"
+
+# Run unit tests for document processing service
+test-doc-processing-unit:
+	@echo "🧪 Running document processing unit tests..."
+	$(UV) run pytest tests/document_processing/unit/ -v --tb=short
+
+# Run integration tests for document processing API endpoints
+test-doc-processing-integration: test-doc-processing-api test-doc-processing-health
+	@echo "✅ Document processing integration tests completed!"
+
+# Run end-to-end tests for document processing workflows
+test-doc-processing-e2e:
+	@echo "🎬 Running document processing E2E tests..."
+	$(UV) run python tests/document_processing/e2e/test_e2e_workflow.py
+
+# Test document processing API endpoints with live service
+test-doc-processing-api:
+	@echo "🔍 Testing document processing API endpoints..."
+	@echo "Checking if service is running..."
+	@curl -s -f $(DOC_PROCESSING_BASE_URL)/api/ping > /dev/null || (echo "❌ Service not running. Start with 'make doc-processing-start'" && exit 1)
+	@echo "✓ Service is responding"
+	@echo ""
+	@echo "Testing health endpoints..."
+	@curl -s $(DOC_PROCESSING_BASE_URL)/api/health | jq '.' > /dev/null && echo "✓ Health endpoint working" || echo "❌ Health endpoint failed"
+	@curl -s $(DOC_PROCESSING_BASE_URL)/api/ping | grep -q "OK" && echo "✓ Ping endpoint working" || echo "❌ Ping endpoint failed"
+	@curl -s $(DOC_PROCESSING_BASE_URL)/api/readyz | jq '.' > /dev/null && echo "✓ Readiness endpoint working" || echo "❌ Readiness endpoint failed"
+	@echo ""
+	@echo "Testing API documentation..."
+	@curl -s $(DOC_PROCESSING_BASE_URL)/docs > /dev/null && echo "✓ API docs available" || echo "❌ API docs failed"
+	@curl -s $(DOC_PROCESSING_BASE_URL)/openapi.json | jq '.' > /dev/null && echo "✓ OpenAPI spec available" || echo "❌ OpenAPI spec failed"
+
+# Test document processing health and status endpoints
+test-doc-processing-health:
+	@echo "💚 Testing document processing health endpoints..."
+	@echo "Service URL: $(DOC_PROCESSING_BASE_URL)"
+	@echo ""
+	@echo "=== Health Check Details ==="
+	@curl -s $(DOC_PROCESSING_BASE_URL)/api/health | jq '.' || echo "❌ Failed to get health details"
+	@echo ""
+	@echo "=== Service Info ==="
+	@curl -s $(DOC_PROCESSING_BASE_URL)/ | jq '.' || echo "❌ Failed to get service info"
+
+# Run document processing tests with Docker
+test-doc-processing-docker:
+	@echo "🐳 Running document processing tests with Docker..."
+	docker-compose -f src/document_processing/docker-compose.yml --profile test up --build doc-processing-test
+
+# Start document processing service for testing
+doc-processing-start:
+	@echo "🚀 Starting document processing service..."
+	cd src/document_processing && \
+		$(UV) run uvicorn app.main:app --host localhost --port $(DOC_PROCESSING_PORT) --reload &
+	@echo "Service PID: $$!"
+	@echo "Waiting for service to start..."
+	@sleep 3
+	@echo "Service should be available at: $(DOC_PROCESSING_BASE_URL)"
+	@echo "API Documentation: $(DOC_PROCESSING_BASE_URL)/docs"
+
+# Start document processing service in Docker
+doc-processing-start-docker:
+	@echo "🐳 Starting document processing service with Docker..."
+	@cd src/document_processing && docker-compose up --build -d doc-processing
+	@echo "Service started in Docker"
+	@echo "Service available at: $(DOC_PROCESSING_BASE_URL)"
+
+# Stop document processing service
+doc-processing-stop:
+	@echo "🛑 Stopping document processing service..."
+	@pkill -f "uvicorn app.main:app" || echo "No running uvicorn process found"
+	@cd src/document_processing && docker-compose down || echo "Docker services stopped"
+
+# Check document processing service status
+doc-processing-status:
+	@echo "📊 Document processing service status:"
+	@echo "Local service:"
+	@curl -s -f $(DOC_PROCESSING_BASE_URL)/api/ping && echo "  ✅ Service is running" || echo "  ❌ Service is not responding"
+	@echo "Docker service:"
+	@cd src/document_processing && docker-compose ps
+
+# View document processing service logs
+doc-processing-logs:
+	@echo "📋 Document processing service logs:"
+	@cd src/document_processing && docker-compose logs -f doc-processing
+
+# Clean document processing test artifacts
+doc-processing-clean:
+	@echo "🧹 Cleaning document processing test artifacts..."
+	@cd src/document_processing && find . -name "__pycache__" -type d -exec rm -rf {} +
+	@cd src/document_processing && find . -name "*.pyc" -delete
+	@cd src/document_processing && find . -name ".pytest_cache" -type d -exec rm -rf {} +
+	@cd src/document_processing && docker-compose down -v
+	@echo "✅ Document processing cleanup completed"
+
+# =============================================================================
 # HELP COMMAND
 # =============================================================================
 
@@ -624,7 +729,24 @@ help:
 	@echo "  clean              - Clean build artifacts"
 	@echo "  clean-protos       - Clean compiled protocol buffers"
 	@echo ""
-		@echo \"🧪 Testing:\"\n\t@echo \"  test               - Run all tests\"\n\t@echo \"  test-unit          - Run unit tests\"\n\t@echo \"  test-integration   - Run integration tests\"\n\t@echo \"  test-integration-docker - Run integration tests with Docker services\"\n\t@echo \"  test-e2e           - Run end-to-end tests (orchestrator)\"\n\t@echo \"  test-e2e-docker    - Run E2E tests with Docker services\"\n\t@echo \"  test-cert-validator - Run certificate validator tests\"
+	@echo "🧪 Testing:"
+	@echo "  test               - Run all tests"
+	@echo "  test-unit          - Run unit tests"
+	@echo "  test-integration   - Run integration tests"
+	@echo "  test-integration-docker - Run integration tests with Docker services"
+	@echo "  test-e2e           - Run end-to-end tests"
+	@echo "  test-e2e-docker    - Run E2E tests with Docker services"
+	@echo "  test-cert-validator - Run certificate validator tests"
+	@echo ""
+	@echo "🎯 TestEnvironmentManager Commands:"
+	@echo "  test-unit-orchestrated - Run unit tests with TestEnvironmentManager"
+	@echo "  test-integration-orchestrated - Run integration tests with orchestrated services"
+	@echo "  test-e2e-orchestrated - Run E2E tests with orchestrated services"
+	@echo "  test-orchestrator-validation - Validate TestEnvironmentManager functionality"
+	@echo "  test-environment-manager-base - Test environment manager base class"
+	@echo "  start-integration-services - Start services for integration testing"
+	@echo "  start-e2e-services - Start services for E2E testing"
+	@echo "  stop-orchestrated-services - Stop all orchestrated services"
 	@echo ""
 	@echo "🔐 Phase 2/3 Passport Verification Testing:"
 	@echo "  test-setup           - Install test dependencies"
@@ -669,6 +791,21 @@ help:
 	@echo ""
 	@echo "📊 Data:"
 	@echo "  generate-test-data - Generate test data"
+	@echo ""
+	@echo "📄 Document Processing API:"
+	@echo "  test-doc-processing      - Run all document processing tests"
+	@echo "  test-doc-processing-unit - Run document processing unit tests"
+	@echo "  test-doc-processing-integration - Run document processing integration tests"
+	@echo "  test-doc-processing-e2e  - Run document processing E2E tests"
+	@echo "  test-doc-processing-api  - Test API endpoints (requires running service)"
+	@echo "  test-doc-processing-health - Test health endpoints"
+	@echo "  test-doc-processing-docker - Run tests with Docker"
+	@echo "  doc-processing-start     - Start document processing service"
+	@echo "  doc-processing-start-docker - Start service with Docker"
+	@echo "  doc-processing-stop      - Stop document processing service"
+	@echo "  doc-processing-status    - Check service status"
+	@echo "  doc-processing-logs      - View service logs"
+	@echo "  doc-processing-clean     - Clean test artifacts"
 	@echo ""
 	@echo "🎯 Quick Start for Manual Testing:"
 	@echo "  make dev-environment    # Complete setup"

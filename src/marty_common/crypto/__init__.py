@@ -67,11 +67,10 @@ except ImportError:
 
                 # For other long signatures, accept if they look reasonable
                 return len(signature) >= 40 and len(data) > 0
-            else:
-                # Short signatures - use hash comparison for backward compatibility
-                # This maintains compatibility with existing simple test cases
-                expected_signature = hashlib.sha256(data + public_key).digest()
-                return signature == expected_signature
+            # Short signatures - use hash comparison for backward compatibility
+            # This maintains compatibility with existing simple test cases
+            expected_signature = hashlib.sha256(data + public_key).digest()
+            return signature == expected_signature
 
         except Exception:
             # If any processing fails, fallback to basic validation
@@ -86,9 +85,9 @@ __all__ = [
     "DataGroupHashComputer",
     "SODProcessor",
     "extract_sod_hashes",
+    "hash_password",
     "parse_sod",
     "verify_passport_data_groups",
-    "hash_password",
     "verify_password",
     "verify_signature",
 ]

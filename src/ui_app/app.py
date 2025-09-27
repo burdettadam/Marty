@@ -23,7 +23,7 @@ except ImportError:  # pragma: no cover - mdl proto optional in some deployments
 
 from .config import UiSettings, get_settings
 from .grpc_clients import GrpcClientFactory
-from .state import OperationLog, OperationRecord, operation_log
+from .state import OperationRecord, operation_log
 
 LOGGER = logging.getLogger(__name__)
 

@@ -171,7 +171,6 @@ class AndroidHCEInterface(NFCInterface):
 
     def disconnect(self) -> None:
         """Disconnect Android NFC."""
-        pass
 
 
 class iOSCoreNFCInterface(NFCInterface):
@@ -209,7 +208,6 @@ class iOSCoreNFCInterface(NFCInterface):
 
     def disconnect(self) -> None:
         """Disconnect iOS NFC."""
-        pass
 
 
 class NFCProtocolHandler:
@@ -227,15 +225,14 @@ class NFCProtocolHandler:
 
         if system == "android":
             return AndroidHCEInterface()
-        elif system == "darwin":  # iOS
+        if system == "darwin":  # iOS
             return iOSCoreNFCInterface()
-        else:
-            # Try nfcpy for desktop systems
-            try:
-                return self._get_nfcpy_interface()
-            except ImportError:
-                self.logger.warning("No NFC libraries available, using mock")
-                return MockNFCInterface()
+        # Try nfcpy for desktop systems
+        try:
+            return self._get_nfcpy_interface()
+        except ImportError:
+            self.logger.warning("No NFC libraries available, using mock")
+            return MockNFCInterface()
 
     def _get_nfcpy_interface(self) -> NFCInterface:
         """Get nfcpy-based interface for desktop systems."""

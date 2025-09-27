@@ -5,12 +5,10 @@ Standalone test script for the CSCA certificate lifecycle management.
 This script directly tests the CSCA service implementation without relying on proto imports.
 """
 
-import json
 import logging
 import os
 import sys
 import uuid
-from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 # Add project root to path
@@ -27,7 +25,6 @@ from src.services.csca import CscaService
 class MockContext:
     """Mock gRPC context."""
 
-    pass
 
 
 def test_certificate_lifecycle():

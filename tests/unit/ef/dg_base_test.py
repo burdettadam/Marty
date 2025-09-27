@@ -1,5 +1,4 @@
 import sys
-from enum import Enum
 from pathlib import Path
 
 import pytest
@@ -8,7 +7,6 @@ import pytest
 project_root = Path(__file__).resolve().parents[3]
 sys.path.append(str(project_root))
 
-from src.marty_common.models.asn1_structures import ElementaryFile
 
 # Import from Marty's codebase
 from src.marty_common.models.passport import DataGroup, DataGroupType

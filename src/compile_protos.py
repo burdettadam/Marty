@@ -83,13 +83,17 @@ def main() -> bool:
 
     logger.info("Compiling %d proto files...", len(proto_files))
 
+
     try:
+        import grpc_tools
+        grpc_tools_proto_path = str(Path(grpc_tools.__path__[0]) / "_proto")
 
         cmd = [
             sys.executable,
             "-m",
             "grpc_tools.protoc",
             f"--proto_path={PROTO_DIR}",
+            f"--proto_path={grpc_tools_proto_path}",
             f"--python_out={OUTPUT_DIR}",
             f"--grpc_python_out={OUTPUT_DIR}",
             *[str(proto_file) for proto_file in proto_files],

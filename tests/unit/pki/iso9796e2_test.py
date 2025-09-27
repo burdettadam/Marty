@@ -1,4 +1,3 @@
-import base64
 import os
 import sys
 from pathlib import Path
@@ -10,7 +9,6 @@ import pytest
 project_root = Path(__file__).resolve().parents[3]
 sys.path.append(str(project_root))
 
-from src.marty_common.models.asn1_structures import DataGroupHash
 
 # Import from Marty's codebase
 from src.marty_common.models.authentication import ActiveAuthenticationAlgorithm

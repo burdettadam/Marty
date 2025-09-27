@@ -82,7 +82,7 @@ class RFIDReaderService(rfid_service_pb2_grpc.RFIDServiceServicer):
         except Exception as e:
             self.logger.exception("Error listing readers")
             context.set_code(grpc.StatusCode.INTERNAL)
-            context.set_details(f"Failed to list readers: {str(e)}")
+            context.set_details(f"Failed to list readers: {e!s}")
             return rfid_service_pb2.ListReadersResponse()
 
     def ConnectReader(
@@ -114,7 +114,7 @@ class RFIDReaderService(rfid_service_pb2_grpc.RFIDServiceServicer):
         except Exception as e:
             self.logger.exception("Error connecting to reader")
             context.set_code(grpc.StatusCode.INTERNAL)
-            context.set_details(f"Connection error: {str(e)}")
+            context.set_details(f"Connection error: {e!s}")
             return rfid_service_pb2.ConnectReaderResponse()
 
     def ReadPassport(
@@ -179,7 +179,7 @@ class RFIDReaderService(rfid_service_pb2_grpc.RFIDServiceServicer):
         except Exception as e:
             self.logger.exception("Error reading passport")
             context.set_code(grpc.StatusCode.INTERNAL)
-            context.set_details(f"Passport reading error: {str(e)}")
+            context.set_details(f"Passport reading error: {e!s}")
             return rfid_service_pb2.ReadPassportResponse()
 
     def VerifyDocument(
@@ -212,7 +212,7 @@ class RFIDReaderService(rfid_service_pb2_grpc.RFIDServiceServicer):
         except Exception as e:
             self.logger.exception("Error verifying document")
             context.set_code(grpc.StatusCode.INTERNAL)
-            context.set_details(f"Verification error: {str(e)}")
+            context.set_details(f"Verification error: {e!s}")
             return rfid_service_pb2.VerifyDocumentResponse()
 
     def ExtractBiometrics(
@@ -253,7 +253,7 @@ class RFIDReaderService(rfid_service_pb2_grpc.RFIDServiceServicer):
         except Exception as e:
             self.logger.exception("Error extracting biometrics")
             context.set_code(grpc.StatusCode.INTERNAL)
-            context.set_details(f"Biometric extraction error: {str(e)}")
+            context.set_details(f"Biometric extraction error: {e!s}")
             return rfid_service_pb2.ExtractBiometricsResponse()
 
     def _read_passport_data_groups(self, reader) -> dict[str, bytes]:

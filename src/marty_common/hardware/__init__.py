@@ -46,27 +46,22 @@ class ReaderInterface(ABC):
     @abstractmethod
     def connect(self) -> bool:
         """Connect to the reader."""
-        pass
 
     @abstractmethod
     def disconnect(self) -> None:
         """Disconnect from the reader."""
-        pass
 
     @abstractmethod
     def is_connected(self) -> bool:
         """Check if reader is connected."""
-        pass
 
     @abstractmethod
     def send_apdu(self, apdu: bytes) -> bytes:
         """Send APDU command and return response."""
-        pass
 
     @abstractmethod
     def get_atr(self) -> Optional[bytes]:
         """Get Answer To Reset from card."""
-        pass
 
 
 class MockReader(ReaderInterface):

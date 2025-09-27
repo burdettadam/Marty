@@ -24,14 +24,10 @@ from datetime import datetime, timedelta
 from enum import Enum, IntEnum
 from typing import Any, Dict, List, Optional, Tuple, Union
 
-import pyasn1
-from cryptography.exceptions import InvalidSignature
-from cryptography.hazmat.primitives import cmac, hashes, serialization
+from cryptography.hazmat.primitives import hashes, serialization
 from cryptography.hazmat.primitives.asymmetric import ec, padding, rsa
 from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
 from cryptography.hazmat.primitives.kdf.hkdf import HKDF
-from pyasn1.codec.der import decoder, encoder
-from pyasn1.type import char, namedtype, namedval, tag, univ
 
 logger = logging.getLogger(__name__)
 
@@ -39,25 +35,21 @@ logger = logging.getLogger(__name__)
 class EACError(Exception):
     """Base exception for EAC protocol errors"""
 
-    pass
 
 
 class TerminalAuthenticationError(EACError):
     """Terminal Authentication specific errors"""
 
-    pass
 
 
 class ChipAuthenticationError(EACError):
     """Chip Authentication specific errors"""
 
-    pass
 
 
 class CertificateValidationError(EACError):
     """Certificate chain validation errors"""
 
-    pass
 
 
 class EACCryptoAlgorithm(Enum):
@@ -134,9 +126,8 @@ class EACSecureChannel:
         if direction == "send":
             self.send_sequence_counter += 1
             return self.send_sequence_counter
-        else:
-            self.receive_sequence_counter += 1
-            return self.receive_sequence_counter
+        self.receive_sequence_counter += 1
+        return self.receive_sequence_counter
 
     def is_established(self) -> bool:
         """Check if secure channel is properly established"""
@@ -307,13 +298,12 @@ class EACChipAuthentication:
                 EACCryptoAlgorithm.ECDH_BRAINPOOL_P256R1_SHA256,
             ]:
                 return self._generate_ecdh_keypair()
-            elif self.algorithm in [
+            if self.algorithm in [
                 EACCryptoAlgorithm.RSA_2048_SHA256,
                 EACCryptoAlgorithm.RSA_3072_SHA256,
             ]:
                 return self._generate_rsa_keypair()
-            else:
-                raise ChipAuthenticationError(f"Unsupported algorithm: {self.algorithm}")
+            raise ChipAuthenticationError(f"Unsupported algorithm: {self.algorithm}")
 
         except Exception as e:
             raise ChipAuthenticationError(f"Failed to generate ephemeral keypair: {e}")
@@ -715,7 +705,7 @@ if __name__ == "__main__":
         mock_chip_challenge = secrets.token_bytes(32)
         mock_chip_ephemeral_key = secrets.token_bytes(64)  # Uncompressed P-256 point
 
-        print(f"Executing EAC Protocol...")
+        print("Executing EAC Protocol...")
         print(f"Terminal Certificate: {terminal_cert.get_certificate_fingerprint()}")
         print(f"Algorithm: {eac.chip_auth.algorithm.value}")
 
@@ -729,7 +719,7 @@ if __name__ == "__main__":
         encrypted_apdu = secure_messaging.encrypt_apdu(test_apdu)
         decrypted_apdu = secure_messaging.decrypt_apdu(encrypted_apdu)
 
-        print(f"\nSecure Messaging Test:")
+        print("\nSecure Messaging Test:")
         print(f"Original APDU: {test_apdu.hex().upper()}")
         print(f"Encrypted length: {len(encrypted_apdu)} bytes")
         print(f"Decrypted APDU: {decrypted_apdu.hex().upper()}")
@@ -737,7 +727,7 @@ if __name__ == "__main__":
 
         # Protocol status
         status = eac.get_protocol_status()
-        print(f"\nProtocol Status:")
+        print("\nProtocol Status:")
         for key, value in status.items():
             print(f"  {key}: {value}")
 

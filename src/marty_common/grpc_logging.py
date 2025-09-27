@@ -7,17 +7,23 @@ from datetime import datetime, timezone
 # Try different import paths for proto files depending on the environment
 try:
     # First try the standard src.proto path (development)
-    from src.proto import common_services_pb2  # type: ignore
-    from src.proto import common_services_pb2_grpc  # type: ignore
+    from src.proto import (
+        common_services_pb2,  # type: ignore
+        common_services_pb2_grpc,  # type: ignore
+    )
 except ImportError:
     try:
         # Try the proto path for Docker environment
-        from proto import common_services_pb2  # type: ignore
-        from proto import common_services_pb2_grpc  # type: ignore
+        from proto import (
+            common_services_pb2,  # type: ignore
+            common_services_pb2_grpc,  # type: ignore
+        )
     except ImportError:
         # Try relative import
-        from ..proto import common_services_pb2  # type: ignore
-        from ..proto import common_services_pb2_grpc  # type: ignore
+        from ..proto import (
+            common_services_pb2,  # type: ignore
+            common_services_pb2_grpc,  # type: ignore
+        )
 
 # Maximum number of log entries to queue per client.
 # If a client falls behind, older messages might be dropped or it might block.

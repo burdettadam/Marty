@@ -1,6 +1,13 @@
-syntax = "proto3";
 
+
+syntax = "proto3";
 package common_services;
+
+// Generic status message for use across services
+message Status {
+  int32 code = 1; // 0 = OK, nonzero = error
+  string message = 2;
+}
 
 import "google/protobuf/timestamp.proto";
 

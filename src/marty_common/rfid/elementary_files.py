@@ -190,8 +190,7 @@ class ElementaryFileParser:
             if len(lines[0]) == 44:
                 return self._parse_td3_mrz(lines)
             # Parse TD-1 or TD-2 format
-            else:
-                return self._parse_td2_mrz(lines)
+            return self._parse_td2_mrz(lines)
 
         except Exception as e:
             self.logger.error("Failed to parse DG1: %s", str(e))

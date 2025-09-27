@@ -136,7 +136,7 @@ class MRZData(BaseModel):
         return snake_to_camel_dict(data)
 
     @classmethod
-    def from_dict(cls, data: dict) -> "MRZData":
+    def from_dict(cls, data: dict) -> MRZData:
         """Create an instance from a dictionary with camelCase keys."""
         snake_case_data = camel_to_snake_dict(data)
         return cls(**snake_case_data)
@@ -158,7 +158,7 @@ class DataGroup(BaseModel):
         return self.model_dump()
 
     @classmethod
-    def from_dict(cls, data: dict) -> "DataGroup":
+    def from_dict(cls, data: dict) -> DataGroup:
         """Create an instance from a dictionary."""
         return cls(**data)
 
@@ -190,7 +190,7 @@ class SignedObject(BaseModel):
         return f"{self.signature}.{self.timestamp}"
 
     @classmethod
-    def from_string(cls, sod_string: str) -> "SignedObject":
+    def from_string(cls, sod_string: str) -> SignedObject:
         """Create SOD from string format."""
         parts = sod_string.split(".")
         if len(parts) != 2:
@@ -205,7 +205,7 @@ class SignedObject(BaseModel):
         return snake_to_camel_dict(data)
 
     @classmethod
-    def from_dict(cls, data: dict) -> "SignedObject":
+    def from_dict(cls, data: dict) -> SignedObject:
         """Create an instance from a dictionary with camelCase keys."""
         snake_case_data = camel_to_snake_dict(data)
         return cls(**snake_case_data)
@@ -310,7 +310,7 @@ class PassportData(BaseModel):
         return snake_to_camel_dict(data)
 
     @classmethod
-    def from_dict(cls, data: dict) -> "PassportData":
+    def from_dict(cls, data: dict) -> PassportData:
         """Create an instance from a dictionary with camelCase keys."""
         snake_case_data = camel_to_snake_dict(data)
         # Convert date strings to date objects
@@ -373,7 +373,7 @@ class ICaoPassport(BaseModel):
         return self.model_dump()
 
     @classmethod
-    def from_dict(cls, data: dict) -> "ICaoPassport":
+    def from_dict(cls, data: dict) -> ICaoPassport:
         """Create an instance from a dictionary."""
         return cls(**data)
 
@@ -494,7 +494,7 @@ class Passport(BaseModel):
                     # Extract SOD information for validation
                     sod_info = processor.extract_sod_info(sod)
 
-                    logger.info(f"SOD certificate validation using enhanced parser")
+                    logger.info("SOD certificate validation using enhanced parser")
                     logger.info(f"SOD content type: {sod_info.get('content_type', 'unknown')}")
                     logger.info(f"Has certificate: {sod_info.get('has_certificate', False)}")
 
@@ -504,11 +504,9 @@ class Passport(BaseModel):
                         # In a full implementation, this would verify certificate chain
                         # against CSCA (Country Signing Certificate Authority) roots
                         return True
-                    else:
-                        logger.warning("SOD does not contain certificate")
-                        return False
-                else:
-                    logger.warning("SOD parsing failed, falling back to basic validation")
+                    logger.warning("SOD does not contain certificate")
+                    return False
+                logger.warning("SOD parsing failed, falling back to basic validation")
 
             except ImportError:
                 logger.warning("SOD parser not available, falling back to certificate service")
@@ -660,7 +658,7 @@ class Passport(BaseModel):
             return False
 
     @classmethod
-    def from_dict(cls, data: dict) -> "Passport":
+    def from_dict(cls, data: dict) -> Passport:
         """Create an instance from a dictionary."""
         # Extract and convert the passport data
         passport_data = PassportData.from_dict(data["documentData"])
@@ -708,7 +706,7 @@ class VerificationResult(BaseModel):
         return snake_to_camel_dict(data)
 
     @classmethod
-    def from_dict(cls, data: dict) -> "VerificationResult":
+    def from_dict(cls, data: dict) -> VerificationResult:
         """Create an instance from a dictionary with camelCase keys."""
         snake_case_data = camel_to_snake_dict(data)
         # Convert date string back to datetime

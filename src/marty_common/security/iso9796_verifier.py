@@ -80,13 +80,12 @@ class ISO9796Verifier:
         try:
             if scheme == ISO9796Scheme.SCHEME_1:
                 return self._verify_scheme_1(signature, message, public_key)
-            elif scheme == ISO9796Scheme.SCHEME_2:
+            if scheme == ISO9796Scheme.SCHEME_2:
                 return self._verify_scheme_2(signature, message, public_key)
-            else:
-                msg = f"ISO 9796-2 scheme {scheme} not implemented"
-                raise ValueError(msg)
+            msg = f"ISO 9796-2 scheme {scheme} not implemented"
+            raise ValueError(msg)
 
-        except Exception as e:
+        except Exception:
             self.logger.exception("ISO 9796-2 signature verification failed")
             return ISO9796SignatureData(
                 scheme=scheme,

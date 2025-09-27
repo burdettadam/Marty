@@ -23,7 +23,6 @@ from src.marty_common.config import Config
 from src.marty_common.crypto import hash_password, verify_password, verify_signature
 from src.marty_common.grpc_client import GRPCClient
 from src.proto import (
-    common_services_pb2_grpc,
     document_signer_pb2,
     document_signer_pb2_grpc,
     dtc_engine_pb2,

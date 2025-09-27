@@ -29,11 +29,10 @@ import struct
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta
 from enum import Enum, IntEnum
-from typing import Any, Optional, Union
+from typing import Any, Optional
 
 import numpy as np
-from cryptography.hazmat.primitives import hashes
-from PIL import Image, ImageEnhance, ImageFilter
+from PIL import Image
 
 logger = logging.getLogger(__name__)
 
@@ -285,11 +284,10 @@ class FingerprintTemplate:
         try:
             if self.format == FingerprintFormat.WSQ:
                 return self._extract_wsq_minutiae()
-            elif self.format == FingerprintFormat.ISO_FINGER_MINUTIAE:
+            if self.format == FingerprintFormat.ISO_FINGER_MINUTIAE:
                 return self._extract_iso_minutiae()
-            else:
-                logger.warning(f"Minutiae extraction not implemented for {self.format}")
-                return []
+            logger.warning(f"Minutiae extraction not implemented for {self.format}")
+            return []
 
         except Exception as e:
             raise BiometricTemplateError(f"Failed to extract minutiae: {e}")
@@ -856,14 +854,13 @@ class PassportBiometricProcessor:
         """Detect image format from header bytes"""
         if image_data.startswith(b"\xFF\xD8\xFF"):
             return FaceImageFormat.JPEG
-        elif image_data.startswith(b"\x00\x00\x00\x0C\x6A\x50\x20\x20"):
+        if image_data.startswith(b"\x00\x00\x00\x0C\x6A\x50\x20\x20"):
             return FaceImageFormat.JPEG2000
-        elif image_data.startswith(b"\x89PNG"):
+        if image_data.startswith(b"\x89PNG"):
             return FaceImageFormat.PNG
-        elif image_data.startswith(b"BM"):
+        if image_data.startswith(b"BM"):
             return FaceImageFormat.BMP
-        else:
-            return FaceImageFormat.JPEG  # Default assumption
+        return FaceImageFormat.JPEG  # Default assumption
 
     def _get_image_dimensions(self, image_data: bytes, fmt: FaceImageFormat) -> tuple[int, int]:
         """Extract image dimensions"""
@@ -879,11 +876,11 @@ class PassportBiometricProcessor:
         """Detect fingerprint template format"""
         if template_data.startswith(b"\xFF\xA0"):  # WSQ marker
             return FingerprintFormat.WSQ
-        elif len(template_data) >= 4:
+        if len(template_data) >= 4:
             format_id = struct.unpack(">I", template_data[:4])[0]
             if format_id == 0x464D5200:  # "FMR\0"
                 return FingerprintFormat.ISO_FINGER_MINUTIAE
-            elif format_id == 0x414E5349:  # "ANSI"
+            if format_id == 0x414E5349:  # "ANSI"
                 return FingerprintFormat.ANSI_FINGER_MINUTIAE
 
         return FingerprintFormat.ISO_FINGER_MINUTIAE  # Default
@@ -1081,7 +1078,7 @@ if __name__ == "__main__":
         dg2_data = MockBiometricData.create_mock_dg2_data()
         face_template = processor.process_dg2_face(dg2_data)
 
-        print(f"\nDG2 Face Template:")
+        print("\nDG2 Face Template:")
         print(f"  Format: {face_template.image_format.value}")
         print(f"  Dimensions: {face_template.width}x{face_template.height}")
         if face_template.quality_score:
@@ -1109,7 +1106,7 @@ if __name__ == "__main__":
 
         # Processing summary
         summary = processor.get_processing_summary()
-        print(f"\nProcessing Summary:")
+        print("\nProcessing Summary:")
         for key, value in summary.items():
             print(f"  {key}: {value}")
 

@@ -13,7 +13,7 @@ from typing import Any
 from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives.asymmetric import rsa
 from pyasn1.codec.der import decoder as der_decoder
-from pyasn1.type import namedtype, tag, univ
+from pyasn1.type import namedtype, univ
 
 logger = logging.getLogger(__name__)
 
@@ -105,16 +105,15 @@ class DG15Parser:
             # Parse based on algorithm
             if algorithm_oid == self.rsa_encryption_oid:
                 return self._parse_rsa_public_key(public_key_bytes, algorithm_oid)
-            elif algorithm_oid in self.ecdsa_oids:
+            if algorithm_oid in self.ecdsa_oids:
                 msg = "ECDSA keys not yet supported in DG15 parsing"
                 raise ValueError(msg)
-            else:
-                msg = f"Unsupported public key algorithm: {algorithm_oid}"
-                raise ValueError(msg)
+            msg = f"Unsupported public key algorithm: {algorithm_oid}"
+            raise ValueError(msg)
 
         except Exception as e:
             self.logger.exception("Failed to parse DG15 data")
-            msg = f"DG15 parsing error: {str(e)}"
+            msg = f"DG15 parsing error: {e!s}"
             raise ValueError(msg) from e
 
     def _extract_subject_public_key_info(self, dg15_data: bytes) -> bytes:
@@ -226,7 +225,7 @@ class DG15Parser:
             )
 
         except Exception as e:
-            msg = f"Failed to parse RSA public key: {str(e)}"
+            msg = f"Failed to parse RSA public key: {e!s}"
             raise ValueError(msg) from e
 
     def validate_chip_key(self, chip_info: ChipAuthenticationInfo) -> bool:
@@ -268,7 +267,7 @@ class DG15Parser:
                 self.logger.error("Key validation failed: %s", str(e))
                 return False
 
-        except Exception as e:
+        except Exception:
             self.logger.exception("Key validation error")
             return False
 
@@ -296,7 +295,7 @@ class DG15Parser:
             self.logger.debug("Generated key fingerprint: %s", fingerprint[:16] + "...")
             return fingerprint
 
-        except Exception as e:
+        except Exception:
             self.logger.exception("Failed to generate key fingerprint")
             return ""
 
@@ -349,9 +348,8 @@ class DG15Manager:
             if self.parser.validate_chip_key(chip_info):
                 self.logger.info("Successfully extracted chip public key from DG15")
                 return chip_info
-            else:
-                self.logger.error("Chip public key validation failed")
-                return None
+            self.logger.error("Chip public key validation failed")
+            return None
 
         except Exception as e:
             self.logger.exception("Failed to read/parse DG15: %s", str(e))

@@ -139,12 +139,12 @@ class TestIsolationManager:
             # to use migrations or more sophisticated database reset mechanisms
             reset_commands = [
                 # Connect to postgres database to drop/create test database
-                f"psql postgresql://test_user:test_password@localhost:5432/postgres -c 'DROP DATABASE IF EXISTS marty_test;'",
-                f"psql postgresql://test_user:test_password@localhost:5432/postgres -c 'CREATE DATABASE marty_test;'",
+                "psql postgresql://test_user:test_password@localhost:5432/postgres -c 'DROP DATABASE IF EXISTS marty_test;'",
+                "psql postgresql://test_user:test_password@localhost:5432/postgres -c 'CREATE DATABASE marty_test;'",
             ]
 
             for cmd in reset_commands:
-                result = subprocess.run(cmd, shell=True, capture_output=True, text=True)
+                result = subprocess.run(cmd, shell=True, capture_output=True, text=True, check=False)
                 if result.returncode != 0:
                     logger.warning(f"Database reset command failed: {cmd}")
                     logger.warning(f"stderr: {result.stderr}")

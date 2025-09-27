@@ -20,22 +20,19 @@ References to pypassport are marked with PYPASSPORT_REFERENCE and will be
 removed in a future update once validation is complete.
 """
 
-import datetime
 import hashlib
 import os
 import sys
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Tuple, Union
+from typing import Any, Dict, Optional
 
 # Add project root to path
 project_root = Path(__file__).resolve().parents[2]
 sys.path.append(str(project_root))
 
-from src.marty_common.models.asn1_structures import parse_dg1_content
 
 # Import from Marty's codebase
-from src.marty_common.models.passport import DataGroup, DataGroupType, Passport
-from src.marty_common.utils.mrz_utils import MRZParser
+from src.marty_common.models.passport import DataGroupType
 
 
 class PassportGenerator:

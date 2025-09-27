@@ -73,14 +73,13 @@ class APDUCommand:
         if self.le is not None:
             # Case 2 or 4: Command expecting response
             if self.le <= 255:
-                command += struct.pack("B", self.le if self.le > 0 else 0)
+                command += struct.pack("B", max(0, self.le))
+            elif self.data is None:
+                # Case 2 extended
+                command += struct.pack(">BH", 0, self.le)
             else:
-                if self.data is None:
-                    # Case 2 extended
-                    command += struct.pack(">BH", 0, self.le)
-                else:
-                    # Case 4 extended
-                    command += struct.pack(">H", self.le)
+                # Case 4 extended
+                command += struct.pack(">H", self.le)
 
         return command
 
@@ -227,12 +226,11 @@ class APDUProcessor:
         """Validate APDU response and log any issues."""
         if response.is_success:
             return True
-        elif response.is_warning:
+        if response.is_warning:
             self.logger.warning(f"APDU warning: {response.status_description}")
             return True
-        else:
-            self.logger.error(f"APDU error: {response.status_description}")
-            return False
+        self.logger.error(f"APDU error: {response.status_description}")
+        return False
 
 
 # Common APDU commands for passport operations
