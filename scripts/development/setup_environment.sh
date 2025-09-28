@@ -43,4 +43,4 @@ mkdir -p data/inspection
 mkdir -p data/trust
 
 echo "Environment setup complete!"
-echo "You can now run 'uv run src/main.py' to start the server."
+echo "You can now run 'uv run -m src.apps.<service>' to start a specific microservice."

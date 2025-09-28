@@ -39,4 +39,4 @@ ENV SERVICE_NAME=csca-service
 ENV GRPC_PORT=8081
 ENV PYTHONPATH=/app/src
 
-CMD ["python", "/app/src/main.py"]
+CMD ["python", "-m", "src.apps.csca_service"]

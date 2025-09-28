@@ -56,4 +56,4 @@ ENV PYTHONPATH=/app
 ENV DATA_DIR=/app/data
 
 # Command to run when container starts
-CMD ["python", "/app/src/main.py"]
+CMD ["python", "-m", "src.apps.csca_service"]

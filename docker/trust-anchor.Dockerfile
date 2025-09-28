@@ -57,4 +57,4 @@ ENV SERVICE_NAME=trust-anchor
 ENV GRPC_PORT=9080
 ENV PYTHONPATH=/app
 
-CMD ["python", "/app/src/main.py"]
+CMD ["python", "-m", "src.apps.trust_anchor"]

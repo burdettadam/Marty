@@ -57,4 +57,4 @@ ENV SERVICE_NAME=inspection-system
 ENV GRPC_PORT=9083
 ENV PYTHONPATH=/app
 
-CMD ["python", "/app/src/main.py"]
+CMD ["python", "-m", "src.apps.inspection_system"]

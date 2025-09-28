@@ -39,4 +39,4 @@ ENV SERVICE_NAME=passport-engine
 ENV GRPC_PORT=8084
 ENV PYTHONPATH=/app/src
 
-CMD ["python", "/app/src/main.py"]
+CMD ["python", "-m", "src.apps.passport_engine"]

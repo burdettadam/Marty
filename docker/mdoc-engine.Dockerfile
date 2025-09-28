@@ -54,4 +54,4 @@ ENV SERVICE_NAME=mdoc-engine
 ENV GRPC_PORT=8086
 ENV PYTHONPATH=/app
 
-CMD ["python", "/app/src/mdoc_engine/src/main.py"]
+CMD ["python", "-m", "src.apps.mdoc_engine"]

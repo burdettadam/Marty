@@ -78,10 +78,10 @@ Deliver a roadmap to close the production gaps called out in the latest review. 
 
 ## 8. Microservice Separation & Deployment
 
-**Current**: `src/main.py` multiplexes multiple services in one process via `SERVICE_NAME` env.
+**Current**: Each gRPC microservice has a dedicated entrypoint under `src/apps/<service>` and container images boot via the module-specific runner. `src/main.py` is retained only as a shim for legacy tooling.
 
 **Direction**:
-1. Split each service into its own package/module with a dedicated entrypoint (e.g., `services/document_signer/app.py`).
+1. Finalize service-specific packaging (Helm charts, Terraform modules) so deployments no longer reference the shimmed `src/main.py` path.
 2. Produce one container image per service, share base layers via a monorepo build (e.g., Docker buildx or Bazel).
 3. Update CI/CD to build, test, and deploy each service independently; add service-level health checks and Helm charts.
 
@@ -128,4 +128,3 @@ Deliver a roadmap to close the production gaps called out in the latest review. 
 - Author design docs for the storage abstraction and key vault interface for review.
 - Update proto definitions to add error enums and seed PKD service contracts.
 - Schedule security architecture review to confirm mTLS + RBAC approach.
-

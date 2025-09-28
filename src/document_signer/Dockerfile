@@ -39,4 +39,4 @@ ENV SERVICE_NAME=document-signer
 ENV GRPC_PORT=8082
 ENV PYTHONPATH=/app/src
 
-CMD ["python", "/app/src/main.py"]
+CMD ["python", "-m", "src.apps.document_signer"]

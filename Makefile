@@ -380,7 +380,8 @@ test-mdl-mdoc:
 # Run a specific service locally
 run-service-%:
 	@echo "Running $* service..."
-	@SERVICE_NAME=$* GRPC_PORT=$(shell sed -n -e "s/^  $*/port: //p" config/development.yaml | head -n 1 | tr -d '[:space:]') $(UV) run src/main.py
+	@MODULE=$(subst -,_,$*); \
+	SERVICE_NAME=$* GRPC_PORT=$(shell sed -n -e "s/^  $*/port: //p" config/development.yaml | head -n 1 | tr -d '[:space:]') $(UV) run python -m src.apps.$$MODULE
 
 # Run the server (deprecated, use run-service-<name>)
 run:

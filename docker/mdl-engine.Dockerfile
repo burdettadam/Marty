@@ -54,4 +54,4 @@ ENV SERVICE_NAME=mdl-engine
 ENV GRPC_PORT=8085
 ENV PYTHONPATH=/app
 
-CMD ["python", "/app/src/mdl_engine/src/main.py"]
+CMD ["python", "-m", "src.apps.mdl_engine"]

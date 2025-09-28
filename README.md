@@ -471,18 +471,13 @@ The test fixtures include certificates from the NIST Public Key Interoperability
 
 ### Running Services Locally
 
-To run individual services locally for development:
+To run individual services locally for development use the service-specific make
+targets (they call the dedicated entrypoints under `src.apps`):
 
 ```bash
-make run
-```
-
-You can set the environment variables to configure which service to run:
-
-```bash
-export SERVICE_NAME=csca-service
-export GRPC_PORT=8081
-make run
+make run-service-csca-service
+# or
+make run-service-document-signer
 ```
 
 ## Documentation

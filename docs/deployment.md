@@ -5,7 +5,7 @@ container or process. Key points to remember when deploying:
 
 - **Service Images**: Build a discrete image per service (e.g. `csca-service`,
   `document-signer`, `trust-anchor`, `pkd-service`). The entrypoint should
-  execute `python -m src.main` with `SERVICE_NAME` set to the desired service.
+  execute `python -m src.apps.<service>` (for example `python -m src.apps.csca_service`).
 - **Configuration**: Provide each container with the appropriate YAML config
   (`config/production.yaml`) and secrets for database credentials, object
   storage, message brokers, and TLS files. The new TLS settings live under
@@ -13,7 +13,7 @@ container or process. Key points to remember when deploying:
 - **Stateful Dependencies**: All certificate and DTC metadata is now stored via
   the shared `DatabaseManager` and object storage abstractions. Ensure Postgres,
   MinIO/S3, Kafka, and a key vault/KMS are provisioned and reachable.
-- **PKD Synchronisation**: Run `SERVICE_NAME=pkd-service` as a standalone job or
+- **PKD Synchronisation**: Run `python -m src.apps.pkd_service` as a standalone job or
   deployment. It will ingest trust anchors on demand via the `Sync` RPC and can
   optionally auto-sync when `PKD_AUTO_SYNC_INTERVAL` is set.
 - **Trust Anchor Bootstrap**: The Trust Anchor service loads anchors from the
