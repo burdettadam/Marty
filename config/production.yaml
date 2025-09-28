@@ -24,6 +24,7 @@ logging:
 
 # Database
 database:
+  url: "${MARTY_DATABASE_URL:-postgresql+asyncpg://${DB_USER}:${DB_PASSWORD}@db:5432/marty_production}"
   host: db
   port: 5432
   user: "${DB_USER}"
@@ -37,6 +38,41 @@ security:
   certificate_validity_days: 365
   hsm_enabled: true
   hsm_config: '/secrets/hsm/config.json'
+  grpc_tls:
+    enabled: true
+    server_cert: "/secrets/tls/server.crt"
+    server_key: "/secrets/tls/server.key"
+    client_ca: "/secrets/tls/ca.crt"
+    client_cert: ""
+    client_key: ""
+    require_client_auth: true
+
+# Object storage
+object_storage:
+  bucket: "${MARTY_OBJECT_STORE_BUCKET}"
+  access_key: "${MARTY_OBJECT_STORE_ACCESS_KEY}"
+  secret_key: "${MARTY_OBJECT_STORE_SECRET_KEY}"
+  region: "${MARTY_OBJECT_STORE_REGION:-us-east-1}"
+  endpoint_url: "${MARTY_OBJECT_STORE_ENDPOINT:-}"
+  secure: true
+  path_style_access: false
+
+# Key vault
+key_vault:
+  provider: "${MARTY_KEY_VAULT_PROVIDER:-hsm}"
+  file_path: '/tmp/keys'
+  hsm_config_path: '/secrets/hsm/config.json'
+
+# Event bus
+event_bus:
+  enabled: true
+  brokers: "${KAFKA_BROKERS}"
+  client_id: "${HOSTNAME:-marty-service}"
+  topic_prefix: "prod."
+  security_protocol: "${KAFKA_SECURITY_PROTOCOL:-SSL}"
+  ssl_cafile: "${KAFKA_SSL_CAFILE:-}"
+  ssl_certfile: "${KAFKA_SSL_CERTFILE:-}"
+  ssl_keyfile: "${KAFKA_SSL_KEYFILE:-}"
 
 # Feature flags
 features:

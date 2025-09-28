@@ -11,6 +11,7 @@ from typing import Any, Optional
 
 import aiosqlite
 from app.core.config import settings
+from app.models.pkd_models import CertificateStatus
 
 logger = logging.getLogger(__name__)
 
@@ -171,6 +172,58 @@ class DatabaseManager:
         except Exception as e:
             logger.exception(f"Failed to store certificate: {e}")
             raise
+
+    @staticmethod
+    async def update_certificate_status(
+        certificate_id: str, status: CertificateStatus
+    ) -> bool:
+        """Update the status of a certificate identified by its ID."""
+
+        now = datetime.now().isoformat()
+        status_value = status.value if isinstance(status, CertificateStatus) else str(status)
+
+        try:
+            async with aiosqlite.connect(DB_PATH) as db:
+                cursor = await db.execute(
+                    """
+                    UPDATE certificates
+                    SET status = ?, updated_at = ?
+                    WHERE id = ?
+                    """,
+                    (status_value, now, certificate_id),
+                )
+                await db.commit()
+                return cursor.rowcount > 0
+
+        except Exception as e:
+            logger.exception(f"Failed to update certificate status: {e}")
+            return False
+
+    @staticmethod
+    async def update_certificate_status_by_serial(
+        serial_number: str, cert_type: str, status: CertificateStatus
+    ) -> int:
+        """Update certificate status using serial number and type."""
+
+        now = datetime.now().isoformat()
+        status_value = status.value if isinstance(status, CertificateStatus) else str(status)
+
+        try:
+            async with aiosqlite.connect(DB_PATH) as db:
+                cursor = await db.execute(
+                    """
+                    UPDATE certificates
+                    SET status = ?, updated_at = ?
+                    WHERE serial_number = ? AND type = ?
+                    """,
+                    (status_value, now, serial_number, cert_type),
+                )
+                await db.commit()
+                return cursor.rowcount
+
+        except Exception as e:
+            logger.exception(f"Failed to update certificate status by serial: {e}")
+            return 0
 
     @staticmethod
     async def get_certificates(

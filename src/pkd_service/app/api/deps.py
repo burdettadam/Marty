@@ -69,8 +69,6 @@ async def get_deviationlist_service(
     return DeviationListService(db)
 
 
-async def get_sync_service(db: aiosqlite.Connection = Depends(get_db)) -> SyncService:
-    """
-    Get SyncService instance with database dependency
-    """
-    return SyncService(db)
+async def get_sync_service() -> SyncService:
+    """Get SyncService instance."""
+    return SyncService()

@@ -223,16 +223,19 @@ class MDLEngineServicer(mdl_engine_pb2_grpc.MDLEngineServicer):
             if self.document_signer_stub:
                 self.logger.info("Attempting to sign MDL data (JSON).")
                 try:
-                    # Ensure document_signer_pb2 is imported for this type
-                    sign_request = document_signer_pb2.SignDocumentRequest(
-                        data_to_sign=mdl_data_json.encode("utf-8"),
-                        # key_id="mdl_signing_key" # Optional
+                    sign_request = document_signer_pb2.SignRequest(
+                        document_id=document_id,
+                        document_content=mdl_data_json.encode("utf-8"),
                     )
                     sign_response = self.document_signer_stub.SignDocument(sign_request)
-                    signature = sign_response.signature
-                    self.logger.info("MDL data signed successfully.")
+                    if sign_response.success:
+                        signature = sign_response.signature_info.signature
+                        self.logger.info("MDL data signed successfully.")
+                    else:
+                        self.logger.error(
+                            "Document signer error signing MDL: %s", sign_response.error_message
+                        )
                 except grpc.RpcError as rpc_e:  # Ensure grpc is imported
-                    # Access code and details as methods
                     status_code = rpc_e.code()
                     details = rpc_e.details()
                     self.logger.error(

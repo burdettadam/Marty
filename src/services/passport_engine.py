@@ -1,14 +1,18 @@
+"""Passport engine that persists artifacts in object storage and emits events."""
+
+from __future__ import annotations
+
+import asyncio
 import json
 import logging
-import os
 import uuid
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Optional
 
-# Import the new models
-from marty_common.models.passport import DataGroupType, ICaoPassport
+import grpc
 
-# Import the generated gRPC modules
+from marty_common.infrastructure import EventBusMessage, EventBusProvider, ObjectStorageClient
+from marty_common.models.passport import DataGroupType, ICaoPassport
 from proto import (
     document_signer_pb2,
     document_signer_pb2_grpc,
@@ -18,171 +22,105 @@ from proto import (
 
 
 class PassportEngine(passport_engine_pb2_grpc.PassportEngineServicer):
-    """
-    Implementation of the Passport Engine service.
+    """Generates passports using externalized services."""
 
-    This service is responsible for:
-    - Generating the Logical Data Structure (LDS) for ePassports
-    - Creating required Data Groups: DG1 (MRZ), DG2 (photo), etc.
-    - Producing the complete eMRTD chip content using the DS service
-    - Following ICAO Doc 9303 standards for passport structure
-    """
-
-    def __init__(self, channels=None) -> None:
-        """
-        Initialize the Passport Engine service.
-
-        Args:
-            channels (dict): Dictionary of gRPC channels to other services
-        """
+    def __init__(self, channels=None, dependencies=None) -> None:
+        if dependencies is None:
+            msg = "PassportEngine requires service dependencies"
+            raise ValueError(msg)
         self.logger = logging.getLogger(__name__)
         self.channels = channels or {}
-        self.data_dir = os.environ.get("DATA_DIR", "/app/data")
-        self.logger.info("Passport Engine service initialized")
+        self._object_storage: ObjectStorageClient = dependencies.object_storage
+        self._event_bus: EventBusProvider = dependencies.event_bus
+        self.passport_status: dict[str, str] = {}
 
-        # Passport status tracking
-        self.passport_status = {}
-
-        # Ensure data directory exists
-        os.makedirs(self.data_dir, exist_ok=True)
+    def _run(self, coroutine):
+        return asyncio.run(coroutine)
 
     def _generate_passport_data(self, passport_number: str) -> ICaoPassport:
-        """
-        Generate ICAO-compliant passport data structure for the given passport number.
-
-        Args:
-            passport_number: The passport number
-
-        Returns:
-            ICaoPassport: The ICAO-compliant passport data structure
-        """
-        # In a real system, this would retrieve or generate detailed passport data
-        # from a passport application database
-        issue_date = datetime.now().strftime("%Y-%m-%d")
-        expiry_date = datetime.now().replace(year=datetime.now().year + 10).strftime("%Y-%m-%d")
-
-        # Create data groups as per ICAO Doc 9303 standards
+        issue_date = datetime.now(timezone.utc).date().isoformat()
+        expiry_date = datetime.now(timezone.utc).replace(year=datetime.now(timezone.utc).year + 10).date().isoformat()
         data_groups = {
             DataGroupType.DG1.value: f"MRZ-DATA-{passport_number}",
             DataGroupType.DG2.value: f"PHOTO-DATA-{passport_number}",
             DataGroupType.DG3.value: f"FINGERPRINT-DATA-{passport_number}",
             DataGroupType.DG4.value: f"IRIS-DATA-{passport_number}",
         }
-
-        # Create ICAO passport structure
         return ICaoPassport(
             passport_number=passport_number,
             issue_date=issue_date,
             expiry_date=expiry_date,
             data_groups=data_groups,
-            sod="",  # To be signed by Document Signer service
+            sod="",
         )
 
-    def _sign_passport_data(self, passport_data: ICaoPassport) -> Optional[str]:
-        """
-        Sign passport data with the Document Signer service.
-
-        Args:
-            passport_data: The passport data to sign
-
-        Returns:
-            str: The signature string in format "signature.timestamp" or None if signing failed
-        """
-        # Make a copy without the SOD before signing
+    def _sign_passport_data(self, passport_data: ICaoPassport) -> Optional[bytes]:
         passport_dict = passport_data.to_dict()
         passport_dict.pop("sod", None)
+        payload = json.dumps(passport_dict, sort_keys=True, separators=(",", ":")).encode("utf-8")
 
-        # Serialize passport data for signing
-        passport_json = json.dumps(passport_dict)
-
-        # Get the channel to the Document Signer service
-        ds_channel = self.channels.get("document_signer")
-        if not ds_channel:
-            self.logger.warning("Document Signer service channel not available")
+        channel = self.channels.get("document_signer")
+        if not channel:
+            self.logger.error("Document signer channel unavailable")
             return None
 
+        stub = document_signer_pb2_grpc.DocumentSignerStub(channel)
         try:
-            # Create a stub for the Document Signer service
-            ds_stub = document_signer_pb2_grpc.DocumentSignerStub(ds_channel)
-
-            # Call the SignDocument method
-            response = ds_stub.SignDocument(document_signer_pb2.SignRequest(document=passport_json))
-
-            # Create the SOD format: signature.timestamp
-            timestamp = int(datetime.now().timestamp())
-            signature_string = f"{response.signature}.{timestamp}"
-
-            self.logger.info(
-                f"Passport data signed, signature: {response.signature[:20]}... with timestamp {timestamp}"
+            response = stub.SignDocument(
+                document_signer_pb2.SignRequest(
+                    document_id=passport_data.passport_number,
+                    document_content=payload,
+                )
             )
-            return signature_string
-        except Exception as e:
-            self.logger.exception(f"Error signing passport data: {e}")
+        except grpc.RpcError as rpc_err:
+            self.logger.error("Document signer RPC failure: %s", rpc_err.details())
             return None
 
-    def _save_passport_data(self, passport_number: str, passport_data: ICaoPassport) -> bool:
-        """
-        Save passport data to disk.
+        if not response.success:
+            self.logger.error("Document signer returned error: %s", response.error_message)
+            return None
 
-        Args:
-            passport_number: The passport number
-            passport_data: The passport data
+        return response.signature_info.signature
 
-        Returns:
-            bool: True if save was successful, False otherwise
-        """
-        try:
-            file_path = os.path.join(self.data_dir, f"{passport_number}.json")
+    def _persist_passport(self, passport_number: str, passport_data: ICaoPassport, signature: bytes | None) -> str:
+        passport_dict = passport_data.to_dict()
+        if signature:
+            passport_dict["sod"] = signature.hex()
+        serialized = json.dumps(passport_dict, indent=2).encode("utf-8")
+        object_key = f"passports/{passport_number}.json"
+        self._run(self._object_storage.put_object(object_key, serialized, "application/json"))
+        return object_key
 
-            # Convert to dict for JSON serialization
-            passport_dict = passport_data.to_dict()
+    def _publish_event(self, passport_number: str, storage_key: str, signature: bytes | None) -> None:
+        payload = json.dumps(
+            {
+                "passport_number": passport_number,
+                "storage_key": storage_key,
+                "signature_hex": signature.hex() if signature else "",
+                "issued_at": datetime.now(timezone.utc).isoformat(),
+            }
+        ).encode("utf-8")
+        message = EventBusMessage(topic="passport.issued", payload=payload)
+        self._run(self._event_bus.publish(message))
 
-            with open(file_path, "w") as f:
-                json.dump(passport_dict, f, indent=2)
+    def ProcessPassport(self, request, context):  # noqa: N802 - gRPC naming
+        passport_number = request.passport_number or f"P{uuid.uuid4().hex[:8].upper()}"
+        self.logger.info("Processing passport %s", passport_number)
 
-            self.logger.info(f"Passport data saved to {file_path}")
-            return True
-        except Exception as e:
-            self.logger.exception(f"Error saving passport data: {e}")
-            return False
-
-    def ProcessPassport(self, request, context):
-        """
-        Process a passport - generate and sign passport data according to ICAO standards.
-
-        Args:
-            request: The gRPC request containing the passport number
-            context: The gRPC context
-
-        Returns:
-            PassportResponse: The gRPC response containing the status
-        """
-        passport_number = request.passport_number
-        self.logger.info(f"ProcessPassport called for passport number: {passport_number}")
-
-        # Check if passport number is valid
-        if not passport_number:
-            passport_number = f"P{uuid.uuid4().hex[:8].upper()}"
-            self.logger.info(f"Generated new passport number: {passport_number}")
-
-        # Generate ICAO-compliant passport data
         passport_data = self._generate_passport_data(passport_number)
-
-        # Sign passport data
         signature = self._sign_passport_data(passport_data)
+        passport_data.sod = signature.hex() if signature else ""
 
-        # Ensure SOD is always a string (empty if signing failed)
-        passport_data.sod = signature or ""
-
-        # Save passport data
-        if self._save_passport_data(passport_number, passport_data):
+        try:
+            storage_key = self._persist_passport(passport_number, passport_data, signature)
+            self._publish_event(passport_number, storage_key, signature)
             status = "SUCCESS"
-            self.passport_status[passport_number] = "PROCESSED"
-        else:
-            status = "ERROR_SAVING"
-            self.passport_status[passport_number] = "ERROR"
+            self.passport_status[passport_number] = status
+        except Exception as exc:  # pylint: disable=broad-except
+            self.logger.exception("Failed to persist passport %s", passport_number)
+            context.set_details(str(exc))
+            context.set_code(grpc.StatusCode.INTERNAL)
+            status = "ERROR"
+            self.passport_status[passport_number] = status
 
-        self.logger.info(f"Passport {passport_number} processed with status: {status}")
-
-        # Return the response
         return passport_engine_pb2.PassportResponse(status=status)

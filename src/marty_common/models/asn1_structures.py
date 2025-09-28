@@ -188,20 +188,22 @@ class SOD(cms.ContentInfo):
     """Document Security Object (SOD) for e-passport."""
 
     @classmethod
-    def load(cls, encoded_data: bytes) -> "SOD":
-        """
-        Load a SOD from encoded data.
+    def load(cls, encoded_data: bytes) -> "SOD":  # type: ignore[override]
+        """Load SOD from DER or PEM encoded bytes."""
 
-        Args:
-            encoded_data: The DER or PEM encoded SOD
-
-        Returns:
-            SOD object
-        """
         if pem.detect(encoded_data):
             _, _, encoded_data = pem.unarmor(encoded_data)
 
-        return cls.load(encoded_data)
+        return super(SOD, cls).load(encoded_data)
+
+    @property
+    def signed_data(self) -> cms.SignedData:
+        """Return embedded SignedData structure."""
+
+        content = self["content"]
+        if isinstance(content, cms.SignedData):
+            return content
+        return content.parsed  # type: ignore[return-value]
 
     def get_security_object(self) -> LDSSecurityObject:
         """
@@ -210,11 +212,7 @@ class SOD(cms.ContentInfo):
         Returns:
             LDSSecurityObject containing the data group hashes
         """
-        signed_data = self["content"]
-        if not isinstance(signed_data, cms.SignedData):
-            msg = "Content is not SignedData"
-            raise ValueError(msg)
-
+        signed_data = self.signed_data
         encap_content_info = signed_data["encap_content_info"]
         content = encap_content_info["content"].parsed
 
@@ -227,11 +225,7 @@ class SOD(cms.ContentInfo):
         Returns:
             Signing time as datetime or None if not available
         """
-        signed_data = self["content"]
-        if not isinstance(signed_data, cms.SignedData):
-            return None
-
-        for signer_info in signed_data["signer_infos"]:
+        for signer_info in self.signed_data["signer_infos"]:
             signed_attrs = signer_info["signed_attrs"]
             for attr in signed_attrs:
                 if attr["type"].native == "signing_time":
@@ -246,9 +240,7 @@ class SOD(cms.ContentInfo):
         Returns:
             DSC or None if not available
         """
-        signed_data = self["content"]
-        if not isinstance(signed_data, cms.SignedData):
-            return None
+        signed_data = self.signed_data
 
         if not signed_data["certificates"]:
             return None

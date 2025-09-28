@@ -6,19 +6,31 @@ SERVICE_NAME environment variable.
 
 from __future__ import annotations
 
+import asyncio
 import logging
 import os
 import sys
 from concurrent import futures
 from pathlib import Path
-from typing import Any
+from dataclasses import dataclass
+from typing import Any, Optional
 
 import grpc
 from grpc_health.v1 import health_pb2, health_pb2_grpc
 from grpc_health.v1.health import HealthServicer
 
+from marty_common.config import Config as MartyConfig
+from marty_common.grpc_interceptors import ExceptionToStatusInterceptor
 from marty_common.grpc_logging import LoggingStreamerServicer
+from marty_common.grpc_tls import build_client_credentials, configure_server_security
 from marty_common.logging_config import setup_logging
+from marty_common.infrastructure import (
+    DatabaseManager,
+    EventBusProvider,
+    KeyVaultClient,
+    ObjectStorageClient,
+    build_key_vault_client,
+)
 from src.proto import common_services_pb2_grpc
 
 # --- BEGIN DEBUG PRINTS ---
@@ -106,6 +118,10 @@ def get_service_config() -> dict[str, Any]:
             f"{os.environ.get('MDOC_ENGINE_HOST', 'mdoc-engine')}:"
             f"{os.environ.get('MDOC_ENGINE_PORT', '50054')}"
         ),
+        "pkd_service": (
+            f"{os.environ.get('PKD_SERVICE_HOST', 'pkd-service')}:"
+            f"{os.environ.get('PKD_SERVICE_PORT', '9090')}"
+        ),
     }
 
     return {
@@ -116,7 +132,9 @@ def get_service_config() -> dict[str, Any]:
     }
 
 
-def create_service_channels(config: dict[str, Any]) -> dict[str, grpc.Channel]:
+def create_service_channels(
+    config: dict[str, Any], tls_options: dict[str, Any]
+) -> dict[str, grpc.Channel]:
     """Create gRPC channels to other services.
 
     Args:
@@ -126,13 +144,19 @@ def create_service_channels(config: dict[str, Any]) -> dict[str, grpc.Channel]:
         Dictionary mapping service names to gRPC channels.
     """
     channels = {}
+    channel_credentials = None
+    if tls_options.get("enabled"):
+        channel_credentials = build_client_credentials(tls_options)
 
     for service_name, address in config["service_discovery"].items():
         # Don't create a channel to ourselves
         if service_name != config["service_name"].replace("-", "_"):
             logger.info(f"Creating channel to {service_name} at {address}")
             try:
-                channels[service_name] = grpc.insecure_channel(address)
+                if channel_credentials is not None:
+                    channels[service_name] = grpc.secure_channel(address, channel_credentials)
+                else:
+                    channels[service_name] = grpc.insecure_channel(address)
             except grpc.RpcError:
                 logger.exception(f"Failed to create channel to {service_name}")
 
@@ -226,65 +250,116 @@ def setup_logging_streamer_service(server: grpc.Server, health: HealthServicer) 
         )
 
 
+@dataclass(slots=True)
+class ServiceDependencies:
+    database: DatabaseManager
+    object_storage: ObjectStorageClient
+    key_vault: KeyVaultClient
+    event_bus: EventBusProvider
+    runtime_config: MartyConfig
+
+
+def build_dependencies(runtime_config: MartyConfig | None = None) -> ServiceDependencies:
+    runtime_config = runtime_config or MartyConfig()
+    database = DatabaseManager(runtime_config.database())
+    asyncio.run(database.create_all())
+    object_storage = ObjectStorageClient(runtime_config.object_storage())
+    key_vault = build_key_vault_client(runtime_config.key_vault())
+    event_bus = EventBusProvider(runtime_config.event_bus())
+    return ServiceDependencies(
+        database=database,
+        object_storage=object_storage,
+        key_vault=key_vault,
+        event_bus=event_bus,
+        runtime_config=runtime_config,
+    )
+
+
 def add_csca_service(
-    server: grpc.Server, channels: dict[str, grpc.Channel], health: HealthServicer
+    server: grpc.Server,
+    channels: dict[str, grpc.Channel],
+    health: HealthServicer,
+    dependencies: ServiceDependencies,
 ) -> None:
     """Add CSCA service to the server."""
     logger.info("Adding CSCA service to server")
     from services.csca import CscaService
 
-    csca_service_pb2_grpc.add_CscaServiceServicer_to_server(CscaService(channels), server)
+    csca_service_pb2_grpc.add_CscaServiceServicer_to_server(
+        CscaService(channels, dependencies), server
+    )
     health.set("csca.CscaService", health_pb2.HealthCheckResponse.SERVING)
 
 
 def add_document_signer_service(
-    server: grpc.Server, channels: dict[str, grpc.Channel], health: HealthServicer
+    server: grpc.Server,
+    channels: dict[str, grpc.Channel],
+    health: HealthServicer,
+    dependencies: ServiceDependencies,
 ) -> None:
     """Add Document Signer service to the server."""
     logger.info("Adding Document Signer service to server")
     from services.document_signer import DocumentSigner
 
-    document_signer_pb2_grpc.add_DocumentSignerServicer_to_server(DocumentSigner(channels), server)
+    document_signer_pb2_grpc.add_DocumentSignerServicer_to_server(
+        DocumentSigner(channels, dependencies), server
+    )
     health.set("document_signer.DocumentSigner", health_pb2.HealthCheckResponse.SERVING)
 
 
 def add_trust_anchor_service(
-    server: grpc.Server, channels: dict[str, grpc.Channel], health: HealthServicer
+    server: grpc.Server,
+    channels: dict[str, grpc.Channel],
+    health: HealthServicer,
+    dependencies: ServiceDependencies,
 ) -> None:
     """Add Trust Anchor service to the server."""
     logger.info("Adding Trust Anchor service to server")
     from services.trust_anchor import TrustAnchor
 
-    trust_anchor_pb2_grpc.add_TrustAnchorServicer_to_server(TrustAnchor(channels), server)
+    trust_anchor_pb2_grpc.add_TrustAnchorServicer_to_server(
+        TrustAnchor(channels, dependencies), server
+    )
     health.set("trust.TrustAnchor", health_pb2.HealthCheckResponse.SERVING)
 
 
 def add_inspection_system_service(
-    server: grpc.Server, channels: dict[str, grpc.Channel], health: HealthServicer
+    server: grpc.Server,
+    channels: dict[str, grpc.Channel],
+    health: HealthServicer,
+    dependencies: ServiceDependencies,
 ) -> None:
     """Add Inspection System service to the server."""
     logger.info("Adding Inspection System service to server")
     from services.inspection_system import InspectionSystem
 
     inspection_system_pb2_grpc.add_InspectionSystemServicer_to_server(
-        InspectionSystem(channels), server
+        InspectionSystem(channels, dependencies), server
     )
     health.set("inspection.InspectionSystem", health_pb2.HealthCheckResponse.SERVING)
 
 
 def add_passport_engine_service(
-    server: grpc.Server, channels: dict[str, grpc.Channel], health: HealthServicer
+    server: grpc.Server,
+    channels: dict[str, grpc.Channel],
+    health: HealthServicer,
+    dependencies: ServiceDependencies,
 ) -> None:
     """Add Passport Engine service to the server."""
     logger.info("Adding Passport Engine service to server")
     from services.passport_engine import PassportEngine
 
-    passport_engine_pb2_grpc.add_PassportEngineServicer_to_server(PassportEngine(channels), server)
+    passport_engine_pb2_grpc.add_PassportEngineServicer_to_server(
+        PassportEngine(channels, dependencies), server
+    )
     health.set("passport.PassportEngine", health_pb2.HealthCheckResponse.SERVING)
 
 
 def add_mdl_engine_service(
-    server: grpc.Server, channels: dict[str, grpc.Channel], health: HealthServicer
+    server: grpc.Server,
+    channels: dict[str, grpc.Channel],
+    health: HealthServicer,
+    dependencies: ServiceDependencies | None = None,
 ) -> None:
     """Add MDL Engine service to the server."""
     logger.info("Adding MDL Engine service to server")
@@ -303,7 +378,10 @@ def add_mdl_engine_service(
 
 
 def add_mdoc_engine_service(
-    server: grpc.Server, channels: dict[str, grpc.Channel], health: HealthServicer
+    server: grpc.Server,
+    channels: dict[str, grpc.Channel],
+    health: HealthServicer,
+    dependencies: ServiceDependencies | None = None,
 ) -> None:
     """Add MDoc Engine service to the server."""
     logger.info("Adding MDoc Engine service to server")
@@ -313,11 +391,28 @@ def add_mdoc_engine_service(
     health.set("mdoc.MDocEngine", health_pb2.HealthCheckResponse.SERVING)
 
 
+def add_pkd_service(
+    server: grpc.Server,
+    channels: dict[str, grpc.Channel],
+    health: HealthServicer,
+    dependencies: ServiceDependencies,
+) -> None:
+    """Add PKD service to the server."""
+    logger.info("Adding PKD service to server")
+    from services.pkd_service import PKDService
+
+    from src.proto import pkd_service_pb2_grpc
+
+    pkd_service_pb2_grpc.add_PKDServiceServicer_to_server(PKDService(channels, dependencies), server)
+    health.set("pkd.PKDService", health_pb2.HealthCheckResponse.SERVING)
+
+
 def add_service_by_name(
     service_name: str,
     server: grpc.Server,
     channels: dict[str, grpc.Channel],
     health: HealthServicer,
+    dependencies: ServiceDependencies,
 ) -> None:
     """Add the appropriate service based on service name.
 
@@ -335,11 +430,12 @@ def add_service_by_name(
         "passport-engine": add_passport_engine_service,
         "mdl-engine": add_mdl_engine_service,
         "mdoc-engine": add_mdoc_engine_service,
+        "pkd-service": add_pkd_service,
     }
 
     service_func = service_map.get(service_name)
     if service_func:
-        service_func(server, channels, health)
+        service_func(server, channels, health, dependencies)
     else:
         logger.warning(f"Unknown service name: {service_name}, starting empty server")
 
@@ -350,11 +446,17 @@ def serve() -> None:
     service_name = config["service_name"]
     grpc_port = config["grpc_port"]
 
+    runtime_config = MartyConfig()
+    tls_options = runtime_config.grpc_tls()
+
     # Create service channels
-    channels = create_service_channels(config)
+    channels = create_service_channels(config, tls_options)
 
     # Create the gRPC server
-    server = grpc.server(futures.ThreadPoolExecutor(max_workers=10))
+    server = grpc.server(
+        futures.ThreadPoolExecutor(max_workers=10),
+        interceptors=[ExceptionToStatusInterceptor()],
+    )
 
     # Set up health service
     health = setup_health_service(server)
@@ -362,8 +464,10 @@ def serve() -> None:
     # Set up logging streamer service
     setup_logging_streamer_service(server, health)
 
+    dependencies = build_dependencies(runtime_config)
+
     # Add the appropriate service based on SERVICE_NAME
-    add_service_by_name(service_name, server, channels, health)
+    add_service_by_name(service_name, server, channels, health, dependencies)
 
     # Initialize certificate lifecycle monitor if needed
     cert_monitor: CertificateLifecycleMonitor | None = None
@@ -373,7 +477,8 @@ def serve() -> None:
 
     # Start the server
     server_address = f"[::]:{grpc_port}"
-    server.add_insecure_port(server_address)
+    if not configure_server_security(server, server_address, tls_options):
+        server.add_insecure_port(server_address)
     server.start()
     logger.info(f"Server {service_name} started on {server_address}")
 

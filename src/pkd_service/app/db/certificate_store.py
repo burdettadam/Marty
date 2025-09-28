@@ -7,11 +7,11 @@ certificates from the database for the PKD Mirror Service.
 
 import asyncio
 import logging
-import uuid
-from datetime import datetime
 from typing import Any, Optional
 
 from app.db.database import DatabaseManager
+from app.models.pkd_models import CertificateStatus
+from app.utils.pkd_payloads import parse_certificate_payload, parse_crl_payload
 
 
 class CertificateStore:
@@ -43,19 +43,21 @@ class CertificateStore:
             bool: True if successful, False otherwise
         """
         try:
-            # Parse the certificates from the binary data
             certificates = self._parse_certificates(cert_data, "CSCA")
+            if not certificates:
+                self.logger.warning("No CSCA certificates decoded from payload")
+                return False
 
-            # Store each certificate
+            stored = 0
             for cert in certificates:
-                # Run async store in a synchronous context
                 asyncio.run(self._store_certificate(cert, "CSCA"))
+                stored += 1
 
-            self.logger.info(f"Stored {len(certificates)} CSCA certificates")
+            self.logger.info("Stored %s CSCA certificates", stored)
             return True
 
         except Exception as e:
-            self.logger.exception(f"Failed to store CSCA certificates: {e}")
+            self.logger.exception("Failed to store CSCA certificates: %s", e)
             return False
 
     def store_dsc_certificates(self, cert_data: bytes) -> bool:
@@ -69,19 +71,21 @@ class CertificateStore:
             bool: True if successful, False otherwise
         """
         try:
-            # Parse the certificates from the binary data
             certificates = self._parse_certificates(cert_data, "DSC")
+            if not certificates:
+                self.logger.warning("No DSC certificates decoded from payload")
+                return False
 
-            # Store each certificate
+            stored = 0
             for cert in certificates:
-                # Run async store in a synchronous context
                 asyncio.run(self._store_certificate(cert, "DSC"))
+                stored += 1
 
-            self.logger.info(f"Stored {len(certificates)} DSC certificates")
+            self.logger.info("Stored %s DSC certificates", stored)
             return True
 
         except Exception as e:
-            self.logger.exception(f"Failed to store DSC certificates: {e}")
+            self.logger.exception("Failed to store DSC certificates: %s", e)
             return False
 
     def store_crls(self, crl_data: bytes) -> bool:
@@ -95,22 +99,20 @@ class CertificateStore:
             bool: True if successful, False otherwise
         """
         try:
-            # Parse the CRLs from the binary data
             crls = self._parse_crls(crl_data)
+            if not crls:
+                self.logger.warning("No CRLs decoded from payload")
+                return False
 
-            # Store each CRL
             for crl in crls:
-                # Run async store in a synchronous context
                 asyncio.run(self._store_crl(crl))
 
-            # Update certificate status based on CRLs
             self._update_certificate_status_from_crls(crls)
-
-            self.logger.info(f"Stored {len(crls)} CRLs")
+            self.logger.info("Stored %s CRLs", len(crls))
             return True
 
         except Exception as e:
-            self.logger.exception(f"Failed to store CRLs: {e}")
+            self.logger.exception("Failed to store CRLs: %s", e)
             return False
 
     async def _store_certificate(
@@ -159,26 +161,26 @@ class CertificateStore:
         Returns:
             list: List of certificate data dictionaries
         """
-        # In a real implementation, this would parse the ASN.1 encoded certificates
-        # and extract the necessary information
+        certificates = parse_certificate_payload(cert_data, source_hint=cert_type)
+        parsed: list[dict[str, Any]] = []
 
-        # For demonstration purposes, we'll return a placeholder certificate
-        # This would be replaced with actual parsing logic in a real implementation
-        now = datetime.now()
+        for cert in certificates:
+            parsed.append(
+                {
+                    "subject": cert.subject,
+                    "issuer": cert.issuer,
+                    "valid_from": cert.valid_from,
+                    "valid_to": cert.valid_to,
+                    "serial_number": cert.serial_number,
+                    "certificate_data": cert.certificate_data,
+                    "status": (
+                        cert.status.value if isinstance(cert.status, CertificateStatus) else str(cert.status)
+                    ),
+                    "country_code": cert.country_code,
+                }
+            )
 
-        # Create a placeholder certificate
-        certificate = {
-            "subject": f"CN=Test {cert_type} Certificate",
-            "issuer": "CN=Test CSCA",
-            "valid_from": now,
-            "valid_to": now.replace(year=now.year + 5),  # Valid for 5 years
-            "serial_number": str(uuid.uuid4().hex),
-            "certificate_data": cert_data,
-            "status": "ACTIVE",
-            "country_code": "XX",  # Placeholder country code
-        }
-
-        return [certificate]
+        return parsed
 
     def _parse_crls(self, crl_data: bytes) -> list[dict[str, Any]]:
         """
@@ -190,23 +192,8 @@ class CertificateStore:
         Returns:
             list: List of CRL data dictionaries
         """
-        # In a real implementation, this would parse the ASN.1 encoded CRLs
-        # and extract the necessary information
-
-        # For demonstration purposes, we'll return a placeholder CRL
-        # This would be replaced with actual parsing logic in a real implementation
-        now = datetime.now()
-
-        # Create a placeholder CRL
-        crl = {
-            "issuer": "CN=Test CSCA",
-            "this_update": now,
-            "next_update": now.replace(day=now.day + 30),  # Valid for 30 days
-            "crl_data": crl_data,
-            "revoked_certificates": [],  # No revoked certificates in our placeholder
-        }
-
-        return [crl]
+        crls = parse_crl_payload(crl_data)
+        return crls
 
     def _update_certificate_status_from_crls(self, crls: list[dict[str, Any]]) -> None:
         """
@@ -215,16 +202,30 @@ class CertificateStore:
         Args:
             crls: List of CRL data dictionaries
         """
-        # In a real implementation, this would update the status of certificates
-        # that have been revoked according to the CRLs
+        serials = set()
+        for crl in crls:
+            for revoked in crl.get("revoked_certificates", []):
+                serial = revoked.get("serial_number")
+                if serial:
+                    serials.add(serial)
 
-        # For demonstration purposes, we'll just log a message
-        self.logger.info(f"Updating certificate status based on {len(crls)} CRLs")
+        if not serials:
+            return
 
-        # This would be implemented in a real system to:
-        # 1. Get all revoked certificate serial numbers from CRLs
-        # 2. Look up those certificates in the database
-        # 3. Update their status to REVOKED
+        for serial in serials:
+            for cert_type in ("CSCA", "DSC"):
+                try:
+                    asyncio.run(
+                        DatabaseManager.update_certificate_status_by_serial(
+                            serial_number=serial,
+                            cert_type=cert_type,
+                            status=CertificateStatus.REVOKED,
+                        )
+                    )
+                except Exception as exc:  # pragma: no cover - logged for observability
+                    self.logger.warning(
+                        "Failed to update status for serial %s (%s): %s", serial, cert_type, exc
+                    )
 
     def get_csca_certificates(self, country_code: Optional[str] = None) -> list[dict[str, Any]]:
         """

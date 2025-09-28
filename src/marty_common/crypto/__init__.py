@@ -12,6 +12,7 @@ import sys
 
 from .data_group_hasher import DataGroupHashComputer, verify_passport_data_groups
 from .sod_parser import SODProcessor, extract_sod_hashes, parse_sod
+from .sod_signer import build_lds_security_object, create_sod, load_sod, verify_sod_signature
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
 try:
@@ -90,4 +91,8 @@ __all__ = [
     "verify_passport_data_groups",
     "verify_password",
     "verify_signature",
+    "build_lds_security_object",
+    "create_sod",
+    "load_sod",
+    "verify_sod_signature",
 ]

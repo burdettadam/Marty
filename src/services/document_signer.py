@@ -1,10 +1,18 @@
-import base64
-import hashlib
+import asyncio
+import json
 import logging
-import os
-import time
+from datetime import datetime, timezone
 
-# Import the generated gRPC modules
+import grpc
+from cryptography.hazmat.primitives import hashes
+
+from marty_common.infrastructure import (
+    CertificateRepository,
+    EventBusMessage,
+    EventBusProvider,
+    KeyVaultClient,
+    ObjectStorageClient,
+)
 from proto import (
     csca_service_pb2,
     csca_service_pb2_grpc,
@@ -14,79 +22,100 @@ from proto import (
 
 
 class DocumentSigner(document_signer_pb2_grpc.DocumentSignerServicer):
-    """
-    Implementation of the Document Signer service.
+    """Document signer using secure key vault, storage, and event bus."""
 
-    This service is responsible for:
-    - Maintaining DSCs signed by the CSCA
-    - Signing SOD (Document Security Object) files
-    - Handling key rotation and certificate expiry
-    """
-
-    def __init__(self, channels=None) -> None:
-        """
-        Initialize the Document Signer service.
-
-        Args:
-            channels (dict): Dictionary of gRPC channels to other services
-        """
+    def __init__(self, channels=None, dependencies=None) -> None:
+        if dependencies is None:
+            msg = "DocumentSigner requires service dependencies"
+            raise ValueError(msg)
         self.logger = logging.getLogger(__name__)
         self.channels = channels or {}
-        self.data_dir = os.environ.get("DATA_DIR", "/app/data")
-        self.logger.info("Document Signer service initialized")
+        self._database = dependencies.database
+        self._key_vault: KeyVaultClient = dependencies.key_vault
+        self._event_bus: EventBusProvider = dependencies.event_bus
+        self._object_storage: ObjectStorageClient = dependencies.object_storage
+        self._signing_key_id = "document-signer-default"
+        self._signing_algorithm = "rsa2048"
+        self.logger.info("Document Signer service initialized with secure key vault")
+
+    def _run(self, coroutine):
+        return asyncio.run(coroutine)
 
     def SignDocument(self, request, context):
-        """
-        Sign a document with the Document Signer's private key.
+        document_id = request.document_id or ""
+        payload = request.document_content
 
-        Args:
-            request: The gRPC request containing the document to sign
-            context: The gRPC context
+        if not document_id:
+            context.set_details("document_id is required")
+            context.set_code(grpc.StatusCode.INVALID_ARGUMENT)
+            return document_signer_pb2.SignResponse(success=False, error_message="document_id missing")
 
-        Returns:
-            SignResponse: The gRPC response containing the signature
-        """
-        self.logger.info(f"SignDocument called with document of length {len(request.document)}")
+        if not payload:
+            context.set_details("document_content is required")
+            context.set_code(grpc.StatusCode.INVALID_ARGUMENT)
+            return document_signer_pb2.SignResponse(success=False, error_message="document_content missing")
 
-        # Get the CSCA certificate if needed (demonstrating inter-service communication)
-        csca_cert = self._get_csca_certificate()
-        self.logger.info(f"Using CSCA certificate: {csca_cert}")
-
-        # In a real implementation, this would use HSM or secure cryptographic operations
-        # For demonstration, we'll create a mock signature
-        document_hash = hashlib.sha256(request.document.encode()).digest()
-        signature = base64.b64encode(document_hash).decode()
-
-        # Add a timestamp to make the signature unique
-        signature = f"{signature}.{int(time.time())}"
-
-        self.logger.info(f"Document signed, signature length: {len(signature)}")
-
-        # Return the response
-        return document_signer_pb2.SignResponse(signature=signature)
-
-    def _get_csca_certificate(self):
-        """
-        Get the CSCA certificate from the CSCA service.
-        This demonstrates inter-service communication.
-
-        Returns:
-            str: The CSCA certificate
-        """
         try:
-            # Get the channel to the CSCA service
-            csca_channel = self.channels.get("csca_service")
-            if not csca_channel:
-                self.logger.warning("CSCA service channel not available, using mock certificate")
-                return "MOCK_CSCA_CERTIFICATE"
+            self._run(self._key_vault.ensure_key(self._signing_key_id, self._signing_algorithm))
+            signature = self._run(self._key_vault.sign(self._signing_key_id, payload, self._signing_algorithm))
 
-            # Create a stub for the CSCA service
-            csca_stub = csca_service_pb2_grpc.CscaServiceStub(csca_channel)
+            digest = hashes.Hash(hashes.SHA256())
+            digest.update(payload)
+            payload_hash = digest.finalize()
 
-            # Call the GetCscaData method
-            response = csca_stub.GetCscaData(csca_service_pb2.CscaRequest(id="document-signer"))
+            storage_key = f"signatures/{document_id}-{int(datetime.now(timezone.utc).timestamp())}.sig"
+            self._run(self._object_storage.put_object(storage_key, signature))
 
-            return response.data
-        except Exception as e:
-            self.logger.exception(f"Error getting CSCA certificate: {e}")
-            return "ERROR_GETTING_CSCA_CERTIFICATE"
+            self._sync_csca_certificate()
+
+            message = EventBusMessage(
+                topic="credential.issued",
+                payload=self._build_event_payload(document_id, payload_hash, storage_key),
+            )
+            self._run(self._event_bus.publish(message))
+
+            signature_info = document_signer_pb2.SignatureInfo(
+                signature_date=datetime.now(timezone.utc).isoformat(),
+                signer_id=self._signing_key_id,
+                signature=signature,
+            )
+            return document_signer_pb2.SignResponse(success=True, signature_info=signature_info)
+        except Exception as exc:  # pylint: disable=broad-except
+            self.logger.exception("Failed to sign document %s", document_id)
+            context.set_details(str(exc))
+            context.set_code(grpc.StatusCode.INTERNAL)
+            return document_signer_pb2.SignResponse(
+                success=False,
+                error_message=str(exc),
+            )
+
+    def _build_event_payload(self, document_id: str, payload_hash: bytes, storage_key: str) -> bytes:
+        data = {
+            "document_id": document_id,
+            "hash_algo": "SHA256",
+            "hash": payload_hash.hex(),
+            "signature_location": storage_key,
+            "signer": self._signing_key_id,
+        }
+        return json.dumps(data).encode("utf-8")
+
+    def _sync_csca_certificate(self) -> None:
+        channel = self.channels.get("csca_service")
+        if not channel:
+            self.logger.debug("CSCA channel unavailable; skipping certificate sync")
+            return
+
+        stub = csca_service_pb2_grpc.CscaServiceStub(channel)
+        try:
+            response = stub.GetCscaData(csca_service_pb2.CscaRequest(id="document-signer"))
+        except grpc.RpcError as rpc_err:
+            self.logger.error("Failed to fetch CSCA data: %s", rpc_err.details())
+            return
+
+        pem_data = response.data
+
+        async def handler(session):
+            repo = CertificateRepository(session)
+            await repo.upsert("document-signer-csca", "CSCA", pem_data)
+
+        self._run(self._database.run_within_transaction(handler))

@@ -1,287 +1,485 @@
-"""Secure Messaging for ICAO Passport Communication.
-
-Implements Basic Access Control (BAC), Extended Access Control (EAC),
-and PACE (Password Authenticated Connection Establishment) protocols.
-"""
+"""Secure messaging primitives for ICAO Doc 9303 communication."""
 
 from __future__ import annotations
 
 import hashlib
 import logging
+import secrets
 from dataclasses import dataclass
 from typing import Optional
 
+from cryptography.hazmat.primitives import serialization
+from cryptography.hazmat.primitives.asymmetric import ec
 from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
+
+from ..utils.mrz_utils import MRZException, MRZParser
 
 logger = logging.getLogger(__name__)
 
 
 @dataclass
 class BACKeys:
-    """Basic Access Control keys derived from MRZ."""
+    """Basic Access Control master keys."""
 
-    k_enc: bytes  # Encryption key
-    k_mac: bytes  # MAC key
-    k_seed: bytes  # Seed key
+    k_enc: bytes
+    k_mac: bytes
+    k_seed: bytes
 
 
 @dataclass
 class SessionKeys:
-    """Session keys for secure messaging."""
+    """Session keys used for secure messaging (BAC or PACE)."""
 
-    k_s_enc: bytes  # Session encryption key
-    k_s_mac: bytes  # Session MAC key
-    ssc: int  # Send Sequence Counter
+    k_s_enc: bytes
+    k_s_mac: bytes
+    ssc: int
+
+
+@dataclass
+class _BACContext:
+    rnd_ifd: bytes
+    k_ifd: bytes
+    rnd_ic: bytes
+
+
+@dataclass
+class _PACEState:
+    private_key: ec.EllipticCurvePrivateKey
+    nonce: bytes
+    k_pi: bytes
 
 
 class SecureMessaging:
-    """Handles secure messaging protocols for passport communication."""
+    """Implements ICAO-compliant BAC/PACE secure messaging."""
 
     def __init__(self) -> None:
         self.session_keys: Optional[SessionKeys] = None
+        self._bac_state: Optional[_BACContext] = None
+        self._pace_state: Optional[_PACEState] = None
         self.logger = logging.getLogger(__name__)
 
+    # ------------------------------------------------------------------
+    # BAC key derivation and mutual authentication
+    # ------------------------------------------------------------------
     def derive_bac_keys(
         self, passport_number: str, date_of_birth: str, date_of_expiry: str
     ) -> BACKeys:
-        """Derive BAC keys from MRZ data.
+        """Derive BAC master keys from MRZ data (ICAO Doc 9303 6.1.1)."""
 
-        Args:
-            passport_number: Passport number from MRZ
-            date_of_birth: Date of birth (YYMMDD)
-            date_of_expiry: Date of expiry (YYMMDD)
+        doc_number = self._normalize_document_number(passport_number)
+        doc_cd = MRZParser.calculate_check_digit(doc_number)
 
-        Returns:
-            BACKeys containing encryption and MAC keys
-        """
-        # Construct MRZ information for key derivation
-        mrz_info = f"{passport_number}{self._calculate_check_digit(passport_number)}"
-        mrz_info += f"{date_of_birth}{self._calculate_check_digit(date_of_birth)}"
-        mrz_info += f"{date_of_expiry}{self._calculate_check_digit(date_of_expiry)}"
+        dob_cd = MRZParser.calculate_check_digit(date_of_birth)
+        doe_cd = MRZParser.calculate_check_digit(date_of_expiry)
 
-        # Pad to ensure consistent length
-        mrz_info = mrz_info.ljust(24, "<")
+        mrz_info = f"{doc_number}{doc_cd}{date_of_birth}{dob_cd}{date_of_expiry}{doe_cd}"
+        mrz_bytes = mrz_info.encode("ascii")
 
-        # SHA-1 hash of MRZ information
-        k_seed = hashlib.sha1(mrz_info.encode("ascii")).digest()[:16]
+        k_seed = hashlib.sha1(mrz_bytes).digest()[:16]
+        k_enc = self._derive_3des_key(k_seed, b"\x00\x00\x00\x01")
+        k_mac = self._derive_3des_key(k_seed, b"\x00\x00\x00\x02")
 
-        # Derive encryption and MAC keys
-        k_enc = self._derive_key(k_seed, b"\x00\x00\x00\x01")
-        k_mac = self._derive_key(k_seed, b"\x00\x00\x00\x02")
-
-        self.logger.debug("BAC keys derived from MRZ data")
+        self.logger.debug("Derived BAC master keys from MRZ data")
 
         return BACKeys(k_enc=k_enc, k_mac=k_mac, k_seed=k_seed)
 
-    def _calculate_check_digit(self, data: str) -> str:
-        """Calculate MRZ check digit."""
-        weights = [7, 3, 1]
-        total = 0
+    def perform_basic_access_control(self, bac_keys: BACKeys, challenge: bytes) -> bytes:
+        """Create mutual authentication command for BAC (ICAO Doc 9303 6.2)."""
 
-        for i, char in enumerate(data):
-            if char.isdigit():
-                value = int(char)
-            elif char == "<":
-                value = 0
-            else:
-                # Convert letters to numbers (A=10, B=11, etc.)
-                value = ord(char.upper()) - ord("A") + 10
+        if len(challenge) != 8:
+            msg = "Challenge must be 8 bytes"
+            raise ValueError(msg)
 
-            total += value * weights[i % 3]
+        rnd_ifd = secrets.token_bytes(8)
+        k_ifd = secrets.token_bytes(16)
 
-        return str(total % 10)
+        s = rnd_ifd + challenge + k_ifd
+        e_ifd = self._encrypt_3des_cbc(s, bac_keys.k_enc)
+        m_ifd = self._retail_mac(bac_keys.k_mac, e_ifd)
 
-    def _derive_key(self, k_seed: bytes, counter: bytes) -> bytes:
-        """Derive encryption/MAC key from seed."""
-        # ICAO key derivation using SHA-1
-        data = k_seed + counter
-        hash_result = hashlib.sha1(data).digest()
+        self._bac_state = _BACContext(rnd_ifd=rnd_ifd, k_ifd=k_ifd, rnd_ic=challenge)
+        self.logger.debug("Prepared BAC mutual authentication command")
 
-        # Adjust parity bits for DES compatibility
-        key = bytearray(hash_result[:8])
-        for i in range(8):
-            # Set parity bit
-            parity = 0
-            for j in range(7):
-                if (key[i] >> j) & 1:
-                    parity ^= 1
-            key[i] = (key[i] & 0xFE) | parity
+        return e_ifd + m_ifd
 
-        return bytes(key)
+    def complete_basic_access_control(self, bac_keys: BACKeys, response: bytes) -> SessionKeys:
+        """Validate chip response and derive BAC session keys."""
 
-    def perform_basic_access_control(
-        self, bac_keys: BACKeys, challenge: bytes
-    ) -> tuple[bytes, bytes]:
-        """Perform Basic Access Control authentication.
+        if not self._bac_state:
+            msg = "BAC mutual authentication state missing"
+            raise ValueError(msg)
 
-        Args:
-            bac_keys: BAC keys derived from MRZ
-            challenge: 8-byte challenge from passport
+        if len(response) < 40:
+            msg = "Invalid BAC response length"
+            raise ValueError(msg)
 
-        Returns:
-            Tuple of (authentication_command, expected_response)
-        """
-        # Generate random number for mutual authentication
-        rnd_ic = challenge  # Challenge from passport
-        rnd_ifd = b"\x12\x34\x56\x78\x9A\xBC\xDE\xF0"  # Random from reader
+        e_ic = response[:-8]
+        mac_ic = response[-8:]
 
-        # Compute authentication data
-        s = rnd_ifd + rnd_ic
+        expected_mac = self._retail_mac(bac_keys.k_mac, e_ic)
+        if mac_ic != expected_mac:
+            msg = "BAC response MAC verification failed"
+            raise ValueError(msg)
 
-        # Encrypt S with BAC encryption key
-        cipher = self._create_3des_cipher(bac_keys.k_enc)
-        encryptor = cipher.encryptor()
-        e_ifd = encryptor.update(s) + encryptor.finalize()
+        s = self._decrypt_3des_cbc(e_ic, bac_keys.k_enc)
+        rnd_ic = s[:8]
+        rnd_ifd = s[8:16]
+        k_ic = s[16:32]
 
-        # Compute MAC
-        m_ifd = self._compute_mac(bac_keys.k_mac, e_ifd)
+        if rnd_ifd != self._bac_state.rnd_ifd:
+            msg = "BAC RND.IFD mismatch"
+            raise ValueError(msg)
 
-        # Authentication command
-        auth_cmd = e_ifd + m_ifd
+        session_keys = self.derive_session_keys(
+            k_ifd=self._bac_state.k_ifd,
+            k_ic=k_ic,
+            rnd_ic=rnd_ic,
+            rnd_ifd=self._bac_state.rnd_ifd,
+        )
 
-        # Expected response format
-        expected_s = rnd_ic + rnd_ifd  # Reversed order
-        cipher = self._create_3des_cipher(bac_keys.k_enc)
-        encryptor = cipher.encryptor()
-        expected_e_ic = encryptor.update(expected_s) + encryptor.finalize()
-
-        self.logger.debug("BAC authentication data computed")
-
-        return auth_cmd, expected_e_ic
-
-    def derive_session_keys(self, bac_keys: BACKeys, rnd_ic: bytes, rnd_ifd: bytes) -> SessionKeys:
-        """Derive session keys from BAC keys and random numbers."""
-        # Key seed for session keys
-        k_seed = self._xor_bytes(rnd_ic, rnd_ifd)
-
-        # Derive session keys
-        k_s_enc = self._derive_key(k_seed, b"\x00\x00\x00\x01")
-        k_s_mac = self._derive_key(k_seed, b"\x00\x00\x00\x02")
-
-        # Initialize Send Sequence Counter
-        ssc = int.from_bytes(rnd_ic[-4:] + rnd_ifd[-4:], "big")
-
-        session_keys = SessionKeys(k_s_enc=k_s_enc, k_s_mac=k_s_mac, ssc=ssc)
+        self._bac_state = None
         self.session_keys = session_keys
-
-        self.logger.debug("Session keys derived")
+        self.logger.debug("BAC mutual authentication succeeded")
 
         return session_keys
 
-    def encrypt_command(self, apdu: bytes) -> bytes:
-        """Encrypt APDU command using secure messaging."""
-        if not self.session_keys:
-            msg = "No session keys available"
+    def derive_session_keys(
+        self, k_ifd: bytes, k_ic: bytes, rnd_ic: bytes, rnd_ifd: bytes
+    ) -> SessionKeys:
+        """Derive secure messaging keys from BAC shared secrets."""
+
+        if not (len(k_ifd) == len(k_ic) == 16):
+            msg = "K.IFD and K.ICC must be 16-byte values"
             raise ValueError(msg)
 
-        # Increment SSC
-        self.session_keys.ssc += 1
+        seed_input = bytes(x ^ y for x, y in zip(k_ifd, k_ic))
+        k_seed = hashlib.sha1(seed_input).digest()[:16]
 
-        # Create secure messaging APDU
-        # This is a simplified implementation - full implementation
-        # would handle proper padding and MAC calculation
+        k_s_enc = self._derive_3des_key(k_seed, b"\x00\x00\x00\x01")
+        k_s_mac = self._derive_3des_key(k_seed, b"\x00\x00\x00\x02")
+        ssc = int.from_bytes(rnd_ic[-4:] + rnd_ifd[-4:], "big")
 
-        encrypted_data = self._encrypt_data(apdu[5:], self.session_keys.k_s_enc)
-        mac_data = self._compute_mac(self.session_keys.k_s_mac, apdu[:4] + encrypted_data)
+        return SessionKeys(k_s_enc=k_s_enc, k_s_mac=k_s_mac, ssc=ssc)
 
-        # Construct secure APDU
-        secure_apdu = apdu[:4] + encrypted_data + mac_data
+    # ------------------------------------------------------------------
+    # Secure messaging APDU protection (ISO 7816-4 + ICAO Doc 9303 6.3)
+    # ------------------------------------------------------------------
+    def encrypt_command(self, apdu: bytes) -> bytes:
+        """Protect command APDU using current session keys."""
 
-        return secure_apdu
+        if not self.session_keys:
+            msg = "Session keys not established"
+            raise ValueError(msg)
+
+        cla, ins, p1, p2, data_field, le_field = self._parse_command_apdu(apdu)
+
+        self.session_keys.ssc = (self.session_keys.ssc + 1) & 0xFFFFFFFFFFFFFFFF
+        ssc_bytes = self.session_keys.ssc.to_bytes(8, "big")
+
+        protected_header = bytes([cla | 0x0C, ins, p1, p2])
+
+        do87 = b""
+        if data_field:
+            padded = self._iso_pad(data_field)
+            encrypted = self._encrypt_3des_cbc(padded, self.session_keys.k_s_enc)
+            do87 = b"\x87" + self._encode_length(len(encrypted) + 1) + b"\x01" + encrypted
+
+        do97 = b""
+        if le_field is not None:
+            do97 = b"\x97" + self._encode_length(len(le_field)) + le_field
+
+        mac_input = ssc_bytes + protected_header + do87 + do97
+        mac = self._retail_mac(self.session_keys.k_s_mac, mac_input)
+        do8e = b"\x8E\x08" + mac
+
+        protected_data = do87 + do97 + do8e
+        lc = self._encode_length(len(protected_data))
+
+        protected_apdu = protected_header + lc + protected_data
+        return protected_apdu
 
     def decrypt_response(self, response: bytes) -> bytes:
-        """Decrypt APDU response using secure messaging."""
+        """Verify and decrypt protected response APDU."""
+
         if not self.session_keys:
-            msg = "No session keys available"
+            msg = "Session keys not established"
             raise ValueError(msg)
 
-        # Extract encrypted data and MAC
-        encrypted_data = response[:-10]  # Assuming 8-byte MAC + 2-byte status
-        received_mac = response[-10:-2]
-        status_word = response[-2:]
+        self.session_keys.ssc = (self.session_keys.ssc + 1) & 0xFFFFFFFFFFFFFFFF
+        ssc_bytes = self.session_keys.ssc.to_bytes(8, "big")
 
-        # Verify MAC
-        expected_mac = self._compute_mac(self.session_keys.k_s_mac, encrypted_data + status_word)
+        tlvs, trailing_sw = self._parse_response_tlvs(response)
 
-        if received_mac != expected_mac:
-            msg = "MAC verification failed"
+        do87_bytes = b""
+        do99_bytes = b""
+        mac_bytes = None
+        plaintext = b""
+        status = trailing_sw
+
+        for tag, raw, encoded in tlvs:
+            if tag == 0x87:
+                do87_bytes = encoded
+                if not raw:
+                    continue
+                if raw[0] != 0x01:
+                    msg = "Unsupported DO87 format"
+                    raise ValueError(msg)
+                ciphertext = raw[1:]
+                decrypted = self._decrypt_3des_cbc(ciphertext, self.session_keys.k_s_enc)
+                plaintext = self._iso_unpad(decrypted)
+            elif tag == 0x99:
+                if len(raw) != 2:
+                    msg = "Invalid DO99 length"
+                    raise ValueError(msg)
+                do99_bytes = encoded
+                status = raw
+            elif tag == 0x8E:
+                if len(raw) != 8:
+                    msg = "Invalid DO8E length"
+                    raise ValueError(msg)
+                mac_bytes = raw
+
+        if mac_bytes is None:
+            # Response was not protected – return as-is with trailing status
+            return response
+
+        mac_input = ssc_bytes + do87_bytes + do99_bytes
+        expected_mac = self._retail_mac(self.session_keys.k_s_mac, mac_input)
+        if mac_bytes != expected_mac:
+            msg = "Secure messaging response MAC verification failed"
             raise ValueError(msg)
 
-        # Decrypt data
-        decrypted_data = self._decrypt_data(encrypted_data, self.session_keys.k_s_enc)
+        return plaintext + status
 
-        return decrypted_data + status_word
+    # ------------------------------------------------------------------
+    # PACE (simplified ECDH implementation for educational purposes)
+    # ------------------------------------------------------------------
+    def setup_pace_protocol(
+        self,
+        password: str,
+        nonce: bytes,
+        curve: ec.EllipticCurve = ec.SECP256R1(),
+    ) -> bytes:
+        """Start PACE handshake and return the reader public key."""
 
-    def _create_3des_cipher(self, key: bytes):
-        """Create 3DES cipher for encryption/decryption."""
-        # Extend 8-byte key to 24-byte for 3DES
-        key_3des = key + key + key[:8]
-        return Cipher(algorithms.TripleDES(key_3des), modes.CBC(b"\x00" * 8))
+        if not nonce:
+            msg = "PACE nonce must not be empty"
+            raise ValueError(msg)
 
-    def _encrypt_data(self, data: bytes, key: bytes) -> bytes:
-        """Encrypt data using session encryption key."""
-        cipher = self._create_3des_cipher(key)
+        k_pi = self._derive_pace_password_key(password)
+        decrypted_nonce = self._iso_unpad(self._decrypt_3des_cbc(nonce, k_pi))
+
+        private_key = ec.generate_private_key(curve)
+        reader_public = private_key.public_key().public_bytes(
+            serialization.Encoding.X962,
+            serialization.PublicFormat.UncompressedPoint,
+        )
+
+        self._pace_state = _PACEState(private_key=private_key, nonce=decrypted_nonce, k_pi=k_pi)
+        self.logger.debug("PACE reader public key generated")
+
+        return reader_public
+
+    def complete_pace_protocol(self, chip_public_key: bytes) -> SessionKeys:
+        """Finish PACE handshake using chip public key."""
+
+        if not self._pace_state:
+            msg = "PACE state unavailable – call setup_pace_protocol first"
+            raise ValueError(msg)
+
+        chip_key = ec.EllipticCurvePublicKey.from_encoded_point(
+            self._pace_state.private_key.curve, chip_public_key
+        )
+
+        shared_secret = self._pace_state.private_key.exchange(ec.ECDH(), chip_key)
+        digest = hashlib.sha256(shared_secret + self._pace_state.nonce).digest()
+        k_seed = digest[:16]
+
+        k_s_enc = self._derive_3des_key(k_seed, b"\x00\x00\x00\x01")
+        k_s_mac = self._derive_3des_key(k_seed, b"\x00\x00\x00\x02")
+        ssc = int.from_bytes(digest[-8:], "big")
+
+        self.session_keys = SessionKeys(k_s_enc=k_s_enc, k_s_mac=k_s_mac, ssc=ssc)
+        self._pace_state = None
+        self.logger.debug("PACE key agreement completed")
+
+        return self.session_keys
+
+    # ------------------------------------------------------------------
+    # Helpers
+    # ------------------------------------------------------------------
+    @staticmethod
+    def _normalize_document_number(number: str) -> str:
+        cleaned = "".join(char for char in number.upper() if char.isalnum())
+        return cleaned[:9].ljust(9, "<")
+
+    @staticmethod
+    def _adjust_des_parity(byte_value: int) -> int:
+        parity = 0
+        for bit in range(7):
+            parity ^= (byte_value >> bit) & 1
+        return (byte_value & 0xFE) | (parity ^ 1)
+
+    def _derive_3des_key(self, seed: bytes, counter: bytes) -> bytes:
+        digest = hashlib.sha1(seed + counter).digest()
+        key_bytes = bytearray(digest[:16])
+        for idx, value in enumerate(key_bytes):
+            key_bytes[idx] = self._adjust_des_parity(value)
+        return bytes(key_bytes)
+
+    @staticmethod
+    def _expand_3des_key(key: bytes) -> bytes:
+        if len(key) == 16:
+            return key + key[:8]
+        if len(key) == 24:
+            return key
+        msg = "3DES key must be 16 or 24 bytes"
+        raise ValueError(msg)
+
+    def _encrypt_3des_cbc(self, data: bytes, key: bytes, iv: bytes | None = None) -> bytes:
+        iv = iv or b"\x00" * 8
+        cipher = Cipher(algorithms.TripleDES(self._expand_3des_key(key)), modes.CBC(iv))
         encryptor = cipher.encryptor()
+        return encryptor.update(data) + encryptor.finalize()
 
-        # Pad data to block size
-        padded_data = self._pad_data(data, 8)
-
-        return encryptor.update(padded_data) + encryptor.finalize()
-
-    def _decrypt_data(self, data: bytes, key: bytes) -> bytes:
-        """Decrypt data using session encryption key."""
-        cipher = self._create_3des_cipher(key)
+    def _decrypt_3des_cbc(self, data: bytes, key: bytes, iv: bytes | None = None) -> bytes:
+        iv = iv or b"\x00" * 8
+        cipher = Cipher(algorithms.TripleDES(self._expand_3des_key(key)), modes.CBC(iv))
         decryptor = cipher.decryptor()
+        return decryptor.update(data) + decryptor.finalize()
 
-        decrypted = decryptor.update(data) + decryptor.finalize()
-
-        # Remove padding
-        return self._unpad_data(decrypted)
-
-    def _compute_mac(self, key: bytes, data: bytes) -> bytes:
-        """Compute MAC using session MAC key."""
-        # Pad data
-        padded_data = self._pad_data(data, 8)
-
-        # Compute MAC using CBC-MAC
-        cipher = self._create_3des_cipher(key)
-        encryptor = cipher.encryptor()
-
-        encrypted = encryptor.update(padded_data) + encryptor.finalize()
-
-        # Return last 8 bytes as MAC
-        return encrypted[-8:]
-
-    def _pad_data(self, data: bytes, block_size: int) -> bytes:
-        """Apply PKCS#7 padding."""
-        padding_length = block_size - (len(data) % block_size)
-        padding = bytes([padding_length]) * padding_length
+    @staticmethod
+    def _iso_pad(data: bytes, block_size: int = 8) -> bytes:
+        pad_len = block_size - (len(data) % block_size)
+        padding = b"\x80" + b"\x00" * (pad_len - 1)
         return data + padding
 
-    def _unpad_data(self, data: bytes) -> bytes:
-        """Remove PKCS#7 padding."""
-        padding_length = data[-1]
-        return data[:-padding_length]
+    @staticmethod
+    def _iso_unpad(data: bytes) -> bytes:
+        if not data:
+            return data
+        idx = len(data) - 1
+        while idx >= 0 and data[idx] == 0x00:
+            idx -= 1
+        if idx < 0 or data[idx] != 0x80:
+            msg = "Invalid ISO/IEC 9797-1 padding"
+            raise ValueError(msg)
+        return data[:idx]
 
-    def _xor_bytes(self, a: bytes, b: bytes) -> bytes:
-        """XOR two byte arrays."""
-        return bytes(x ^ y for x, y in zip(a, b, strict=False))
+    def _retail_mac(self, key: bytes, data: bytes) -> bytes:
+        padded = self._iso_pad(data)
+        mac = self._encrypt_3des_cbc(padded, key)
+        return mac[-8:]
 
-    def setup_pace_protocol(self, password: str) -> bool:
-        """Setup PACE (Password Authenticated Connection Establishment).
+    @staticmethod
+    def _encode_length(length: int) -> bytes:
+        if length <= 0x7F:
+            return bytes([length])
+        if length <= 0xFF:
+            return b"\x81" + bytes([length])
+        if length <= 0xFFFF:
+            return b"\x82" + length.to_bytes(2, "big")
+        msg = "Length encoding > 65535 not supported"
+        raise ValueError(msg)
 
-        PACE is a more secure alternative to BAC introduced in ICAO Doc 9303.
-        """
-        # PACE implementation would go here
-        # This is a placeholder for the more complex PACE protocol
-        self.logger.info("PACE protocol setup requested (not yet implemented)")
-        return False
+    def _encode_tlv(self, tag: int, value: bytes) -> bytes:
+        tag_bytes = self._encode_tag(tag)
+        length_bytes = self._encode_length(len(value))
+        return tag_bytes + length_bytes + value
 
-    def setup_eac_protocol(self, ca_reference: bytes) -> bool:
-        """Setup EAC (Extended Access Control) for sensitive biometric data.
+    @staticmethod
+    def _encode_tag(tag: int) -> bytes:
+        if tag <= 0xFF:
+            return bytes([tag])
+        return tag.to_bytes(2, "big")
 
-        EAC provides additional security for accessing fingerprint and iris data.
-        """
-        # EAC implementation would go here
-        self.logger.info("EAC protocol setup requested (not yet implemented)")
-        return False
+    @staticmethod
+    def _parse_command_apdu(apdu: bytes) -> tuple[int, int, int, int, bytes, bytes | None]:
+        if len(apdu) < 4:
+            msg = "APDU must contain at least CLA INS P1 P2"
+            raise ValueError(msg)
+
+        cla, ins, p1, p2 = apdu[:4]
+        idx = 4
+        data_field = b""
+        le_field: bytes | None = None
+
+        if len(apdu) > idx:
+            lc = apdu[idx]
+            idx += 1
+            if lc:
+                data_field = apdu[idx : idx + lc]
+                idx += lc
+
+            if len(apdu) > idx:
+                le_field = apdu[idx:]
+
+        return cla, ins, p1, p2, data_field, le_field
+
+    def _parse_response_tlvs(
+        self, response: bytes
+    ) -> tuple[list[tuple[int, bytes, bytes]], bytes]:
+        idx = 0
+        elements: list[tuple[int, bytes, bytes]] = []
+
+        while idx < len(response):
+            if len(response) - idx == 2:
+                return elements, response[idx:]
+
+            tag, tag_len = self._read_tag(response, idx)
+            idx += tag_len
+
+            length, length_len = self._read_length(response, idx)
+            idx += length_len
+
+            value = response[idx : idx + length]
+            idx += length
+
+            encoded = self._encode_tlv(tag, value)
+            elements.append((tag, value, encoded))
+
+        return elements, b""
+
+    @staticmethod
+    def _read_tag(buffer: bytes, offset: int) -> tuple[int, int]:
+        first = buffer[offset]
+        if first & 0x1F == 0x1F:
+            tag = int.from_bytes(buffer[offset : offset + 2], "big")
+            return tag, 2
+        return first, 1
+
+    @staticmethod
+    def _read_length(buffer: bytes, offset: int) -> tuple[int, int]:
+        first = buffer[offset]
+        if first & 0x80 == 0:
+            return first, 1
+        num_bytes = first & 0x7F
+        length = int.from_bytes(buffer[offset + 1 : offset + 1 + num_bytes], "big")
+        return length, 1 + num_bytes
+
+    def _derive_pace_password_key(self, password: str) -> bytes:
+        if password.isdigit() and 6 <= len(password) <= 10:
+            digest = hashlib.sha1(password.encode("ascii")).digest()
+            k_seed = digest[:16]
+        else:
+            try:
+                mrz = MRZParser.parse_mrz(password)
+            except MRZException as exc:  # pragma: no cover - validated by caller tests
+                msg = f"Unsupported PACE password format: {exc}"
+                raise ValueError(msg) from exc
+
+            doc_number = self._normalize_document_number(mrz.document_number)
+            doc_cd = MRZParser.calculate_check_digit(doc_number)
+            dob_cd = MRZParser.calculate_check_digit(mrz.date_of_birth)
+            doe_cd = MRZParser.calculate_check_digit(mrz.date_of_expiry)
+            info = (
+                f"{doc_number}{doc_cd}{mrz.date_of_birth}{dob_cd}{mrz.date_of_expiry}{doe_cd}".encode(
+                    "ascii"
+                )
+            )
+            k_seed = hashlib.sha1(info).digest()[:16]
+
+        key = bytearray(k_seed)
+        for idx, value in enumerate(key):
+            key[idx] = self._adjust_des_parity(value)
+        return bytes(key)

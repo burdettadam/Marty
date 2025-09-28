@@ -24,6 +24,7 @@ logging:
 
 # Database
 database:
+  url: "${MARTY_DATABASE_URL:-postgresql+asyncpg://test_user:test_password@localhost:5432/marty_test}"
   host: localhost
   port: 5432
   user: test_user
@@ -35,6 +36,37 @@ security:
   key_directory: 'tests/fixtures/keys'
   key_rotation_days: 365
   certificate_validity_days: 365
+  grpc_tls:
+    enabled: false
+    server_cert: ""
+    server_key: ""
+    client_ca: ""
+    client_cert: ""
+    client_key: ""
+    require_client_auth: false
+
+# Object storage
+object_storage:
+  bucket: "marty-test"
+  access_key: "localtest"
+  secret_key: "localtest"
+  region: "us-east-1"
+  endpoint_url: "${MARTY_OBJECT_STORE_ENDPOINT:-http://localhost:9000}"
+  secure: false
+  path_style_access: true
+
+# Key vault
+key_vault:
+  provider: "${MARTY_KEY_VAULT_PROVIDER:-file}"
+  file_path: 'tests/fixtures/keys'
+  hsm_config_path: "${MARTY_HSM_CONFIG:-}"
+
+# Event bus
+event_bus:
+  enabled: false
+  brokers: "localhost:9092"
+  client_id: "marty-test"
+  topic_prefix: "test."
 
 # Feature flags
 features:

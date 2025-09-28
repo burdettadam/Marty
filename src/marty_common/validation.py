@@ -10,6 +10,7 @@ from datetime import datetime
 from typing import Any  # Removed Optional, Union
 
 from .exceptions import InvalidInputError
+from .utils.mrz_utils import MRZException, MRZParser
 
 
 def validate_passport_data(data: dict[str, Any]) -> None:
@@ -142,19 +143,10 @@ def validate_mrz(mrz_string: str) -> None:
     Args:
         mrz_string: The MRZ string to validate
     """
-    lines = mrz_string.strip().split("\n")
-
-    if len(lines) != 2:
-        msg = "MRZ must have two lines"
-        raise InvalidInputError(msg)
-
-    if not all(len(line) == 44 for line in lines):
-        msg = "Each line of MRZ must be 44 characters long"
-        raise InvalidInputError(msg)
-
-    if not lines[0].startswith("P<"):
-        msg = "MRZ first line must start with 'P<'"
-        raise InvalidInputError(msg)
+    try:
+        MRZParser.parse_td3_mrz(mrz_string)
+    except MRZException as exc:
+        raise InvalidInputError(str(exc)) from exc
 
 
 def is_valid_dn(dn: str) -> bool:

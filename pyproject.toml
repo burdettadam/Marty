@@ -28,6 +28,12 @@ dependencies = [
     "pytest-html>=4.1.1",
     "loguru>=0.7.2",
     "requests>=2.32.5",
+    "sqlalchemy[asyncio]>=2.0.29",
+    "asyncpg>=0.29.0",
+    "aioboto3>=13.1.1",
+    "aiokafka>=0.8.1",
+    "alembic>=1.13.1",
+    "tenacity>=8.3.0",
 ]
 
 [project.optional-dependencies]

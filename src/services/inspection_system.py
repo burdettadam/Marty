@@ -1,9 +1,14 @@
+import asyncio
 import json
 import logging
 import os
 from typing import Optional
 
-# Import the generated gRPC modules
+import grpc
+from cryptography.hazmat.primitives import hashes, serialization
+from cryptography.hazmat.primitives.asymmetric import padding
+
+from marty_common.infrastructure import KeyVaultClient, ObjectStorageClient
 from src.proto import (
     inspection_system_pb2,
     inspection_system_pb2_grpc,
@@ -23,7 +28,7 @@ class InspectionSystem(inspection_system_pb2_grpc.InspectionSystemServicer):
     - Checking revocation status
     """
 
-    def __init__(self, channels=None) -> None:
+    def __init__(self, channels=None, dependencies=None) -> None:
         """
         Initialize the Inspection System service.
 
@@ -35,6 +40,13 @@ class InspectionSystem(inspection_system_pb2_grpc.InspectionSystemServicer):
         self.data_dir = os.environ.get("DATA_DIR", "/app/data")
         # Use the shared passport data directory if available
         self.passport_data_dir = os.environ.get("PASSPORT_DATA_DIR", "/app/passport_data")
+        if dependencies is None:
+            msg = "InspectionSystem requires service dependencies"
+            raise ValueError(msg)
+        self._object_storage: ObjectStorageClient = dependencies.object_storage
+        self._key_vault: KeyVaultClient = dependencies.key_vault
+        self._signing_key_id = "document-signer-default"
+        self._run = lambda coro: asyncio.run(coro)
         self.logger.info(
             f"Inspection System service initialized with data_dir={self.data_dir}, passport_data_dir={self.passport_data_dir}"
         )
@@ -83,23 +95,14 @@ class InspectionSystem(inspection_system_pb2_grpc.InspectionSystemServicer):
             bool: True if signature is valid, False otherwise
         """
         try:
-            # Parse the signature - format is base64_signature.timestamp
-            signature_parts = signature.split(".")
-            if len(signature_parts) != 2:
-                self.logger.error(f"Invalid signature format: {signature}")
-                return False
-
-            base64_sig = signature_parts[0]
-
-            # For testing purposes, we'll consider all signatures valid
-            # In a real implementation, this would use proper cryptographic verification
-            # with public key validation against the document_signer's certificate
-
-            # Log the signature details for debugging
-            self.logger.info(f"Signature verification - treating as valid: {base64_sig[:20]}...")
+            signature_bytes = bytes.fromhex(signature)
+            public_pem = self._run(self._key_vault.public_material(self._signing_key_id))
+            public_key = serialization.load_pem_public_key(public_pem)
+            public_key.verify(signature_bytes, document.encode("utf-8"), padding.PKCS1v15(), hashes.SHA256())
+            self.logger.info("Signature verified for document")
             return True
         except Exception as e:
-            self.logger.exception(f"Error verifying signature: {e}")
+            self.logger.exception("Error verifying signature: %s", e)
             return False
 
     def _load_passport_data(self, passport_id):
@@ -112,40 +115,23 @@ class InspectionSystem(inspection_system_pb2_grpc.InspectionSystemServicer):
         Returns:
             dict: The passport data or None if not found
         """
+        storage_key = f"passports/{passport_id}.json"
         try:
-            # First check in the passport data directory (shared with passport engine)
-            file_path = os.path.join(self.passport_data_dir, f"{passport_id}.json")
+            payload = self._run(self._object_storage.get_object(storage_key))
+            return json.loads(payload.decode("utf-8"))
+        except Exception as storage_error:  # pylint: disable=broad-except
+            self.logger.warning("Object storage lookup failed for %s: %s", passport_id, storage_error)
 
-            # Check if we have the file in the shared passport directory
-            if os.path.exists(file_path):
-                self.logger.info(
-                    f"Found passport data for {passport_id} in shared passport directory"
-                )
-                with open(file_path) as f:
-                    return json.load(f)
-
-            # If not found in shared directory, try our local data directory
+        try:
             file_path = os.path.join(self.data_dir, f"{passport_id}.json")
             if os.path.exists(file_path):
-                self.logger.info(f"Found passport data for {passport_id} in local data directory")
                 with open(file_path) as f:
                     return json.load(f)
-
-            # Log all passport files available in the passport data directory
-            passport_files = []
-            try:
-                passport_files = os.listdir(self.passport_data_dir)
-                self.logger.warning(
-                    f"Passport data for {passport_id} not found. Available passport files: {passport_files}"
-                )
-            except Exception as e:
-                self.logger.exception(f"Error listing passport directory: {e}")
-
-            self.logger.warning(f"Passport data for {passport_id} not found in both locations")
-            return None
         except Exception as e:
-            self.logger.exception(f"Error loading passport data for {passport_id}: {e}")
-            return None
+            self.logger.exception("Error reading fallback passport file for %s: %s", passport_id, e)
+
+        self.logger.warning("Passport data for %s not found", passport_id)
+        return None
 
     def Inspect(self, request, context):
         """
@@ -172,15 +158,13 @@ class InspectionSystem(inspection_system_pb2_grpc.InspectionSystemServicer):
                 )
 
             # Verify document signature if available
-            if passport_data.get("sod"):
-                # Serialize passport data for signature verification
-                # In a real implementation, we would only include the data that was actually signed
+            signature_hex = passport_data.get("sod")
+            if signature_hex:
                 passport_copy = passport_data.copy()
                 passport_copy.pop("sod", None)
-                passport_json = json.dumps(passport_copy)
+                passport_json = json.dumps(passport_copy, sort_keys=True, separators=(",", ":"))
 
-                # Verify the signature
-                if not self._verify_signature(passport_json, passport_data["sod"]):
+                if not self._verify_signature(passport_json, signature_hex):
                     return inspection_system_pb2.InspectResponse(
                         result=f"ERROR: Invalid signature for passport {item}"
                     )

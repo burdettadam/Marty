@@ -1,136 +1,100 @@
+import asyncio
 import json
 import logging
-import os
 from typing import Optional
 
-# Import the generated gRPC modules
-from src.proto import trust_anchor_pb2, trust_anchor_pb2_grpc
+import grpc
+from google.protobuf import empty_pb2
+
+from marty_common.infrastructure import EventBusMessage, EventBusProvider, TrustEntityRepository
+from src.proto import pkd_service_pb2, pkd_service_pb2_grpc, trust_anchor_pb2, trust_anchor_pb2_grpc
 
 
 class TrustAnchor(trust_anchor_pb2_grpc.TrustAnchorServicer):
-    """
-    Implementation of the Trust Anchor service.
+    """Trust Anchor backed by the shared database and event bus."""
 
-    This service is responsible for:
-    - Maintaining trusted CSCA certificate lists
-    - Synchronizing with ICAO PKD or private mirrors
-    - Updates Certificate Revocation Lists (CRLs)
-    """
-
-    def __init__(self, channels=None) -> None:
-        """
-        Initialize the Trust Anchor service.
-
-        Args:
-            channels (dict): Dictionary of gRPC channels to other services
-        """
+    def __init__(self, channels=None, dependencies=None) -> None:
+        if dependencies is None:
+            msg = "TrustAnchor requires service dependencies"
+            raise ValueError(msg)
         self.logger = logging.getLogger(__name__)
         self.channels = channels or {}
-        self.data_dir = os.environ.get("DATA_DIR", "/app/data")
-        self.logger.info("Trust Anchor service initialized")
+        self._database = dependencies.database
+        self._event_bus: EventBusProvider = dependencies.event_bus
+        self.logger.info("Trust Anchor service initialized using database-backed trust store")
+        self._sync_from_pkd()
 
-        # Initialize trust store
-        self.trust_store = self._load_trust_store()
-
-    def _load_trust_store(self):
-        """
-        Load the trust store from disk or initialize a new one.
-
-        Returns:
-            dict: The trust store dictionary
-        """
-        trust_store_path = os.path.join(self.data_dir, "trust_store.json")
-
-        if os.path.exists(trust_store_path):
-            try:
-                with open(trust_store_path) as f:
-                    return json.load(f)
-            except Exception as e:
-                self.logger.exception(f"Error loading trust store: {e}")
-
-        # Default trust store
-        default_trust_store = {
-            "trusted_entities": {
-                "csca-service": True,
-                "document-signer": True,
-                "inspection-system": True,
-                "passport-engine": True,
-                "test-entity": True,
-            },
-            "revoked_entities": [],
-        }
-
-        # Save default trust store to disk
-        try:
-            os.makedirs(self.data_dir, exist_ok=True)
-            with open(trust_store_path, "w") as f:
-                json.dump(default_trust_store, f, indent=2)
-        except Exception as e:
-            self.logger.exception(f"Error saving default trust store: {e}")
-
-        return default_trust_store
+    def _run(self, coroutine):
+        return asyncio.run(coroutine)
 
     def VerifyTrust(self, request, context):
-        """
-        Verify if an entity is trusted.
-
-        Args:
-            request: The gRPC request containing the entity to verify
-            context: The gRPC context
-
-        Returns:
-            TrustResponse: The gRPC response containing whether the entity is trusted
-        """
         entity = request.entity
-        self.logger.info(f"VerifyTrust called for entity: {entity}")
+        self.logger.info("VerifyTrust called for entity: %s", entity)
 
-        # Check if the entity is in the trusted entities list
-        is_trusted = self.trust_store.get("trusted_entities", {}).get(entity, False)
+        async def handler(session):
+            repo = TrustEntityRepository(session)
+            record = await repo.get(entity)
+            return record.trusted if record else False
 
-        # Check if the entity is in the revoked entities list
-        if entity in self.trust_store.get("revoked_entities", []):
-            is_trusted = False
+        try:
+            is_trusted = self._run(self._database.run_within_transaction(handler))
+        except Exception as exc:  # pylint: disable=broad-except
+            self.logger.exception("Trust verification failed for %s", entity)
+            context.set_details(str(exc))
+            context.set_code(grpc.StatusCode.INTERNAL)
+            return trust_anchor_pb2.TrustResponse(is_trusted=False)
 
-        self.logger.info(f"Entity {entity} is trusted: {is_trusted}")
-
-        # Return the response
+        self.logger.info("Entity %s is trusted: %s", entity, is_trusted)
         return trust_anchor_pb2.TrustResponse(is_trusted=is_trusted)
 
-    def update_trust_store(self, entity, trusted=True) -> Optional[bool]:
-        """
-        Update the trust store with a new entity or update an existing one.
+    def update_trust_store(self, entity, trusted=True, attributes=None) -> Optional[bool]:
+        async def handler(session):
+            repo = TrustEntityRepository(session)
+            record = await repo.upsert(entity, trusted, attributes)
+            return record
 
-        Args:
-            entity (str): The entity to update
-            trusted (bool): Whether the entity is trusted
-
-        Returns:
-            bool: True if the update was successful, False otherwise
-        """
         try:
-            if trusted:
-                # Add to trusted entities
-                self.trust_store["trusted_entities"][entity] = True
-
-                # Remove from revoked entities if present
-                if entity in self.trust_store.get("revoked_entities", []):
-                    self.trust_store["revoked_entities"].remove(entity)
-            else:
-                # Remove from trusted entities if present
-                if entity in self.trust_store.get("trusted_entities", {}):
-                    del self.trust_store["trusted_entities"][entity]
-
-                # Add to revoked entities
-                if entity not in self.trust_store.get("revoked_entities", []):
-                    self.trust_store.setdefault("revoked_entities", []).append(entity)
-
-            # Save updated trust store to disk
-            trust_store_path = os.path.join(self.data_dir, "trust_store.json")
-            with open(trust_store_path, "w") as f:
-                json.dump(self.trust_store, f, indent=2)
-
-            self.logger.info(f"Trust store updated for entity {entity}, trusted={trusted}")
+            record = self._run(self._database.run_within_transaction(handler))
+            payload = json.dumps(
+                {
+                    "entity": entity,
+                    "trusted": trusted,
+                    "version": record.version,
+                }
+            ).encode("utf-8")
+            message = EventBusMessage(topic="trust.updated", payload=payload)
+            self._run(self._event_bus.publish(message))
+            self.logger.info("Trust store updated for %s (trusted=%s)", entity, trusted)
             return True
-        except Exception as e:
-            self.logger.exception(f"Error updating trust store: {e}")
+        except Exception as exc:  # pylint: disable=broad-except
+            self.logger.exception("Error updating trust store for %s", entity)
             return False
+
+    def _sync_from_pkd(self) -> None:
+        pkd_channel = self.channels.get("pkd_service")
+        if not pkd_channel:
+            self.logger.debug("PKD service channel not configured; skipping sync")
+            return
+
+        stub = pkd_service_pb2_grpc.PKDServiceStub(pkd_channel)
+        try:
+            response = stub.ListTrustAnchors(empty_pb2.Empty())
+        except grpc.RpcError as rpc_err:
+            self.logger.warning("PKD sync failed: %s", rpc_err.details())
+            return
+
+        async def handler(session):
+            repo = TrustEntityRepository(session)
+            for anchor in response.anchors:
+                await repo.upsert(
+                    anchor.certificate_id,
+                    trusted=not anchor.revoked,
+                    attributes={
+                        "subject": anchor.subject,
+                        "storage_key": anchor.storage_key,
+                        "not_after": anchor.not_after,
+                    },
+                )
+
+        self._run(self._database.run_within_transaction(handler))
+        self.logger.info("Synchronized %d trust anchors from PKD", len(response.anchors))

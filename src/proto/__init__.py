@@ -9,6 +9,8 @@ from . import inspection_system_pb2
 from . import mdl_engine_pb2
 from . import mdoc_engine_pb2
 from . import passport_engine_pb2
+from . import pkd_service_pb2
+from . import pkd_service_pb2_grpc
 from . import rfid_service_pb2
 from . import trust_anchor_pb2
 from . import biometric_service_pb2_grpc

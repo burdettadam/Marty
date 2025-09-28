@@ -14,12 +14,13 @@ downloads certificates and CRLs, and stores them in the local certificate store.
 import logging
 import threading
 import time
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Optional, Union
 
 from app.db.certificate_store import CertificateStore
 from app.utils.certificate_validator import CertificateValidator
 from app.utils.http_client import HttpClient
+from app.utils.pkd_payloads import parse_certificate_payload
 from cryptography import x509
 from cryptography.hazmat.backends import default_backend
 
@@ -32,6 +33,19 @@ class PKDMirrorService:
     downloads certificates and certificate revocation lists (CRLs),
     validates them, and stores them in the local certificate store.
     """
+
+    _COMPONENT_ALIASES = {
+        "csca": "csca",
+        "masterlist": "csca",
+        "csca_certificates": "csca",
+        "csca-certificates": "csca",
+        "dsclist": "dsc",
+        "dsc": "dsc",
+        "dsc_certificates": "dsc",
+        "dsc-certificates": "dsc",
+        "crl": "crl",
+        "crls": "crl",
+    }
 
     def __init__(
         self,
@@ -119,26 +133,8 @@ class PKDMirrorService:
         success = True
 
         try:
-            # Download CSCA certificates
-            csca_result = self._download_and_store_certificates(
-                "CscaCertificates", self.certificate_store.store_csca_certificates
-            )
-            if not csca_result:
-                success = False
-
-            # Download DSC certificates
-            dsc_result = self._download_and_store_certificates(
-                "DscCertificates", self.certificate_store.store_dsc_certificates
-            )
-            if not dsc_result:
-                success = False
-
-            # Download CRLs
-            crl_result = self._download_and_store_certificates(
-                "CRLs", self.certificate_store.store_crls
-            )
-            if not crl_result:
-                success = False
+            component_results = self.sync_components(["csca", "dsc", "crl"])
+            success = all(component_results.get(component, False) for component in ("csca", "dsc", "crl"))
 
             # Update last sync time if at least one component was synced successfully
             if success:
@@ -198,6 +194,38 @@ class PKDMirrorService:
         except Exception as e:
             self.logger.exception(f"Error downloading or storing {endpoint}: {e}")
             return False
+
+    def resolve_component(self, component: str) -> Optional[str]:
+        """Resolve a component alias to its canonical name."""
+
+        if not component:
+            return None
+        return self._COMPONENT_ALIASES.get(component.lower())
+
+    def sync_components(self, components: list[str] | None) -> dict[str, bool]:
+        """Synchronize a subset of PKD components."""
+
+        handler_map = {
+            "csca": ("CscaCertificates", self.certificate_store.store_csca_certificates),
+            "dsc": ("DscCertificates", self.certificate_store.store_dsc_certificates),
+            "crl": ("CRLs", self.certificate_store.store_crls),
+        }
+
+        requested = components or ["csca", "dsc", "crl"]
+        results: dict[str, bool] = {}
+
+        for entry in requested:
+            canonical = self.resolve_component(entry)
+            if canonical is None:
+                self.logger.warning("Skipping unknown PKD component: %s", entry)
+                results[entry.lower()] = False
+                continue
+
+            endpoint, store_func = handler_map[canonical]
+            success = self._download_and_store_certificates(endpoint, store_func)
+            results[canonical] = success
+
+        return results
 
     def get_last_sync_time(self) -> Optional[datetime]:
         """
@@ -268,65 +296,18 @@ class PKDMirrorService:
             return False
 
     def _parse_certificates(self, cert_data: bytes) -> list[x509.Certificate]:
-        """
-        Parse one or more certificates from binary data.
-        Assumes certificates are PEM-encoded and can be concatenated.
-        Tries to load as PEM, then falls back to a single DER if PEM fails.
+        """Parse ICAO master list payloads into cryptography certificate objects."""
 
-        Args:
-            cert_data: Binary certificate data.
-
-        Returns:
-            list: List of parsed cryptography.x509.Certificate objects.
-        """
-        certificates = []
-        if not cert_data:
-            return certificates
-
-        try:
+        parsed = []
+        for cert in parse_certificate_payload(cert_data):
             try:
-                cert_data_str = cert_data.decode("ascii", errors="ignore")
-                start_marker = "-----BEGIN CERTIFICATE-----"
-                end_marker = "-----END CERTIFICATE-----"
+                parsed.append(
+                    x509.load_der_x509_certificate(cert.certificate_data, default_backend())
+                )
+            except ValueError as exc:  # pragma: no cover - logged for visibility in mirror logs
+                self.logger.debug("Certificate payload decode failed for %s: %s", cert.subject, exc)
 
-                current_pos = 0
-                while True:
-                    start_idx = cert_data_str.find(start_marker, current_pos)
-                    if start_idx == -1:
-                        break
-                    end_idx = cert_data_str.find(end_marker, start_idx)
-                    if end_idx == -1:
-                        self.logger.warning("Malformed PEM block found or end marker missing.")
-                        break
+        if not parsed:
+            self.logger.debug("No certificates recovered from payload for validation")
 
-                    pem_block = cert_data_str[start_idx : end_idx + len(end_marker)].encode("ascii")
-                    try:
-                        cert = x509.load_pem_x509_certificate(pem_block, default_backend())
-                        certificates.append(cert)
-                    except ValueError as e:
-                        self.logger.warning(
-                            f"Could not parse PEM block: {e}. Block: {pem_block[:100]}..."
-                        )
-                    current_pos = end_idx + len(end_marker)
-
-                if certificates:
-                    return certificates
-
-            except UnicodeDecodeError:
-                self.logger.debug("Data is not ASCII, trying as single DER.")
-
-            if not certificates:
-                try:
-                    cert = x509.load_der_x509_certificate(cert_data, default_backend())
-                    certificates.append(cert)
-                    self.logger.debug("Successfully parsed as single DER certificate.")
-                except ValueError as e:
-                    self.logger.warning(f"Could not parse as single DER certificate: {e}")
-
-        except Exception as e:
-            self.logger.exception(f"Error parsing certificates from data: {e}")
-
-        if not certificates:
-            self.logger.warning("Failed to parse any certificates from the provided data.")
-
-        return certificates
+        return parsed

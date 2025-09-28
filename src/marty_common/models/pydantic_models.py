@@ -103,15 +103,10 @@ class MRZDataModel(BaseModel):
         return v
 
     def generate_mrz_string(self) -> str:
-        """Generate the formatted MRZ string according to ICAO standards."""
-        # This would implement the proper MRZ formatting logic
-        # Example implementation - would need to include proper checksum calculations
-        line1 = f"P<{self.issuing_country}{self.surname}<<{self.given_names}"
-        line2 = (
-            f"{self.document_number}<{self.nationality}{self.date_of_birth}"
-            f"{self.gender.value}{self.date_of_expiry}{self.personal_number or ''}"
-        )
-        return f"{line1}\n{line2}"
+        """Generate TD3 MRZ string compliant with ICAO Doc 9303."""
+        from src.marty_common.utils.mrz_utils import MRZFormatter
+
+        return MRZFormatter.generate_td3_mrz(self)  # type: ignore[arg-type]
 
 
 class DataGroupModel(BaseModel):

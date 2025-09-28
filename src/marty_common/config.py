@@ -11,6 +11,12 @@ from typing import Any, Optional
 
 import yaml
 
+from marty_common.infrastructure import (
+    DatabaseConfig,
+    EventBusConfig,
+    KeyVaultConfig,
+    ObjectStorageConfig,
+)
 
 class ConfigurationError(Exception):
     """Raised when there's an error loading configuration."""
@@ -40,6 +46,22 @@ class Config:
     def get(self, key: str, default: Any = None) -> Any:
         """Get configuration value by key with optional default."""
         return self._config.get(key, default)
+
+    def database(self) -> DatabaseConfig:
+        return DatabaseConfig.from_dict(self._config.get("database", {}))
+
+    def object_storage(self) -> ObjectStorageConfig:
+        return ObjectStorageConfig.from_dict(self._config.get("object_storage", {}))
+
+    def key_vault(self) -> KeyVaultConfig:
+        return KeyVaultConfig.from_dict(self._config.get("key_vault", {}))
+
+    def event_bus(self) -> EventBusConfig:
+        return EventBusConfig.from_dict(self._config.get("event_bus", {}))
+
+    def grpc_tls(self) -> dict[str, Any]:
+        security_config = self._config.get("security", {})
+        return security_config.get("grpc_tls", {})
 
     def __getitem__(self, item: str) -> Any:
         return self._config[item]

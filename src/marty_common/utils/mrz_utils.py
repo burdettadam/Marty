@@ -5,6 +5,7 @@ Implements MRZ processing according to ICAO Doc 9303 Part 3 and Part 4.
 """
 
 import re
+from datetime import datetime
 
 from ..models.passport import Gender, MRZData
 
@@ -77,7 +78,39 @@ class MRZParser:
         return re.sub(r"[^A-Z\-]", "<", name.upper().replace(" ", "<"))
 
     @staticmethod
-    def parse_td3_mrz(mrz: str) -> MRZData:
+    def _split_lines(mrz: str) -> list[str]:
+        """Split MRZ payload into two TD3 lines."""
+
+        raw = mrz.strip()
+
+        if "\n" in raw:
+            lines = raw.split("\n")
+        elif len(raw) == 88:
+            lines = [raw[:44], raw[44:]]
+        else:
+            lines = [raw]
+
+        return lines
+
+    @classmethod
+    def _normalize_whitespace(cls, value: str) -> str:
+        parts = [segment for segment in value.replace("<", " ").split() if segment]
+        return " ".join(parts)
+
+    @classmethod
+    def _validate_date(cls, date_value: str, label: str) -> None:
+        if not date_value.isdigit() or len(date_value) != 6:
+            msg = f"{label} must consist of six digits"
+            raise MRZException(msg)
+
+        try:
+            datetime.strptime(date_value, "%y%m%d")
+        except ValueError as exc:
+            msg = f"Invalid {label} value"
+            raise MRZException(msg) from exc
+
+    @classmethod
+    def parse_td3_mrz(cls, mrz: str) -> MRZData:
         """
         Parse a TD3 format MRZ string (passport).
 
@@ -90,7 +123,8 @@ class MRZParser:
         Raises:
             MRZException: If the MRZ format is invalid
         """
-        lines = mrz.strip().split("\n")
+        lines = cls._split_lines(mrz)
+
         if len(lines) != 2:
             msg = "TD3 MRZ must have exactly 2 lines"
             raise MRZException(msg)
@@ -110,8 +144,9 @@ class MRZParser:
 
         name_part = line1[5:]
         name_parts = name_part.split("<<", 1)
-        surname = name_parts[0].replace("<", " ").strip()
-        given_names = name_parts[1].replace("<", " ").strip() if len(name_parts) > 1 else ""
+        surname = cls._normalize_whitespace(name_parts[0])
+        given_section = name_parts[1] if len(name_parts) > 1 else ""
+        given_names = cls._normalize_whitespace(given_section)
 
         # Second line: DOCUMENT_NUMBER<CHECK_DIGIT<NATIONALITY<DOB<CHECK_DIGIT<GENDER<DOE<CHECK_DIGIT<PERSONAL_NUMBER<CHECK_DIGIT<COMPOSITE_CHECK_DIGIT
         line2 = lines[1]
@@ -119,24 +154,22 @@ class MRZParser:
         # Check digit is computed over the field INCLUDING fillers, so do not strip for check.
         document_number_field = line2[0:9]
         doc_check_digit = line2[9]
-        if not MRZParser.validate_check_digit(document_number_field, doc_check_digit):
+        if not cls.validate_check_digit(document_number_field, doc_check_digit):
             msg = (
                 f"Invalid document number check digit: {document_number_field} -> {doc_check_digit}"
             )
             raise MRZException(msg)
-        # Store normalized document number without fillers
-        document_number = document_number_field.replace("<", "")
 
-        if not MRZParser.validate_check_digit(document_number, doc_check_digit):
-            msg = f"Invalid document number check digit: {document_number} -> {doc_check_digit}"
-            raise MRZException(msg)
+        document_number = document_number_field.replace("<", "")
 
         nationality = line2[10:13]
 
         date_of_birth = line2[13:19]
         dob_check_digit = line2[19]
 
-        if not MRZParser.validate_check_digit(date_of_birth, dob_check_digit):
+        cls._validate_date(date_of_birth, "date of birth")
+
+        if not cls.validate_check_digit(date_of_birth, dob_check_digit):
             msg = f"Invalid date of birth check digit: {date_of_birth} -> {dob_check_digit}"
             raise MRZException(msg)
 
@@ -151,7 +184,9 @@ class MRZParser:
         date_of_expiry = line2[21:27]
         doe_check_digit = line2[27]
 
-        if not MRZParser.validate_check_digit(date_of_expiry, doe_check_digit):
+        cls._validate_date(date_of_expiry, "date of expiry")
+
+        if not cls.validate_check_digit(date_of_expiry, doe_check_digit):
             msg = f"Invalid date of expiry check digit: {date_of_expiry} -> {doe_check_digit}"
             raise MRZException(msg)
 
@@ -159,7 +194,7 @@ class MRZParser:
         personal_number_check_digit = line2[42]
         # Validate personal number using the field with fillers, but treat all '<' as zero value
         # An empty field (all '<') will validate against its computed digit (often '0').
-        if not MRZParser.validate_check_digit(personal_number_field, personal_number_check_digit):
+        if not cls.validate_check_digit(personal_number_field, personal_number_check_digit):
             msg = f"Invalid personal number check digit: {personal_number_field} -> {personal_number_check_digit}"
             raise MRZException(msg)
         personal_number = personal_number_field.replace("<", "") or None
@@ -177,7 +212,7 @@ class MRZParser:
             + personal_number_check_digit
         )
 
-        if not MRZParser.validate_check_digit(composite_string, composite_check_digit):
+        if not cls.validate_check_digit(composite_string, composite_check_digit):
             msg = "Invalid composite check digit"
             raise MRZException(msg)
 
@@ -208,9 +243,9 @@ class MRZParser:
         Raises:
             MRZException: If the MRZ format is invalid or unsupported
         """
-        lines = mrz.strip().split("\n")
-        if len(lines) == 2 and len(lines[0]) == 44 and len(lines[1]) == 44:
-            return cls.parse_td3_mrz(mrz)
+        lines = cls._split_lines(mrz)
+        if len(lines) == 2 and all(len(line) == 44 for line in lines):
+            return cls.parse_td3_mrz("\n".join(lines))
         msg = "Unsupported MRZ format"
         raise MRZException(msg)
 
@@ -273,14 +308,11 @@ class MRZFormatter:
         line1 += "<"  # Filler
         line1 += data.issuing_country.upper()
 
-        surname = MRZFormatter.format_name(data.surname, 39 - len(data.given_names) - 2)
-        given_names = MRZFormatter.format_name(data.given_names, 39 - len(surname) - 2)
+        surname = MRZParser.clean_name(data.surname)
+        given_names = MRZParser.clean_name(data.given_names)
 
         line1 += surname + "<<" + given_names
-
-        # Pad to 44 characters if needed
-        if len(line1) < 44:
-            line1 += "<" * (44 - len(line1))
+        line1 = line1[:44].ljust(44, "<")
 
         # Second line
         document_number_formatted = MRZFormatter.format_document_number(data.document_number)
@@ -298,12 +330,10 @@ class MRZFormatter:
         line2 += data.date_of_expiry + doe_check_digit
 
         # Personal number with check digit
-        personal_number = data.personal_number or ""
-        if len(personal_number) > 14:
-            personal_number = personal_number[:14]
-
-        personal_number_formatted = personal_number.ljust(14, "<")
-        personal_number_check_digit = MRZParser.calculate_check_digit(personal_number)
+        personal_number_raw = (data.personal_number or "").upper()
+        personal_number_clean = re.sub(r"[^A-Z0-9<]", "", personal_number_raw)
+        personal_number_formatted = personal_number_clean[:14].ljust(14, "<")
+        personal_number_check_digit = MRZParser.calculate_check_digit(personal_number_formatted)
 
         line2 += personal_number_formatted + personal_number_check_digit
 
@@ -315,7 +345,7 @@ class MRZFormatter:
             + dob_check_digit
             + data.date_of_expiry
             + doe_check_digit
-            + personal_number
+            + personal_number_formatted
             + personal_number_check_digit
         )
         composite_check_digit = MRZParser.calculate_check_digit(composite_string)
