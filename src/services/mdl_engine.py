@@ -1,362 +1,537 @@
-# --- BEGIN Standard Library Imports ---
+"""Mobile Driving Licence engine backed by async storage and event bus."""
+
+from __future__ import annotations
+
+import asyncio
+import base64
 import io
 import json
 import logging
-import os
-import sys  # sys must be imported before path manipulation
 import uuid
-from concurrent import futures
-from datetime import datetime, timedelta, timezone  # Ensure timedelta is imported
+from datetime import date, datetime, timezone
+from typing import Any, Optional
 
-import grpc  # Added missing grpc import
-import qrcode
+import grpc
 
-# import time # Marked as unused in previous diagnostics
-# import base64 # Marked as unused
-# import hashlib # Marked as unused
-# --- END Standard Library Imports ---
-# --- BEGIN Third-Party Imports ---
-from PIL import Image, ImageDraw, ImageFont
-from qrcode.image.pil import PilImage  # Import PilImage factory
-
-# import cv2 # Marked as unused
-# import numpy as np # Marked as unused
-# from pyzbar import pyzbar # Marked as unused
-# --- END Third-Party Imports ---
-
-# --- BEGIN Project-Specific Imports ---
-# This block MUST be placed after all standard and third-party imports
-# and before any 'from src...' imports.
-_PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-if _PROJECT_ROOT not in sys.path:
-    sys.path.insert(0, _PROJECT_ROOT)
-
-# Now, import from 'src'
-from src.marty_common.grpc_logging import LoggingStreamerServicer
-from src.marty_common.logging_config import setup_logging
-from src.proto import (
-    common_services_pb2_grpc,
-    document_signer_pb2,  # For SignDocumentRequest
-    document_signer_pb2_grpc,  # For DocumentSignerStub
+from marty_common.infrastructure import (
+    EventBusMessage,
+    EventBusProvider,
+    MobileDrivingLicenseRepository,
+    ObjectStorageClient,
+)
+from proto import (
+    document_signer_pb2,
+    document_signer_pb2_grpc,
     mdl_engine_pb2,
     mdl_engine_pb2_grpc,
 )
 
-# --- END Project-Specific Imports ---
 
-# Module-level logger, will be initialized in serve() after setup_logging
-logger = None
-
-DEFAULT_FONT_PATH = "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf"
-DEFAULT_FONT_SIZE = 10
+DEFAULT_DISCLOSURE_POLICIES = {
+    "BASIC": ["first_name", "last_name", "license_number"],
+    "STANDARD": ["first_name", "last_name", "license_number", "date_of_birth", "issuing_authority"],
+    "ENHANCED": [
+        "first_name",
+        "last_name",
+        "license_number",
+        "date_of_birth",
+        "issuing_authority",
+        "license_categories",
+        "additional_fields",
+    ],
+}
 
 
 class MDLEngineServicer(mdl_engine_pb2_grpc.MDLEngineServicer):
-    def __init__(self, document_signer_channel) -> None:
-        # Logger is configured by setup_logging called in serve()
+    """Issues, signs, and manages mDLs with externalized persistence."""
+
+    def __init__(self, channels=None, dependencies=None) -> None:
+        if dependencies is None:
+            msg = "MDLEngineServicer requires service dependencies"
+            raise ValueError(msg)
         self.logger = logging.getLogger(__name__)
-        self.logger.info("MDLEngineServicer initialized.")
-        if document_signer_channel:
-            self.document_signer_stub = document_signer_pb2_grpc.DocumentSignerStub(
-                document_signer_channel
+        self.channels = channels or {}
+        self._database = dependencies.database
+        self._object_storage: ObjectStorageClient = dependencies.object_storage
+        self._event_bus: EventBusProvider = dependencies.event_bus
+
+    def _run(self, coroutine):
+        return asyncio.run(coroutine)
+
+    def _document_signer_stub(self) -> Optional[document_signer_pb2_grpc.DocumentSignerStub]:
+        channel = self.channels.get("document_signer")
+        if channel is None:
+            self.logger.warning("Document signer channel unavailable")
+            return None
+        return document_signer_pb2_grpc.DocumentSignerStub(channel)
+
+    def _run_in_transaction(self, handler):
+        return self._run(self._database.run_within_transaction(handler))
+
+    def _store_portrait(self, mdl_id: str, portrait_bytes: bytes) -> Optional[str]:
+        if not portrait_bytes:
+            return None
+        object_key = f"mdl/{mdl_id}/portrait.bin"
+        self._run(self._object_storage.put_object(object_key, portrait_bytes, "image/octet-stream"))
+        return object_key
+
+    def _persist_payload(self, object_key: str, details: dict[str, Any]) -> None:
+        payload = json.dumps(details, indent=2).encode("utf-8")
+        self._run(self._object_storage.put_object(object_key, payload, "application/json"))
+
+    def _publish_event(self, topic: str, payload: dict[str, Any]) -> None:
+        message = EventBusMessage(topic=topic, payload=json.dumps(payload).encode("utf-8"))
+        self._run(self._event_bus.publish(message))
+
+    def _prepare_license_categories(self, request) -> list[dict[str, Any]]:
+        categories = []
+        for category in request.license_categories:
+            categories.append(
+                {
+                    "category_code": category.category_code,
+                    "issue_date": category.issue_date,
+                    "expiry_date": category.expiry_date,
+                    "restrictions": list(category.restrictions),
+                }
             )
-            self.logger.info("DocumentSigner stub initialized.")
+        return categories
+
+    def _prepare_additional_fields(self, request) -> list[dict[str, str]]:
+        fields = []
+        for field in request.additional_fields:
+            fields.append({"field_name": field.field_name, "field_value": field.field_value})
+        return fields
+
+    def _calculate_age(self, dob_iso: str | None) -> Optional[int]:
+        if not dob_iso:
+            return None
+        try:
+            dob = date.fromisoformat(dob_iso)
+        except ValueError:
+            return None
+        today = date.today()
+        years = today.year - dob.year - ((today.month, today.day) < (dob.month, dob.day))
+        return max(years, 0)
+
+    def _filter_details(
+        self,
+        details: dict[str, Any],
+        requested_fields: list[str] | None,
+        include_photo: bool,
+    ) -> dict[str, Any]:
+        if not requested_fields:
+            filtered = dict(details)
         else:
-            self.document_signer_stub = None
-            self.logger.warning(
-                "DocumentSigner channel not provided. " "Document signing will not be available."
-            )
-        # Attempt to load a font for image generation
-        self.font = None
-        try:
-            font_path = os.environ.get("DEFAULT_FONT_PATH", DEFAULT_FONT_PATH)
-            font_size = int(os.environ.get("DEFAULT_FONT_SIZE", DEFAULT_FONT_SIZE))
-            if os.path.exists(font_path):
-                self.font = ImageFont.truetype(font_path, font_size)
-                self.logger.info(f"Font loaded from {font_path}")
-            else:
-                self.logger.warning(
-                    f"Font file not found at {font_path}. " "Text on MDL may not render."
-                )
-        except Exception as e:
-            self.logger.error(f"Error loading font: {e}", exc_info=True)
+            filtered: dict[str, Any] = {}
+            additional_filter: set[str] = set()
+            for field in requested_fields:
+                if field in details:
+                    filtered[field] = details[field]
+                    continue
+                if field == "age":
+                    age = self._calculate_age(details.get("date_of_birth"))
+                    if age is not None:
+                        filtered["age"] = age
+                    continue
+                additional_filter.add(field)
+            if additional_filter and details.get("additional_fields"):
+                filtered_fields = [
+                    entry
+                    for entry in details["additional_fields"]
+                    if entry.get("field_name") in additional_filter
+                ]
+                if filtered_fields:
+                    filtered["additional_fields"] = filtered_fields
+        if not include_photo:
+            filtered.pop("portrait_reference", None)
+        return filtered
 
-    def _generate_qr_code(self, data: str, image_format: str = "PNG") -> bytes:
-        self.logger.info(f"Generating QR code for data (first 30 chars): {data[:30]}...")
-        qr = qrcode.QRCode(
-            version=1,
-            error_correction=qrcode.ERROR_CORRECT_H,  # Corrected constant
-            box_size=10,
-            border=4,
+    def _build_signature_info_message(
+        self, record_signature: Optional[bytes], details: dict[str, Any]
+    ) -> Optional[mdl_engine_pb2.SignatureInfo]:
+        signature_info = details.get("signature_info") if isinstance(details, dict) else None
+        if not record_signature and not signature_info:
+            return None
+        return mdl_engine_pb2.SignatureInfo(
+            signature_date=signature_info.get("signature_date", "") if signature_info else "",
+            signer_id=signature_info.get("signer_id", "") if signature_info else "",
+            signature=record_signature or b"",
+            is_valid=bool(record_signature),
         )
-        qr.add_data(data)
-        qr.make(fit=True)
-        # make_image returns a PIL Image object by default if Pillow is installed
-        # Force use of PilImage factory to ensure it's a PIL image.
-        img = qr.make_image(fill_color="black", back_color="white", image_factory=PilImage)
 
-        img_byte_arr = io.BytesIO()
-        effective_format = image_format.upper()
+    def _build_mdl_response(self, record, details: dict[str, Any]) -> mdl_engine_pb2.MDLResponse:
+        license_categories = [
+            mdl_engine_pb2.LicenseCategory(
+                category_code=item.get("category_code", ""),
+                issue_date=item.get("issue_date", ""),
+                expiry_date=item.get("expiry_date", ""),
+                restrictions=item.get("restrictions", []),
+            )
+            for item in details.get("license_categories", [])
+        ]
+        additional_fields = [
+            mdl_engine_pb2.AdditionalField(
+                field_name=item.get("field_name", ""),
+                field_value=item.get("field_value", ""),
+            )
+            for item in details.get("additional_fields", [])
+        ]
+        signature_info = self._build_signature_info_message(record.signature, details)
+        return mdl_engine_pb2.MDLResponse(
+            mdl_id=record.mdl_id,
+            license_number=details.get("license_number", ""),
+            first_name=details.get("first_name", ""),
+            last_name=details.get("last_name", ""),
+            date_of_birth=details.get("date_of_birth", ""),
+            issuing_authority=details.get("issuing_authority", ""),
+            issue_date=details.get("issue_date", ""),
+            expiry_date=details.get("expiry_date", ""),
+            portrait=b"",
+            license_categories=license_categories,
+            additional_fields=additional_fields,
+            signature_info=signature_info,
+            status=record.status,
+            error_message="",
+        )
 
-        # Ensure image is in a mode compatible with the target format
-        # PIL Image objects have a 'mode' attribute
-        if effective_format == "JPEG":
-            if img.mode in ("RGBA", "P"):
-                img = img.convert("RGB")  # PIL Image convert method
-        elif effective_format == "PNG":
-            # qrcode default image mode might be '1' or 'L'.
-            # PNG supports these, but converting to 'RGB' or 'RGBA' can be safer
-            # for broader compatibility with viewers/processors.
-            if img.mode not in ("RGB", "RGBA"):
-                img = img.convert("RGB")  # Convert to RGB for consistency
+    def _load_record(self, mdl_id: str):
+        async def handler(session):
+            repo = MobileDrivingLicenseRepository(session)
+            return await repo.get(mdl_id)
 
-        # PIL Image save method takes 'format' as a keyword argument
-        img.save(img_byte_arr, format=effective_format)
-        self.logger.info(f"QR code generated successfully, format: {effective_format}.")
-        return img_byte_arr.getvalue()
+        return self._run_in_transaction(handler)
 
-    def _create_mdl_image(self, mdl_details: dict) -> bytes:
-        self.logger.info("Creating mDL image representation...")
+    def _load_record_by_license(self, license_number: str):
+        async def handler(session):
+            repo = MobileDrivingLicenseRepository(session)
+            return await repo.get_by_license(license_number)
+
+        return self._run_in_transaction(handler)
+
+    def _update_signature(
+        self,
+        mdl_id: str,
+        signature: bytes,
+        signature_info: dict[str, Any],
+        new_status: str,
+    ) -> None:
+        async def handler(session):
+            repo = MobileDrivingLicenseRepository(session)
+            await repo.update_signature(mdl_id, signature, signature_info)
+            await repo.update_status(mdl_id, new_status)
+
+        self._run_in_transaction(handler)
+
+    def _update_status(self, mdl_id: str, status: str) -> None:
+        async def handler(session):
+            repo = MobileDrivingLicenseRepository(session)
+            await repo.update_status(mdl_id, status)
+
+        self._run_in_transaction(handler)
+
+    def CreateMDL(self, request, context):  # noqa: N802
+        if not request.license_number:
+            context.set_code(grpc.StatusCode.INVALID_ARGUMENT)
+            context.set_details("license_number is required")
+            return mdl_engine_pb2.CreateMDLResponse(status="ERROR", error_message="license_number is required")
+        if not request.user_id:
+            context.set_code(grpc.StatusCode.INVALID_ARGUMENT)
+            context.set_details("user_id is required")
+            return mdl_engine_pb2.CreateMDLResponse(status="ERROR", error_message="user_id is required")
+
+        existing = self._load_record_by_license(request.license_number)
+        if existing is not None:
+            context.set_code(grpc.StatusCode.ALREADY_EXISTS)
+            context.set_details("MDL already exists for license number")
+            return mdl_engine_pb2.CreateMDLResponse(status="ERROR", error_message="MDL already exists")
+
+        mdl_id = f"MDL{uuid.uuid4().hex[:12].upper()}"
+        portrait_reference = self._store_portrait(mdl_id, request.portrait)
+        license_categories = self._prepare_license_categories(request)
+        additional_fields = self._prepare_additional_fields(request)
+
+        details: dict[str, Any] = {
+            "mdl_id": mdl_id,
+            "license_number": request.license_number,
+            "user_id": request.user_id,
+            "first_name": request.first_name,
+            "last_name": request.last_name,
+            "date_of_birth": request.date_of_birth,
+            "issuing_authority": request.issuing_authority,
+            "issue_date": request.issue_date,
+            "expiry_date": request.expiry_date,
+            "license_categories": license_categories,
+            "additional_fields": additional_fields,
+            "portrait_reference": portrait_reference,
+            "created_at": datetime.now(timezone.utc).isoformat(),
+        }
+
+        disclosure_policies = {key: list(values) for key, values in DEFAULT_DISCLOSURE_POLICIES.items()}
+        payload_key = f"mdl/{mdl_id}.json"
+
         try:
-            width, height = 400, 250
-            img = Image.new("RGB", (width, height), color=(255, 255, 255))
-            d = ImageDraw.Draw(img)
+            self._persist_payload(payload_key, details)
+        except Exception as exc:  # pylint: disable=broad-except
+            self.logger.exception("Failed to persist MDL payload")
+            context.set_code(grpc.StatusCode.INTERNAL)
+            context.set_details(str(exc))
+            return mdl_engine_pb2.CreateMDLResponse(status="ERROR", error_message=str(exc))
 
-            line_y = 10
-            font_to_use = self.font
+        async def handler(session):
+            repo = MobileDrivingLicenseRepository(session)
+            await repo.create(
+                mdl_id=mdl_id,
+                license_number=request.license_number,
+                user_id=request.user_id,
+                status="PENDING_SIGNATURE",
+                details=details,
+                payload_location=payload_key,
+                disclosure_policies=disclosure_policies,
+            )
 
-            if not font_to_use:
-                try:
-                    self.logger.info(
-                        "User-specified font not available or failed to load. "
-                        "Attempting to load default PIL font."
-                    )
-                    font_to_use = ImageFont.load_default()
-                except Exception as font_e:
-                    self.logger.exception(
-                        f"Could not load default PIL font: {font_e}. "
-                        "Text may not be rendered on mDL image."
-                    )
-                    # font_to_use remains None
+        self._run_in_transaction(handler)
 
-            font_line_height = DEFAULT_FONT_SIZE + 5  # Default spacing
-            if font_to_use:
-                try:
-                    # Get height of a character like 'A' or 'y' for line spacing
-                    bbox = font_to_use.getbbox("Ay")
-                    font_line_height = (bbox[3] - bbox[1]) + 5  # height + padding
-                except AttributeError:  # Fallback for older PIL or unexpected font object
-                    self.logger.warning("Could not get font bbox, using default line height.")
-                except Exception as e:
-                    self.logger.exception(
-                        f"Error getting font metrics: {e}, using default line height."
-                    )
-
-            text_lines = [
-                f"mDL Document ID: {mdl_details.get('document_id', 'N/A')}",
-                f"User ID: {mdl_details.get('user_id', 'N/A')}",
-                f"Issued: {mdl_details.get('issue_date', 'N/A')}",
-                f"Expires: {mdl_details.get('expiry_date', 'N/A')}",
-            ]
-
-            for text_line in text_lines:
-                if font_to_use:
-                    try:
-                        # Use textbbox for width calculation (more accurate)
-                        text_bbox = d.textbbox((0, 0), text_line, font=font_to_use)
-                        text_width = text_bbox[2] - text_bbox[0]
-
-                        # Basic check for text overflow
-                        if text_width > (width - 20):  # 10px padding each side
-                            self.logger.warning(
-                                f"Text line may be too wide for image: '{text_line[:40]}...'"
-                            )
-                        d.text((10, line_y), text_line, fill=(0, 0, 0), font=font_to_use)
-                    except Exception as draw_e:
-                        self.logger.exception(f"Error drawing text with loaded font: {draw_e}")
-                        # Fallback to drawing without specific font if error occurs
-                        d.text((10, line_y), text_line, fill=(0, 0, 0))
-                else:
-                    # Fallback if no font is available at all (draws very basic text)
-                    d.text((10, line_y), text_line, fill=(0, 0, 0))
-                line_y += font_line_height
-
-            img_byte_arr = io.BytesIO()
-            img.save(img_byte_arr, format="PNG")  # Save PIL image
-            self.logger.info("mDL image representation created.")
-            return img_byte_arr.getvalue()
-        except Exception as e:
-            self.logger.error(f"Error creating mDL image: {e}", exc_info=True)
-            return b""
-
-    def CreateMDL(self, request, context):
-        self.logger.info(f"CreateMDL request received for user ID: {request.user_id}")
-        try:
-            document_id = str(uuid.uuid4())
-            issue_date = datetime.now(timezone.utc)
-            expiry_date = issue_date + timedelta(days=365)
-
-            issue_date_iso = issue_date.isoformat()
-            expiry_date_iso = expiry_date.isoformat()
-
-            mdl_details = {
+        self._publish_event(
+            "mdl.created",
+            {
+                "mdl_id": mdl_id,
+                "license_number": request.license_number,
                 "user_id": request.user_id,
-                "document_id": document_id,
-                "first_name": request.first_name,
-                "last_name": request.last_name,
-                "date_of_birth": request.date_of_birth,
-                "issue_date": issue_date_iso,
-                "expiry_date": expiry_date_iso,
-                "portrait_image_url": request.portrait_image_url,
-                "address": request.address,
-                "vehicle_categories": list(request.vehicle_categories),
-            }
-            mdl_data_json = json.dumps(mdl_details)
+                "payload_location": payload_key,
+            },
+        )
 
-            qr_content = f"MDL_DOC_ID:{document_id}"
-            qr_code_bytes = self._generate_qr_code(qr_content)
-            self.logger.info(f"QR code generated for document ID: {document_id}")
+        return mdl_engine_pb2.CreateMDLResponse(mdl_id=mdl_id, status="PENDING_SIGNATURE", error_message="")
 
-            mdl_image_bytes = self._create_mdl_image(mdl_details)
+    def GetMDL(self, request, context):  # noqa: N802
+        if not request.license_number:
+            context.set_code(grpc.StatusCode.INVALID_ARGUMENT)
+            context.set_details("license_number is required")
+            return mdl_engine_pb2.MDLResponse(status="FAILED", error_message="license_number is required")
 
-            signature = b""
-            if self.document_signer_stub:
-                self.logger.info("Attempting to sign MDL data (JSON).")
-                try:
-                    sign_request = document_signer_pb2.SignRequest(
-                        document_id=document_id,
-                        document_content=mdl_data_json.encode("utf-8"),
-                    )
-                    sign_response = self.document_signer_stub.SignDocument(sign_request)
-                    if sign_response.success:
-                        signature = sign_response.signature_info.signature
-                        self.logger.info("MDL data signed successfully.")
-                    else:
-                        self.logger.error(
-                            "Document signer error signing MDL: %s", sign_response.error_message
-                        )
-                except grpc.RpcError as rpc_e:  # Ensure grpc is imported
-                    status_code = rpc_e.code()
-                    details = rpc_e.details()
-                    self.logger.error(
-                        f"gRPC error signing document: {status_code} - {details}", exc_info=True
-                    )
-                except Exception as e:
-                    self.logger.error(f"Error during document signing: {e}", exc_info=True)
-            else:
-                self.logger.warning("DocumentSigner stub not available. Skipping signature.")
+        record = self._load_record_by_license(request.license_number)
+        if record is None:
+            context.set_code(grpc.StatusCode.NOT_FOUND)
+            context.set_details("MDL not found")
+            return mdl_engine_pb2.MDLResponse(status="NOT_FOUND", error_message="MDL not found")
 
-            # Ensure mdl_engine_pb2 is imported for this type
-            return mdl_engine_pb2.CreateMDLResponse(
-                mdl_id=document_id,
-                qr_code=qr_code_bytes,
-                signature=signature,
-                mdl_image=mdl_image_bytes,
-                status_message="MDL created successfully.",
-            )
-        except Exception as e:
-            self.logger.error(f"Error creating MDL: {e}", exc_info=True)
-            context.set_code(grpc.StatusCode.INTERNAL)  # Ensure grpc is imported
-            context.set_details(f"Internal server error: {e}")
-            return mdl_engine_pb2.CreateMDLResponse(  # Ensure this is correct
-                status_message=f"Error: {e}"
-            )
+        details = record.details or {}
+        return self._build_mdl_response(record, details)
 
-    def VerifyMDL(self, request, context):
-        self.logger.info(f"VerifyMDL request received for MDL ID: {request.mdl_id}")
-        is_valid = True
-        verification_details = "MDL verified (dummy)."
-
+    def SignMDL(self, request, context):  # noqa: N802
         if not request.mdl_id:
-            self.logger.warning("VerifyMDL called with empty mdl_id.")
-            context.set_code(grpc.StatusCode.INVALID_ARGUMENT)  # Ensure grpc is imported
-            context.set_details("mdl_id cannot be empty.")
-            return mdl_engine_pb2.VerifyMDLResponse(  # Ensure this is correct
-                is_valid=False, verification_details="Invalid request: mdl_id missing."
-            )
+            context.set_code(grpc.StatusCode.INVALID_ARGUMENT)
+            context.set_details("mdl_id is required")
+            return mdl_engine_pb2.SignMDLResponse(success=False, error_message="mdl_id is required")
 
-        self.logger.info(f"Verification result for {request.mdl_id}: {is_valid}")
-        return mdl_engine_pb2.VerifyMDLResponse(  # Ensure this is correct
-            is_valid=is_valid, verification_details=verification_details
-        )
+        record = self._load_record(request.mdl_id)
+        if record is None:
+            context.set_code(grpc.StatusCode.NOT_FOUND)
+            context.set_details("MDL not found")
+            return mdl_engine_pb2.SignMDLResponse(success=False, error_message="MDL not found")
 
+        details = record.details or {}
+        payload = json.dumps(details, sort_keys=True, separators=(",", ":")).encode("utf-8")
+        stub = self._document_signer_stub()
+        if stub is None:
+            context.set_code(grpc.StatusCode.UNAVAILABLE)
+            context.set_details("Document signer unavailable")
+            return mdl_engine_pb2.SignMDLResponse(success=False, error_message="Signer unavailable")
 
-def serve() -> None:
-    global logger
-
-    service_name = os.environ.get("MDL_ENGINE_SERVICE_NAME", "mdl-engine")
-    # Setup logging FIRST, so all subsequent loggers get this configuration.
-    setup_logging(service_name=service_name)
-    # Now, initialize the module-level logger.
-    logger = logging.getLogger(__name__)
-
-    logger.info(f"Starting {service_name} gRPC server...")
-
-    grpc_port = os.environ.get("GRPC_PORT", "50051")
-    server = grpc.server(futures.ThreadPoolExecutor(max_workers=10))
-
-    document_signer_host = os.environ.get("DOCUMENT_SIGNER_HOST", "document-signer")
-    document_signer_port = os.environ.get("DOCUMENT_SIGNER_PORT", "8082")
-    document_signer_channel = None
-    if document_signer_host and document_signer_port:
-        ds_address = f"{document_signer_host}:{document_signer_port}"
         try:
-            document_signer_channel = grpc.insecure_channel(ds_address)
-            logger.info(f"Created channel to DocumentSigner at {ds_address}")
-        except Exception as e:
-            logger.error(
-                f"Failed to create channel to DocumentSigner at {ds_address}: {e}", exc_info=True
+            response = stub.SignDocument(
+                document_signer_pb2.SignRequest(
+                    document_id=record.mdl_id,
+                    document_content=payload,
+                )
             )
-    else:
-        logger.warning(
-            "DocumentSigner host/port not configured. " "Document signing will be unavailable."
+        except grpc.RpcError as rpc_err:
+            self.logger.error("Signer RPC error: %s", rpc_err.details())
+            context.set_code(rpc_err.code())
+            context.set_details(rpc_err.details())
+            return mdl_engine_pb2.SignMDLResponse(success=False, error_message=rpc_err.details())
+
+        if not response.success:
+            context.set_code(grpc.StatusCode.INTERNAL)
+            context.set_details(response.error_message)
+            return mdl_engine_pb2.SignMDLResponse(success=False, error_message=response.error_message)
+
+        signature_bytes = response.signature_info.signature
+        signature_info = {
+            "signature_date": response.signature_info.signature_date,
+            "signer_id": response.signature_info.signer_id,
+        }
+
+        self._update_signature(record.mdl_id, signature_bytes, signature_info, "ISSUED")
+        self._publish_event(
+            "mdl.signed",
+            {
+                "mdl_id": record.mdl_id,
+                "license_number": record.license_number,
+                "signature_date": signature_info["signature_date"],
+                "signer_id": signature_info["signer_id"],
+            },
         )
 
-    servicer_instance = MDLEngineServicer(document_signer_channel)
-    # Ensure mdl_engine_pb2_grpc is imported for this function
-    mdl_engine_pb2_grpc.add_MDLEngineServicer_to_server(servicer_instance, server)
-    logger.info("MDLEngineServicer added to gRPC server.")
-
-    try:
-        logging_streamer_servicer = LoggingStreamerServicer()
-        # Ensure common_services_pb2_grpc is imported for this function
-        common_services_pb2_grpc.add_LoggingStreamerServicer_to_server(
-            logging_streamer_servicer, server
+        return mdl_engine_pb2.SignMDLResponse(
+            success=True,
+            signature_info=mdl_engine_pb2.SignatureInfo(
+                signature_date=signature_info["signature_date"],
+                signer_id=signature_info["signer_id"],
+                signature=signature_bytes,
+                is_valid=True,
+            ),
         )
-        logger.info("Successfully added LoggingStreamerServicer to gRPC server.")
-    except AttributeError as ae:
-        logger.error(
-            f"Failed to add LoggingStreamerServicer due to AttributeError: {ae}. "
-            "Ensure 'common_services.proto' is compiled and "
-            "'common_services_pb2_grpc.py' is correctly generated and importable.",
-            exc_info=True,
+
+    def GenerateMDLQRCode(self, request, context):  # noqa: N802
+        if not request.mdl_id:
+            context.set_code(grpc.StatusCode.INVALID_ARGUMENT)
+            context.set_details("mdl_id is required")
+            return mdl_engine_pb2.GenerateQRCodeResponse(error_message="mdl_id is required")
+
+        record = self._load_record(request.mdl_id)
+        if record is None:
+            context.set_code(grpc.StatusCode.NOT_FOUND)
+            context.set_details("MDL not found")
+            return mdl_engine_pb2.GenerateQRCodeResponse(error_message="MDL not found")
+
+        details = record.details or {}
+        fields = list(request.fields_to_include)
+        if not fields:
+            policies = record.disclosure_policies or DEFAULT_DISCLOSURE_POLICIES
+            fields = policies.get("BASIC", [])
+        filtered = self._filter_details(details, fields, request.include_photo)
+        portrait_key = filtered.get("portrait_reference")
+        if request.include_photo and portrait_key:
+            try:
+                portrait_bytes = self._run(self._object_storage.get_object(portrait_key))
+                filtered["portrait"] = base64.b64encode(portrait_bytes).decode("ascii")
+            except Exception:  # pylint: disable=broad-except
+                self.logger.warning("Failed to load portrait for %s", record.mdl_id)
+        filtered.pop("portrait_reference", None)
+
+        import qrcode
+
+        qr = qrcode.QRCode(
+            version=None,
+            error_correction=qrcode.constants.ERROR_CORRECT_M,
+            box_size=4,
+            border=2,
         )
-    except Exception as e:
-        logger.error(f"Failed to add LoggingStreamerServicer: {e}", exc_info=True)
+        qr.add_data(json.dumps(filtered, separators=(",", ":")))
+        qr.make(fit=True)
+        image = qr.make_image(fill_color="black", back_color="white")
+        buffer = io.BytesIO()
+        image.save(buffer, format="PNG")
+        return mdl_engine_pb2.GenerateQRCodeResponse(qr_code=buffer.getvalue())
 
-    server.add_insecure_port(f"[::]:{grpc_port}")
-    server.start()
-    logger.info(f"{service_name} server started successfully on port {grpc_port}.")
+    def TransferMDLToDevice(self, request, context):  # noqa: N802
+        if not request.mdl_id:
+            context.set_code(grpc.StatusCode.INVALID_ARGUMENT)
+            context.set_details("mdl_id is required")
+            return mdl_engine_pb2.TransferMDLResponse(success=False, error_message="mdl_id is required")
+        transfer_id = f"XFER-{uuid.uuid4().hex[:8].upper()}"
+        self._publish_event(
+            "mdl.transfer_requested",
+            {
+                "mdl_id": request.mdl_id,
+                "device_id": request.device_id,
+                "transfer_method": request.transfer_method,
+                "transfer_id": transfer_id,
+            },
+        )
+        return mdl_engine_pb2.TransferMDLResponse(success=True, transfer_id=transfer_id)
 
-    try:
-        server.wait_for_termination()
-    except KeyboardInterrupt:
-        logger.info("Shutting down server due to KeyboardInterrupt...")
-    except Exception as e:
-        logger.error(f"Server termination error: {e}", exc_info=True)
-    finally:
-        logger.info("Stopping gRPC server...")
-        server.stop(0)
-        logger.info(f"{service_name} server shut down.")
+    def VerifyMDL(self, request, context):  # noqa: N802
+        details: dict[str, Any]
+        record = None
+        if request.mdl_id:
+            record = self._load_record(request.mdl_id)
+            if record is None:
+                context.set_code(grpc.StatusCode.NOT_FOUND)
+                context.set_details("MDL not found")
+                return mdl_engine_pb2.VerifyMDLResponse(
+                    is_valid=False,
+                    error_message="MDL not found",
+                )
+            details = record.details or {}
+        elif request.qr_code_data:
+            try:
+                decoded = request.qr_code_data.decode("utf-8")
+                details = json.loads(decoded)
+            except Exception as exc:  # pylint: disable=broad-except
+                context.set_code(grpc.StatusCode.INVALID_ARGUMENT)
+                context.set_details("Invalid QR payload")
+                return mdl_engine_pb2.VerifyMDLResponse(
+                    is_valid=False,
+                    error_message=f"Invalid QR payload: {exc}",
+                )
+        else:
+            context.set_code(grpc.StatusCode.INVALID_ARGUMENT)
+            context.set_details("Provide mdl_id or qr_code_data")
+            return mdl_engine_pb2.VerifyMDLResponse(
+                is_valid=False,
+                error_message="mdl_id or qr_code_data required",
+            )
 
+        level = request.verification_level or "BASIC"
+        if record is not None:
+            policies = record.disclosure_policies or DEFAULT_DISCLOSURE_POLICIES
+            allowed_fields = policies.get(level, policies.get("BASIC", []))
+            filtered = self._filter_details(details, allowed_fields, include_photo=False)
+        else:
+            filtered = details
 
-if __name__ == "__main__":
-    # This debug print helps confirm standalone execution context
-    print(
-        f"DEBUG: mdl_engine.py execution started. "
-        f"SERVICE_NAME='{os.environ.get('MDL_ENGINE_SERVICE_NAME', 'mdl-engine-default')}', "
-        f"GRPC_PORT='{os.environ.get('GRPC_PORT', '50051')}'",
-        file=sys.stdout,  # Explicitly use sys.stdout for clarity
-    )
-    sys.stdout.flush()  # Ensure debug output is seen immediately
-    serve()
+        verification_results = [
+            mdl_engine_pb2.VerificationResult(
+                check_name="syntactic_validation",
+                passed=True,
+                details="MDL payload parsed successfully",
+            )
+        ]
+        signature_info = None
+        if record is not None:
+            signature_info = self._build_signature_info_message(record.signature, details)
+
+        mdl_response = mdl_engine_pb2.MDLResponse(
+            mdl_id=filtered.get("mdl_id", ""),
+            license_number=filtered.get("license_number", ""),
+            first_name=filtered.get("first_name", ""),
+            last_name=filtered.get("last_name", ""),
+            date_of_birth=filtered.get("date_of_birth", ""),
+            issuing_authority=filtered.get("issuing_authority", ""),
+            issue_date=filtered.get("issue_date", ""),
+            expiry_date=filtered.get("expiry_date", ""),
+            portrait=b"",
+            license_categories=[
+                mdl_engine_pb2.LicenseCategory(
+                    category_code=item.get("category_code", ""),
+                    issue_date=item.get("issue_date", ""),
+                    expiry_date=item.get("expiry_date", ""),
+                    restrictions=item.get("restrictions", []),
+                )
+                for item in filtered.get("license_categories", [])
+            ],
+            additional_fields=[
+                mdl_engine_pb2.AdditionalField(
+                    field_name=item.get("field_name", ""),
+                    field_value=item.get("field_value", ""),
+                )
+                for item in filtered.get("additional_fields", [])
+            ],
+            signature_info=signature_info or mdl_engine_pb2.SignatureInfo(),
+            status=record.status if record is not None else "UNKNOWN",
+            error_message="",
+        )
+
+        if "age" in filtered:
+            mdl_response.additional_fields.append(
+                mdl_engine_pb2.AdditionalField(field_name="age", field_value=str(filtered["age"]))
+            )
+
+        return mdl_engine_pb2.VerifyMDLResponse(
+            is_valid=True,
+            verification_results=verification_results,
+            mdl_data=mdl_response,
+            error_message="",
+        )

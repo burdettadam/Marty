@@ -61,3 +61,46 @@ class DigitalTravelCredentialRecord(Base):
     )
     revoked_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     revocation_reason: Mapped[str | None] = mapped_column(String(256), nullable=True)
+
+
+class MobileDrivingLicenseRecord(Base):
+    __tablename__ = "mobile_driving_licenses"
+
+    id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
+    mdl_id: Mapped[str] = mapped_column(String(64), unique=True, nullable=False)
+    license_number: Mapped[str] = mapped_column(String(64), unique=True, nullable=False)
+    user_id: Mapped[str] = mapped_column(String(64), nullable=False)
+    status: Mapped[str] = mapped_column(String(32), nullable=False, default="PENDING_SIGNATURE")
+    details: Mapped[dict[str, Any]] = mapped_column(JSON, nullable=False)
+    payload_location: Mapped[str] = mapped_column(String(256), nullable=False)
+    disclosure_policies: Mapped[dict[str, Any] | None] = mapped_column(JSON, nullable=True)
+    signature: Mapped[bytes | None] = mapped_column(LargeBinary, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=lambda: datetime.now(timezone.utc)
+    )
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        default=lambda: datetime.now(timezone.utc),
+        onupdate=lambda: datetime.now(timezone.utc),
+    )
+    revoked_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    revocation_reason: Mapped[str | None] = mapped_column(String(256), nullable=True)
+
+
+class PassportRecord(Base):
+    __tablename__ = "passports"
+
+    id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
+    passport_number: Mapped[str] = mapped_column(String(32), unique=True, nullable=False)
+    status: Mapped[str] = mapped_column(String(32), nullable=False, default="ISSUED")
+    details: Mapped[dict[str, Any] | None] = mapped_column(JSON, nullable=True)
+    payload_location: Mapped[str] = mapped_column(String(256), nullable=False)
+    signature: Mapped[bytes | None] = mapped_column(LargeBinary, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=lambda: datetime.now(timezone.utc)
+    )
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        default=lambda: datetime.now(timezone.utc),
+        onupdate=lambda: datetime.now(timezone.utc),
+    )

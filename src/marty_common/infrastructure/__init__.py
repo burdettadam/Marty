@@ -7,12 +7,21 @@ environment-specific dependencies.
 
 from .database import DatabaseConfig, DatabaseManager
 from .event_bus import EventBusConfig, EventBusMessage, EventBusProvider
-from .models import Base, CertificateRecord, DigitalTravelCredentialRecord, TrustEntity
+from .models import (
+    Base,
+    CertificateRecord,
+    DigitalTravelCredentialRecord,
+    MobileDrivingLicenseRecord,
+    PassportRecord,
+    TrustEntity,
+)
 from .key_vault import KeyVaultClient, KeyVaultConfig, build_key_vault_client
 from .object_storage import ObjectStorageClient, ObjectStorageConfig
 from .repositories import (
     CertificateRepository,
     DigitalTravelCredentialRepository,
+    MobileDrivingLicenseRepository,
+    PassportRepository,
     TrustEntityRepository,
 )
 
@@ -32,6 +41,10 @@ __all__ = [
     "ObjectStorageConfig",
     "CertificateRepository",
     "DigitalTravelCredentialRepository",
+    "MobileDrivingLicenseRepository",
+    "PassportRepository",
     "TrustEntityRepository",
     "build_key_vault_client",
+    "MobileDrivingLicenseRecord",
+    "PassportRecord",
 ]
