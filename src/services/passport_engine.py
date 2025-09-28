@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import asyncio
 import json
 import logging
 import uuid
@@ -40,9 +39,6 @@ class PassportEngine(passport_engine_pb2_grpc.PassportEngineServicer):
         self._database = dependencies.database
         self.passport_status: dict[str, str] = {}
 
-    def _run(self, coroutine):
-        return asyncio.run(coroutine)
-
     def _document_signer_stub(self) -> Optional[document_signer_pb2_grpc.DocumentSignerStub]:
         channel = self.channels.get("document_signer")
         if channel is None:
@@ -68,7 +64,7 @@ class PassportEngine(passport_engine_pb2_grpc.PassportEngineServicer):
             sod="",
         )
 
-    def _sign_passport_data(
+    async def _sign_passport_data(
         self, passport_data: ICaoPassport
     ) -> tuple[Optional[bytes], Optional[dict[str, str]]]:
         stub = self._document_signer_stub()
@@ -80,7 +76,7 @@ class PassportEngine(passport_engine_pb2_grpc.PassportEngineServicer):
         payload = json.dumps(passport_dict, sort_keys=True, separators=(",", ":")).encode("utf-8")
 
         try:
-            response = stub.SignDocument(
+            response = await stub.SignDocument(
                 document_signer_pb2.SignRequest(
                     document_id=passport_data.passport_number,
                     document_content=payload,
@@ -100,7 +96,7 @@ class PassportEngine(passport_engine_pb2_grpc.PassportEngineServicer):
         }
         return response.signature_info.signature, signature_info
 
-    def _persist_payload(
+    async def _persist_payload(
         self,
         passport_number: str,
         passport_payload: dict[str, Any],
@@ -110,12 +106,10 @@ class PassportEngine(passport_engine_pb2_grpc.PassportEngineServicer):
             passport_payload["sod"] = signature.hex()
         serialized = json.dumps(passport_payload, indent=2).encode("utf-8")
         object_key = f"passports/{passport_number}.json"
-        self._run(
-            self._object_storage.put_object(object_key, serialized, "application/json")
-        )
+        await self._object_storage.put_object(object_key, serialized, "application/json")
         return object_key
 
-    def _persist_metadata(
+    async def _persist_metadata(
         self,
         passport_number: str,
         storage_key: str,
@@ -133,9 +127,9 @@ class PassportEngine(passport_engine_pb2_grpc.PassportEngineServicer):
                 signature=signature,
             )
 
-        self._run(self._database.run_within_transaction(handler))
+        await self._database.run_within_transaction(handler)
 
-    def _publish_event(
+    async def _publish_event(
         self,
         passport_number: str,
         storage_key: str,
@@ -154,39 +148,43 @@ class PassportEngine(passport_engine_pb2_grpc.PassportEngineServicer):
             topic="passport.issued",
             payload=json.dumps(payload).encode("utf-8"),
         )
-        self._run(self._event_bus.publish(message))
+        await self._event_bus.publish(message)
 
-    def ProcessPassport(self, request, context):  # noqa: N802 - gRPC naming
+    async def ProcessPassport(self, request, context):  # noqa: N802 - gRPC naming
         passport_number = request.passport_number or f"P{uuid.uuid4().hex[:8].upper()}"
         self.logger.info("Processing passport %s", passport_number)
 
         passport_data = self._generate_passport_data(passport_number)
-        signature, signature_info = self._sign_passport_data(passport_data)
+        signature, signature_info = await self._sign_passport_data(passport_data)
         passport_details = passport_data.model_dump()
         passport_details["sod"] = signature.hex() if signature else ""
         status = "ISSUED" if signature else "PENDING_SIGNATURE"
 
         try:
-            storage_key = self._persist_payload(passport_number, dict(passport_details), signature)
-            self._persist_metadata(
+            storage_key = await self._persist_payload(
+                passport_number, dict(passport_details), signature
+            )
+            await self._persist_metadata(
                 passport_number,
                 storage_key,
                 status,
                 passport_details,
                 signature,
             )
-            self._publish_event(passport_number, storage_key, status, signature_info)
+            await self._publish_event(passport_number, storage_key, status, signature_info)
             grpc_status = "SUCCESS"
             self.passport_status[passport_number] = status
         except Exception as exc:  # pylint: disable=broad-except
             self.logger.exception("Failed to persist passport %s", passport_number)
-            context.set_details(str(exc))
-            context.set_code(grpc.StatusCode.INTERNAL)
             self.passport_status[passport_number] = "ERROR"
             try:
-                self._persist_metadata(passport_number, "", "ERROR", passport_details, signature)
+                await self._persist_metadata(
+                    passport_number, "", "ERROR", passport_details, signature
+                )
             except Exception:  # pylint: disable=broad-except
                 self.logger.warning("Failed to record error state for passport %s", passport_number)
             grpc_status = "ERROR"
+            await context.abort(grpc.StatusCode.INTERNAL, str(exc))
+            return passport_engine_pb2.PassportResponse(status=grpc_status)
 
         return passport_engine_pb2.PassportResponse(status=grpc_status)

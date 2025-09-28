@@ -1,8 +1,11 @@
+import asyncio
 import logging
 import queue
 import sys
 import threading
 from datetime import datetime, timezone
+
+import grpc
 
 # Try different import paths for proto files depending on the environment
 try:
@@ -153,18 +156,15 @@ class LoggingStreamerServicer(common_services_pb2_grpc.LoggingStreamerServicer):
             # We'll log an error to standard logging, which should go to stdout.
             logging.error("GrpcLogHandler not initialized. Log streaming will not work.")
 
-    def StreamLogs(self, request: common_services_pb2.StreamLogsRequest, context):  # type: ignore
+    async def StreamLogs(self, request: common_services_pb2.StreamLogsRequest, context):  # type: ignore
         """
         Called by a gRPC client to subscribe to the log stream.
         Maintains a queue for the client and yields log entries as they arrive.
         """
         if not self.handler:
-            import grpc
-
-            context.set_code(grpc.StatusCode.INTERNAL)
-            context.set_details("Log streaming service not available due to internal error.")
             logging.error("StreamLogs called but GrpcLogHandler is not initialized.")
-            return
+            await context.abort(grpc.StatusCode.INTERNAL, "Log streaming service not available due to internal error.")
+            return  # pragma: no cover - abort raises
 
         client_log_queue = queue.Queue(maxsize=MAX_CLIENT_QUEUE_SIZE)
         self.handler.add_client_queue(client_log_queue)
@@ -175,8 +175,8 @@ class LoggingStreamerServicer(common_services_pb2_grpc.LoggingStreamerServicer):
         try:
             while True:
                 try:
-                    log_entry = client_log_queue.get(
-                        block=True, timeout=1
+                    log_entry = await asyncio.to_thread(
+                        client_log_queue.get, True, 1
                     )  # Timeout to allow checking context.is_active()
                     yield log_entry
                 except queue.Empty:
@@ -189,9 +189,7 @@ class LoggingStreamerServicer(common_services_pb2_grpc.LoggingStreamerServicer):
                     continue  # Continue waiting for logs
                 except Exception as e:  # Catch any other exception from queue.get or yield
                     logging.exception(f"Error during log streaming for client {peer}: {e}")
-                    import grpc
-
-                    context.abort(grpc.StatusCode.INTERNAL, f"Error during streaming: {e}")
+                    await context.abort(grpc.StatusCode.INTERNAL, f"Error during streaming: {e}")
                     break
         except Exception as e:
             # Catch-all for unexpected errors in the streaming loop

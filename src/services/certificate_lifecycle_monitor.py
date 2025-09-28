@@ -6,12 +6,11 @@ This service monitors the lifecycle of certificates, including expiration dates,
 and provides notifications for upcoming certificate events.
 """
 
+import asyncio
 import json
 import logging
 import os
 import smtplib
-import threading
-import time
 from datetime import datetime, timedelta, timezone
 from email.message import EmailMessage
 from typing import Any, Optional
@@ -93,7 +92,7 @@ class CertificateLifecycleMonitor:
 
         # Internal state
         self.running = False
-        self.monitor_thread = None
+        self.monitor_task: asyncio.Task | None = None
 
     def _load_config(self, config_file: str) -> None:
         """
@@ -736,7 +735,7 @@ class CertificateLifecycleMonitor:
 
         return results
 
-    def monitor_loop(self) -> None:
+    async def monitor_loop(self) -> None:
         """
         Main monitoring loop that runs at configured intervals.
         """
@@ -756,22 +755,29 @@ class CertificateLifecycleMonitor:
             for _ in range(int(sleep_seconds / 10) or 1):
                 if not self.running:
                     break
-                time.sleep(min(10, sleep_seconds))
+                await asyncio.sleep(min(10, sleep_seconds))
 
-    def start(self) -> None:
-        """Start the monitoring thread."""
-        if not self.running:
-            self.running = True
-            self.monitor_thread = threading.Thread(target=self.monitor_loop)
-            self.monitor_thread.daemon = True
-            self.monitor_thread.start()
-            self.logger.info("Certificate Lifecycle Monitor started")
+    async def start(self) -> None:
+        """Start the certificate lifecycle monitor asynchronously."""
+        if self.running:
+            self.logger.warning("Certificate lifecycle monitor is already running")
+            return
 
-    def stop(self) -> None:
-        """Stop the monitoring thread."""
+        self.running = True
+        self.monitor_task = asyncio.create_task(self.monitor_loop())
+        self.logger.info("Certificate lifecycle monitor started asynchronously")
+
+    async def stop(self) -> None:
+        """Stop the monitoring task asynchronously."""
         self.running = False
-        if self.monitor_thread and self.monitor_thread.is_alive():
-            self.monitor_thread.join(30)  # Wait up to 30 seconds for the thread to finish
+        if self.monitor_task and not self.monitor_task.done():
+            try:
+                await asyncio.wait_for(self.monitor_task, timeout=30.0)
+                self.logger.info("Certificate Lifecycle Monitor stopped")
+            except asyncio.TimeoutError:
+                self.logger.warning("Certificate Lifecycle Monitor did not stop within timeout")
+                self.monitor_task.cancel()
+        elif self.monitor_task:
             self.logger.info("Certificate Lifecycle Monitor stopped")
 
     def check_now(self) -> dict[str, Any]:
@@ -823,15 +829,18 @@ if __name__ == "__main__":
 
     if len(sys.argv) > 1 and sys.argv[1] == "daemon":
         # Run as a daemon
-        monitor = CertificateLifecycleMonitor()
-        monitor.start()
+        async def run_daemon():
+            monitor = CertificateLifecycleMonitor()
+            await monitor.start()
 
-        try:
-            while True:
-                time.sleep(60)
-        except KeyboardInterrupt:
-            monitor.stop()
-            print("Monitor stopped")
+            try:
+                while True:
+                    await asyncio.sleep(60)
+            except KeyboardInterrupt:
+                await monitor.stop()
+                print("Monitor stopped")
+
+        asyncio.run(run_daemon())
     else:
         # Run a single check
         monitor = CertificateLifecycleMonitor()

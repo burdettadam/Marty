@@ -46,7 +46,6 @@ class InspectionSystem(inspection_system_pb2_grpc.InspectionSystemServicer):
         self._object_storage: ObjectStorageClient = dependencies.object_storage
         self._key_vault: KeyVaultClient = dependencies.key_vault
         self._signing_key_id = "document-signer-default"
-        self._run = lambda coro: asyncio.run(coro)
         self.logger.info(
             f"Inspection System service initialized with data_dir={self.data_dir}, passport_data_dir={self.passport_data_dir}"
         )
@@ -54,7 +53,7 @@ class InspectionSystem(inspection_system_pb2_grpc.InspectionSystemServicer):
         # Ensure data directories exist
         os.makedirs(self.data_dir, exist_ok=True)
 
-    def _verify_trust(self, entity):
+    async def _verify_trust(self, entity):
         """
         Verify if an entity is trusted using the Trust Anchor service.
 
@@ -75,7 +74,7 @@ class InspectionSystem(inspection_system_pb2_grpc.InspectionSystemServicer):
             trust_stub = trust_anchor_pb2_grpc.TrustAnchorStub(trust_channel)
 
             # Call the VerifyTrust method
-            response = trust_stub.VerifyTrust(trust_anchor_pb2.TrustRequest(entity=entity))
+            response = await trust_stub.VerifyTrust(trust_anchor_pb2.TrustRequest(entity=entity))
 
             self.logger.info(f"Entity {entity} trust verification: {response.is_trusted}")
             return response.is_trusted
@@ -83,7 +82,7 @@ class InspectionSystem(inspection_system_pb2_grpc.InspectionSystemServicer):
             self.logger.exception(f"Error verifying trust for entity {entity}: {e}")
             return False
 
-    def _verify_signature(self, document, signature) -> Optional[bool]:
+    async def _verify_signature(self, document, signature) -> Optional[bool]:
         """
         Verify the signature of a document.
 
@@ -96,7 +95,7 @@ class InspectionSystem(inspection_system_pb2_grpc.InspectionSystemServicer):
         """
         try:
             signature_bytes = bytes.fromhex(signature)
-            public_pem = self._run(self._key_vault.public_material(self._signing_key_id))
+            public_pem = await self._key_vault.public_material(self._signing_key_id)
             public_key = serialization.load_pem_public_key(public_pem)
             public_key.verify(signature_bytes, document.encode("utf-8"), padding.PKCS1v15(), hashes.SHA256())
             self.logger.info("Signature verified for document")
@@ -105,7 +104,7 @@ class InspectionSystem(inspection_system_pb2_grpc.InspectionSystemServicer):
             self.logger.exception("Error verifying signature: %s", e)
             return False
 
-    def _load_passport_data(self, passport_id):
+    async def _load_passport_data(self, passport_id):
         """
         Load passport data from disk.
 
@@ -117,7 +116,7 @@ class InspectionSystem(inspection_system_pb2_grpc.InspectionSystemServicer):
         """
         storage_key = f"passports/{passport_id}.json"
         try:
-            payload = self._run(self._object_storage.get_object(storage_key))
+            payload = await self._object_storage.get_object(storage_key)
             return json.loads(payload.decode("utf-8"))
         except Exception as storage_error:  # pylint: disable=broad-except
             self.logger.warning("Object storage lookup failed for %s: %s", passport_id, storage_error)
@@ -133,7 +132,7 @@ class InspectionSystem(inspection_system_pb2_grpc.InspectionSystemServicer):
         self.logger.warning("Passport data for %s not found", passport_id)
         return None
 
-    def Inspect(self, request, context):
+    async def Inspect(self, request, context):
         """
         Inspect an item (passport, document, etc).
 
@@ -150,7 +149,7 @@ class InspectionSystem(inspection_system_pb2_grpc.InspectionSystemServicer):
         # For passport inspection
         if item.startswith("P"):
             # Try to load passport data
-            passport_data = self._load_passport_data(item)
+            passport_data = await self._load_passport_data(item)
 
             if not passport_data:
                 return inspection_system_pb2.InspectResponse(
@@ -164,7 +163,7 @@ class InspectionSystem(inspection_system_pb2_grpc.InspectionSystemServicer):
                 passport_copy.pop("sod", None)
                 passport_json = json.dumps(passport_copy, sort_keys=True, separators=(",", ":"))
 
-                if not self._verify_signature(passport_json, signature_hex):
+                if not await self._verify_signature(passport_json, signature_hex):
                     return inspection_system_pb2.InspectResponse(
                         result=f"ERROR: Invalid signature for passport {item}"
                     )
@@ -173,7 +172,7 @@ class InspectionSystem(inspection_system_pb2_grpc.InspectionSystemServicer):
             issuer = (
                 "document-signer"  # In a real system, this would be extracted from the signature
             )
-            if not self._verify_trust(issuer):
+            if not await self._verify_trust(issuer):
                 return inspection_system_pb2.InspectResponse(
                     result=f"ERROR: Issuer {issuer} is not trusted"
                 )

@@ -6,8 +6,6 @@ import asyncio
 import json
 import logging
 from typing import Any
-import threading
-import time
 
 from google.protobuf import empty_pb2
 
@@ -35,15 +33,14 @@ class PKDService(pkd_service_pb2_grpc.PKDServiceServicer):
         self.channels = channels or {}
         self._database: DatabaseManager = dependencies.database
         self._event_bus: EventBusProvider = dependencies.event_bus
-        self._run = lambda coro: asyncio.run(coro)
         self._data_dir = Path(os.environ.get("PKD_DATA_DIR", "src/pkd_service/data"))
         self._auto_sync_interval = int(os.environ.get("PKD_AUTO_SYNC_INTERVAL", "0"))
-        self._sync_thread: threading.Thread | None = None
+        self._sync_task: asyncio.Task | None = None
         if self._auto_sync_interval > 0:
             self._start_background_sync()
 
-    def ListTrustAnchors(self, request: empty_pb2.Empty, context):  # noqa: N802
-        records = self._run(self._list_csca_records())
+    async def ListTrustAnchors(self, request: empty_pb2.Empty, context):  # noqa: N802
+        records = await self._list_csca_records()
         anchors = []
         for record in records:
             details = record.details or {}
@@ -59,11 +56,11 @@ class PKDService(pkd_service_pb2_grpc.PKDServiceServicer):
             )
         return pkd_service_pb2.ListTrustAnchorsResponse(anchors=anchors)
 
-    def Sync(self, request, context):  # noqa: N802
-        ingested = self._ingest_local_dataset(force_refresh=request.force_refresh)
+    async def Sync(self, request, context):  # noqa: N802
+        ingested = await self._ingest_local_dataset(force_refresh=request.force_refresh)
         message = f"Ingested {ingested} trust anchors from PKD dataset"
         self.logger.info(message)
-        self._publish_event(
+        await self._publish_event(
             "pkd.sync.completed",
             {"force_refresh": request.force_refresh, "anchors": ingested},
         )
@@ -74,11 +71,11 @@ class PKDService(pkd_service_pb2_grpc.PKDServiceServicer):
             repo = CertificateRepository(session)
             return await repo.list_by_type("CSCA")
 
-    def _publish_event(self, topic: str, payload: dict[str, Any]) -> None:
+    async def _publish_event(self, topic: str, payload: dict[str, Any]) -> None:
         message = EventBusMessage(topic=topic, payload=json.dumps(payload).encode("utf-8"))
-        self._run(self._event_bus.publish(message))
+        await self._event_bus.publish(message)
 
-    def _ingest_local_dataset(self, force_refresh: bool) -> int:
+    async def _ingest_local_dataset(self, force_refresh: bool) -> int:
         if not self._data_dir.exists():
             self.logger.warning("PKD data directory %s not found", self._data_dir)
             return 0
@@ -114,7 +111,7 @@ class PKDService(pkd_service_pb2_grpc.PKDServiceServicer):
                     details=details,
                 )
 
-        self._run(self._database.run_within_transaction(handler))
+        await self._database.run_within_transaction(handler)
         return len(anchors)
 
     @staticmethod
@@ -127,17 +124,16 @@ class PKDService(pkd_service_pb2_grpc.PKDServiceServicer):
         )
 
     def _start_background_sync(self) -> None:
-        if self._sync_thread and self._sync_thread.is_alive():
+        if self._sync_task and not self._sync_task.done():
             return
 
-        def _worker():
+        async def _worker():
             while True:
                 try:
                     self.logger.debug("Auto PKD sync triggered")
-                    self._ingest_local_dataset(force_refresh=False)
-                except Exception as exc:  # pylint: disable=broad-except
-                    self.logger.exception("Automatic PKD sync failed: %s", exc)
-                time.sleep(self._auto_sync_interval)
+                    await self._ingest_local_dataset(force_refresh=False)
+                except Exception:  # pylint: disable=broad-except
+                    self.logger.exception("Automatic PKD sync failed")
+                await asyncio.sleep(self._auto_sync_interval)
 
-        self._sync_thread = threading.Thread(target=_worker, daemon=True)
-        self._sync_thread.start()
+        self._sync_task = asyncio.create_task(_worker())

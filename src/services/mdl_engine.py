@@ -1,8 +1,6 @@
 """Mobile Driving Licence engine backed by async storage and event bus."""
 
 from __future__ import annotations
-
-import asyncio
 import base64
 import io
 import json
@@ -55,9 +53,6 @@ class MDLEngineServicer(mdl_engine_pb2_grpc.MDLEngineServicer):
         self._object_storage: ObjectStorageClient = dependencies.object_storage
         self._event_bus: EventBusProvider = dependencies.event_bus
 
-    def _run(self, coroutine):
-        return asyncio.run(coroutine)
-
     def _document_signer_stub(self) -> Optional[document_signer_pb2_grpc.DocumentSignerStub]:
         channel = self.channels.get("document_signer")
         if channel is None:
@@ -65,23 +60,20 @@ class MDLEngineServicer(mdl_engine_pb2_grpc.MDLEngineServicer):
             return None
         return document_signer_pb2_grpc.DocumentSignerStub(channel)
 
-    def _run_in_transaction(self, handler):
-        return self._run(self._database.run_within_transaction(handler))
-
-    def _store_portrait(self, mdl_id: str, portrait_bytes: bytes) -> Optional[str]:
+    async def _store_portrait(self, mdl_id: str, portrait_bytes: bytes) -> Optional[str]:
         if not portrait_bytes:
             return None
         object_key = f"mdl/{mdl_id}/portrait.bin"
-        self._run(self._object_storage.put_object(object_key, portrait_bytes, "image/octet-stream"))
+        await self._object_storage.put_object(object_key, portrait_bytes, "image/octet-stream")
         return object_key
 
-    def _persist_payload(self, object_key: str, details: dict[str, Any]) -> None:
+    async def _persist_payload(self, object_key: str, details: dict[str, Any]) -> None:
         payload = json.dumps(details, indent=2).encode("utf-8")
-        self._run(self._object_storage.put_object(object_key, payload, "application/json"))
+        await self._object_storage.put_object(object_key, payload, "application/json")
 
-    def _publish_event(self, topic: str, payload: dict[str, Any]) -> None:
+    async def _publish_event(self, topic: str, payload: dict[str, Any]) -> None:
         message = EventBusMessage(topic=topic, payload=json.dumps(payload).encode("utf-8"))
-        self._run(self._event_bus.publish(message))
+        await self._event_bus.publish(message)
 
     def _prepare_license_categories(self, request) -> list[dict[str, Any]]:
         categories = []
@@ -194,21 +186,21 @@ class MDLEngineServicer(mdl_engine_pb2_grpc.MDLEngineServicer):
             error_message="",
         )
 
-    def _load_record(self, mdl_id: str):
+    async def _load_record(self, mdl_id: str):
         async def handler(session):
             repo = MobileDrivingLicenseRepository(session)
             return await repo.get(mdl_id)
 
-        return self._run_in_transaction(handler)
+        return await self._database.run_within_transaction(handler)
 
-    def _load_record_by_license(self, license_number: str):
+    async def _load_record_by_license(self, license_number: str):
         async def handler(session):
             repo = MobileDrivingLicenseRepository(session)
             return await repo.get_by_license(license_number)
 
-        return self._run_in_transaction(handler)
+        return await self._database.run_within_transaction(handler)
 
-    def _update_signature(
+    async def _update_signature(
         self,
         mdl_id: str,
         signature: bytes,
@@ -220,33 +212,30 @@ class MDLEngineServicer(mdl_engine_pb2_grpc.MDLEngineServicer):
             await repo.update_signature(mdl_id, signature, signature_info)
             await repo.update_status(mdl_id, new_status)
 
-        self._run_in_transaction(handler)
+        await self._database.run_within_transaction(handler)
 
-    def _update_status(self, mdl_id: str, status: str) -> None:
+    async def _update_status(self, mdl_id: str, status: str) -> None:
         async def handler(session):
             repo = MobileDrivingLicenseRepository(session)
             await repo.update_status(mdl_id, status)
 
-        self._run_in_transaction(handler)
+        await self._database.run_within_transaction(handler)
 
-    def CreateMDL(self, request, context):  # noqa: N802
+    async def CreateMDL(self, request, context):  # noqa: N802
         if not request.license_number:
-            context.set_code(grpc.StatusCode.INVALID_ARGUMENT)
-            context.set_details("license_number is required")
+            await context.abort(grpc.StatusCode.INVALID_ARGUMENT, "license_number is required")
             return mdl_engine_pb2.CreateMDLResponse(status="ERROR", error_message="license_number is required")
         if not request.user_id:
-            context.set_code(grpc.StatusCode.INVALID_ARGUMENT)
-            context.set_details("user_id is required")
+            await context.abort(grpc.StatusCode.INVALID_ARGUMENT, "user_id is required")
             return mdl_engine_pb2.CreateMDLResponse(status="ERROR", error_message="user_id is required")
 
-        existing = self._load_record_by_license(request.license_number)
+        existing = await self._load_record_by_license(request.license_number)
         if existing is not None:
-            context.set_code(grpc.StatusCode.ALREADY_EXISTS)
-            context.set_details("MDL already exists for license number")
+            await context.abort(grpc.StatusCode.ALREADY_EXISTS, "MDL already exists for license number")
             return mdl_engine_pb2.CreateMDLResponse(status="ERROR", error_message="MDL already exists")
 
         mdl_id = f"MDL{uuid.uuid4().hex[:12].upper()}"
-        portrait_reference = self._store_portrait(mdl_id, request.portrait)
+        portrait_reference = await self._store_portrait(mdl_id, request.portrait)
         license_categories = self._prepare_license_categories(request)
         additional_fields = self._prepare_additional_fields(request)
 
@@ -270,11 +259,10 @@ class MDLEngineServicer(mdl_engine_pb2_grpc.MDLEngineServicer):
         payload_key = f"mdl/{mdl_id}.json"
 
         try:
-            self._persist_payload(payload_key, details)
+            await self._persist_payload(payload_key, details)
         except Exception as exc:  # pylint: disable=broad-except
             self.logger.exception("Failed to persist MDL payload")
-            context.set_code(grpc.StatusCode.INTERNAL)
-            context.set_details(str(exc))
+            await context.abort(grpc.StatusCode.INTERNAL, str(exc))
             return mdl_engine_pb2.CreateMDLResponse(status="ERROR", error_message=str(exc))
 
         async def handler(session):
@@ -289,9 +277,9 @@ class MDLEngineServicer(mdl_engine_pb2_grpc.MDLEngineServicer):
                 disclosure_policies=disclosure_policies,
             )
 
-        self._run_in_transaction(handler)
+        await self._database.run_within_transaction(handler)
 
-        self._publish_event(
+        await self._publish_event(
             "mdl.created",
             {
                 "mdl_id": mdl_id,
@@ -303,43 +291,38 @@ class MDLEngineServicer(mdl_engine_pb2_grpc.MDLEngineServicer):
 
         return mdl_engine_pb2.CreateMDLResponse(mdl_id=mdl_id, status="PENDING_SIGNATURE", error_message="")
 
-    def GetMDL(self, request, context):  # noqa: N802
+    async def GetMDL(self, request, context):  # noqa: N802
         if not request.license_number:
-            context.set_code(grpc.StatusCode.INVALID_ARGUMENT)
-            context.set_details("license_number is required")
+            await context.abort(grpc.StatusCode.INVALID_ARGUMENT, "license_number is required")
             return mdl_engine_pb2.MDLResponse(status="FAILED", error_message="license_number is required")
 
-        record = self._load_record_by_license(request.license_number)
+        record = await self._load_record_by_license(request.license_number)
         if record is None:
-            context.set_code(grpc.StatusCode.NOT_FOUND)
-            context.set_details("MDL not found")
+            await context.abort(grpc.StatusCode.NOT_FOUND, "MDL not found")
             return mdl_engine_pb2.MDLResponse(status="NOT_FOUND", error_message="MDL not found")
 
         details = record.details or {}
         return self._build_mdl_response(record, details)
 
-    def SignMDL(self, request, context):  # noqa: N802
+    async def SignMDL(self, request, context):  # noqa: N802
         if not request.mdl_id:
-            context.set_code(grpc.StatusCode.INVALID_ARGUMENT)
-            context.set_details("mdl_id is required")
+            await context.abort(grpc.StatusCode.INVALID_ARGUMENT, "mdl_id is required")
             return mdl_engine_pb2.SignMDLResponse(success=False, error_message="mdl_id is required")
 
-        record = self._load_record(request.mdl_id)
+        record = await self._load_record(request.mdl_id)
         if record is None:
-            context.set_code(grpc.StatusCode.NOT_FOUND)
-            context.set_details("MDL not found")
+            await context.abort(grpc.StatusCode.NOT_FOUND, "MDL not found")
             return mdl_engine_pb2.SignMDLResponse(success=False, error_message="MDL not found")
 
         details = record.details or {}
         payload = json.dumps(details, sort_keys=True, separators=(",", ":")).encode("utf-8")
         stub = self._document_signer_stub()
         if stub is None:
-            context.set_code(grpc.StatusCode.UNAVAILABLE)
-            context.set_details("Document signer unavailable")
+            await context.abort(grpc.StatusCode.UNAVAILABLE, "Document signer unavailable")
             return mdl_engine_pb2.SignMDLResponse(success=False, error_message="Signer unavailable")
 
         try:
-            response = stub.SignDocument(
+            response = await stub.SignDocument(
                 document_signer_pb2.SignRequest(
                     document_id=record.mdl_id,
                     document_content=payload,
@@ -347,13 +330,11 @@ class MDLEngineServicer(mdl_engine_pb2_grpc.MDLEngineServicer):
             )
         except grpc.RpcError as rpc_err:
             self.logger.error("Signer RPC error: %s", rpc_err.details())
-            context.set_code(rpc_err.code())
-            context.set_details(rpc_err.details())
+            await context.abort(rpc_err.code(), rpc_err.details())
             return mdl_engine_pb2.SignMDLResponse(success=False, error_message=rpc_err.details())
 
         if not response.success:
-            context.set_code(grpc.StatusCode.INTERNAL)
-            context.set_details(response.error_message)
+            await context.abort(grpc.StatusCode.INTERNAL, response.error_message)
             return mdl_engine_pb2.SignMDLResponse(success=False, error_message=response.error_message)
 
         signature_bytes = response.signature_info.signature
@@ -362,8 +343,8 @@ class MDLEngineServicer(mdl_engine_pb2_grpc.MDLEngineServicer):
             "signer_id": response.signature_info.signer_id,
         }
 
-        self._update_signature(record.mdl_id, signature_bytes, signature_info, "ISSUED")
-        self._publish_event(
+        await self._update_signature(record.mdl_id, signature_bytes, signature_info, "ISSUED")
+        await self._publish_event(
             "mdl.signed",
             {
                 "mdl_id": record.mdl_id,
@@ -383,16 +364,14 @@ class MDLEngineServicer(mdl_engine_pb2_grpc.MDLEngineServicer):
             ),
         )
 
-    def GenerateMDLQRCode(self, request, context):  # noqa: N802
+    async def GenerateMDLQRCode(self, request, context):  # noqa: N802
         if not request.mdl_id:
-            context.set_code(grpc.StatusCode.INVALID_ARGUMENT)
-            context.set_details("mdl_id is required")
+            await context.abort(grpc.StatusCode.INVALID_ARGUMENT, "mdl_id is required")
             return mdl_engine_pb2.GenerateQRCodeResponse(error_message="mdl_id is required")
 
-        record = self._load_record(request.mdl_id)
+        record = await self._load_record(request.mdl_id)
         if record is None:
-            context.set_code(grpc.StatusCode.NOT_FOUND)
-            context.set_details("MDL not found")
+            await context.abort(grpc.StatusCode.NOT_FOUND, "MDL not found")
             return mdl_engine_pb2.GenerateQRCodeResponse(error_message="MDL not found")
 
         details = record.details or {}
@@ -404,7 +383,7 @@ class MDLEngineServicer(mdl_engine_pb2_grpc.MDLEngineServicer):
         portrait_key = filtered.get("portrait_reference")
         if request.include_photo and portrait_key:
             try:
-                portrait_bytes = self._run(self._object_storage.get_object(portrait_key))
+                portrait_bytes = await self._object_storage.get_object(portrait_key)
                 filtered["portrait"] = base64.b64encode(portrait_bytes).decode("ascii")
             except Exception:  # pylint: disable=broad-except
                 self.logger.warning("Failed to load portrait for %s", record.mdl_id)
@@ -425,13 +404,12 @@ class MDLEngineServicer(mdl_engine_pb2_grpc.MDLEngineServicer):
         image.save(buffer, format="PNG")
         return mdl_engine_pb2.GenerateQRCodeResponse(qr_code=buffer.getvalue())
 
-    def TransferMDLToDevice(self, request, context):  # noqa: N802
+    async def TransferMDLToDevice(self, request, context):  # noqa: N802
         if not request.mdl_id:
-            context.set_code(grpc.StatusCode.INVALID_ARGUMENT)
-            context.set_details("mdl_id is required")
+            await context.abort(grpc.StatusCode.INVALID_ARGUMENT, "mdl_id is required")
             return mdl_engine_pb2.TransferMDLResponse(success=False, error_message="mdl_id is required")
         transfer_id = f"XFER-{uuid.uuid4().hex[:8].upper()}"
-        self._publish_event(
+        await self._publish_event(
             "mdl.transfer_requested",
             {
                 "mdl_id": request.mdl_id,
@@ -442,11 +420,11 @@ class MDLEngineServicer(mdl_engine_pb2_grpc.MDLEngineServicer):
         )
         return mdl_engine_pb2.TransferMDLResponse(success=True, transfer_id=transfer_id)
 
-    def VerifyMDL(self, request, context):  # noqa: N802
+    async def VerifyMDL(self, request, context):  # noqa: N802
         details: dict[str, Any]
         record = None
         if request.mdl_id:
-            record = self._load_record(request.mdl_id)
+            record = await self._load_record(request.mdl_id)
             if record is None:
                 context.set_code(grpc.StatusCode.NOT_FOUND)
                 context.set_details("MDL not found")

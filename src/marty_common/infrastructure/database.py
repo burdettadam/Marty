@@ -79,6 +79,10 @@ class DatabaseManager:
         async with engine.begin() as conn:
             await conn.run_sync(Base.metadata.create_all)
 
+    async def dispose(self) -> None:
+        if self._engine is not None:
+            await self._engine.dispose()
+
     @asynccontextmanager
     async def session_scope(self) -> AsyncIterator[AsyncSession]:
         session = self.session_factory()()

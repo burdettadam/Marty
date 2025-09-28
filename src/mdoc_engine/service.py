@@ -36,20 +36,25 @@ class MDocEngineServicer(mdoc_engine_pb2_grpc.MDocEngineServicer):  # type: igno
     that can be stored on mobile devices and verified remotely.
     """
 
-    def __init__(self, document_signer_stub: DocumentSignerStub = None) -> None:
+    def __init__(self, channels: Optional[dict[str, Any]] = None) -> None:
         """
         Initialize the MDoc Engine service.
 
         Args:
-            document_signer_stub: Optional stub for the document signing service.
-                If None, signing operations will fail with service unavailable error.
+            channels: Optional dictionary of gRPC channels to other services.
         """
         self._mdoc_store: MDocStore = {}
-        # If explicit None is provided, keep None to satisfy unit tests that
-        # expect the service to report unavailability.
-        self.document_signer_stub = document_signer_stub
+        self.channels = channels or {}
+        self.document_signer_stub = self._document_signer_stub()
 
-    def CreateMDoc(self, request: Any, context: grpc.ServicerContext) -> Any:
+    def _document_signer_stub(self) -> DocumentSignerStub:
+        """Get the document signer stub from channels."""
+        channel = self.channels.get("document_signer")
+        if channel is None:
+            return None
+        return document_signer_pb2_grpc.DocumentSignerStub(channel)
+
+    async def CreateMDoc(self, request: Any, context: grpc.ServicerContext) -> Any:
         """
         Create a new Mobile Document (MDoc).
 
@@ -83,7 +88,7 @@ class MDocEngineServicer(mdoc_engine_pb2_grpc.MDocEngineServicer):  # type: igno
             mdoc_id=mdoc_id, status="SUCCESS", error_message=""
         )
 
-    def GetMDoc(self, request: Any, context: grpc.ServicerContext) -> Any:
+    async def GetMDoc(self, request: Any, context: grpc.ServicerContext) -> Any:
         """
         Retrieve an existing Mobile Document (MDoc).
 
@@ -96,14 +101,13 @@ class MDocEngineServicer(mdoc_engine_pb2_grpc.MDocEngineServicer):  # type: igno
         """
         mdoc = self._mdoc_store.get(request.mdoc_id)
         if not mdoc:
-            context.set_code(grpc.StatusCode.NOT_FOUND)
-            context.set_details("MDoc not found")
+            await context.abort(grpc.StatusCode.NOT_FOUND, "MDoc not found")
             return mdoc_engine_pb2.MDocResponse(  # type: ignore
                 mdoc_id="", status="NOT_FOUND", error_message="MDoc not found"
             )
         return mdoc
 
-    def SignMDoc(self, request: Any, context: grpc.ServicerContext) -> Any:
+    async def SignMDoc(self, request: Any, context: grpc.ServicerContext) -> Any:
         """
         Sign a Mobile Document (MDoc) using the document signing service.
 
@@ -116,8 +120,7 @@ class MDocEngineServicer(mdoc_engine_pb2_grpc.MDocEngineServicer):  # type: igno
         """
         mdoc = self._mdoc_store.get(request.mdoc_id)
         if not mdoc:
-            context.set_code(grpc.StatusCode.NOT_FOUND)
-            context.set_details("MDoc not found for signing")
+            await context.abort(grpc.StatusCode.NOT_FOUND, "MDoc not found for signing")
             return mdoc_engine_pb2.SignMDocResponse(  # type: ignore
                 success=False, error_message="MDoc not found for signing"
             )
@@ -130,8 +133,7 @@ class MDocEngineServicer(mdoc_engine_pb2_grpc.MDocEngineServicer):  # type: igno
             )
 
         if not self.document_signer_stub:
-            context.set_code(grpc.StatusCode.INTERNAL)
-            context.set_details("Document signing service not available")
+            await context.abort(grpc.StatusCode.INTERNAL, "Document signing service not available")
             return mdoc_engine_pb2.SignMDocResponse(  # type: ignore
                 success=False, error_message="Document signing service not available"
             )
@@ -148,10 +150,9 @@ class MDocEngineServicer(mdoc_engine_pb2_grpc.MDocEngineServicer):  # type: igno
             sign_req = document_signer_pb2.SignRequest(  # type: ignore
                 document_id=mdoc.mdoc_id, document_content=doc_to_sign.encode("utf-8")
             )
-            sign_resp = self.document_signer_stub.SignDocument(sign_req)
+            sign_resp = await self.document_signer_stub.SignDocument(sign_req)
         except grpc.RpcError as rpc_err:  # pragma: no cover - behavior covered by tests
-            context.set_code(rpc_err.code())  # type: ignore
-            context.set_details(rpc_err.details())  # type: ignore
+            await context.abort(rpc_err.code(), f"Signer service RPC error: {rpc_err.details()}")
             return mdoc_engine_pb2.SignMDocResponse(  # type: ignore
                 success=False,
                 error_message=f"Signer service RPC error: {rpc_err.details()}",
@@ -222,11 +223,10 @@ class MDocEngineServicer(mdoc_engine_pb2_grpc.MDocEngineServicer):  # type: igno
 
         return mdoc_engine_pb2.SignMDocResponse(success=True, signature_info=mdoc.signature_info)
 
-    def GenerateMDocQRCode(self, request, context):
+    async def GenerateMDocQRCode(self, request, context):
         mdoc = self._mdoc_store.get(request.mdoc_id)
         if not mdoc:
-            context.set_code(grpc.StatusCode.NOT_FOUND)
-            context.set_details("MDoc not found")
+            await context.abort(grpc.StatusCode.NOT_FOUND, "MDoc not found")
             return mdoc_engine_pb2.GenerateQRCodeResponse(
                 qr_code=b"", error_message="MDoc not found"
             )
@@ -259,7 +259,7 @@ class MDocEngineServicer(mdoc_engine_pb2_grpc.MDocEngineServicer):  # type: igno
         return mdoc_engine_pb2.GenerateQRCodeResponse(qr_code=qr_bytes, error_message="")
 
     # Explicitly raise not implemented for methods referenced by tests
-    def TransferMDocToDevice(self, request, context):  # pragma: no cover
+    async def TransferMDocToDevice(self, request, context):  # pragma: no cover
         """
         Transfer mDoc to a device.
 
@@ -272,8 +272,7 @@ class MDocEngineServicer(mdoc_engine_pb2_grpc.MDocEngineServicer):  # type: igno
         """
         mdoc = self._mdoc_store.get(request.mdoc_id)
         if not mdoc:
-            context.set_code(grpc.StatusCode.NOT_FOUND)
-            context.set_details("MDoc not found for transfer")
+            await context.abort(grpc.StatusCode.NOT_FOUND, "MDoc not found for transfer")
             return mdoc_engine_pb2.TransferMDocResponse(
                 success=False, error_message="MDoc not found for transfer"
             )
@@ -291,7 +290,7 @@ class MDocEngineServicer(mdoc_engine_pb2_grpc.MDocEngineServicer):  # type: igno
             error_message="",
         )
 
-    def VerifyMDoc(self, request, context):  # pragma: no cover
+    async def VerifyMDoc(self, request, context):  # pragma: no cover
         """
         Verify an mDoc using either QR code data or direct mDoc ID.
 
@@ -317,8 +316,7 @@ class MDocEngineServicer(mdoc_engine_pb2_grpc.MDocEngineServicer):  # type: igno
             )
 
         if not mdoc:
-            context.set_code(grpc.StatusCode.NOT_FOUND)
-            context.set_details("MDoc not found for verification")
+            await context.abort(grpc.StatusCode.NOT_FOUND, "MDoc not found for verification")
             return mdoc_engine_pb2.VerifyMDocResponse(
                 is_valid=False, error_message="MDoc not found for verification"
             )
@@ -335,7 +333,7 @@ class MDocEngineServicer(mdoc_engine_pb2_grpc.MDocEngineServicer):  # type: igno
             is_valid=is_signature_valid, mdoc_data=mdoc, error_message=""
         )
 
-    def CreateDocumentTypeTemplate(self, request, context):  # pragma: no cover
+    async def CreateDocumentTypeTemplate(self, request, context):  # pragma: no cover
         """
         Create a new document type template.
 
@@ -354,7 +352,7 @@ class MDocEngineServicer(mdoc_engine_pb2_grpc.MDocEngineServicer):  # type: igno
             template_id=template_id, success=True, error_message=""
         )
 
-    def GetDocumentTemplates(self, request, context):  # pragma: no cover
+    async def GetDocumentTemplates(self, request, context):  # pragma: no cover
         """
         Get available document type templates.
 

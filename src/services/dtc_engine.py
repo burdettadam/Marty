@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import asyncio
 import io
 import hashlib
 import json
@@ -36,21 +35,18 @@ class DTCEngineServicer(dtc_engine_pb2_grpc.DTCEngineServicer):
         self._database = dependencies.database
         self._object_storage: ObjectStorageClient = dependencies.object_storage
         self._event_bus: EventBusProvider = dependencies.event_bus
-        self._run = lambda coro: asyncio.run(coro)
 
     # ------------------------------------------------------------------
     # gRPC endpoints
     # ------------------------------------------------------------------
-    def CreateDTC(self, request, context):  # noqa: N802
+    async def CreateDTC(self, request, context):  # noqa: N802
         dtc_id = f"DTC{uuid.uuid4().hex[:12].upper()}"
         self.logger.info("Issuing DTC %s for passport %s", dtc_id, request.passport_number)
 
         dtc_payload = self._build_dtc_payload(dtc_id, request)
         payload_key = f"dtc/{dtc_id}.json"
-        self._run(
-            self._object_storage.put_object(
-                payload_key, json.dumps(dtc_payload).encode("utf-8"), "application/json"
-            )
+        await self._object_storage.put_object(
+            payload_key, json.dumps(dtc_payload).encode("utf-8"), "application/json"
         )
 
         async def handler(session):
@@ -65,9 +61,9 @@ class DTCEngineServicer(dtc_engine_pb2_grpc.DTCEngineServicer):
                 signature=None,
             )
 
-        self._run(self._database.run_within_transaction(handler))
+        await self._database.run_within_transaction(handler)
 
-        self._publish_event(
+        await self._publish_event(
             "dtc.issued",
             {
                 "dtc_id": dtc_id,
@@ -78,15 +74,15 @@ class DTCEngineServicer(dtc_engine_pb2_grpc.DTCEngineServicer):
 
         return dtc_engine_pb2.CreateDTCResponse(dtc_id=dtc_id, status="SUCCESS", error_message="")
 
-    def GetDTC(self, request, context):  # noqa: N802
-        record = self._load_record(request.dtc_id)
+    async def GetDTC(self, request, context):  # noqa: N802
+        record = await self._load_record(request.dtc_id)
         if record is None:
             return dtc_engine_pb2.DTCResponse(
                 status="NOT_FOUND",
                 error_message=f"DTC with ID {request.dtc_id} not found",
             )
 
-        dtc_payload = self._load_payload(record.payload_location)
+        dtc_payload = await self._load_payload(record.payload_location)
 
         access_hash = dtc_payload.get("access_key_hash")
         if access_hash and not self._validate_access_key(request.access_key, access_hash):
@@ -98,8 +94,8 @@ class DTCEngineServicer(dtc_engine_pb2_grpc.DTCEngineServicer):
         response.status = "REVOKED" if record.status == "REVOKED" else "SUCCESS"
         return response
 
-    def SignDTC(self, request, context):  # noqa: N802
-        record = self._load_record(request.dtc_id)
+    async def SignDTC(self, request, context):  # noqa: N802
+        record = await self._load_record(request.dtc_id)
         if record is None:
             return dtc_engine_pb2.SignDTCResponse(
                 success=False,
@@ -111,17 +107,16 @@ class DTCEngineServicer(dtc_engine_pb2_grpc.DTCEngineServicer):
                 error_message="Cannot sign a revoked DTC",
             )
 
-        dtc_payload = self._load_payload(record.payload_location)
+        dtc_payload = await self._load_payload(record.payload_location)
         cbor_payload = self._to_cbor_payload(dtc_payload)
 
         signer_stub = self._document_signer_stub()
         if signer_stub is None:
-            context.set_code(grpc.StatusCode.UNAVAILABLE)
-            context.set_details("Document signer channel unavailable")
+            await context.abort(grpc.StatusCode.UNAVAILABLE, "Document signer channel unavailable")
             return dtc_engine_pb2.SignDTCResponse(success=False, error_message="Signer unavailable")
 
         try:
-            sign_response = signer_stub.SignDocument(
+            sign_response = await signer_stub.SignDocument(
                 document_signer_pb2.SignRequest(
                     document_id=request.dtc_id,
                     document_content=cbor_payload,
@@ -129,8 +124,7 @@ class DTCEngineServicer(dtc_engine_pb2_grpc.DTCEngineServicer):
             )
         except grpc.RpcError as rpc_err:
             self.logger.exception("Signer RPC error: %s", rpc_err.details())
-            context.set_code(rpc_err.code())
-            context.set_details(rpc_err.details())
+            await context.abort(rpc_err.code(), rpc_err.details())
             return dtc_engine_pb2.SignDTCResponse(success=False, error_message=rpc_err.details())
 
         if not sign_response.success:
@@ -156,9 +150,9 @@ class DTCEngineServicer(dtc_engine_pb2_grpc.DTCEngineServicer):
             stored.signature = signature_bytes
             stored.updated_at = datetime.now(timezone.utc)
 
-        self._run(self._database.run_within_transaction(handler))
+        await self._database.run_within_transaction(handler)
 
-        self._publish_event(
+        await self._publish_event(
             "dtc.signed",
             {
                 "dtc_id": request.dtc_id,
@@ -177,24 +171,24 @@ class DTCEngineServicer(dtc_engine_pb2_grpc.DTCEngineServicer):
             ),
         )
 
-    def RevokeDTC(self, request, context):  # noqa: N802
+    async def RevokeDTC(self, request, context):  # noqa: N802
         reason = request.reason or "unspecified"
 
         async def handler(session):
             repo = DigitalTravelCredentialRepository(session)
             await repo.mark_revoked(request.dtc_id, reason)
 
-        self._run(self._database.run_within_transaction(handler))
+        await self._database.run_within_transaction(handler)
 
-        self._publish_event(
+        await self._publish_event(
             "dtc.revoked",
             {"dtc_id": request.dtc_id, "reason": reason},
         )
 
         return dtc_engine_pb2.RevokeDTCResponse(success=True, status="REVOKED")
 
-    def GenerateDTCQRCode(self, request, context):  # noqa: N802
-        record = self._load_record(request.dtc_id)
+    async def GenerateDTCQRCode(self, request, context):  # noqa: N802
+        record = await self._load_record(request.dtc_id)
         if record is None:
             return dtc_engine_pb2.DTCQRCodeResponse(
                 success=False,
@@ -207,8 +201,8 @@ class DTCEngineServicer(dtc_engine_pb2_grpc.DTCEngineServicer):
         qr_img.save(buffer, format="PNG")
         return dtc_engine_pb2.DTCQRCodeResponse(success=True, qr_code_png=buffer.getvalue())
 
-    def TransferDTCToDevice(self, request, context):  # noqa: N802
-        record = self._load_record(request.dtc_id)
+    async def TransferDTCToDevice(self, request, context):  # noqa: N802
+        record = await self._load_record(request.dtc_id)
         if record is None:
             return dtc_engine_pb2.TransferDTCResponse(
                 success=False,
@@ -220,8 +214,8 @@ class DTCEngineServicer(dtc_engine_pb2_grpc.DTCEngineServicer):
             payload_location=record.payload_location,
         )
 
-    def VerifyDTC(self, request, context):  # noqa: N802
-        record = self._load_record(request.dtc_id)
+    async def VerifyDTC(self, request, context):  # noqa: N802
+        record = await self._load_record(request.dtc_id)
         if record is None or record.signature is None:
             return dtc_engine_pb2.VerifyDTCResponse(
                 success=False,
@@ -229,7 +223,7 @@ class DTCEngineServicer(dtc_engine_pb2_grpc.DTCEngineServicer):
             )
         return dtc_engine_pb2.VerifyDTCResponse(success=True, is_valid=True)
 
-    def LinkDTCToPassport(self, request, context):  # noqa: N802
+    async def LinkDTCToPassport(self, request, context):  # noqa: N802
         async def handler(session):
             repo = DigitalTravelCredentialRepository(session)
             stored = await repo.get(request.dtc_id)
@@ -241,7 +235,7 @@ class DTCEngineServicer(dtc_engine_pb2_grpc.DTCEngineServicer):
             stored.updated_at = datetime.now(timezone.utc)
             return True
 
-        updated = self._run(self._database.run_within_transaction(handler))
+        updated = await self._database.run_within_transaction(handler)
         if not updated:
             return dtc_engine_pb2.LinkDTCResponse(
                 success=False,
@@ -252,15 +246,15 @@ class DTCEngineServicer(dtc_engine_pb2_grpc.DTCEngineServicer):
     # ------------------------------------------------------------------
     # Internal helpers
     # ------------------------------------------------------------------
-    def _load_record(self, dtc_id: str):
+    async def _load_record(self, dtc_id: str):
         async def handler(session):
             repo = DigitalTravelCredentialRepository(session)
             return await repo.get(dtc_id)
 
-        return self._run(self._database.run_within_transaction(handler))
+        return await self._database.run_within_transaction(handler)
 
-    def _load_payload(self, storage_key: str) -> dict[str, Any]:
-        raw = self._run(self._object_storage.get_object(storage_key))
+    async def _load_payload(self, storage_key: str) -> dict[str, Any]:
+        raw = await self._object_storage.get_object(storage_key)
         return json.loads(raw.decode("utf-8"))
 
     def _document_signer_stub(self):
@@ -269,9 +263,9 @@ class DTCEngineServicer(dtc_engine_pb2_grpc.DTCEngineServicer):
             return None
         return document_signer_pb2_grpc.DocumentSignerStub(channel)
 
-    def _publish_event(self, topic: str, payload: dict[str, Any]) -> None:
+    async def _publish_event(self, topic: str, payload: dict[str, Any]) -> None:
         message = EventBusMessage(topic=topic, payload=json.dumps(payload).encode("utf-8"))
-        self._run(self._event_bus.publish(message))
+        await self._event_bus.publish(message)
 
     def _build_dtc_payload(self, dtc_id: str, request) -> dict[str, Any]:
         valid_from = request.dtc_valid_from or request.issue_date

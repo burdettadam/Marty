@@ -38,37 +38,40 @@ class CscaService(csca_service_pb2_grpc.CscaServiceServicer):
         self._key_vault: KeyVaultClient = dependencies.key_vault
         self._object_storage: ObjectStorageClient = dependencies.object_storage
         self._event_bus: EventBusProvider = dependencies.event_bus
-        self._run = lambda coro: asyncio.run(coro)
         self._certificate_cache: dict[str, dict[str, Any]] = {}
-        self._refresh_cache()
+        try:
+            loop = asyncio.get_running_loop()
+            loop.create_task(self._refresh_cache())
+        except RuntimeError:
+            asyncio.run(self._refresh_cache())
 
     # ---------------------------------------------------------------------
     # gRPC API
     # ---------------------------------------------------------------------
-    def GetCscaData(self, request, context):  # noqa: N802 - proto naming
+    async def GetCscaData(self, request, context):  # noqa: N802 - proto naming
         certificate_id = request.id
         if not certificate_id:
-            context.abort(grpc.StatusCode.INVALID_ARGUMENT, "Certificate ID cannot be empty")
+            await context.abort(grpc.StatusCode.INVALID_ARGUMENT, "Certificate ID cannot be empty")
             return csca_service_pb2.CscaResponse()
 
         record = self._certificate_cache.get(certificate_id)
         if record is None:
-            record = self._fetch_certificate_record(certificate_id)
+            record = await self._fetch_certificate_record(certificate_id)
 
         if record is None:
-            context.abort(grpc.StatusCode.NOT_FOUND, f"Certificate '{certificate_id}' not found")
+            await context.abort(grpc.StatusCode.NOT_FOUND, f"Certificate '{certificate_id}' not found")
             return csca_service_pb2.CscaResponse()
 
         if record.get("revoked"):
-            context.abort(grpc.StatusCode.PERMISSION_DENIED, "Certificate is revoked")
+            await context.abort(grpc.StatusCode.PERMISSION_DENIED, "Certificate is revoked")
             return csca_service_pb2.CscaResponse()
 
         return csca_service_pb2.CscaResponse(data=record["pem"])
 
-    def CreateCertificate(self, request, context):  # noqa: N802
+    async def CreateCertificate(self, request, context):  # noqa: N802
         subject_name = request.subject_name
         if not subject_name:
-            context.abort(grpc.StatusCode.INVALID_ARGUMENT, "Subject name cannot be empty")
+            await context.abort(grpc.StatusCode.INVALID_ARGUMENT, "Subject name cannot be empty")
             return csca_service_pb2.CreateCertificateResponse()
 
         key_algorithm = (request.key_algorithm or "RSA").upper()
@@ -79,7 +82,7 @@ class CscaService(csca_service_pb2_grpc.CscaServiceServicer):
         try:
             private_key = self._generate_private_key(key_algorithm, key_size)
         except ValueError as exc:
-            context.abort(grpc.StatusCode.INVALID_ARGUMENT, str(exc))
+            await context.abort(grpc.StatusCode.INVALID_ARGUMENT, str(exc))
             return csca_service_pb2.CreateCertificateResponse()
 
         not_before = datetime.now(timezone.utc)
@@ -100,23 +103,20 @@ class CscaService(csca_service_pb2_grpc.CscaServiceServicer):
             "key_size": key_size,
         }
 
-        self._run(self._key_vault.store_private_key(certificate_id, private_key_pem))
+        await self._key_vault.store_private_key(certificate_id, private_key_pem)
         storage_key = f"certificates/{certificate_id}.pem"
-        self._run(
-            self._object_storage.put_object(
-                storage_key, certificate_pem, "application/x-pem-file"
-            )
+        await self._object_storage.put_object(
+            storage_key, certificate_pem, "application/x-pem-file"
         )
 
-        self._persist_certificate(
+        await self._persist_certificate(
             certificate_id=certificate_id,
             certificate_type="CSCA",
             subject=subject_name,
             pem_text=certificate_pem.decode("utf-8"),
             details={**details, "storage_key": storage_key},
         )
-
-        self._publish_event(
+        await self._publish_event(
             "certificate.issued",
             {
                 "certificate_id": certificate_id,
@@ -133,14 +133,14 @@ class CscaService(csca_service_pb2_grpc.CscaServiceServicer):
             status="ISSUED",
         )
 
-    def RenewCertificate(self, request, context):  # noqa: N802
+    async def RenewCertificate(self, request, context):  # noqa: N802
         if not request.certificate_id:
-            context.abort(grpc.StatusCode.INVALID_ARGUMENT, "Certificate ID is required")
+            await context.abort(grpc.StatusCode.INVALID_ARGUMENT, "Certificate ID is required")
             return csca_service_pb2.CreateCertificateResponse()
 
-        existing = self._fetch_certificate_record(request.certificate_id)
+        existing = await self._fetch_certificate_record(request.certificate_id)
         if existing is None:
-            context.abort(grpc.StatusCode.NOT_FOUND, "Certificate not found")
+            await context.abort(grpc.StatusCode.NOT_FOUND, "Certificate not found")
             return csca_service_pb2.CreateCertificateResponse()
 
         subject = existing.get("subject") or request.certificate_id
@@ -152,7 +152,7 @@ class CscaService(csca_service_pb2_grpc.CscaServiceServicer):
         try:
             private_key = self._generate_private_key(key_algorithm, key_size)
         except ValueError as exc:
-            context.abort(grpc.StatusCode.INVALID_ARGUMENT, str(exc))
+            await context.abort(grpc.StatusCode.INVALID_ARGUMENT, str(exc))
             return csca_service_pb2.CreateCertificateResponse()
 
         not_before = datetime.now(timezone.utc)
@@ -174,24 +174,22 @@ class CscaService(csca_service_pb2_grpc.CscaServiceServicer):
             "renewed_from": request.certificate_id,
         }
 
-        self._run(self._key_vault.store_private_key(new_certificate_id, private_key_pem))
+        await self._key_vault.store_private_key(new_certificate_id, private_key_pem)
         storage_key = f"certificates/{new_certificate_id}.pem"
-        self._run(
-            self._object_storage.put_object(
-                storage_key, certificate_pem, "application/x-pem-file"
-            )
+        await self._object_storage.put_object(
+            storage_key, certificate_pem, "application/x-pem-file"
         )
 
-        self._persist_certificate(
+        await self._persist_certificate(
             certificate_id=new_certificate_id,
             certificate_type="CSCA",
             subject=subject,
             pem_text=certificate_pem.decode("utf-8"),
             details={**details, "storage_key": storage_key},
         )
-        self._mark_certificate_revoked(request.certificate_id, "SUPERSEDED")
+        await self._mark_certificate_revoked(request.certificate_id, "SUPERSEDED")
 
-        self._publish_event(
+        await self._publish_event(
             "certificate.renewed",
             {
                 "previous_id": request.certificate_id,
@@ -207,14 +205,14 @@ class CscaService(csca_service_pb2_grpc.CscaServiceServicer):
             status="RENEWED",
         )
 
-    def RevokeCertificate(self, request, context):  # noqa: N802
+    async def RevokeCertificate(self, request, context):  # noqa: N802
         if not request.certificate_id:
-            context.abort(grpc.StatusCode.INVALID_ARGUMENT, "Certificate ID is required")
+            await context.abort(grpc.StatusCode.INVALID_ARGUMENT, "Certificate ID is required")
             return csca_service_pb2.RevokeCertificateResponse()
 
-        record = self._fetch_certificate_record(request.certificate_id)
+        record = await self._fetch_certificate_record(request.certificate_id)
         if record is None:
-            context.abort(grpc.StatusCode.NOT_FOUND, "Certificate not found")
+            await context.abort(grpc.StatusCode.NOT_FOUND, "Certificate not found")
             return csca_service_pb2.RevokeCertificateResponse()
 
         if record.get("revoked"):
@@ -225,8 +223,8 @@ class CscaService(csca_service_pb2_grpc.CscaServiceServicer):
             )
 
         reason = request.reason or "unspecified"
-        self._mark_certificate_revoked(request.certificate_id, reason)
-        self._publish_event(
+        await self._mark_certificate_revoked(request.certificate_id, reason)
+        await self._publish_event(
             "certificate.revoked",
             {
                 "certificate_id": request.certificate_id,
@@ -240,14 +238,14 @@ class CscaService(csca_service_pb2_grpc.CscaServiceServicer):
             status="REVOKED",
         )
 
-    def GetCertificateStatus(self, request, context):  # noqa: N802
+    async def GetCertificateStatus(self, request, context):  # noqa: N802
         if not request.certificate_id:
-            context.abort(grpc.StatusCode.INVALID_ARGUMENT, "Certificate ID is required")
+            await context.abort(grpc.StatusCode.INVALID_ARGUMENT, "Certificate ID is required")
             return csca_service_pb2.CertificateStatusResponse()
 
-        record = self._fetch_certificate_record(request.certificate_id)
+        record = await self._fetch_certificate_record(request.certificate_id)
         if record is None:
-            context.abort(grpc.StatusCode.NOT_FOUND, "Certificate not found")
+            await context.abort(grpc.StatusCode.NOT_FOUND, "Certificate not found")
             return csca_service_pb2.CertificateStatusResponse()
 
         status = "REVOKED" if record.get("revoked") else "VALID"
@@ -258,8 +256,8 @@ class CscaService(csca_service_pb2_grpc.CscaServiceServicer):
             metadata=json.dumps(record.get("details", {})),
         )
 
-    def ListCertificates(self, request, context):  # noqa: N802
-        records = self._run(self._list_certificates())
+    async def ListCertificates(self, request, context):  # noqa: N802
+        records = await self._list_certificates()
         summaries = []
         for record in records:
             details = record.details or {}
@@ -274,11 +272,11 @@ class CscaService(csca_service_pb2_grpc.CscaServiceServicer):
             )
         return csca_service_pb2.ListCertificatesResponse(certificates=summaries)
 
-    def CheckExpiringCertificates(self, request, context):  # noqa: N802
+    async def CheckExpiringCertificates(self, request, context):  # noqa: N802
         threshold_days = request.threshold_days if request.threshold_days > 0 else 30
         now = datetime.now(timezone.utc)
         expiring = []
-        for record in self._run(self._list_certificates()):
+        for record in await self._list_certificates():
             details = record.details or {}
             if record.revoked or "not_after" not in details:
                 continue
@@ -321,7 +319,7 @@ class CscaService(csca_service_pb2_grpc.CscaServiceServicer):
     # ------------------------------------------------------------------
     # Internal helpers
     # ------------------------------------------------------------------
-    def _refresh_cache(self) -> None:
+    async def _refresh_cache(self) -> None:
         async def loader(session):
             repo = CertificateRepository(session)
             records = await repo.list_all()
@@ -335,9 +333,9 @@ class CscaService(csca_service_pb2_grpc.CscaServiceServicer):
                 for record in records
             }
 
-        self._certificate_cache = self._run(self._database.run_within_transaction(loader))
+        self._certificate_cache = await self._database.run_within_transaction(loader)
 
-    def _persist_certificate(
+    async def _persist_certificate(
         self,
         *,
         certificate_id: str,
@@ -357,7 +355,7 @@ class CscaService(csca_service_pb2_grpc.CscaServiceServicer):
                 details=details,
             )
 
-        self._run(self._database.run_within_transaction(handler))
+        await self._database.run_within_transaction(handler)
         self._certificate_cache[certificate_id] = {
             "subject": subject,
             "pem": pem_text,
@@ -365,14 +363,14 @@ class CscaService(csca_service_pb2_grpc.CscaServiceServicer):
             "revoked": False,
         }
 
-    def _mark_certificate_revoked(self, certificate_id: str, reason: str) -> None:
+    async def _mark_certificate_revoked(self, certificate_id: str, reason: str) -> None:
         revoked_at = datetime.now(timezone.utc)
 
         async def handler(session):
             repo = CertificateRepository(session)
             await repo.mark_revoked(certificate_id, reason, revoked_at)
 
-        self._run(self._database.run_within_transaction(handler))
+        await self._database.run_within_transaction(handler)
         cache_entry = self._certificate_cache.get(certificate_id)
         if cache_entry:
             cache_entry["revoked"] = True
@@ -380,12 +378,12 @@ class CscaService(csca_service_pb2_grpc.CscaServiceServicer):
             details["revocation_reason"] = reason
             details["revocation_date"] = revoked_at.isoformat()
 
-    def _fetch_certificate_record(self, certificate_id: str) -> Optional[dict[str, Any]]:
+    async def _fetch_certificate_record(self, certificate_id: str) -> Optional[dict[str, Any]]:
         async def handler(session):
             repo = CertificateRepository(session)
             return await repo.get(certificate_id)
 
-        record = self._run(self._database.run_within_transaction(handler))
+        record = await self._database.run_within_transaction(handler)
         if record is None:
             return None
         cache_entry = {
@@ -403,9 +401,9 @@ class CscaService(csca_service_pb2_grpc.CscaServiceServicer):
             records = await repo.list_all()
             return records
 
-    def _publish_event(self, topic: str, payload: dict[str, Any]) -> None:
+    async def _publish_event(self, topic: str, payload: dict[str, Any]) -> None:
         message = EventBusMessage(topic=topic, payload=json.dumps(payload).encode("utf-8"))
-        self._run(self._event_bus.publish(message))
+        await self._event_bus.publish(message)
 
     @staticmethod
     def _generate_private_key(key_algorithm: str, key_size: int):

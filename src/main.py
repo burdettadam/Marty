@@ -10,17 +10,17 @@ import asyncio
 import logging
 import os
 import sys
-from concurrent import futures
-from pathlib import Path
 from dataclasses import dataclass
+from pathlib import Path
 from typing import Any, Optional
 
 import grpc
+from grpc import aio as grpc_aio
 from grpc_health.v1 import health_pb2, health_pb2_grpc
 from grpc_health.v1.health import HealthServicer
 
 from marty_common.config import Config as MartyConfig
-from marty_common.grpc_interceptors import ExceptionToStatusInterceptor
+from marty_common.grpc_interceptors import AsyncExceptionToStatusInterceptor
 from marty_common.grpc_logging import LoggingStreamerServicer
 from marty_common.grpc_tls import build_client_credentials, configure_server_security
 from marty_common.logging_config import setup_logging
@@ -134,7 +134,7 @@ def get_service_config() -> dict[str, Any]:
 
 def create_service_channels(
     config: dict[str, Any], tls_options: dict[str, Any]
-) -> dict[str, grpc.Channel]:
+) -> dict[str, grpc_aio.Channel]:
     """Create gRPC channels to other services.
 
     Args:
@@ -143,7 +143,7 @@ def create_service_channels(
     Returns:
         Dictionary mapping service names to gRPC channels.
     """
-    channels = {}
+    channels: dict[str, grpc_aio.Channel] = {}
     channel_credentials = None
     if tls_options.get("enabled"):
         channel_credentials = build_client_credentials(tls_options)
@@ -154,9 +154,9 @@ def create_service_channels(
             logger.info(f"Creating channel to {service_name} at {address}")
             try:
                 if channel_credentials is not None:
-                    channels[service_name] = grpc.secure_channel(address, channel_credentials)
+                    channels[service_name] = grpc_aio.secure_channel(address, channel_credentials)
                 else:
-                    channels[service_name] = grpc.insecure_channel(address)
+                    channels[service_name] = grpc_aio.insecure_channel(address)
             except grpc.RpcError:
                 logger.exception(f"Failed to create channel to {service_name}")
 
@@ -210,7 +210,7 @@ def should_enable_cert_monitor(service_name: str) -> bool:
     return service_name in cert_monitor_services
 
 
-def setup_health_service(server: grpc.Server) -> HealthServicer:
+def setup_health_service(server: grpc_aio.Server) -> HealthServicer:
     """Set up and configure the health service.
 
     Args:
@@ -225,7 +225,7 @@ def setup_health_service(server: grpc.Server) -> HealthServicer:
     return health
 
 
-def setup_logging_streamer_service(server: grpc.Server, health: HealthServicer) -> None:
+def setup_logging_streamer_service(server: grpc_aio.Server, health: HealthServicer) -> None:
     """Set up the logging streamer service.
 
     Args:
@@ -258,11 +258,17 @@ class ServiceDependencies:
     event_bus: EventBusProvider
     runtime_config: MartyConfig
 
+    async def shutdown(self) -> None:
+        await self.event_bus.stop()
+        await self.database.dispose()
 
-def build_dependencies(runtime_config: MartyConfig | None = None) -> ServiceDependencies:
+
+async def build_dependencies_async(
+    runtime_config: MartyConfig | None = None,
+) -> ServiceDependencies:
     runtime_config = runtime_config or MartyConfig()
     database = DatabaseManager(runtime_config.database())
-    asyncio.run(database.create_all())
+    await database.create_all()
     object_storage = ObjectStorageClient(runtime_config.object_storage())
     key_vault = build_key_vault_client(runtime_config.key_vault())
     event_bus = EventBusProvider(runtime_config.event_bus())
@@ -275,9 +281,13 @@ def build_dependencies(runtime_config: MartyConfig | None = None) -> ServiceDepe
     )
 
 
+def build_dependencies(runtime_config: MartyConfig | None = None) -> ServiceDependencies:
+    return asyncio.run(build_dependencies_async(runtime_config))
+
+
 def add_csca_service(
-    server: grpc.Server,
-    channels: dict[str, grpc.Channel],
+    server: grpc_aio.Server,
+    channels: dict[str, grpc_aio.Channel],
     health: HealthServicer,
     dependencies: ServiceDependencies,
 ) -> None:
@@ -292,8 +302,8 @@ def add_csca_service(
 
 
 def add_document_signer_service(
-    server: grpc.Server,
-    channels: dict[str, grpc.Channel],
+    server: grpc_aio.Server,
+    channels: dict[str, grpc_aio.Channel],
     health: HealthServicer,
     dependencies: ServiceDependencies,
 ) -> None:
@@ -308,8 +318,8 @@ def add_document_signer_service(
 
 
 def add_trust_anchor_service(
-    server: grpc.Server,
-    channels: dict[str, grpc.Channel],
+    server: grpc_aio.Server,
+    channels: dict[str, grpc_aio.Channel],
     health: HealthServicer,
     dependencies: ServiceDependencies,
 ) -> None:
@@ -324,8 +334,8 @@ def add_trust_anchor_service(
 
 
 def add_inspection_system_service(
-    server: grpc.Server,
-    channels: dict[str, grpc.Channel],
+    server: grpc_aio.Server,
+    channels: dict[str, grpc_aio.Channel],
     health: HealthServicer,
     dependencies: ServiceDependencies,
 ) -> None:
@@ -340,8 +350,8 @@ def add_inspection_system_service(
 
 
 def add_passport_engine_service(
-    server: grpc.Server,
-    channels: dict[str, grpc.Channel],
+    server: grpc_aio.Server,
+    channels: dict[str, grpc_aio.Channel],
     health: HealthServicer,
     dependencies: ServiceDependencies,
 ) -> None:
@@ -356,8 +366,8 @@ def add_passport_engine_service(
 
 
 def add_mdl_engine_service(
-    server: grpc.Server,
-    channels: dict[str, grpc.Channel],
+    server: grpc_aio.Server,
+    channels: dict[str, grpc_aio.Channel],
     health: HealthServicer,
     dependencies: ServiceDependencies | None = None,
 ) -> None:
@@ -378,8 +388,8 @@ def add_mdl_engine_service(
 
 
 def add_mdoc_engine_service(
-    server: grpc.Server,
-    channels: dict[str, grpc.Channel],
+    server: grpc_aio.Server,
+    channels: dict[str, grpc_aio.Channel],
     health: HealthServicer,
     dependencies: ServiceDependencies | None = None,
 ) -> None:
@@ -392,8 +402,8 @@ def add_mdoc_engine_service(
 
 
 def add_pkd_service(
-    server: grpc.Server,
-    channels: dict[str, grpc.Channel],
+    server: grpc_aio.Server,
+    channels: dict[str, grpc_aio.Channel],
     health: HealthServicer,
     dependencies: ServiceDependencies,
 ) -> None:
@@ -409,8 +419,8 @@ def add_pkd_service(
 
 def add_service_by_name(
     service_name: str,
-    server: grpc.Server,
-    channels: dict[str, grpc.Channel],
+    server: grpc_aio.Server,
+    channels: dict[str, grpc_aio.Channel],
     health: HealthServicer,
     dependencies: ServiceDependencies,
 ) -> None:
@@ -440,8 +450,8 @@ def add_service_by_name(
         logger.warning(f"Unknown service name: {service_name}, starting empty server")
 
 
-def serve() -> None:
-    """Start the gRPC server with all services."""
+async def serve_async() -> None:
+    """Async entrypoint for starting the Marty gRPC server."""
     config = get_service_config()
     service_name = config["service_name"]
     grpc_port = config["grpc_port"]
@@ -449,54 +459,56 @@ def serve() -> None:
     runtime_config = MartyConfig()
     tls_options = runtime_config.grpc_tls()
 
-    # Create service channels
     channels = create_service_channels(config, tls_options)
+    server = grpc_aio.server(interceptors=[AsyncExceptionToStatusInterceptor()])
 
-    # Create the gRPC server
-    server = grpc.server(
-        futures.ThreadPoolExecutor(max_workers=10),
-        interceptors=[ExceptionToStatusInterceptor()],
-    )
-
-    # Set up health service
     health = setup_health_service(server)
-
-    # Set up logging streamer service
     setup_logging_streamer_service(server, health)
 
-    dependencies = build_dependencies(runtime_config)
+    dependencies = await build_dependencies_async(runtime_config)
 
-    # Add the appropriate service based on SERVICE_NAME
     add_service_by_name(service_name, server, channels, health, dependencies)
 
-    # Initialize certificate lifecycle monitor if needed
     cert_monitor: CertificateLifecycleMonitor | None = None
     if should_enable_cert_monitor(service_name):
         logger.info("Initializing Certificate Lifecycle Monitor")
         cert_monitor = init_certificate_lifecycle_monitor(config)
 
-    # Start the server
     server_address = f"[::]:{grpc_port}"
     if not configure_server_security(server, server_address, tls_options):
         server.add_insecure_port(server_address)
-    server.start()
-    logger.info(f"Server {service_name} started on {server_address}")
 
-    # Start certificate lifecycle monitor if initialized
-    if cert_monitor:
-        logger.info("Starting Certificate Lifecycle Monitor")
-        cert_monitor.start()
-
+    server_started = False
     try:
-        # Keep the server alive
-        server.wait_for_termination()
-    except KeyboardInterrupt:
-        logger.info("Shutting down server...")
-        # Stop certificate lifecycle monitor if running
+        await server.start()
+        server_started = True
+        logger.info(f"Server {service_name} started on {server_address}")
+
+        if cert_monitor:
+            logger.info("Starting Certificate Lifecycle Monitor")
+            cert_monitor.start()
+
+        await server.wait_for_termination()
+    except (KeyboardInterrupt, asyncio.CancelledError):
+        logger.info("Shutdown signal received; terminating server")
+    finally:
         if cert_monitor:
             logger.info("Stopping Certificate Lifecycle Monitor")
             cert_monitor.stop()
-        server.stop(0)
+
+        if server_started:
+            await server.stop(grace=0)
+
+        await asyncio.gather(
+            *(channel.close() for channel in channels.values()),
+            return_exceptions=True,
+        )
+
+        await dependencies.shutdown()
+
+
+def serve() -> None:
+    asyncio.run(serve_async())
 
 
 if __name__ == "__main__":
