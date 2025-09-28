@@ -16,12 +16,11 @@ import qrcode
 from cryptography import x509
 
 from marty_common.infrastructure import (
-    DigitalTravelCredentialRepository,
-    EventBusMessage,
-    EventBusProvider,
     CertificateRepository,
+    DigitalTravelCredentialRepository,
     KeyVaultClient,
     ObjectStorageClient,
+    OutboxRepository,
 )
 from src.marty_common.crypto.document_signer_certificate import (
     DOCUMENT_SIGNER_KEY_ID,
@@ -42,7 +41,6 @@ class DTCEngineServicer(dtc_engine_pb2_grpc.DTCEngineServicer):
         self.channels = channels or {}
         self._database = dependencies.database
         self._object_storage: ObjectStorageClient = dependencies.object_storage
-        self._event_bus: EventBusProvider = dependencies.event_bus
         self._key_vault: KeyVaultClient = dependencies.key_vault
 
     # ------------------------------------------------------------------
@@ -73,16 +71,18 @@ class DTCEngineServicer(dtc_engine_pb2_grpc.DTCEngineServicer):
                 signature=None,
             )
 
-        await self._database.run_within_transaction(handler)
+            await self._publish_event(
+                "dtc.issued",
+                {
+                    "dtc_id": dtc_id,
+                    "passport_number": request.passport_number,
+                    "payload_location": payload_key,
+                },
+                session=session,
+                key=dtc_id,
+            )
 
-        await self._publish_event(
-            "dtc.issued",
-            {
-                "dtc_id": dtc_id,
-                "passport_number": request.passport_number,
-                "payload_location": payload_key,
-            },
-        )
+        await self._database.run_within_transaction(handler)
 
         return dtc_engine_pb2.CreateDTCResponse(dtc_id=dtc_id, status="SUCCESS", error_message="")
 
@@ -155,23 +155,31 @@ class DTCEngineServicer(dtc_engine_pb2_grpc.DTCEngineServicer):
             repo = DigitalTravelCredentialRepository(session)
             stored = await repo.get(request.dtc_id)
             if stored is None:
-                return
+                return False
             details = stored.details or {}
             details["signature_info"] = signature_info
             stored.details = details
             stored.signature = signature_bytes
             stored.updated_at = datetime.now(timezone.utc)
 
-        await self._database.run_within_transaction(handler)
+            await self._publish_event(
+                "dtc.signed",
+                {
+                    "dtc_id": request.dtc_id,
+                    "signature_date": signature_info["signature_date"],
+                    "signer_id": signature_info["signer_id"],
+                },
+                session=session,
+                key=request.dtc_id,
+            )
+            return True
 
-        await self._publish_event(
-            "dtc.signed",
-            {
-                "dtc_id": request.dtc_id,
-                "signature_date": signature_info["signature_date"],
-                "signer_id": signature_info["signer_id"],
-            },
-        )
+        updated = await self._database.run_within_transaction(handler)
+        if not updated:
+            return dtc_engine_pb2.SignDTCResponse(
+                success=False,
+                error_message=f"DTC with ID {request.dtc_id} not found",
+            )
 
         return dtc_engine_pb2.SignDTCResponse(
             success=True,
@@ -189,13 +197,14 @@ class DTCEngineServicer(dtc_engine_pb2_grpc.DTCEngineServicer):
         async def handler(session):
             repo = DigitalTravelCredentialRepository(session)
             await repo.mark_revoked(request.dtc_id, reason)
+            await self._publish_event(
+                "dtc.revoked",
+                {"dtc_id": request.dtc_id, "reason": reason},
+                session=session,
+                key=request.dtc_id,
+            )
 
         await self._database.run_within_transaction(handler)
-
-        await self._publish_event(
-            "dtc.revoked",
-            {"dtc_id": request.dtc_id, "reason": reason},
-        )
 
         return dtc_engine_pb2.RevokeDTCResponse(success=True, status="REVOKED")
 
@@ -399,9 +408,28 @@ class DTCEngineServicer(dtc_engine_pb2_grpc.DTCEngineServicer):
             self.logger.exception("Unable to load CSCA trust anchors for DTC verification")
             return []
 
-    async def _publish_event(self, topic: str, payload: dict[str, Any]) -> None:
-        message = EventBusMessage(topic=topic, payload=json.dumps(payload).encode("utf-8"))
-        await self._event_bus.publish(message)
+    async def _publish_event(
+        self,
+        topic: str,
+        payload: dict[str, Any],
+        *,
+        session=None,
+        key: str | None = None,
+    ) -> None:
+        serialized = json.dumps(payload).encode("utf-8")
+
+        async def handler(db_session):
+            outbox = OutboxRepository(db_session)
+            await outbox.enqueue(
+                topic=topic,
+                payload=serialized,
+                key=key.encode("utf-8") if key else None,
+            )
+
+        if session is None:
+            await self._database.run_within_transaction(handler)
+        else:
+            await handler(session)
 
     def _build_dtc_payload(self, dtc_id: str, request) -> dict[str, Any]:
         valid_from = request.dtc_valid_from or request.issue_date

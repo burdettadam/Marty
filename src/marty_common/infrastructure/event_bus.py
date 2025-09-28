@@ -19,6 +19,8 @@ class EventBusConfig:
     ssl_certfile: Optional[str] = None
     ssl_keyfile: Optional[str] = None
     enabled: bool = True
+    consumer_group: Optional[str] = None
+    auto_offset_reset: str = "earliest"
 
     @classmethod
     def from_dict(cls, raw: dict[str, Any]) -> "EventBusConfig":
@@ -34,6 +36,8 @@ class EventBusConfig:
             ssl_certfile=raw.get("ssl_certfile"),
             ssl_keyfile=raw.get("ssl_keyfile"),
             enabled=bool(raw.get("enabled", True)),
+            consumer_group=raw.get("consumer_group"),
+            auto_offset_reset=raw.get("auto_offset_reset", "earliest"),
         )
 
 
@@ -42,6 +46,7 @@ class EventBusMessage:
     topic: str
     payload: bytes
     headers: dict[str, bytes] | None = None
+    key: bytes | None = None
 
 
 class EventBusProvider:
@@ -82,10 +87,14 @@ class EventBusProvider:
         headers = None
         if message.headers:
             headers = [(key, value) for key, value in message.headers.items()]
-        await self._producer.send_and_wait(topic, message.payload, headers=headers)
+        await self._producer.send_and_wait(
+            topic,
+            message.payload,
+            headers=headers,
+            key=message.key,
+        )
 
     async def stop(self) -> None:
         if self._producer is not None:
             await self._producer.stop()
             self._producer = None
-

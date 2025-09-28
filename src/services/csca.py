@@ -17,10 +17,9 @@ from cryptography.x509.oid import NameOID
 
 from marty_common.infrastructure import (
     CertificateRepository,
-    EventBusMessage,
-    EventBusProvider,
     KeyVaultClient,
     ObjectStorageClient,
+    OutboxRepository,
 )
 from src.proto import csca_service_pb2, csca_service_pb2_grpc
 
@@ -37,7 +36,6 @@ class CscaService(csca_service_pb2_grpc.CscaServiceServicer):
         self._database = dependencies.database
         self._key_vault: KeyVaultClient = dependencies.key_vault
         self._object_storage: ObjectStorageClient = dependencies.object_storage
-        self._event_bus: EventBusProvider = dependencies.event_bus
         self._certificate_cache: dict[str, dict[str, Any]] = {}
         try:
             loop = asyncio.get_running_loop()
@@ -109,22 +107,41 @@ class CscaService(csca_service_pb2_grpc.CscaServiceServicer):
             storage_key, certificate_pem, "application/x-pem-file"
         )
 
-        await self._persist_certificate(
-            certificate_id=certificate_id,
-            certificate_type="CSCA",
-            subject=subject_name,
-            pem_text=certificate_pem.decode("utf-8"),
-            details={**details, "storage_key": storage_key},
-        )
-        await self._publish_event(
-            "certificate.issued",
-            {
-                "certificate_id": certificate_id,
-                "subject": subject_name,
-                "storage_key": storage_key,
-                "not_after": details["not_after"],
-            },
-        )
+        certificate_text = certificate_pem.decode("utf-8")
+        persisted_details = {**details, "storage_key": storage_key}
+
+        async def handler(session):
+            await self._persist_certificate(
+                certificate_id=certificate_id,
+                certificate_type="CSCA",
+                subject=subject_name,
+                pem_text=certificate_text,
+                details=persisted_details,
+                session=session,
+                update_cache=False,
+            )
+            outbox = OutboxRepository(session)
+            await outbox.enqueue(
+                topic="certificate.issued",
+                payload=json.dumps(
+                    {
+                        "certificate_id": certificate_id,
+                        "subject": subject_name,
+                        "storage_key": storage_key,
+                        "not_after": details["not_after"],
+                    }
+                ).encode("utf-8"),
+                key=certificate_id.encode("utf-8"),
+            )
+
+        await self._database.run_within_transaction(handler)
+
+        self._certificate_cache[certificate_id] = {
+            "subject": subject_name,
+            "pem": certificate_text,
+            "details": persisted_details,
+            "revoked": False,
+        }
 
         self.logger.info("Issued CSCA certificate %s", certificate_id)
         return csca_service_pb2.CreateCertificateResponse(
@@ -180,24 +197,49 @@ class CscaService(csca_service_pb2_grpc.CscaServiceServicer):
             storage_key, certificate_pem, "application/x-pem-file"
         )
 
-        await self._persist_certificate(
-            certificate_id=new_certificate_id,
-            certificate_type="CSCA",
-            subject=subject,
-            pem_text=certificate_pem.decode("utf-8"),
-            details={**details, "storage_key": storage_key},
-        )
-        await self._mark_certificate_revoked(request.certificate_id, "SUPERSEDED")
+        certificate_text = certificate_pem.decode("utf-8")
+        persisted_details = {**details, "storage_key": storage_key}
 
-        await self._publish_event(
-            "certificate.renewed",
-            {
-                "previous_id": request.certificate_id,
-                "certificate_id": new_certificate_id,
-                "subject": subject,
-                "storage_key": storage_key,
-            },
-        )
+        async def handler(session):
+            await self._persist_certificate(
+                certificate_id=new_certificate_id,
+                certificate_type="CSCA",
+                subject=subject,
+                pem_text=certificate_text,
+                details=persisted_details,
+                session=session,
+                update_cache=False,
+            )
+            revoked_dt = await self._mark_certificate_revoked(
+                request.certificate_id,
+                "SUPERSEDED",
+                session=session,
+                update_cache=False,
+            )
+            outbox = OutboxRepository(session)
+            await outbox.enqueue(
+                topic="certificate.renewed",
+                payload=json.dumps(
+                    {
+                        "previous_id": request.certificate_id,
+                        "certificate_id": new_certificate_id,
+                        "subject": subject,
+                        "storage_key": storage_key,
+                    }
+                ).encode("utf-8"),
+                key=new_certificate_id.encode("utf-8"),
+            )
+            return revoked_dt
+
+        revoked_at = await self._database.run_within_transaction(handler)
+
+        self._certificate_cache[new_certificate_id] = {
+            "subject": subject,
+            "pem": certificate_text,
+            "details": persisted_details,
+            "revoked": False,
+        }
+        self._update_revocation_cache(request.certificate_id, "SUPERSEDED", revoked_at)
 
         return csca_service_pb2.CreateCertificateResponse(
             certificate_id=new_certificate_id,
@@ -223,14 +265,29 @@ class CscaService(csca_service_pb2_grpc.CscaServiceServicer):
             )
 
         reason = request.reason or "unspecified"
-        await self._mark_certificate_revoked(request.certificate_id, reason)
-        await self._publish_event(
-            "certificate.revoked",
-            {
-                "certificate_id": request.certificate_id,
-                "reason": reason,
-            },
-        )
+
+        async def handler(session):
+            revoked_dt = await self._mark_certificate_revoked(
+                request.certificate_id,
+                reason,
+                session=session,
+                update_cache=False,
+            )
+            outbox = OutboxRepository(session)
+            await outbox.enqueue(
+                topic="certificate.revoked",
+                payload=json.dumps(
+                    {
+                        "certificate_id": request.certificate_id,
+                        "reason": reason,
+                    }
+                ).encode("utf-8"),
+                key=request.certificate_id.encode("utf-8"),
+            )
+            return revoked_dt
+
+        revoked_at = await self._database.run_within_transaction(handler)
+        self._update_revocation_cache(request.certificate_id, reason, revoked_at)
 
         return csca_service_pb2.RevokeCertificateResponse(
             certificate_id=request.certificate_id,
@@ -343,9 +400,11 @@ class CscaService(csca_service_pb2_grpc.CscaServiceServicer):
         subject: str,
         pem_text: str,
         details: dict[str, Any],
+        session=None,
+        update_cache: bool = True,
     ) -> None:
-        async def handler(session):
-            repo = CertificateRepository(session)
+        async def handler(db_session):
+            repo = CertificateRepository(db_session)
             await repo.upsert(
                 certificate_id,
                 certificate_type,
@@ -355,28 +414,59 @@ class CscaService(csca_service_pb2_grpc.CscaServiceServicer):
                 details=details,
             )
 
-        await self._database.run_within_transaction(handler)
-        self._certificate_cache[certificate_id] = {
-            "subject": subject,
-            "pem": pem_text,
-            "details": details,
-            "revoked": False,
-        }
+        if session is None:
+            await self._database.run_within_transaction(handler)
+        else:
+            await handler(session)
 
-    async def _mark_certificate_revoked(self, certificate_id: str, reason: str) -> None:
-        revoked_at = datetime.now(timezone.utc)
+        if update_cache:
+            self._certificate_cache[certificate_id] = {
+                "subject": subject,
+                "pem": pem_text,
+                "details": details,
+                "revoked": False,
+            }
 
-        async def handler(session):
-            repo = CertificateRepository(session)
+    async def _mark_certificate_revoked(
+        self,
+        certificate_id: str,
+        reason: str,
+        *,
+        session=None,
+        update_cache: bool = True,
+        revoked_at: datetime | None = None,
+    ) -> datetime:
+        revoked_at = revoked_at or datetime.now(timezone.utc)
+
+        async def handler(db_session):
+            repo = CertificateRepository(db_session)
             await repo.mark_revoked(certificate_id, reason, revoked_at)
 
-        await self._database.run_within_transaction(handler)
+        if session is None:
+            await self._database.run_within_transaction(handler)
+        else:
+            await handler(session)
+
+        if update_cache:
+            self._update_revocation_cache(certificate_id, reason, revoked_at)
+
+        return revoked_at
+
+    def _update_revocation_cache(self, certificate_id: str, reason: str, revoked_at: datetime) -> None:
         cache_entry = self._certificate_cache.get(certificate_id)
-        if cache_entry:
-            cache_entry["revoked"] = True
-            details = cache_entry.setdefault("details", {})
-            details["revocation_reason"] = reason
-            details["revocation_date"] = revoked_at.isoformat()
+        if cache_entry is None:
+            cache_entry = {
+                "subject": certificate_id,
+                "pem": "",
+                "details": {},
+                "revoked": True,
+            }
+            self._certificate_cache[certificate_id] = cache_entry
+
+        cache_entry["revoked"] = True
+        details = cache_entry.setdefault("details", {})
+        details["revocation_reason"] = reason
+        details["revocation_date"] = revoked_at.isoformat()
 
     async def _fetch_certificate_record(self, certificate_id: str) -> Optional[dict[str, Any]]:
         async def handler(session):
@@ -400,10 +490,6 @@ class CscaService(csca_service_pb2_grpc.CscaServiceServicer):
             repo = CertificateRepository(session)
             records = await repo.list_all()
             return records
-
-    async def _publish_event(self, topic: str, payload: dict[str, Any]) -> None:
-        message = EventBusMessage(topic=topic, payload=json.dumps(payload).encode("utf-8"))
-        await self._event_bus.publish(message)
 
     @staticmethod
     def _generate_private_key(key_algorithm: str, key_size: int):

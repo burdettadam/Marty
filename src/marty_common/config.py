@@ -139,15 +139,24 @@ def _expand_env_vars(config: dict[str, Any]) -> dict[str, Any]:
         if isinstance(value, dict):
             result[key] = _expand_env_vars(value)
         elif isinstance(value, str) and "${" in value and "}" in value:
-            # Extract environment variable name
-            env_var = value.split("${")[1].split("}")[0]
-            env_value = os.environ.get(env_var)
-
-            if env_value is not None:
-                result[key] = value.replace(f"${{{env_var}}}", env_value)
+            # Extract environment variable pattern
+            var_pattern = value.split("${")[1].split("}")[0]
+            
+            if ":-" in var_pattern:
+                env_var, default = var_pattern.split(":-", 1)
+                env_value = os.environ.get(env_var)
+                if env_value is not None:
+                    result[key] = value.replace(f"${{{var_pattern}}}", env_value)
+                else:
+                    result[key] = value.replace(f"${{{var_pattern}}}", default)
             else:
-                # Keep the original if environment variable is not set
-                result[key] = value
+                env_var = var_pattern
+                env_value = os.environ.get(env_var)
+                if env_value is not None:
+                    result[key] = value.replace(f"${{{env_var}}}", env_value)
+                else:
+                    # Keep the original if environment variable is not set
+                    result[key] = value
         else:
             result[key] = value
 

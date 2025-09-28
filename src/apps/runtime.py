@@ -3,9 +3,9 @@ from __future__ import annotations
 import asyncio
 import logging
 import os
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any, Callable
+from typing import Any, Awaitable, Callable
 
 import grpc
 from grpc import aio as grpc_aio
@@ -21,6 +21,7 @@ from marty_common.infrastructure import (
     EventBusProvider,
     KeyVaultClient,
     ObjectStorageClient,
+    OutboxDispatcher,
     build_key_vault_client,
 )
 from marty_common.logging_config import setup_logging
@@ -52,10 +53,21 @@ class ServiceDependencies:
     key_vault: KeyVaultClient
     event_bus: EventBusProvider
     runtime_config: MartyConfig
+    outbox_dispatcher: OutboxDispatcher
+    shutdown_hooks: list[Callable[[], Awaitable[None]]] = field(default_factory=list)
 
     async def shutdown(self) -> None:
+        if self.shutdown_hooks:
+            await asyncio.gather(
+                *(hook() for hook in reversed(self.shutdown_hooks)),
+                return_exceptions=True,
+            )
+        await self.outbox_dispatcher.stop()
         await self.event_bus.stop()
         await self.database.dispose()
+
+    def register_shutdown_hook(self, hook: Callable[[], Awaitable[None]]) -> None:
+        self.shutdown_hooks.append(hook)
 
 
 async def build_dependencies_async(
@@ -66,13 +78,18 @@ async def build_dependencies_async(
     await database.create_all()
     object_storage = ObjectStorageClient(runtime_config.object_storage())
     key_vault = build_key_vault_client(runtime_config.key_vault())
-    event_bus = EventBusProvider(runtime_config.event_bus())
+    event_bus_config = runtime_config.event_bus()
+    event_bus = EventBusProvider(event_bus_config)
+    outbox_dispatcher = OutboxDispatcher(database, event_bus)
+    if event_bus_config.enabled:
+        await outbox_dispatcher.start()
     return ServiceDependencies(
         database=database,
         object_storage=object_storage,
         key_vault=key_vault,
         event_bus=event_bus,
         runtime_config=runtime_config,
+        outbox_dispatcher=outbox_dispatcher,
     )
 
 

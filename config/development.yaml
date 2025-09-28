@@ -63,10 +63,12 @@ key_vault:
 
 # Event bus
 event_bus:
-  enabled: false
+  enabled: true
   brokers: "localhost:9092"
   client_id: "marty-dev"
   topic_prefix: "dev."
+  consumer_group: "marty-ledger"
+  auto_offset_reset: "earliest"
 
 # Feature flags
 features:

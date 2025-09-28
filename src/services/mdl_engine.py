@@ -12,10 +12,9 @@ from typing import Any, Optional
 import grpc
 
 from marty_common.infrastructure import (
-    EventBusMessage,
-    EventBusProvider,
     MobileDrivingLicenseRepository,
     ObjectStorageClient,
+    OutboxRepository,
 )
 from proto import (
     document_signer_pb2,
@@ -51,7 +50,6 @@ class MDLEngineServicer(mdl_engine_pb2_grpc.MDLEngineServicer):
         self.channels = channels or {}
         self._database = dependencies.database
         self._object_storage: ObjectStorageClient = dependencies.object_storage
-        self._event_bus: EventBusProvider = dependencies.event_bus
 
     def _document_signer_stub(self) -> Optional[document_signer_pb2_grpc.DocumentSignerStub]:
         channel = self.channels.get("document_signer")
@@ -71,9 +69,28 @@ class MDLEngineServicer(mdl_engine_pb2_grpc.MDLEngineServicer):
         payload = json.dumps(details, indent=2).encode("utf-8")
         await self._object_storage.put_object(object_key, payload, "application/json")
 
-    async def _publish_event(self, topic: str, payload: dict[str, Any]) -> None:
-        message = EventBusMessage(topic=topic, payload=json.dumps(payload).encode("utf-8"))
-        await self._event_bus.publish(message)
+    async def _publish_event(
+        self,
+        topic: str,
+        payload: dict[str, Any],
+        *,
+        session=None,
+        key: str | None = None,
+    ) -> None:
+        serialized = json.dumps(payload).encode("utf-8")
+
+        async def handler(db_session):
+            outbox = OutboxRepository(db_session)
+            await outbox.enqueue(
+                topic=topic,
+                payload=serialized,
+                key=key.encode("utf-8") if key else None,
+            )
+
+        if session is None:
+            await self._database.run_within_transaction(handler)
+        else:
+            await handler(session)
 
     def _prepare_license_categories(self, request) -> list[dict[str, Any]]:
         categories = []
@@ -200,20 +217,6 @@ class MDLEngineServicer(mdl_engine_pb2_grpc.MDLEngineServicer):
 
         return await self._database.run_within_transaction(handler)
 
-    async def _update_signature(
-        self,
-        mdl_id: str,
-        signature: bytes,
-        signature_info: dict[str, Any],
-        new_status: str,
-    ) -> None:
-        async def handler(session):
-            repo = MobileDrivingLicenseRepository(session)
-            await repo.update_signature(mdl_id, signature, signature_info)
-            await repo.update_status(mdl_id, new_status)
-
-        await self._database.run_within_transaction(handler)
-
     async def _update_status(self, mdl_id: str, status: str) -> None:
         async def handler(session):
             repo = MobileDrivingLicenseRepository(session)
@@ -276,18 +279,19 @@ class MDLEngineServicer(mdl_engine_pb2_grpc.MDLEngineServicer):
                 payload_location=payload_key,
                 disclosure_policies=disclosure_policies,
             )
+            await self._publish_event(
+                "mdl.created",
+                {
+                    "mdl_id": mdl_id,
+                    "license_number": request.license_number,
+                    "user_id": request.user_id,
+                    "payload_location": payload_key,
+                },
+                session=session,
+                key=mdl_id,
+            )
 
         await self._database.run_within_transaction(handler)
-
-        await self._publish_event(
-            "mdl.created",
-            {
-                "mdl_id": mdl_id,
-                "license_number": request.license_number,
-                "user_id": request.user_id,
-                "payload_location": payload_key,
-            },
-        )
 
         return mdl_engine_pb2.CreateMDLResponse(mdl_id=mdl_id, status="PENDING_SIGNATURE", error_message="")
 
@@ -343,16 +347,24 @@ class MDLEngineServicer(mdl_engine_pb2_grpc.MDLEngineServicer):
             "signer_id": response.signature_info.signer_id,
         }
 
-        await self._update_signature(record.mdl_id, signature_bytes, signature_info, "ISSUED")
-        await self._publish_event(
-            "mdl.signed",
-            {
-                "mdl_id": record.mdl_id,
-                "license_number": record.license_number,
-                "signature_date": signature_info["signature_date"],
-                "signer_id": signature_info["signer_id"],
-            },
-        )
+        async def handler(session):
+            repo = MobileDrivingLicenseRepository(session)
+            await repo.update_signature(record.mdl_id, signature_bytes, signature_info)
+            await repo.update_status(record.mdl_id, "ISSUED")
+
+            await self._publish_event(
+                "mdl.signed",
+                {
+                    "mdl_id": record.mdl_id,
+                    "license_number": record.license_number,
+                    "signature_date": signature_info["signature_date"],
+                    "signer_id": signature_info["signer_id"],
+                },
+                session=session,
+                key=record.mdl_id,
+            )
+
+        await self._database.run_within_transaction(handler)
 
         return mdl_engine_pb2.SignMDLResponse(
             success=True,
@@ -417,6 +429,7 @@ class MDLEngineServicer(mdl_engine_pb2_grpc.MDLEngineServicer):
                 "transfer_method": request.transfer_method,
                 "transfer_id": transfer_id,
             },
+            key=request.mdl_id,
         )
         return mdl_engine_pb2.TransferMDLResponse(success=True, transfer_id=transfer_id)
 

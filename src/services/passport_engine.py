@@ -12,10 +12,9 @@ from typing import Any, Optional
 import grpc
 
 from marty_common.infrastructure import (
-    EventBusMessage,
-    EventBusProvider,
     KeyVaultClient,
     ObjectStorageClient,
+    OutboxRepository,
     PassportRepository,
 )
 from marty_common.models.passport import DataGroupType, Gender, ICaoPassport, MRZData
@@ -44,7 +43,6 @@ class PassportEngine(passport_engine_pb2_grpc.PassportEngineServicer):
         self.logger = logging.getLogger(__name__)
         self.channels = channels or {}
         self._object_storage: ObjectStorageClient = dependencies.object_storage
-        self._event_bus: EventBusProvider = dependencies.event_bus
         self._database = dependencies.database
         self._key_vault: KeyVaultClient = dependencies.key_vault
         self.passport_status: dict[str, str] = {}
@@ -147,6 +145,7 @@ class PassportEngine(passport_engine_pb2_grpc.PassportEngineServicer):
         status: str,
         details: dict[str, Any],
         signature: bytes | None,
+        event_payload: dict[str, Any] | None = None,
     ) -> None:
         async def handler(session):
             repo = PassportRepository(session)
@@ -158,28 +157,40 @@ class PassportEngine(passport_engine_pb2_grpc.PassportEngineServicer):
                 signature=signature,
             )
 
+            if event_payload is not None:
+                payload = dict(event_payload)
+                payload.setdefault("issued_at", datetime.now(timezone.utc).isoformat())
+                await self._publish_event(
+                    "passport.issued",
+                    payload,
+                    session=session,
+                    key=passport_number,
+                )
+
         await self._database.run_within_transaction(handler)
 
     async def _publish_event(
         self,
-        passport_number: str,
-        storage_key: str,
-        status: str,
-        signature_info: Optional[dict[str, str]],
+        topic: str,
+        payload: dict[str, Any],
+        *,
+        session=None,
+        key: str | None = None,
     ) -> None:
-        payload: dict[str, Any] = {
-            "passport_number": passport_number,
-            "storage_key": storage_key,
-            "status": status,
-            "issued_at": datetime.now(timezone.utc).isoformat(),
-        }
-        if signature_info:
-            payload["signature_info"] = signature_info
-        message = EventBusMessage(
-            topic="passport.issued",
-            payload=json.dumps(payload).encode("utf-8"),
-        )
-        await self._event_bus.publish(message)
+        serialized = json.dumps(payload).encode("utf-8")
+
+        async def handler(db_session):
+            outbox = OutboxRepository(db_session)
+            await outbox.enqueue(
+                topic=topic,
+                payload=serialized,
+                key=key.encode("utf-8") if key else None,
+            )
+
+        if session is None:
+            await self._database.run_within_transaction(handler)
+        else:
+            await handler(session)
 
     async def ProcessPassport(self, request, context):  # noqa: N802 - gRPC naming
         passport_number = request.passport_number or f"P{uuid.uuid4().hex[:8].upper()}"
@@ -200,14 +211,21 @@ class PassportEngine(passport_engine_pb2_grpc.PassportEngineServicer):
             storage_key = await self._persist_payload(
                 passport_number, dict(passport_details), signature
             )
+            event_payload = {
+                "passport_number": passport_number,
+                "storage_key": storage_key,
+                "status": status,
+            }
+            if signature_info:
+                event_payload["signature_info"] = signature_info
             await self._persist_metadata(
                 passport_number,
                 storage_key,
                 status,
                 passport_details,
                 signature,
+                event_payload=event_payload,
             )
-            await self._publish_event(passport_number, storage_key, status, signature_info)
             grpc_status = "SUCCESS"
             self.passport_status[passport_number] = status
         except Exception as exc:  # pylint: disable=broad-except

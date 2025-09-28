@@ -124,6 +124,8 @@ PHASE1_CODE_QUALITY_REPORT.md
 # Test artifacts that might contain sensitive data
 test_*.py
 *_test_*.py
+!tests/unit/infrastructure/test_outbox.py
+!tests/unit/services/test_credential_ledger.py
 fix_imports.py
 
 # Playwright artifacts

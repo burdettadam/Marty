@@ -147,8 +147,8 @@ test_modes:
     
   e2e:
     description: "End-to-end tests with full service stack"
-    services_required: ["postgres", "trust-anchor", "csca-service", "document-signer", 
-                       "inspection-system", "passport-engine", "mdl-engine", "mdoc-engine", "dtc-engine"]
+    services_required: ["postgres", "zookeeper", "kafka", "trust-anchor", "csca-service", "document-signer", 
+                       "inspection-system", "passport-engine", "mdl-engine", "mdoc-engine", "dtc-engine", "credential-ledger"]
     parallel_execution: false
 
 # Test isolation settings

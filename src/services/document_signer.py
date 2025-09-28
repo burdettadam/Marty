@@ -7,10 +7,9 @@ from cryptography.hazmat.primitives import hashes
 
 from marty_common.infrastructure import (
     CertificateRepository,
-    EventBusMessage,
-    EventBusProvider,
     KeyVaultClient,
     ObjectStorageClient,
+    OutboxRepository,
 )
 from proto import (
     csca_service_pb2,
@@ -31,7 +30,6 @@ class DocumentSigner(document_signer_pb2_grpc.DocumentSignerServicer):
         self.channels = channels or {}
         self._database = dependencies.database
         self._key_vault: KeyVaultClient = dependencies.key_vault
-        self._event_bus: EventBusProvider = dependencies.event_bus
         self._object_storage: ObjectStorageClient = dependencies.object_storage
         self._signing_key_id = "document-signer-default"
         self._signing_algorithm = "rsa2048"
@@ -64,11 +62,17 @@ class DocumentSigner(document_signer_pb2_grpc.DocumentSignerServicer):
 
             await self._sync_csca_certificate()
 
-            message = EventBusMessage(
-                topic="credential.issued",
-                payload=self._build_event_payload(document_id, payload_hash, storage_key),
-            )
-            await self._event_bus.publish(message)
+            event_payload = self._build_event_payload(document_id, payload_hash, storage_key)
+
+            async def handler(session):
+                outbox = OutboxRepository(session)
+                await outbox.enqueue(
+                    topic="credential.issued",
+                    payload=event_payload,
+                    key=document_id.encode("utf-8"),
+                )
+
+            await self._database.run_within_transaction(handler)
 
             signature_info = document_signer_pb2.SignatureInfo(
                 signature_date=datetime.now(timezone.utc).isoformat(),

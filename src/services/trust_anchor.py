@@ -6,7 +6,7 @@ from typing import Optional
 import grpc
 from google.protobuf import empty_pb2
 
-from marty_common.infrastructure import EventBusMessage, EventBusProvider, TrustEntityRepository
+from marty_common.infrastructure import OutboxRepository, TrustEntityRepository
 from src.proto import pkd_service_pb2, pkd_service_pb2_grpc, trust_anchor_pb2, trust_anchor_pb2_grpc
 
 
@@ -20,7 +20,6 @@ class TrustAnchor(trust_anchor_pb2_grpc.TrustAnchorServicer):
         self.logger = logging.getLogger(__name__)
         self.channels = channels or {}
         self._database = dependencies.database
-        self._event_bus: EventBusProvider = dependencies.event_bus
         self.logger.info("Trust Anchor service initialized using database-backed trust store")
         try:
             asyncio.get_running_loop().create_task(self._sync_from_pkd())
@@ -53,16 +52,24 @@ class TrustAnchor(trust_anchor_pb2_grpc.TrustAnchorServicer):
             return record
 
         try:
-            record = await self._database.run_within_transaction(handler)
-            payload = json.dumps(
-                {
-                    "entity": entity,
-                    "trusted": trusted,
-                    "version": record.version,
-                }
-            ).encode("utf-8")
-            message = EventBusMessage(topic="trust.updated", payload=payload)
-            await self._event_bus.publish(message)
+            async def wrapper(session):
+                repo = TrustEntityRepository(session)
+                record = await repo.upsert(entity, trusted, attributes)
+                outbox = OutboxRepository(session)
+                await outbox.enqueue(
+                    topic="trust.updated",
+                    payload=json.dumps(
+                        {
+                            "entity": entity,
+                            "trusted": trusted,
+                            "version": record.version,
+                        }
+                    ).encode("utf-8"),
+                    key=entity.encode("utf-8"),
+                )
+                return record
+
+            record = await self._database.run_within_transaction(wrapper)
             self.logger.info("Trust store updated for %s (trusted=%s)", entity, trusted)
             return True
         except Exception as exc:  # pylint: disable=broad-except

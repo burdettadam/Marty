@@ -22,6 +22,34 @@ services:
       timeout: 5s
       retries: 5
 
+  zookeeper:
+    image: confluentinc/cp-zookeeper:7.4.0
+    container_name: marty-zookeeper
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+      ZOOKEEPER_TICK_TIME: 2000
+    ports:
+      - "2181:2181"
+    networks:
+      - marty-network
+
+  kafka:
+    image: confluentinc/cp-kafka:7.4.0
+    container_name: marty-kafka
+    depends_on:
+      - zookeeper
+    ports:
+      - "9092:9092"
+    environment:
+      KAFKA_BROKER_ID: 1
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT
+      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://localhost:9092
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+    networks:
+      - marty-network
+
   trust-anchor:
     platform: linux/amd64
     build:
@@ -344,6 +372,48 @@ services:
       document-signer:
         condition: service_healthy
       passport-engine:
+        condition: service_healthy
+    networks:
+      - marty-network
+
+  credential-ledger:
+    platform: linux/amd64
+    build:
+      context: ..
+      dockerfile: docker/credential-ledger.Dockerfile
+    container_name: credential-ledger-service
+    ports:
+      - "8089:8089"
+    environment:
+      - ENV=production
+      - SERVICE_NAME=credential-ledger
+      - GRPC_PORT=8089
+      # Service discovery environment variables
+      - TRUST_ANCHOR_HOST=trust-anchor
+      - TRUST_ANCHOR_PORT=8080
+      - CSCA_SERVICE_HOST=csca-service
+      - CSCA_SERVICE_PORT=8081
+      - DOCUMENT_SIGNER_HOST=document-signer
+      - DOCUMENT_SIGNER_PORT=8082
+      - INSPECTION_SYSTEM_HOST=inspection-system
+      - INSPECTION_SYSTEM_PORT=8083
+      - PASSPORT_ENGINE_HOST=passport-engine
+      - PASSPORT_ENGINE_PORT=8084
+      - MDL_ENGINE_HOST=mdl-engine
+      - MDL_ENGINE_PORT=8085
+      - MDOC_ENGINE_HOST=mdoc-engine
+      - MDOC_ENGINE_PORT=8086
+      - DTC_ENGINE_HOST=dtc-engine
+      - DTC_ENGINE_PORT=8087
+    volumes:
+      - ../data:/app/data
+    healthcheck:
+      test: ["CMD", "python", "-c", "import grpc; channel = grpc.insecure_channel('localhost:8089'); channel.close()"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    depends_on:
+      postgres:
         condition: service_healthy
     networks:
       - marty-network

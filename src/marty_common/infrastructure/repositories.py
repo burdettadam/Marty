@@ -11,6 +11,8 @@ from sqlalchemy.orm.attributes import flag_modified
 
 from .models import (
     CertificateRecord,
+    CredentialEventLog,
+    CredentialLedgerEntry,
     DigitalTravelCredentialRecord,
     MobileDrivingLicenseRecord,
     PassportRecord,
@@ -264,6 +266,86 @@ class MobileDrivingLicenseRepository:
             .values(status=status, updated_at=datetime.now(timezone.utc))
         )
         await self._session.execute(stmt)
+
+
+class CredentialLedgerRepository:
+    def __init__(self, session: AsyncSession) -> None:
+        self._session = session
+
+    async def record_event(
+        self,
+        *,
+        topic: str,
+        payload: dict[str, Any],
+        key: str | None,
+        partition: int | None,
+        offset: int | None,
+    ) -> CredentialEventLog:
+        event = CredentialEventLog(
+            topic=topic,
+            key=key,
+            payload=payload,
+            partition=partition,
+            offset=offset,
+        )
+        self._session.add(event)
+        return event
+
+    async def upsert_entry(
+        self,
+        *,
+        credential_id: str,
+        credential_type: str,
+        status: str,
+        metadata: dict[str, Any] | None,
+        topic: str,
+        offset: int | None,
+    ) -> CredentialLedgerEntry:
+        stmt = select(CredentialLedgerEntry).where(CredentialLedgerEntry.credential_id == credential_id)
+        result = await self._session.execute(stmt)
+        entry = result.scalars().first()
+        now = datetime.now(timezone.utc)
+        if entry is None:
+            entry = CredentialLedgerEntry(
+                credential_id=credential_id,
+                credential_type=credential_type,
+                status=status,
+                event_metadata=metadata or {},
+                last_event_topic=topic,
+                last_event_offset=offset,
+                updated_at=now,
+            )
+            self._session.add(entry)
+            return entry
+
+        entry.credential_type = credential_type or entry.credential_type
+        entry.status = status
+        if metadata:
+            current = entry.event_metadata or {}
+            current.update(metadata)
+            entry.event_metadata = current
+            flag_modified(entry, "event_metadata")
+        entry.last_event_topic = topic
+        entry.last_event_offset = offset
+        entry.updated_at = now
+        return entry
+
+    async def update_status(
+        self,
+        credential_id: str,
+        status: str,
+        metadata: dict[str, Any] | None,
+        topic: str,
+        offset: int | None,
+    ) -> CredentialLedgerEntry:
+        return await self.upsert_entry(
+            credential_id=credential_id,
+            credential_type="",
+            status=status,
+            metadata=metadata,
+            topic=topic,
+            offset=offset,
+        )
 
     async def update_signature(
         self,

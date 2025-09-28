@@ -13,12 +13,7 @@ from datetime import datetime, timezone, timedelta
 import os
 from pathlib import Path
 
-from marty_common.infrastructure import (
-    CertificateRepository,
-    DatabaseManager,
-    EventBusMessage,
-    EventBusProvider,
-)
+from marty_common.infrastructure import CertificateRepository, DatabaseManager, OutboxRepository
 from src.proto import pkd_service_pb2, pkd_service_pb2_grpc
 
 
@@ -32,7 +27,6 @@ class PKDService(pkd_service_pb2_grpc.PKDServiceServicer):
         self.logger = logging.getLogger(__name__)
         self.channels = channels or {}
         self._database: DatabaseManager = dependencies.database
-        self._event_bus: EventBusProvider = dependencies.event_bus
         self._data_dir = Path(os.environ.get("PKD_DATA_DIR", "src/pkd_service/data"))
         self._auto_sync_interval = int(os.environ.get("PKD_AUTO_SYNC_INTERVAL", "0"))
         self._sync_task: asyncio.Task | None = None
@@ -57,13 +51,12 @@ class PKDService(pkd_service_pb2_grpc.PKDServiceServicer):
         return pkd_service_pb2.ListTrustAnchorsResponse(anchors=anchors)
 
     async def Sync(self, request, context):  # noqa: N802
-        ingested = await self._ingest_local_dataset(force_refresh=request.force_refresh)
+        ingested = await self._ingest_local_dataset(
+            force_refresh=request.force_refresh,
+            emit_event=True,
+        )
         message = f"Ingested {ingested} trust anchors from PKD dataset"
         self.logger.info(message)
-        await self._publish_event(
-            "pkd.sync.completed",
-            {"force_refresh": request.force_refresh, "anchors": ingested},
-        )
         return pkd_service_pb2.SyncResponse(success=True, message=message)
 
     async def _list_csca_records(self):
@@ -71,11 +64,7 @@ class PKDService(pkd_service_pb2_grpc.PKDServiceServicer):
             repo = CertificateRepository(session)
             return await repo.list_by_type("CSCA")
 
-    async def _publish_event(self, topic: str, payload: dict[str, Any]) -> None:
-        message = EventBusMessage(topic=topic, payload=json.dumps(payload).encode("utf-8"))
-        await self._event_bus.publish(message)
-
-    async def _ingest_local_dataset(self, force_refresh: bool) -> int:
+    async def _ingest_local_dataset(self, force_refresh: bool, emit_event: bool = False) -> int:
         if not self._data_dir.exists():
             self.logger.warning("PKD data directory %s not found", self._data_dir)
             return 0
@@ -91,6 +80,7 @@ class PKDService(pkd_service_pb2_grpc.PKDServiceServicer):
 
         now = datetime.now(timezone.utc)
         not_after = (now + timedelta(days=365 * 5)).isoformat()
+        anchor_count = len(anchors)
 
         async def handler(session):
             repo = CertificateRepository(session)
@@ -110,9 +100,22 @@ class PKDService(pkd_service_pb2_grpc.PKDServiceServicer):
                     subject=f"CN={entry or certificate_id}",
                     details=details,
                 )
+            if emit_event:
+                outbox = OutboxRepository(session)
+                payload = {
+                    "force_refresh": force_refresh,
+                    "anchors": anchor_count,
+                    "dataset": dataset_path.name,
+                }
+                key = f"pkd:{dataset_path.name}".encode("utf-8")
+                await outbox.enqueue(
+                    topic="pkd.sync.completed",
+                    payload=json.dumps(payload).encode("utf-8"),
+                    key=key,
+                )
 
         await self._database.run_within_transaction(handler)
-        return len(anchors)
+        return anchor_count
 
     @staticmethod
     def _create_placeholder_pem(certificate_id: str, entry: str) -> str:
@@ -131,7 +134,7 @@ class PKDService(pkd_service_pb2_grpc.PKDServiceServicer):
             while True:
                 try:
                     self.logger.debug("Auto PKD sync triggered")
-                    await self._ingest_local_dataset(force_refresh=False)
+                    await self._ingest_local_dataset(force_refresh=False, emit_event=True)
                 except Exception:  # pylint: disable=broad-except
                     self.logger.exception("Automatic PKD sync failed")
                 await asyncio.sleep(self._auto_sync_interval)
