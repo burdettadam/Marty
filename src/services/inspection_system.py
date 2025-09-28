@@ -1,14 +1,21 @@
 import asyncio
+import base64
 import json
 import logging
 import os
 from typing import Optional
 
 import grpc
+from cryptography import x509
 from cryptography.hazmat.primitives import hashes, serialization
 from cryptography.hazmat.primitives.asymmetric import padding
 
-from marty_common.infrastructure import KeyVaultClient, ObjectStorageClient
+from marty_common.infrastructure import (
+    CertificateRepository,
+    KeyVaultClient,
+    ObjectStorageClient,
+)
+from src.marty_common.security.passport_crypto_validator import PassportCryptoValidator
 from src.proto import (
     inspection_system_pb2,
     inspection_system_pb2_grpc,
@@ -45,6 +52,7 @@ class InspectionSystem(inspection_system_pb2_grpc.InspectionSystemServicer):
             raise ValueError(msg)
         self._object_storage: ObjectStorageClient = dependencies.object_storage
         self._key_vault: KeyVaultClient = dependencies.key_vault
+        self._database = dependencies.database
         self._signing_key_id = "document-signer-default"
         self.logger.info(
             f"Inspection System service initialized with data_dir={self.data_dir}, passport_data_dir={self.passport_data_dir}"
@@ -132,6 +140,28 @@ class InspectionSystem(inspection_system_pb2_grpc.InspectionSystemServicer):
         self.logger.warning("Passport data for %s not found", passport_id)
         return None
 
+    async def _load_trust_anchors(self) -> list[x509.Certificate]:
+        """Load CSCA trust anchors from the certificate repository."""
+
+        async def handler(session):
+            repo = CertificateRepository(session)
+            records = await repo.list_by_type("CSCA")
+            anchors: list[x509.Certificate] = []
+            for record in records:
+                if not record.pem:
+                    continue
+                try:
+                    anchors.append(x509.load_pem_x509_certificate(record.pem.encode("utf-8")))
+                except ValueError:
+                    self.logger.warning("Failed to parse CSCA certificate %s", record.certificate_id)
+            return anchors
+
+        try:
+            return await self._database.run_within_transaction(handler)
+        except Exception:  # pylint: disable=broad-except
+            self.logger.exception("Unable to load CSCA trust anchors from repository")
+            return []
+
     async def Inspect(self, request, context):
         """
         Inspect an item (passport, document, etc).
@@ -156,34 +186,93 @@ class InspectionSystem(inspection_system_pb2_grpc.InspectionSystemServicer):
                     result=f"ERROR: Passport {item} not found"
                 )
 
-            # Verify document signature if available
-            signature_hex = passport_data.get("sod")
-            if signature_hex:
-                passport_copy = passport_data.copy()
-                passport_copy.pop("sod", None)
-                passport_json = json.dumps(passport_copy, sort_keys=True, separators=(",", ":"))
-
-                if not await self._verify_signature(passport_json, signature_hex):
-                    return inspection_system_pb2.InspectResponse(
-                        result=f"ERROR: Invalid signature for passport {item}"
-                    )
-
-            # Check if issuer is trusted
-            issuer = (
-                "document-signer"  # In a real system, this would be extracted from the signature
-            )
-            if not await self._verify_trust(issuer):
+            sod_encoded = passport_data.get("sod")
+            data_groups = passport_data.get("data_groups", {})
+            if not sod_encoded or not data_groups:
                 return inspection_system_pb2.InspectResponse(
-                    result=f"ERROR: Issuer {issuer} is not trusted"
+                    result=f"ERROR: Passport {item} missing SOD or data groups"
                 )
 
-            # Return success with passport details
-            result = f"VALID: Passport {item} is valid\n"
-            result += f"Issue Date: {passport_data.get('issue_date', 'Unknown')}\n"
-            result += f"Expiry Date: {passport_data.get('expiry_date', 'Unknown')}\n"
-            result += f"Data Groups: {len(passport_data.get('data_groups', {}))}"
+            try:
+                sod_bytes = base64.b64decode(sod_encoded)
+            except (TypeError, ValueError):
+                try:
+                    sod_bytes = bytes.fromhex(sod_encoded)
+                except ValueError:
+                    return inspection_system_pb2.InspectResponse(
+                        result=f"ERROR: SOD for passport {item} is not valid base64/hex"
+                    )
 
-            return inspection_system_pb2.InspectResponse(result=result)
+            validator = PassportCryptoValidator()
+            trust_anchors = await self._load_trust_anchors()
+            if trust_anchors:
+                validator.load_trust_anchors(trust_anchors)
+
+            sod_result = validator.verify_sod(sod_bytes, data_groups)
+
+            mrz_source = data_groups.get("DG1")
+            if not mrz_source:
+                return inspection_system_pb2.InspectResponse(
+                    result=f"ERROR: Passport {item} missing DG1/MRZ data"
+                )
+
+            mrz_bytes = PassportCryptoValidator.decode_maybe_base64(mrz_source)
+            try:
+                mrz_lines = mrz_bytes.decode("ascii")
+            except UnicodeDecodeError:
+                mrz_lines = mrz_bytes.decode("latin1")
+
+            mrz_result = validator.validate_mrz(mrz_lines)
+            cert_result = validator.validate_sod_certificate(sod_bytes, trust_anchors)
+
+            issuer_trusted = True
+            if cert_result.sod_certificate_subject:
+                issuer_trusted = await self._verify_trust(cert_result.sod_certificate_subject)
+
+            validation_success = (
+                mrz_result.is_valid
+                and sod_result.is_valid
+                and cert_result.result.is_valid
+                and issuer_trusted
+            )
+
+            status_prefix = "VALID" if validation_success else "ERROR"
+            lines = [f"{status_prefix}: Passport {item}"]
+            lines.append(f"Issue Date: {passport_data.get('issue_date', 'Unknown')}")
+            lines.append(f"Expiry Date: {passport_data.get('expiry_date', 'Unknown')}")
+
+            mrz_detail = ", ".join(mrz_result.errors) if mrz_result.errors else "MRZ check digits verified"
+            lines.append(f"MRZ: {'PASS' if mrz_result.is_valid else 'FAIL'} ({mrz_detail})")
+
+            sod_detail = (
+                ", ".join(sod_result.errors)
+                if sod_result.errors
+                else f"hashes={len(sod_result.expected_hashes)}"
+            )
+            lines.append(f"SOD Integrity: {'PASS' if sod_result.is_valid else 'FAIL'} ({sod_detail})")
+
+            chain_summary = (
+                cert_result.result.error_summary
+                if cert_result.result.errors
+                else cert_result.sod_certificate_subject or "certificate ok"
+            )
+            lines.append(
+                "Certificate Chain: "
+                f"{'PASS' if cert_result.result.is_valid else 'FAIL'} ({chain_summary})"
+            )
+
+            if cert_result.sod_certificate_subject:
+                lines.append(
+                    "Issuer Trust: "
+                    f"{'PASS' if issuer_trusted else 'FAIL'} ({cert_result.sod_certificate_subject})"
+                )
+
+            if not trust_anchors:
+                lines.append("Trust Anchors: none loaded")
+            else:
+                lines.append(f"Trust Anchors: {len(trust_anchors)} loaded")
+
+            return inspection_system_pb2.InspectResponse(result="\n".join(lines))
 
         # For other types of items
         return inspection_system_pb2.InspectResponse(

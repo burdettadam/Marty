@@ -6,7 +6,7 @@ commonly used in e-passports, leveraging the pyscard library.
 """
 
 import logging
-from typing import Any
+from typing import Any, Optional
 
 from smartcard.CardConnectionObserver import CardConnectionObserver
 from smartcard.CardRequest import CardRequest
@@ -15,6 +15,10 @@ from smartcard.CardType import AnyCardType
 # Import pyscard library components
 from smartcard.System import readers
 from smartcard.util import toHexString
+
+from src.marty_common.models.passport import MRZData
+from src.marty_common.rfid.secure_messaging import SecureMessaging, SessionKeys
+from src.marty_common.utils.mrz_utils import MRZException, MRZParser
 
 logger = logging.getLogger(__name__)
 
@@ -245,6 +249,8 @@ class EPassportReader(SmartCardReader):
         """
         super().__init__(reader_index, timeout)
         self.data_groups = {}
+        self.secure_messaging = SecureMessaging()
+        self.session_keys: Optional[SessionKeys] = None
 
     def connect_to_passport(self) -> bool:
         """
@@ -258,6 +264,55 @@ class EPassportReader(SmartCardReader):
 
         # Select the MRTD application
         return self.select_application(AID_MRTD)
+
+    def perform_bac(self, mrz_data: MRZData | str) -> SessionKeys:
+        """Execute Basic Access Control mutual authentication."""
+
+        if isinstance(mrz_data, str):
+            try:
+                mrz = MRZParser.parse_td3_mrz(mrz_data)
+            except MRZException as exc:  # pragma: no cover - defensive
+                raise ValueError(f"Invalid MRZ data supplied: {exc}") from exc
+        else:
+            mrz = mrz_data
+
+        # Step 1: obtain challenge from the chip
+        challenge_data, sw1, sw2 = self.send_apdu([0x00, 0x84, 0x00, 0x00, 0x08])
+        if sw1 != 0x90 or sw2 != 0x00:
+            raise ValueError(f"GET CHALLENGE failed with status {sw1:02X}{sw2:02X}")
+        challenge = bytes(challenge_data)
+
+        # Step 2: derive BAC keys from MRZ information
+        bac_keys = self.secure_messaging.derive_bac_keys(
+            passport_number=mrz.document_number,
+            date_of_birth=mrz.date_of_birth,
+            date_of_expiry=mrz.date_of_expiry,
+        )
+
+        # Step 3: construct mutual authentication payload
+        auth_payload = self.secure_messaging.perform_basic_access_control(bac_keys, challenge)
+        auth_apdu = [0x00, 0x82, 0x00, 0x00, len(auth_payload), *auth_payload]
+
+        auth_response, sw1, sw2 = self.send_apdu(auth_apdu)
+        if sw1 != 0x90 or sw2 != 0x00:
+            raise ValueError(f"MUTUAL AUTHENTICATE failed with status {sw1:02X}{sw2:02X}")
+
+        session_keys = self.secure_messaging.complete_basic_access_control(bac_keys, bytes(auth_response))
+        self.session_keys = session_keys
+        return session_keys
+
+    def start_pace(self, password: str, nonce: bytes) -> bytes:
+        """Initialise PACE and return the reader public key to send to the chip."""
+
+        reader_public = self.secure_messaging.setup_pace_protocol(password=password, nonce=nonce)
+        return reader_public
+
+    def complete_pace(self, chip_public_key: bytes) -> SessionKeys:
+        """Finalize the PACE protocol once the chip's public key is available."""
+
+        session_keys = self.secure_messaging.complete_pace_protocol(chip_public_key)
+        self.session_keys = session_keys
+        return session_keys
 
     def read_ef_com(self) -> dict[str, Any]:
         """

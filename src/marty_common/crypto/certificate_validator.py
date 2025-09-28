@@ -31,7 +31,17 @@ from cryptography import x509
 from cryptography.exceptions import InvalidSignature
 from cryptography.hazmat.primitives import hashes, serialization
 from cryptography.hazmat.primitives.asymmetric import ec, padding, rsa
-from cryptography.x509.verification import Store
+try:  # cryptography 42+
+    from cryptography.x509.verification import Store
+except ImportError:  # pragma: no cover - fallback for older cryptography releases
+    class Store:  # type: ignore[override]
+        """Minimal stand-in for cryptography's X509 Store when unavailable."""
+
+        def __init__(self, certificates):
+            self._certs = list(certificates)
+
+        def __iter__(self):
+            return iter(self._certs)
 
 logger = logging.getLogger(__name__)
 

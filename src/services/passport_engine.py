@@ -2,10 +2,11 @@
 
 from __future__ import annotations
 
+import base64
 import json
 import logging
 import uuid
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from typing import Any, Optional
 
 import grpc
@@ -13,16 +14,24 @@ import grpc
 from marty_common.infrastructure import (
     EventBusMessage,
     EventBusProvider,
+    KeyVaultClient,
     ObjectStorageClient,
     PassportRepository,
 )
-from marty_common.models.passport import DataGroupType, ICaoPassport
+from marty_common.models.passport import DataGroupType, Gender, ICaoPassport, MRZData
+from cryptography.hazmat.primitives import serialization
 from proto import (
     document_signer_pb2,
     document_signer_pb2_grpc,
     passport_engine_pb2,
     passport_engine_pb2_grpc,
 )
+from src.marty_common.crypto.document_signer_certificate import (
+    DOCUMENT_SIGNER_KEY_ID,
+    load_or_create_document_signer_certificate,
+)
+from src.marty_common.crypto.sod_signer import create_sod
+from src.marty_common.utils.mrz_utils import MRZFormatter
 
 
 class PassportEngine(passport_engine_pb2_grpc.PassportEngineServicer):
@@ -37,6 +46,7 @@ class PassportEngine(passport_engine_pb2_grpc.PassportEngineServicer):
         self._object_storage: ObjectStorageClient = dependencies.object_storage
         self._event_bus: EventBusProvider = dependencies.event_bus
         self._database = dependencies.database
+        self._key_vault: KeyVaultClient = dependencies.key_vault
         self.passport_status: dict[str, str] = {}
 
     def _document_signer_stub(self) -> Optional[document_signer_pb2_grpc.DocumentSignerStub]:
@@ -46,55 +56,76 @@ class PassportEngine(passport_engine_pb2_grpc.PassportEngineServicer):
             return None
         return document_signer_pb2_grpc.DocumentSignerStub(channel)
 
-    def _generate_passport_data(self, passport_number: str) -> ICaoPassport:
+    def _generate_passport_data(self, passport_number: str) -> tuple[ICaoPassport, dict[int, bytes]]:
         now = datetime.now(timezone.utc)
         issue_date = now.date().isoformat()
-        expiry_date = now.replace(year=now.year + 10).date().isoformat()
-        data_groups = {
-            DataGroupType.DG1.value: f"MRZ-DATA-{passport_number}",
-            DataGroupType.DG2.value: f"PHOTO-DATA-{passport_number}",
-            DataGroupType.DG3.value: f"FINGERPRINT-DATA-{passport_number}",
-            DataGroupType.DG4.value: f"IRIS-DATA-{passport_number}",
+        expiry_dt = now.replace(year=now.year + 10)
+        expiry_date = expiry_dt.date().isoformat()
+
+        dob_dt = now - timedelta(days=365 * 30)
+        dob_str = dob_dt.strftime("%y%m%d")
+        expiry_str = expiry_dt.strftime("%y%m%d")
+
+        mrz_model = MRZData(
+            document_type="P",
+            issuing_country="USA",
+            document_number=passport_number,
+            surname="SPECIMEN",
+            given_names="TEST",
+            nationality="USA",
+            date_of_birth=dob_str,
+            gender=Gender.UNSPECIFIED,
+            date_of_expiry=expiry_str,
+            personal_number=None,
+        )
+        mrz_string = MRZFormatter.generate_td3_mrz(mrz_model)
+
+        data_group_bytes: dict[int, bytes] = {
+            1: mrz_string.encode("ascii"),
+            2: f"PHOTO-DATA-{passport_number}".encode("utf-8"),
+            3: f"FINGERPRINT-DATA-{passport_number}".encode("utf-8"),
+            4: f"IRIS-DATA-{passport_number}".encode("utf-8"),
         }
-        return ICaoPassport(
+
+        encoded_groups = {
+            DataGroupType.DG1.value: data_group_bytes[1].hex(),
+            DataGroupType.DG2.value: data_group_bytes[2].hex(),
+            DataGroupType.DG3.value: data_group_bytes[3].hex(),
+            DataGroupType.DG4.value: data_group_bytes[4].hex(),
+        }
+
+        passport = ICaoPassport(
             passport_number=passport_number,
             issue_date=issue_date,
             expiry_date=expiry_date,
-            data_groups=data_groups,
+            data_groups=encoded_groups,
             sod="",
         )
+        return passport, data_group_bytes
 
     async def _sign_passport_data(
-        self, passport_data: ICaoPassport
+        self,
+        passport_data: ICaoPassport,
+        data_group_bytes: dict[int, bytes],
     ) -> tuple[Optional[bytes], Optional[dict[str, str]]]:
-        stub = self._document_signer_stub()
-        if stub is None:
-            return None, None
-
-        passport_dict = passport_data.model_dump()
-        passport_dict.pop("sod", None)
-        payload = json.dumps(passport_dict, sort_keys=True, separators=(",", ":")).encode("utf-8")
+        async def _load_certificate(session):
+            return await load_or_create_document_signer_certificate(session, self._key_vault)
 
         try:
-            response = await stub.SignDocument(
-                document_signer_pb2.SignRequest(
-                    document_id=passport_data.passport_number,
-                    document_content=payload,
-                )
-            )
-        except grpc.RpcError as rpc_err:
-            self.logger.error("Document signer RPC failure: %s", rpc_err.details())
-            return None, None
-
-        if not response.success:
-            self.logger.error("Document signer returned error: %s", response.error_message)
+            certificate = await self._database.run_within_transaction(_load_certificate)
+            private_key_pem = await self._key_vault.load_private_key(DOCUMENT_SIGNER_KEY_ID)
+            private_key = serialization.load_pem_private_key(private_key_pem, password=None)
+            sod_bytes = create_sod(data_group_bytes, private_key, certificate)
+        except Exception as exc:  # pylint: disable=broad-except
+            self.logger.exception("Failed to create SOD for passport %s", passport_data.passport_number)
             return None, None
 
         signature_info = {
-            "signature_date": response.signature_info.signature_date,
-            "signer_id": response.signature_info.signer_id,
+            "signature_date": datetime.now(timezone.utc).isoformat(),
+            "signer_id": DOCUMENT_SIGNER_KEY_ID,
+            "certificate_subject": certificate.subject.rfc4514_string(),
         }
-        return response.signature_info.signature, signature_info
+        return sod_bytes, signature_info
 
     async def _persist_payload(
         self,
@@ -102,8 +133,8 @@ class PassportEngine(passport_engine_pb2_grpc.PassportEngineServicer):
         passport_payload: dict[str, Any],
         signature: bytes | None,
     ) -> str:
-        if signature:
-            passport_payload["sod"] = signature.hex()
+        if signature and not passport_payload.get("sod"):
+            passport_payload["sod"] = base64.b64encode(signature).decode("ascii")
         serialized = json.dumps(passport_payload, indent=2).encode("utf-8")
         object_key = f"passports/{passport_number}.json"
         await self._object_storage.put_object(object_key, serialized, "application/json")
@@ -154,10 +185,15 @@ class PassportEngine(passport_engine_pb2_grpc.PassportEngineServicer):
         passport_number = request.passport_number or f"P{uuid.uuid4().hex[:8].upper()}"
         self.logger.info("Processing passport %s", passport_number)
 
-        passport_data = self._generate_passport_data(passport_number)
-        signature, signature_info = await self._sign_passport_data(passport_data)
+        passport_data, data_group_bytes = self._generate_passport_data(passport_number)
+        signature, signature_info = await self._sign_passport_data(passport_data, data_group_bytes)
         passport_details = passport_data.model_dump()
-        passport_details["sod"] = signature.hex() if signature else ""
+        if signature:
+            passport_details["sod"] = base64.b64encode(signature).decode("ascii")
+        else:
+            passport_details["sod"] = ""
+        if signature_info:
+            passport_details["signature_info"] = signature_info
         status = "ISSUED" if signature else "PENDING_SIGNATURE"
 
         try:
