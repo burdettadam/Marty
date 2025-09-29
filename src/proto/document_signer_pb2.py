@@ -24,7 +24,7 @@ _sym_db = _symbol_database.Default()
 
 
 
-DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n\x15\x64ocument_signer.proto\x12\x08\x64ocument\"<\n\x0bSignRequest\x12\x13\n\x0b\x64ocument_id\x18\x01 \x01(\t\x12\x18\n\x10\x64ocument_content\x18\x02 \x01(\x0c\"M\n\rSignatureInfo\x12\x16\n\x0esignature_date\x18\x01 \x01(\t\x12\x11\n\tsigner_id\x18\x02 \x01(\t\x12\x11\n\tsignature\x18\x03 \x01(\x0c\"g\n\x0cSignResponse\x12\x0f\n\x07success\x18\x01 \x01(\x08\x12\x15\n\rerror_message\x18\x02 \x01(\t\x12/\n\x0esignature_info\x18\x03 \x01(\x0b\x32\x17.document.SignatureInfo2O\n\x0e\x44ocumentSigner\x12=\n\x0cSignDocument\x12\x15.document.SignRequest\x1a\x16.document.SignResponseb\x06proto3')
+DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n\x15\x64ocument_signer.proto\x12\x08\x64ocument\"<\n\x0bSignRequest\x12\x13\n\x0b\x64ocument_id\x18\x01 \x01(\t\x12\x18\n\x10\x64ocument_content\x18\x02 \x01(\x0c\"M\n\rSignatureInfo\x12\x16\n\x0esignature_date\x18\x01 \x01(\t\x12\x11\n\tsigner_id\x18\x02 \x01(\t\x12\x11\n\tsignature\x18\x03 \x01(\x0c\"g\n\x0cSignResponse\x12\x0f\n\x07success\x18\x01 \x01(\x08\x12\x15\n\rerror_message\x18\x02 \x01(\t\x12/\n\x0esignature_info\x18\x03 \x01(\x0b\x32\x17.document.SignatureInfo\"\xa0\x01\n\x1c\x43reateCredentialOfferRequest\x12\x12\n\nsubject_id\x18\x01 \x01(\t\x12\x17\n\x0f\x63redential_type\x18\x02 \x01(\t\x12\x18\n\x10\x62\x61se_claims_json\x18\x03 \x01(\t\x12\"\n\x1aselective_disclosures_json\x18\x04 \x01(\t\x12\x15\n\rmetadata_json\x18\x05 \x01(\t\"|\n\x1d\x43reateCredentialOfferResponse\x12\x10\n\x08offer_id\x18\x01 \x01(\t\x12\x18\n\x10\x63redential_offer\x18\x02 \x01(\t\x12\x1b\n\x13pre_authorized_code\x18\x03 \x01(\t\x12\x12\n\nexpires_in\x18\x04 \x01(\x03\"-\n\x19GetCredentialOfferRequest\x12\x10\n\x08offer_id\x18\x01 \x01(\t\"g\n\x1aGetCredentialOfferResponse\x12\x18\n\x10\x63redential_offer\x18\x01 \x01(\t\x12\x12\n\nexpires_in\x18\x02 \x01(\x03\x12\x1b\n\x13pre_authorized_code\x18\x03 \x01(\t\"Y\n\x1eRedeemPreAuthorizedCodeRequest\x12\x1b\n\x13pre_authorized_code\x18\x01 \x01(\t\x12\x1a\n\x12wallet_attestation\x18\x02 \x01(\t\"n\n\x1fRedeemPreAuthorizedCodeResponse\x12\x10\n\x08offer_id\x18\x01 \x01(\t\x12\x14\n\x0c\x61\x63\x63\x65ss_token\x18\x02 \x01(\t\x12\x12\n\nexpires_in\x18\x03 \x01(\x03\x12\x0f\n\x07\x63_nonce\x18\x04 \x01(\t\"\x89\x01\n\x1bIssueSdJwtCredentialRequest\x12\x14\n\x0c\x61\x63\x63\x65ss_token\x18\x01 \x01(\t\x12\x17\n\x0f\x64isclose_claims\x18\x02 \x03(\t\x12\x10\n\x08\x61udience\x18\x03 \x01(\t\x12\r\n\x05nonce\x18\x04 \x01(\t\x12\x1a\n\x12wallet_attestation\x18\x05 \x01(\t\"\xf6\x01\n\x1cIssueSdJwtCredentialResponse\x12\x12\n\ncredential\x18\x01 \x01(\t\x12\x13\n\x0b\x64isclosures\x18\x02 \x03(\t\x12\x15\n\rcredential_id\x18\x03 \x01(\t\x12\x12\n\nexpires_in\x18\x04 \x01(\x03\x12\x0e\n\x06\x66ormat\x18\x05 \x01(\t\x12\x17\n\x0fsd_jwt_location\x18\x06 \x01(\t\x12\x1c\n\x14\x64isclosures_location\x18\x07 \x01(\t\x12\x0e\n\x06issuer\x18\x08 \x01(\t\x12\x17\n\x0f\x63redential_type\x18\t \x01(\t\x12\x12\n\nsubject_id\x18\n \x01(\t2\xf1\x03\n\x0e\x44ocumentSigner\x12=\n\x0cSignDocument\x12\x15.document.SignRequest\x1a\x16.document.SignResponse\x12h\n\x15\x43reateCredentialOffer\x12&.document.CreateCredentialOfferRequest\x1a\'.document.CreateCredentialOfferResponse\x12_\n\x12GetCredentialOffer\x12#.document.GetCredentialOfferRequest\x1a$.document.GetCredentialOfferResponse\x12n\n\x17RedeemPreAuthorizedCode\x12(.document.RedeemPreAuthorizedCodeRequest\x1a).document.RedeemPreAuthorizedCodeResponse\x12\x65\n\x14IssueSdJwtCredential\x12%.document.IssueSdJwtCredentialRequest\x1a&.document.IssueSdJwtCredentialResponseb\x06proto3')
 
 _globals = globals()
 _builder.BuildMessageAndEnumDescriptors(DESCRIPTOR, _globals)
@@ -37,6 +37,22 @@ if not _descriptor._USE_C_DESCRIPTORS:
   _globals['_SIGNATUREINFO']._serialized_end=174
   _globals['_SIGNRESPONSE']._serialized_start=176
   _globals['_SIGNRESPONSE']._serialized_end=279
-  _globals['_DOCUMENTSIGNER']._serialized_start=281
-  _globals['_DOCUMENTSIGNER']._serialized_end=360
+  _globals['_CREATECREDENTIALOFFERREQUEST']._serialized_start=282
+  _globals['_CREATECREDENTIALOFFERREQUEST']._serialized_end=442
+  _globals['_CREATECREDENTIALOFFERRESPONSE']._serialized_start=444
+  _globals['_CREATECREDENTIALOFFERRESPONSE']._serialized_end=568
+  _globals['_GETCREDENTIALOFFERREQUEST']._serialized_start=570
+  _globals['_GETCREDENTIALOFFERREQUEST']._serialized_end=615
+  _globals['_GETCREDENTIALOFFERRESPONSE']._serialized_start=617
+  _globals['_GETCREDENTIALOFFERRESPONSE']._serialized_end=720
+  _globals['_REDEEMPREAUTHORIZEDCODEREQUEST']._serialized_start=722
+  _globals['_REDEEMPREAUTHORIZEDCODEREQUEST']._serialized_end=811
+  _globals['_REDEEMPREAUTHORIZEDCODERESPONSE']._serialized_start=813
+  _globals['_REDEEMPREAUTHORIZEDCODERESPONSE']._serialized_end=923
+  _globals['_ISSUESDJWTCREDENTIALREQUEST']._serialized_start=926
+  _globals['_ISSUESDJWTCREDENTIALREQUEST']._serialized_end=1063
+  _globals['_ISSUESDJWTCREDENTIALRESPONSE']._serialized_start=1066
+  _globals['_ISSUESDJWTCREDENTIALRESPONSE']._serialized_end=1312
+  _globals['_DOCUMENTSIGNER']._serialized_start=1315
+  _globals['_DOCUMENTSIGNER']._serialized_end=1812
 # @@protoc_insertion_point(module_scope)

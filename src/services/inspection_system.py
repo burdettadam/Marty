@@ -3,7 +3,7 @@ import base64
 import json
 import logging
 import os
-from typing import Optional
+from typing import Any, Optional
 
 import grpc
 from cryptography import x509
@@ -16,6 +16,7 @@ from marty_common.infrastructure import (
     ObjectStorageClient,
 )
 from src.marty_common.security.passport_crypto_validator import PassportCryptoValidator
+from src.marty_common.vc.sd_jwt_verifier import SdJwtVerifier
 from src.proto import (
     inspection_system_pb2,
     inspection_system_pb2_grpc,
@@ -162,6 +163,31 @@ class InspectionSystem(inspection_system_pb2_grpc.InspectionSystemServicer):
             self.logger.exception("Unable to load CSCA trust anchors from repository")
             return []
 
+    async def _load_wallet_attestation_certificates(self) -> list[x509.Certificate]:
+        """Load wallet provider certificates when available."""
+
+        async def handler(session):
+            repo = CertificateRepository(session)
+            records = await repo.list_by_type("WALLET_ATTESTATION")
+            anchors: list[x509.Certificate] = []
+            for record in records:
+                if not record.pem:
+                    continue
+                try:
+                    anchors.append(x509.load_pem_x509_certificate(record.pem.encode("utf-8")))
+                except ValueError:
+                    self.logger.warning(
+                        "Failed to parse wallet attestation certificate %s",
+                        record.certificate_id,
+                    )
+            return anchors
+
+        try:
+            return await self._database.run_within_transaction(handler)
+        except Exception:  # pylint: disable=broad-except
+            self.logger.exception("Unable to load wallet attestation certificates")
+            return []
+
     async def Inspect(self, request, context):
         """
         Inspect an item (passport, document, etc).
@@ -175,6 +201,16 @@ class InspectionSystem(inspection_system_pb2_grpc.InspectionSystemServicer):
         """
         item = request.item
         self.logger.info(f"Inspect called for item: {item}")
+
+        parsed_payload: dict[str, Any] | None
+        try:
+            parsed_payload = json.loads(item)
+        except json.JSONDecodeError:
+            parsed_payload = None
+
+        if isinstance(parsed_payload, dict) and parsed_payload.get("format") == "vc+sd-jwt":
+            result_text = await self._inspect_sd_jwt(parsed_payload)
+            return inspection_system_pb2.InspectResponse(result=result_text)
 
         # For passport inspection
         if item.startswith("P"):
@@ -278,3 +314,59 @@ class InspectionSystem(inspection_system_pb2_grpc.InspectionSystemServicer):
         return inspection_system_pb2.InspectResponse(
             result=f"UNKNOWN: Item type {item} not recognized"
         )
+
+    async def _inspect_sd_jwt(self, payload: dict[str, Any]) -> str:
+        credential = payload.get("credential") or payload.get("sd_jwt")
+        disclosures = payload.get("disclosures") or []
+        wallet_attestation = payload.get("wallet_attestation")
+
+        if not credential:
+            return "ERROR: SD-JWT credential missing"
+
+        if not isinstance(disclosures, (list, tuple)):
+            return "ERROR: disclosures must be a list"
+
+        trust_anchors = await self._load_trust_anchors()
+        wallet_anchors = await self._load_wallet_attestation_certificates()
+        verifier = SdJwtVerifier(trust_anchors, wallet_anchors)
+
+        if isinstance(wallet_attestation, dict):
+            attestation_payload = json.dumps(wallet_attestation)
+        else:
+            attestation_payload = wallet_attestation if isinstance(wallet_attestation, str) else None
+
+        result = verifier.verify(
+            credential,
+            disclosures,
+            wallet_attestation=attestation_payload,
+        )
+
+        lines: list[str] = []
+        lines.append("SD-JWT VERIFICATION: PASS" if result.valid else "SD-JWT VERIFICATION: FAIL")
+        issuer = result.payload.get("iss", "unknown")
+        subject = result.payload.get("sub", "unknown")
+        lines.append(f"Issuer: {issuer}")
+        lines.append(f"Subject: {subject}")
+        if result.certificate_subject:
+            lines.append(f"Signer Certificate: {result.certificate_subject}")
+
+        if result.disclosures:
+            lines.append("Disclosed Claims:")
+            for key, value in result.disclosures.items():
+                if isinstance(value, (dict, list)):
+                    value_repr = json.dumps(value)
+                else:
+                    value_repr = value
+                lines.append(f"  - {key}: {value_repr}")
+
+        if result.errors:
+            lines.append("Errors:")
+            for err in result.errors:
+                lines.append(f"  - {err}")
+
+        if result.warnings:
+            lines.append("Warnings:")
+            for warn in result.warnings:
+                lines.append(f"  - {warn}")
+
+        return "\n".join(lines)

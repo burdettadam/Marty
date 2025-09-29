@@ -8,7 +8,7 @@ from typing import Mapping, Sequence
 from asn1crypto import algos as asn1_algos, cms as asn1_cms, core as asn1_core, x509 as asn1_x509
 from cryptography import x509
 from cryptography.hazmat.primitives import hashes, serialization
-from cryptography.hazmat.primitives.asymmetric import ec, padding, rsa
+from cryptography.hazmat.primitives.asymmetric import ec, ed25519, ed448, padding, rsa
 
 from src.marty_common.models.asn1_structures import (
     DataGroupHash,
@@ -109,6 +109,20 @@ def create_sod(
         def sign_payload(payload: bytes) -> bytes:
             return private_key.sign(payload, ec.ECDSA(hash_algorithm))
 
+    elif isinstance(private_key, ed25519.Ed25519PrivateKey):
+        hash_algorithm = hashes.SHA512()
+        signature_algorithm = asn1_algos.SignedDigestAlgorithm({"algorithm": "ed25519"})
+
+        def sign_payload(payload: bytes) -> bytes:
+            return private_key.sign(payload)
+
+    elif isinstance(private_key, ed448.Ed448PrivateKey):
+        hash_algorithm = hashes.SHA512()
+        signature_algorithm = asn1_algos.SignedDigestAlgorithm({"algorithm": "ed448"})
+
+        def sign_payload(payload: bytes) -> bytes:
+            return private_key.sign(payload)
+
     else:  # pragma: no cover - defensive
         msg = "Unsupported private key type for SOD signing"
         raise ValueError(msg)
@@ -208,6 +222,11 @@ def verify_sod_signature(
                 return True
             if isinstance(public_key, ec.EllipticCurvePublicKey):
                 public_key.verify(signature, data, ec.ECDSA(hash_cls()))
+                return True
+            if isinstance(public_key, ed25519.Ed25519PublicKey) or isinstance(
+                public_key, ed448.Ed448PublicKey
+            ):
+                public_key.verify(signature, data)
                 return True
         except Exception:  # pragma: no cover - verification failure handled below
             continue

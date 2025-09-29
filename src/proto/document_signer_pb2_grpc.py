@@ -39,12 +39,56 @@ class DocumentSignerStub(object):
                 request_serializer=document__signer__pb2.SignRequest.SerializeToString,
                 response_deserializer=document__signer__pb2.SignResponse.FromString,
                 _registered_method=True)
+        self.CreateCredentialOffer = channel.unary_unary(
+                '/document.DocumentSigner/CreateCredentialOffer',
+                request_serializer=document__signer__pb2.CreateCredentialOfferRequest.SerializeToString,
+                response_deserializer=document__signer__pb2.CreateCredentialOfferResponse.FromString,
+                _registered_method=True)
+        self.GetCredentialOffer = channel.unary_unary(
+                '/document.DocumentSigner/GetCredentialOffer',
+                request_serializer=document__signer__pb2.GetCredentialOfferRequest.SerializeToString,
+                response_deserializer=document__signer__pb2.GetCredentialOfferResponse.FromString,
+                _registered_method=True)
+        self.RedeemPreAuthorizedCode = channel.unary_unary(
+                '/document.DocumentSigner/RedeemPreAuthorizedCode',
+                request_serializer=document__signer__pb2.RedeemPreAuthorizedCodeRequest.SerializeToString,
+                response_deserializer=document__signer__pb2.RedeemPreAuthorizedCodeResponse.FromString,
+                _registered_method=True)
+        self.IssueSdJwtCredential = channel.unary_unary(
+                '/document.DocumentSigner/IssueSdJwtCredential',
+                request_serializer=document__signer__pb2.IssueSdJwtCredentialRequest.SerializeToString,
+                response_deserializer=document__signer__pb2.IssueSdJwtCredentialResponse.FromString,
+                _registered_method=True)
 
 
 class DocumentSignerServicer(object):
     """Missing associated documentation comment in .proto file."""
 
     def SignDocument(self, request, context):
+        """Missing associated documentation comment in .proto file."""
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+    def CreateCredentialOffer(self, request, context):
+        """Missing associated documentation comment in .proto file."""
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+    def GetCredentialOffer(self, request, context):
+        """Missing associated documentation comment in .proto file."""
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+    def RedeemPreAuthorizedCode(self, request, context):
+        """Missing associated documentation comment in .proto file."""
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+    def IssueSdJwtCredential(self, request, context):
         """Missing associated documentation comment in .proto file."""
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
@@ -57,6 +101,26 @@ def add_DocumentSignerServicer_to_server(servicer, server):
                     servicer.SignDocument,
                     request_deserializer=document__signer__pb2.SignRequest.FromString,
                     response_serializer=document__signer__pb2.SignResponse.SerializeToString,
+            ),
+            'CreateCredentialOffer': grpc.unary_unary_rpc_method_handler(
+                    servicer.CreateCredentialOffer,
+                    request_deserializer=document__signer__pb2.CreateCredentialOfferRequest.FromString,
+                    response_serializer=document__signer__pb2.CreateCredentialOfferResponse.SerializeToString,
+            ),
+            'GetCredentialOffer': grpc.unary_unary_rpc_method_handler(
+                    servicer.GetCredentialOffer,
+                    request_deserializer=document__signer__pb2.GetCredentialOfferRequest.FromString,
+                    response_serializer=document__signer__pb2.GetCredentialOfferResponse.SerializeToString,
+            ),
+            'RedeemPreAuthorizedCode': grpc.unary_unary_rpc_method_handler(
+                    servicer.RedeemPreAuthorizedCode,
+                    request_deserializer=document__signer__pb2.RedeemPreAuthorizedCodeRequest.FromString,
+                    response_serializer=document__signer__pb2.RedeemPreAuthorizedCodeResponse.SerializeToString,
+            ),
+            'IssueSdJwtCredential': grpc.unary_unary_rpc_method_handler(
+                    servicer.IssueSdJwtCredential,
+                    request_deserializer=document__signer__pb2.IssueSdJwtCredentialRequest.FromString,
+                    response_serializer=document__signer__pb2.IssueSdJwtCredentialResponse.SerializeToString,
             ),
     }
     generic_handler = grpc.method_handlers_generic_handler(
@@ -86,6 +150,114 @@ class DocumentSigner(object):
             '/document.DocumentSigner/SignDocument',
             document__signer__pb2.SignRequest.SerializeToString,
             document__signer__pb2.SignResponse.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+    @staticmethod
+    def CreateCredentialOffer(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            '/document.DocumentSigner/CreateCredentialOffer',
+            document__signer__pb2.CreateCredentialOfferRequest.SerializeToString,
+            document__signer__pb2.CreateCredentialOfferResponse.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+    @staticmethod
+    def GetCredentialOffer(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            '/document.DocumentSigner/GetCredentialOffer',
+            document__signer__pb2.GetCredentialOfferRequest.SerializeToString,
+            document__signer__pb2.GetCredentialOfferResponse.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+    @staticmethod
+    def RedeemPreAuthorizedCode(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            '/document.DocumentSigner/RedeemPreAuthorizedCode',
+            document__signer__pb2.RedeemPreAuthorizedCodeRequest.SerializeToString,
+            document__signer__pb2.RedeemPreAuthorizedCodeResponse.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+    @staticmethod
+    def IssueSdJwtCredential(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            '/document.DocumentSigner/IssueSdJwtCredential',
+            document__signer__pb2.IssueSdJwtCredentialRequest.SerializeToString,
+            document__signer__pb2.IssueSdJwtCredentialResponse.FromString,
             options,
             channel_credentials,
             insecure,

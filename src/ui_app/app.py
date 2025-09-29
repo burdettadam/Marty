@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 import logging
 import uuid
 from datetime import datetime
@@ -9,12 +10,13 @@ from pathlib import Path
 from typing import Any
 
 import grpc
-from fastapi import Depends, FastAPI, Form, Request
+from fastapi import Body, Depends, FastAPI, Form, Header, HTTPException, Request, status
 from fastapi.responses import HTMLResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
+from pydantic import BaseModel, Field
 
-from src.proto import inspection_system_pb2, passport_engine_pb2
+from src.proto import document_signer_pb2, inspection_system_pb2, passport_engine_pb2
 
 try:
     from src.proto import mdl_engine_pb2
@@ -32,6 +34,26 @@ STATIC_DIR = Path(__file__).parent / "static"
 
 # Global cache for E2E testing - preserves results across requests
 _result_cache = {"process_result": None, "inspection_result": None}
+
+
+class CredentialOfferCreate(BaseModel):
+    """Request payload for creating a credential offer."""
+
+    subject_id: str
+    credential_type: str | None = None
+    base_claims: dict[str, Any] = Field(default_factory=dict)
+    selective_disclosures: dict[str, Any] = Field(default_factory=dict)
+    metadata: dict[str, Any] | None = None
+
+
+class CredentialIssuanceRequest(BaseModel):
+    """Request payload for issuing a credential."""
+
+    access_token: str | None = None
+    disclose_claims: list[str] | None = None
+    audience: str | None = None
+    nonce: str | None = None
+    wallet_attestation: dict[str, Any] | None = None
 
 
 def create_app(settings: UiSettings | None = None) -> FastAPI:
@@ -58,6 +80,20 @@ def create_app(settings: UiSettings | None = None) -> FastAPI:
 
     def get_factory() -> GrpcClientFactory:
         return GrpcClientFactory(settings)
+
+    def _grpc_error_to_http(exc: grpc.RpcError) -> None:
+        detail = exc.details() if hasattr(exc, "details") else str(exc)
+        status_code = status.HTTP_502_BAD_GATEWAY
+        code = exc.code() if hasattr(exc, "code") else None
+        if code == grpc.StatusCode.INVALID_ARGUMENT:
+            status_code = status.HTTP_400_BAD_REQUEST
+        elif code == grpc.StatusCode.NOT_FOUND:
+            status_code = status.HTTP_404_NOT_FOUND
+        elif code in {grpc.StatusCode.PERMISSION_DENIED, grpc.StatusCode.UNAUTHENTICATED}:
+            status_code = status.HTTP_403_FORBIDDEN
+        elif code == grpc.StatusCode.UNIMPLEMENTED:
+            status_code = status.HTTP_501_NOT_IMPLEMENTED
+        raise HTTPException(status_code=status_code, detail=detail)
 
     @app.get("/favicon.ico", include_in_schema=False)
     async def favicon():
@@ -871,17 +907,17 @@ def create_app(settings: UiSettings | None = None) -> FastAPI:
                     "openxpki_url": "https://openxpki.example.com",
                     "pkd_sync_enabled": True,
                     "pkd_sync_interval": 24,
-                    "notification_email": "admin@example.com",
-                },
-                "metrics": {
-                    "cpu_usage": 15,
-                    "memory_usage": 42,
-                    "disk_usage": 28,
-                    "network_io": 1.2,
-                    "network_in": 0.8,
-                    "network_out": 0.4,
-                },
-                "log_entries": [
+                "notification_email": "admin@example.com",
+            },
+            "metrics": {
+                "cpu_usage": 15,
+                "memory_usage": 42,
+                "disk_usage": 28,
+                "network_io": 1.2,
+                "network_in": 0.8,
+                "network_out": 0.4,
+            },
+            "log_entries": [
                     {
                         "timestamp": "2024-01-15 10:35:22",
                         "service": "csca",
@@ -915,6 +951,152 @@ def create_app(settings: UiSettings | None = None) -> FastAPI:
                 },
             },
         )
+
+    @app.get("/oidc4vci/.well-known/openid-credential-issuer")
+    async def credential_issuer_metadata() -> dict[str, Any]:
+        """Expose minimal metadata for OIDC4VCI wallets."""
+
+        base_url = settings.public_base_url or settings.credential_issuer
+        base = base_url.rstrip("/")
+        return {
+            "credential_issuer": settings.credential_issuer,
+            "credential_endpoint": f"{base}/oidc4vci/credential",
+            "token_endpoint": f"{base}/oidc4vci/token",
+            "grants_supported": [
+                "urn:ietf:params:oauth:grant-type:pre-authorized_code",
+            ],
+            "credentials_supported": {
+                "vc+sd-jwt": {
+                    "format": "vc+sd-jwt",
+                    "types": ["VerifiableCredential", settings.environment.upper()],
+                }
+            },
+        }
+
+    @app.post("/oidc4vci/credential-offers")
+    async def create_credential_offer_endpoint(
+        payload: CredentialOfferCreate,
+        factory: GrpcClientFactory = Depends(get_factory),
+    ) -> dict[str, Any]:
+        metadata_json = json.dumps(payload.metadata) if payload.metadata else ""
+        request_pb = document_signer_pb2.CreateCredentialOfferRequest(
+            subject_id=payload.subject_id,
+            credential_type=payload.credential_type or "",
+            base_claims_json=json.dumps(payload.base_claims),
+            selective_disclosures_json=json.dumps(payload.selective_disclosures),
+            metadata_json=metadata_json,
+        )
+        try:
+            with factory.document_signer() as stub:
+                response = stub.CreateCredentialOffer(request_pb)
+        except grpc.RpcError as exc:  # pragma: no cover - depends on gRPC runtime
+            _grpc_error_to_http(exc)
+
+        offer_payload = json.loads(response.credential_offer or "{}")
+        return {
+            "offer_id": response.offer_id,
+            "credential_offer": offer_payload,
+            "pre_authorized_code": response.pre_authorized_code,
+            "expires_in": response.expires_in,
+        }
+
+    @app.get("/oidc4vci/credential-offers/{offer_id}")
+    async def get_credential_offer_endpoint(
+        offer_id: str,
+        factory: GrpcClientFactory = Depends(get_factory),
+    ) -> dict[str, Any]:
+        request_pb = document_signer_pb2.GetCredentialOfferRequest(offer_id=offer_id)
+        try:
+            with factory.document_signer() as stub:
+                response = stub.GetCredentialOffer(request_pb)
+        except grpc.RpcError as exc:  # pragma: no cover
+            _grpc_error_to_http(exc)
+
+        offer_payload = json.loads(response.credential_offer or "{}")
+        return {
+            "credential_offer": offer_payload,
+            "pre_authorized_code": response.pre_authorized_code,
+            "expires_in": response.expires_in,
+        }
+
+    @app.post("/oidc4vci/token")
+    async def redeem_pre_authorized_code(
+        factory: GrpcClientFactory = Depends(get_factory),
+        grant_type: str = Form(...),
+        pre_authorized_code: str = Form(...),
+        user_pin: str | None = Form(default=None),  # noqa: ARG001 - placeholder for future PIN support
+        wallet_attestation: str | None = Form(default=None),
+    ) -> dict[str, Any]:
+        if grant_type != "urn:ietf:params:oauth:grant-type:pre-authorized_code":
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="unsupported_grant_type")
+
+        _ = user_pin  # Reserved for future PIN support
+
+        request_pb = document_signer_pb2.RedeemPreAuthorizedCodeRequest(
+            pre_authorized_code=pre_authorized_code,
+            wallet_attestation=wallet_attestation or "",
+        )
+        try:
+            with factory.document_signer() as stub:
+                response = stub.RedeemPreAuthorizedCode(request_pb)
+        except grpc.RpcError as exc:  # pragma: no cover
+            _grpc_error_to_http(exc)
+
+        return {
+            "access_token": response.access_token,
+            "token_type": "Bearer",
+            "expires_in": response.expires_in,
+            "c_nonce": response.c_nonce,
+            "c_nonce_expires_in": response.expires_in,
+            "offer_id": response.offer_id,
+        }
+
+    @app.post("/oidc4vci/credential")
+    async def issue_sd_jwt_credential(
+        payload: CredentialIssuanceRequest = Body(...),
+        factory: GrpcClientFactory = Depends(get_factory),
+        authorization: str = Header(default=""),
+    ) -> dict[str, Any]:
+        token = payload.access_token
+        if not token and authorization.startswith("Bearer "):
+            token = authorization[len("Bearer ") :]
+        if not token:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="missing access_token")
+
+        wallet_attestation_json = (
+            json.dumps(payload.wallet_attestation)
+            if payload.wallet_attestation is not None
+            else ""
+        )
+
+        request_pb = document_signer_pb2.IssueSdJwtCredentialRequest(
+            access_token=token,
+            disclose_claims=payload.disclose_claims or [],
+            audience=payload.audience or "",
+            nonce=payload.nonce or "",
+            wallet_attestation=wallet_attestation_json,
+        )
+
+        try:
+            with factory.document_signer() as stub:
+                response = stub.IssueSdJwtCredential(request_pb)
+        except grpc.RpcError as exc:  # pragma: no cover
+            _grpc_error_to_http(exc)
+
+        return {
+            "format": response.format or "vc+sd-jwt",
+            "credential": response.credential,
+            "disclosures": list(response.disclosures),
+            "credential_id": response.credential_id,
+            "expires_in": response.expires_in,
+            "issuer": response.issuer,
+            "credential_type": response.credential_type,
+            "subject_id": response.subject_id,
+            "locations": {
+                "sd_jwt": response.sd_jwt_location,
+                "disclosures": response.disclosures_location,
+            },
+        }
 
     return app
 

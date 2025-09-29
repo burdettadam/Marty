@@ -31,6 +31,7 @@ class APDUInstruction(Enum):
     EXTERNAL_AUTHENTICATE = 0x82  # External authentication
     INTERNAL_AUTHENTICATE = 0x88  # Internal authentication
     GET_DATA = 0xCA  # Get data objects
+    GENERAL_AUTHENTICATE = 0x86  # General authenticate (PACE)
     VERIFY = 0x20  # Verify PIN/password
 
 
@@ -103,6 +104,31 @@ class APDUCommand:
     def get_challenge(cls, length: int = 8) -> "APDUCommand":
         """Create GET CHALLENGE command for authentication."""
         return cls(cla=0x00, ins=APDUInstruction.GET_CHALLENGE.value, p1=0x00, p2=0x00, le=length)
+
+    @classmethod
+    def mutual_authenticate(cls, payload: bytes) -> "APDUCommand":
+        """Create MUTUAL AUTHENTICATE (External Authenticate) command."""
+        return cls(
+            cla=0x00,
+            ins=APDUInstruction.EXTERNAL_AUTHENTICATE.value,
+            p1=0x00,
+            p2=0x00,
+            data=payload,
+        )
+
+    @classmethod
+    def general_authenticate(
+        cls, payload: bytes, p1: int = 0x00, p2: int = 0x00
+    ) -> "APDUCommand":
+        """Create GENERAL AUTHENTICATE command used by PACE (ISO 7816-4)."""
+
+        return cls(
+            cla=0x00,
+            ins=APDUInstruction.GENERAL_AUTHENTICATE.value,
+            p1=p1,
+            p2=p2,
+            data=payload,
+        )
 
 
 @dataclass

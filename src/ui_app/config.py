@@ -24,10 +24,13 @@ class UiSettings(BaseSettings):
         default="localhost:9083", alias="UI_INSPECTION_SYSTEM_ADDR"
     )
     mdl_engine_target: str = Field(default="localhost:9085", alias="UI_MDL_ENGINE_ADDR")
+    document_signer_target: str = Field(default="localhost:9082", alias="UI_DOCUMENT_SIGNER_ADDR")
     trust_anchor_target: str = Field(default="localhost:9080", alias="UI_TRUST_ANCHOR_ADDR")
     grpc_timeout_seconds: int = Field(default=5, alias="UI_GRPC_TIMEOUT_SECONDS")
     enable_mock_data: bool = Field(default=False, alias="UI_ENABLE_MOCK_DATA")
     theme: Literal["light", "dark"] = Field(default="light", alias="UI_THEME")
+    public_base_url: str | None = Field(default=None, alias="UI_PUBLIC_BASE_URL")
+    credential_issuer: str = Field(default="https://issuer.local", alias="UI_CREDENTIAL_ISSUER")
 
 
 @lru_cache

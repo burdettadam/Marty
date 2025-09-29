@@ -46,6 +46,9 @@ class PassportEngine(passport_engine_pb2_grpc.PassportEngineServicer):
         self._database = dependencies.database
         self._key_vault: KeyVaultClient = dependencies.key_vault
         self.passport_status: dict[str, str] = {}
+        service_config = dependencies.runtime_config.get_service("passport_engine")
+        self._signing_key_id = service_config.get("signing_key_id", DOCUMENT_SIGNER_KEY_ID)
+        self._signing_algorithm = service_config.get("signing_algorithm", "rsa2048")
 
     def _document_signer_stub(self) -> Optional[document_signer_pb2_grpc.DocumentSignerStub]:
         channel = self.channels.get("document_signer")
@@ -107,11 +110,16 @@ class PassportEngine(passport_engine_pb2_grpc.PassportEngineServicer):
         data_group_bytes: dict[int, bytes],
     ) -> tuple[Optional[bytes], Optional[dict[str, str]]]:
         async def _load_certificate(session):
-            return await load_or_create_document_signer_certificate(session, self._key_vault)
+            return await load_or_create_document_signer_certificate(
+                session,
+                self._key_vault,
+                signing_algorithm=self._signing_algorithm,
+                key_id=self._signing_key_id,
+            )
 
         try:
             certificate = await self._database.run_within_transaction(_load_certificate)
-            private_key_pem = await self._key_vault.load_private_key(DOCUMENT_SIGNER_KEY_ID)
+            private_key_pem = await self._key_vault.load_private_key(self._signing_key_id)
             private_key = serialization.load_pem_private_key(private_key_pem, password=None)
             sod_bytes = create_sod(data_group_bytes, private_key, certificate)
         except Exception as exc:  # pylint: disable=broad-except
@@ -120,7 +128,7 @@ class PassportEngine(passport_engine_pb2_grpc.PassportEngineServicer):
 
         signature_info = {
             "signature_date": datetime.now(timezone.utc).isoformat(),
-            "signer_id": DOCUMENT_SIGNER_KEY_ID,
+            "signer_id": self._signing_key_id,
             "certificate_subject": certificate.subject.rfc4514_string(),
         }
         return sod_bytes, signature_info

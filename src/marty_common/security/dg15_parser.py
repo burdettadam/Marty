@@ -183,7 +183,10 @@ class DG15Parser:
 
     def _bitstring_to_bytes(self, bit_string: univ.BitString) -> bytes:
         """Convert ASN.1 BitString to bytes."""
-        # Get the bit string as bytes
+        # Prefer direct octet extraction when available
+        if hasattr(bit_string, "asOctets"):
+            return bit_string.asOctets()
+
         bit_string_bytes = bytes(bit_string)
 
         # BitString format: first byte is number of unused bits

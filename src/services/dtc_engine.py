@@ -42,6 +42,9 @@ class DTCEngineServicer(dtc_engine_pb2_grpc.DTCEngineServicer):
         self._database = dependencies.database
         self._object_storage: ObjectStorageClient = dependencies.object_storage
         self._key_vault: KeyVaultClient = dependencies.key_vault
+        service_config = dependencies.runtime_config.get_service("dtc_engine")
+        self._signing_key_id = service_config.get("signing_key_id", DOCUMENT_SIGNER_KEY_ID)
+        self._signing_algorithm = service_config.get("signing_algorithm", "rsa2048")
 
     # ------------------------------------------------------------------
     # gRPC endpoints
@@ -270,7 +273,12 @@ class DTCEngineServicer(dtc_engine_pb2_grpc.DTCEngineServicer):
         )
 
         async def _load_certificate(session):
-            return await load_or_create_document_signer_certificate(session, self._key_vault)
+            return await load_or_create_document_signer_certificate(
+                session,
+                self._key_vault,
+                signing_algorithm=self._signing_algorithm,
+                key_id=self._signing_key_id,
+            )
 
         certificate = await self._database.run_within_transaction(_load_certificate)
         signature_result = verifier.verify_signature(

@@ -19,7 +19,7 @@ from typing import Optional
 
 from cryptography import x509
 from cryptography.hazmat.primitives import hashes, serialization
-from cryptography.hazmat.primitives.asymmetric import rsa
+from cryptography.hazmat.primitives.asymmetric import ec, ed25519, ed448, rsa
 from cryptography.x509.oid import ExtendedKeyUsageOID
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -37,6 +37,7 @@ async def ensure_document_signer_certificate(
     subject_dn: str = DOCUMENT_SIGNER_SUBJECT,
     key_id: str = DOCUMENT_SIGNER_KEY_ID,
     validity_years: int = 5,
+    signing_algorithm: str = "rsa2048",
 ) -> x509.Certificate:
     """Ensure that a DSC exists for the given signing key and return it."""
     repository = CertificateRepository(session)
@@ -45,11 +46,17 @@ async def ensure_document_signer_certificate(
         return x509.load_pem_x509_certificate(record.pem.encode("utf-8"))
 
     # Make sure key material exists
-    await key_vault.ensure_key(key_id, "rsa2048")
+    await key_vault.ensure_key(key_id, signing_algorithm)
     private_key_pem = await key_vault.load_private_key(key_id)
     private_key = serialization.load_pem_private_key(private_key_pem, password=None)
-    if not isinstance(private_key, rsa.RSAPrivateKey):
-        msg = "Document signer key must be RSA"
+    if isinstance(private_key, rsa.RSAPrivateKey):
+        signature_algorithm = hashes.SHA256()
+    elif isinstance(private_key, ec.EllipticCurvePrivateKey):
+        signature_algorithm = hashes.SHA256()
+    elif isinstance(private_key, (ed25519.Ed25519PrivateKey, ed448.Ed448PrivateKey)):
+        signature_algorithm = None
+    else:
+        msg = "Document signer key must be RSA, ECDSA, or EdDSA"
         raise TypeError(msg)
 
     subject = issuer = x509.Name.from_rfc4514_string(subject_dn)
@@ -91,13 +98,14 @@ async def ensure_document_signer_certificate(
         )
     )
 
-    certificate = certificate_builder.sign(private_key=private_key, algorithm=hashes.SHA256())
+    certificate = certificate_builder.sign(private_key=private_key, algorithm=signature_algorithm)
     pem_text = certificate.public_bytes(serialization.Encoding.PEM).decode("utf-8")
 
     details = {
         "issued_at": now.isoformat(),
         "not_after": (now + timedelta(days=365 * validity_years)).isoformat(),
         "key_id": key_id,
+        "signing_algorithm": signing_algorithm,
     }
 
     await repository.upsert(
@@ -127,12 +135,20 @@ async def get_document_signer_certificate(
 async def load_or_create_document_signer_certificate(
     session: AsyncSession,
     key_vault: KeyVaultClient,
+    *,
+    signing_algorithm: str = "rsa2048",
+    key_id: str = DOCUMENT_SIGNER_KEY_ID,
 ) -> x509.Certificate:
     """Convenience helper that loads the DSC or provisions a new one."""
     certificate = await get_document_signer_certificate(session)
     if certificate:
         return certificate
-    return await ensure_document_signer_certificate(session, key_vault)
+    return await ensure_document_signer_certificate(
+        session,
+        key_vault,
+        signing_algorithm=signing_algorithm,
+        key_id=key_id,
+    )
 
 
 __all__ = [

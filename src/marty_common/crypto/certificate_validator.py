@@ -28,6 +28,7 @@ from enum import Enum
 from typing import ClassVar
 
 from cryptography import x509
+from cryptography.x509 import ocsp
 from cryptography.exceptions import InvalidSignature
 from cryptography.hazmat.primitives import hashes, serialization
 from cryptography.hazmat.primitives.asymmetric import ec, padding, rsa
@@ -189,6 +190,8 @@ class CertificateChainValidator:
         self.logger = logging.getLogger(f"{__name__}.{self.__class__.__name__}")
         self._csca_certificates: dict[str, x509.Certificate] = {}
         self._validation_cache: dict[str, ChainValidationResult] = {}
+        self._crls: dict[str, list[x509.CertificateRevocationList]] = {}
+        self._ocsp_responses: list[ocsp.OCSPResponse] = []
 
     def add_trust_anchor(self, csca_cert: x509.Certificate) -> None:
         """Add a CSCA certificate as trust anchor."""
@@ -210,6 +213,20 @@ class CertificateChainValidator:
             self.add_trust_anchor(cert)
 
         self.logger.info(f"Loaded {len(csca_certs)} CSCA certificates")
+
+    def add_crl(self, crl: x509.CertificateRevocationList) -> None:
+        """Register a CRL for revocation checking."""
+        issuer = crl.issuer.rfc4514_string()
+        self._crls.setdefault(issuer, []).append(crl)
+        self.logger.debug(
+            "Loaded CRL for %s with %d revoked certificates", issuer, len(crl)
+        )
+
+    def add_ocsp_response(self, response: ocsp.OCSPResponse) -> None:
+        """Register an OCSP response for revocation checking."""
+
+        self._ocsp_responses.append(response)
+        self.logger.debug("Loaded OCSP response for OCSP revocation checks")
 
     def validate_certificate_chain(
         self,
@@ -262,6 +279,7 @@ class CertificateChainValidator:
                 cert_errors, cert_warnings = self._validate_single_certificate(cert_info)
                 errors.extend(cert_errors)
                 warnings.extend(cert_warnings)
+                errors.extend(self._check_revocation_status(cert_info))
 
             # Verify signature chain
             signature_verified, sig_errors = self._verify_signature_chain(cert_path)
@@ -437,6 +455,90 @@ class CertificateChainValidator:
                 )
 
         return errors, warnings
+
+    def _check_revocation_status(self, cert_info: CertificateInfo) -> list[ValidationError]:
+        """Check OCSP/CRL-based revocation status for a certificate."""
+
+        errors: list[ValidationError] = []
+
+        for ocsp_response in self._ocsp_responses:
+            if ocsp_response.response_status != ocsp.OCSPResponseStatus.SUCCESSFUL:
+                continue
+
+            responses = list(getattr(ocsp_response, "responses", []))
+            for single_response in responses:
+                serial_number = None
+                cert_id = getattr(single_response, "cert_id", None)
+                if cert_id is not None and hasattr(cert_id, "serial_number"):
+                    serial_number = cert_id.serial_number
+                else:  # pragma: no cover - compatibility fallback
+                    serial_number = getattr(single_response, "serial_number", None)
+
+                if (
+                    serial_number is not None
+                    and serial_number != cert_info.certificate.serial_number
+                ):
+                    continue
+
+                status = getattr(single_response, "cert_status", None)
+                if status is None:
+                    status = getattr(single_response, "certificate_status", None)
+                if status is None:
+                    continue
+                if status == ocsp.OCSPCertStatus.REVOKED:
+                    reason = (
+                        getattr(single_response, "revocation_reason", None)
+                    )
+                    reason_text = (
+                        reason.name
+                        if reason
+                        else "unspecified"
+                    )
+                    revocation_time = getattr(single_response, "revocation_time", None)
+                    if revocation_time is not None:
+                        timestamp = revocation_time.isoformat()
+                    else:  # pragma: no cover - compatibility fallback
+                        timestamp = "unknown"
+
+                    message = (
+                        "Certificate revoked via OCSP on "
+                        f"{timestamp} (reason: {reason_text})"
+                    )
+                    errors.append(
+                        ValidationError(
+                            certificate_subject=cert_info.subject,
+                            error_type=ValidationResult.REVOKED,
+                            error_message=message,
+                            severity="critical",
+                        )
+                    )
+                return errors
+
+        issuer_crls = self._crls.get(cert_info.issuer, [])
+        for crl in issuer_crls:
+            revoked = crl.get_revoked_certificate_by_serial_number(
+                cert_info.certificate.serial_number
+            )
+            if revoked is None:
+                continue
+
+            revoked_reason = getattr(revoked, "reason", None)
+            reason = revoked_reason.name if revoked_reason else "unspecified"
+            message = (
+                f"Certificate revoked on {revoked.revocation_date.isoformat()}"
+                f" (reason: {reason})"
+            )
+            errors.append(
+                ValidationError(
+                    certificate_subject=cert_info.subject,
+                    error_type=ValidationResult.REVOKED,
+                    error_message=message,
+                    severity="critical",
+                )
+            )
+            break
+
+        return errors
 
     def _verify_signature_chain(
         self, cert_path: list[x509.Certificate]

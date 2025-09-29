@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import hashlib
 from datetime import datetime, timezone
 from typing import Any, Optional
 
@@ -15,7 +16,9 @@ from .models import (
     CredentialLedgerEntry,
     DigitalTravelCredentialRecord,
     MobileDrivingLicenseRecord,
+    Oidc4VciSessionRecord,
     PassportRecord,
+    SdJwtCredentialRecord,
     TrustEntity,
 )
 
@@ -385,3 +388,156 @@ class CredentialLedgerRepository:
             )
         )
         await self._session.execute(stmt)
+
+
+def _token_digest(value: str) -> str:
+    """Return a stable SHA-256 hexadecimal digest for sensitive tokens."""
+
+    return hashlib.sha256(value.encode("utf-8")).hexdigest()
+
+
+class SdJwtCredentialRepository:
+    """Persistence helpers for SD-JWT verifiable credentials."""
+
+    def __init__(self, session: AsyncSession) -> None:
+        self._session = session
+
+    async def create(
+        self,
+        *,
+        credential_id: str,
+        subject_id: str,
+        credential_type: str,
+        issuer: str,
+        audience: str | None,
+        sd_jwt_location: str,
+        disclosures_location: str,
+        expires_at: datetime | None,
+        metadata: dict[str, Any] | None,
+        wallet_attestation: dict[str, Any] | None,
+    ) -> SdJwtCredentialRecord:
+        record = SdJwtCredentialRecord(
+            credential_id=credential_id,
+            subject_id=subject_id,
+            credential_type=credential_type,
+            issuer=issuer,
+            audience=audience,
+            sd_jwt_location=sd_jwt_location,
+            disclosures_location=disclosures_location,
+            expires_at=expires_at,
+            metadata=metadata,
+            wallet_attestation=wallet_attestation,
+        )
+        self._session.add(record)
+        return record
+
+    async def get(self, credential_id: str) -> Optional[SdJwtCredentialRecord]:
+        stmt = select(SdJwtCredentialRecord).where(SdJwtCredentialRecord.credential_id == credential_id)
+        result = await self._session.execute(stmt)
+        return result.scalars().first()
+
+    async def update_status(
+        self,
+        credential_id: str,
+        status: str,
+        metadata: dict[str, Any] | None = None,
+    ) -> None:
+        stmt = (
+            update(SdJwtCredentialRecord)
+            .where(SdJwtCredentialRecord.credential_id == credential_id)
+            .values(
+                status=status,
+                metadata=metadata,
+                updated_at=datetime.now(timezone.utc),
+            )
+        )
+        await self._session.execute(stmt)
+
+
+class OidcSessionRepository:
+    """State store for OIDC4VCI issuance sessions."""
+
+    def __init__(self, session: AsyncSession) -> None:
+        self._session = session
+
+    async def create_offer(
+        self,
+        *,
+        offer_id: str,
+        subject_id: str,
+        credential_type: str,
+        base_claims: dict[str, Any],
+        selective_disclosures: dict[str, Any],
+        offer_payload: dict[str, Any],
+        pre_authorized_code: str,
+        expires_at: datetime,
+        metadata: dict[str, Any] | None = None,
+    ) -> Oidc4VciSessionRecord:
+        metadata_payload = dict(metadata or {})
+        internal_details = dict(metadata_payload.get("_internal", {}))
+        internal_details["pre_authorized_code"] = pre_authorized_code
+        metadata_payload["_internal"] = internal_details
+
+        record = Oidc4VciSessionRecord(
+            offer_id=offer_id,
+            subject_id=subject_id,
+            credential_type=credential_type,
+            base_claims=base_claims,
+            selective_disclosures=selective_disclosures,
+            offer_payload=offer_payload,
+            pre_authorized_code_hash=_token_digest(pre_authorized_code),
+            pre_authorized_code_expires_at=expires_at,
+            metadata=metadata_payload,
+        )
+        self._session.add(record)
+        return record
+
+    async def get_by_offer_id(self, offer_id: str) -> Optional[Oidc4VciSessionRecord]:
+        stmt = select(Oidc4VciSessionRecord).where(Oidc4VciSessionRecord.offer_id == offer_id)
+        result = await self._session.execute(stmt)
+        return result.scalars().first()
+
+    async def get_by_pre_authorized_code(
+        self, pre_authorized_code: str
+    ) -> Optional[Oidc4VciSessionRecord]:
+        digest = _token_digest(pre_authorized_code)
+        stmt = select(Oidc4VciSessionRecord).where(
+            Oidc4VciSessionRecord.pre_authorized_code_hash == digest
+        )
+        result = await self._session.execute(stmt)
+        return result.scalars().first()
+
+    async def attach_access_token(
+        self,
+        session_record: Oidc4VciSessionRecord,
+        *,
+        access_token: str,
+        expires_at: datetime,
+        nonce: str,
+        wallet_attestation: dict[str, Any] | None,
+    ) -> None:
+        session_record.access_token_hash = _token_digest(access_token)
+        session_record.access_token_expires_at = expires_at
+        session_record.nonce = nonce
+        session_record.wallet_attestation = wallet_attestation
+        session_record.status = "TOKEN_ISSUED"
+        if session_record.metadata is not None:
+            metadata_payload = dict(session_record.metadata)
+            internal_details = dict(metadata_payload.get("_internal", {}))
+            if internal_details.pop("pre_authorized_code", None) is not None:
+                metadata_payload["_internal"] = internal_details
+                session_record.metadata = metadata_payload
+                flag_modified(session_record, "metadata")
+        session_record.updated_at = datetime.now(timezone.utc)
+
+    async def get_by_access_token(self, access_token: str) -> Optional[Oidc4VciSessionRecord]:
+        digest = _token_digest(access_token)
+        stmt = select(Oidc4VciSessionRecord).where(
+            Oidc4VciSessionRecord.access_token_hash == digest
+        )
+        result = await self._session.execute(stmt)
+        return result.scalars().first()
+
+    async def mark_issued(self, session_record: Oidc4VciSessionRecord) -> None:
+        session_record.status = "VC_ISSUED"
+        session_record.updated_at = datetime.now(timezone.utc)

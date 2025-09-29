@@ -8,8 +8,10 @@ from contextlib import contextmanager
 import grpc
 
 from src.proto import (
+    document_signer_pb2_grpc,
     inspection_system_pb2_grpc,
     passport_engine_pb2_grpc,
+    trust_anchor_pb2_grpc,
 )
 
 try:
@@ -63,6 +65,14 @@ class GrpcClientFactory:
         channel = grpc.insecure_channel(self._settings.trust_anchor_target)
         try:
             yield trust_anchor_pb2_grpc.TrustAnchorStub(channel)
+        finally:
+            channel.close()
+
+    @contextmanager
+    def document_signer(self) -> Iterator[document_signer_pb2_grpc.DocumentSignerStub]:
+        channel = grpc.insecure_channel(self._settings.document_signer_target)
+        try:
+            yield document_signer_pb2_grpc.DocumentSignerStub(channel)
         finally:
             channel.close()
 

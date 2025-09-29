@@ -8,7 +8,7 @@ from pathlib import Path
 from typing import Any, Protocol
 
 from cryptography.hazmat.primitives import hashes, serialization
-from cryptography.hazmat.primitives.asymmetric import ec, padding, rsa
+from cryptography.hazmat.primitives.asymmetric import ec, ed25519, ed448, padding, rsa
 
 
 class KeyVaultClient(Protocol):
@@ -76,6 +76,10 @@ class FileKeyVaultClient(KeyVaultClient):
             curve_name = key_algorithm.replace("ecdsa-", "") or "p256"
             curve = curve_map.get(curve_name, ec.SECP256R1())
             return ec.generate_private_key(curve)
+        if key_algorithm.startswith("ed") or key_algorithm.startswith("eddsa"):
+            if "448" in key_algorithm:
+                return ed448.Ed448PrivateKey.generate()
+            return ed25519.Ed25519PrivateKey.generate()
         msg = f"Unsupported key algorithm: {algorithm}"
         raise ValueError(msg)
 
@@ -93,6 +97,9 @@ class FileKeyVaultClient(KeyVaultClient):
             signature = await asyncio.to_thread(
                 lambda: private_key.sign(payload, ec.ECDSA(hash_alg))
             )
+            return signature
+        if algo.startswith("ed") or algo.startswith("eddsa"):
+            signature = await asyncio.to_thread(lambda: private_key.sign(payload))
             return signature
         msg = f"Unsupported signing algorithm: {algorithm}"
         raise ValueError(msg)

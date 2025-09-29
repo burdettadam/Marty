@@ -16,6 +16,29 @@ hosts:
   inspection_system: localhost
   trust_anchor: localhost
 
+services:
+  document_signer:
+    signing_algorithm: rsa2048
+    signing_key_id: document-signer-default
+    sd_jwt:
+      issuer: "https://issuer.test.marty"
+      signing_key_id: document-signer-sdjwt
+      signing_algorithm: ES256
+      vault_signing_algorithm: ecdsa-p256
+      certificate_id: document-signer-default-dsc
+      offer_ttl_seconds: 600
+      token_ttl_seconds: 600
+      credential_ttl_seconds: 86400
+      default_credential_type: "eu.europa.ec.eudiw.pid"
+      default_audience: "https://verifier.test.marty"
+      storage_prefix: "sd-jwt"
+  passport_engine:
+    signing_algorithm: rsa2048
+    signing_key_id: document-signer-default
+  dtc_engine:
+    signing_algorithm: rsa2048
+    signing_key_id: document-signer-default
+
 # Logging
 logging:
   level: DEBUG

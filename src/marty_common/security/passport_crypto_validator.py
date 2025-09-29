@@ -41,6 +41,10 @@ from src.marty_common.security.active_authentication import (
     ActiveAuthenticationResponse,
 )
 from src.marty_common.security.dg15_parser import ChipAuthenticationInfo, DG15Parser
+from src.marty_common.security.passport_chip_session import (
+    PassportChipSession,
+    PassportChipTransport,
+)
 from src.marty_common.utils.mrz_utils import MRZException, MRZParser
 
 logger = logging.getLogger(__name__)
@@ -296,6 +300,50 @@ class PassportCryptoValidator:
             recovered_message=recovered,
             error=None if is_valid else "Challenge mismatch",
         )
+
+    def perform_chip_active_authentication(
+        self,
+        transport: PassportChipTransport,
+        *,
+        passport_number: str,
+        date_of_birth: str,
+        date_of_expiry: str,
+        dg15_data: bytes | None = None,
+        pace_password: str | None = None,
+        challenge: ActiveAuthenticationChallenge | None = None,
+    ) -> ActiveAuthenticationResult:
+        """Perform BAC/PACE and Active Authentication directly against a chip."""
+
+        session = PassportChipSession(transport, aa_protocol=self._active_auth)
+        try:
+            session.select_passport_application()
+
+            if pace_password:
+                session.establish_pace(pace_password)
+            else:
+                session.establish_bac(passport_number, date_of_birth, date_of_expiry)
+
+            dg15_blob = dg15_data or session.read_data_group(15)
+            auth_challenge = challenge or self._active_auth.generate_challenge()
+            outcome = session.perform_active_authentication(dg15_blob, auth_challenge)
+
+            return ActiveAuthenticationResult(
+                is_valid=outcome.is_valid,
+                challenge=outcome.challenge,
+                chip_info=outcome.chip_info,
+                recovered_message=outcome.response.recovered_message,
+                error=None if outcome.is_valid else "Challenge mismatch",
+            )
+        except Exception as exc:  # pragma: no cover - hardware/path specific errors
+            self.logger.exception("Active authentication against chip failed: %s", exc)
+            fallback_challenge = challenge or self._active_auth.generate_challenge()
+            return ActiveAuthenticationResult(
+                is_valid=False,
+                challenge=fallback_challenge,
+                chip_info=None,
+                recovered_message=None,
+                error=str(exc),
+            )
 
     # ------------------------------------------------------------------
     # Convenience utilities

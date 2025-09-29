@@ -4,6 +4,10 @@ package document;
 
 service DocumentSigner {
   rpc SignDocument (SignRequest) returns (SignResponse);
+  rpc CreateCredentialOffer (CreateCredentialOfferRequest) returns (CreateCredentialOfferResponse);
+  rpc GetCredentialOffer (GetCredentialOfferRequest) returns (GetCredentialOfferResponse);
+  rpc RedeemPreAuthorizedCode (RedeemPreAuthorizedCodeRequest) returns (RedeemPreAuthorizedCodeResponse);
+  rpc IssueSdJwtCredential (IssueSdJwtCredentialRequest) returns (IssueSdJwtCredentialResponse);
 }
 
 message SignRequest {
@@ -22,4 +26,62 @@ message SignResponse {
   bool success = 1;
   string error_message = 2;
   SignatureInfo signature_info = 3;
+}
+
+message CreateCredentialOfferRequest {
+  string subject_id = 1;
+  string credential_type = 2;
+  string base_claims_json = 3;
+  string selective_disclosures_json = 4;
+  string metadata_json = 5;
+}
+
+message CreateCredentialOfferResponse {
+  string offer_id = 1;
+  string credential_offer = 2;
+  string pre_authorized_code = 3;
+  int64 expires_in = 4;
+}
+
+message GetCredentialOfferRequest {
+  string offer_id = 1;
+}
+
+message GetCredentialOfferResponse {
+  string credential_offer = 1;
+  int64 expires_in = 2;
+  string pre_authorized_code = 3;
+}
+
+message RedeemPreAuthorizedCodeRequest {
+  string pre_authorized_code = 1;
+  string wallet_attestation = 2;
+}
+
+message RedeemPreAuthorizedCodeResponse {
+  string offer_id = 1;
+  string access_token = 2;
+  int64 expires_in = 3;
+  string c_nonce = 4;
+}
+
+message IssueSdJwtCredentialRequest {
+  string access_token = 1;
+  repeated string disclose_claims = 2;
+  string audience = 3;
+  string nonce = 4;
+  string wallet_attestation = 5;
+}
+
+message IssueSdJwtCredentialResponse {
+  string credential = 1;
+  repeated string disclosures = 2;
+  string credential_id = 3;
+  int64 expires_in = 4;
+  string format = 5;
+  string sd_jwt_location = 6;
+  string disclosures_location = 7;
+  string issuer = 8;
+  string credential_type = 9;
+  string subject_id = 10;
 }

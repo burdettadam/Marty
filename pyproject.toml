@@ -32,12 +32,15 @@ dependencies = [
     "pytest-html>=4.1.1",
     "loguru>=0.7.2",
     "requests>=2.32.5",
+    "pyjwt[crypto]>=2.9.0",
     "sqlalchemy[asyncio]>=2.0.29",
     "asyncpg>=0.29.0",
     "aioboto3>=13.1.1",
     "aiokafka>=0.8.1",
     "alembic>=1.13.1",
     "tenacity>=8.3.0",
+    "pytest-depends>=1.0.1",
+    "pyasn1>=0.6.1",
 ]
 
 [project.optional-dependencies]
@@ -76,6 +79,7 @@ markers = [
     "mdl: marks tests as mobile driver license tests",
     "admin: marks tests as admin interface tests",
     "mvp: marks tests that cover the defined MVP feature set",
+    "depends: marks tests that depend on other tests",
 ]
 asyncio_mode = "auto"
 asyncio_default_fixture_loop_scope = "function"
