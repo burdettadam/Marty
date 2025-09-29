@@ -5,6 +5,10 @@ on:
     tags:
       - 'v*'
 
+concurrency:
+  group: cd-${{ github.ref }}
+  cancel-in-progress: false
+
 jobs:
   build_and_publish_containers:
     runs-on: ubuntu-latest
@@ -31,12 +35,8 @@ jobs:
     - name: Set up Docker Buildx
       uses: docker/setup-buildx-action@v2
 
-    - name: Log in to GitHub Container Registry
-      uses: docker/login-action@v2
-      with:
-        registry: ghcr.io
-        username: ${{ github.actor }}
-        password: ${{ secrets.GITHUB_TOKEN }}
+    - name: Install Cosign
+      uses: sigstore/cosign-installer@v3
 
     - name: Extract version from tag
       id: tag
@@ -49,11 +49,31 @@ jobs:
         context: .
         file: ${{ matrix.svc.dockerfile }}
         push: true
+        platforms: linux/amd64,linux/arm64
+        provenance: true
         tags: |
           ghcr.io/${{ github.repository }}/${{ matrix.svc.name }}:latest
           ghcr.io/${{ github.repository }}/${{ matrix.svc.name }}:${{ steps.tag.outputs.VERSION }}
-        cache-from: type=gha
-        cache-to: type=gha,mode=max
+        cache-from: type=gha,scope=${{ github.repository }}
+        cache-to: type=gha,mode=max,scope=${{ github.repository }}
+
+    - name: Generate SBOM for ${{ matrix.svc.name }}
+      uses: anchore/sbom-action@v0
+      with:
+        image: ghcr.io/${{ github.repository }}/${{ matrix.svc.name }}:${{ steps.tag.outputs.VERSION }}
+        output-file: ./sbom-${{ matrix.svc.name }}-${{ steps.tag.outputs.VERSION }}.spdx.json
+        format: spdx-json
+
+    - name: Upload SBOM artifact for ${{ matrix.svc.name }}
+      uses: actions/upload-artifact@v4
+      with:
+        name: sbom-${{ matrix.svc.name }}-${{ steps.tag.outputs.VERSION }}
+        path: ./sbom-${{ matrix.svc.name }}-${{ steps.tag.outputs.VERSION }}.spdx.json
+
+    - name: Sign container image for ${{ matrix.svc.name }}
+      run: |
+        cosign sign --yes ghcr.io/${{ github.repository }}/${{ matrix.svc.name }}:${{ steps.tag.outputs.VERSION }}
+        cosign sign --yes ghcr.io/${{ github.repository }}/${{ matrix.svc.name }}:latest
 
   publish_helm_charts:
     runs-on: ubuntu-latest
@@ -98,5 +118,108 @@ jobs:
     - name: Package and push ${{ matrix.svc }} chart
       run: |
         cd helm/charts/${{ matrix.svc }}
-        helm package .
+        helm lint .
+        helm template . --values values.yaml
+        helm package --sign .
         helm push ${{ matrix.svc }}-${{ steps.tag.outputs.VERSION }}.tgz oci://ghcr.io/${{ github.repository }}/charts
+        # Upload provenance file as artifact
+        if [ -f ${{ matrix.svc }}-${{ steps.tag.outputs.VERSION }}.tgz.prov ]; then
+          echo "Uploading provenance file for ${{ matrix.svc }}"
+          # Copy prov file to workspace root for artifact upload
+          cp ${{ matrix.svc }}-${{ steps.tag.outputs.VERSION }}.tgz.prov ../../../
+        fi
+
+    - name: Upload Helm provenance artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: helm-provenance-${{ steps.tag.outputs.VERSION }}
+        path: ./*.tgz.prov
+
+  create_release:
+    runs-on: ubuntu-latest
+    needs: [build_and_publish_containers, publish_helm_charts]
+    permissions:
+      contents: write
+      packages: read
+    steps:
+    - name: Extract version from tag
+      id: tag
+      run: echo "VERSION=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
+
+    - name: Generate release notes
+      id: release-notes
+      run: |
+        cat << EOF > release_notes.md
+        ## 🚀 Marty v${{ steps.tag.outputs.VERSION }} Release
+
+        ### 📦 Container Images
+        All images are available on [GitHub Container Registry](https://ghcr.io/${{ github.repository }})
+
+        | Service | Image | Digest |
+        |---------|-------|--------|
+        | CSCA Service | \`ghcr.io/${{ github.repository }}/csca-service:${{ steps.tag.outputs.VERSION }}\` | TBD |
+        | Document Signer | \`ghcr.io/${{ github.repository }}/document-signer:${{ steps.tag.outputs.VERSION }}\` | TBD |
+        | DTC Engine | \`ghcr.io/${{ github.repository }}/dtc-engine:${{ steps.tag.outputs.VERSION }}\` | TBD |
+        | Inspection System | \`ghcr.io/${{ github.repository }}/inspection-system:${{ steps.tag.outputs.VERSION }}\` | TBD |
+        | MDL Engine | \`ghcr.io/${{ github.repository }}/mdl-engine:${{ steps.tag.outputs.VERSION }}\` | TBD |
+        | MDOC Engine | \`ghcr.io/${{ github.repository }}/mdoc-engine:${{ steps.tag.outputs.VERSION }}\` | TBD |
+        | Passport Engine | \`ghcr.io/${{ github.repository }}/passport-engine:${{ steps.tag.outputs.VERSION }}\` | TBD |
+        | PKD Service | \`ghcr.io/${{ github.repository }}/pkd-service:${{ steps.tag.outputs.VERSION }}\` | TBD |
+        | Trust Anchor | \`ghcr.io/${{ github.repository }}/trust-anchor:${{ steps.tag.outputs.VERSION }}\` | TBD |
+        | UI App | \`ghcr.io/${{ github.repository }}/ui-app:${{ steps.tag.outputs.VERSION }}\` | TBD |
+
+        ### 🛡️ Helm Charts
+        Charts are published to [GitHub Container Registry](https://ghcr.io/${{ github.repository }}/charts)
+
+        | Chart | Version | Provenance |
+        |-------|---------|------------|
+        | csca-service | ${{ steps.tag.outputs.VERSION }} | ✅ Signed |
+        | document-signer | ${{ steps.tag.outputs.VERSION }} | ✅ Signed |
+        | dtc-engine | ${{ steps.tag.outputs.VERSION }} | ✅ Signed |
+        | inspection-system | ${{ steps.tag.outputs.VERSION }} | ✅ Signed |
+        | mdl-engine | ${{ steps.tag.outputs.VERSION }} | ✅ Signed |
+        | mdoc-engine | ${{ steps.tag.outputs.VERSION }} | ✅ Signed |
+        | passport-engine | ${{ steps.tag.outputs.VERSION }} | ✅ Signed |
+        | pkd-service | ${{ steps.tag.outputs.VERSION }} | ✅ Signed |
+        | trust-anchor | ${{ steps.tag.outputs.VERSION }} | ✅ Signed |
+        | ui-app | ${{ steps.tag.outputs.VERSION }} | ✅ Signed |
+
+        ### 🔒 Security Features
+        - ✅ **Build Attestation**: Provenance enabled for all images
+        - ✅ **SBOM**: Software Bill of Materials generated (SPDX format)
+        - ✅ **Image Signing**: Cosign signatures with keyless signing
+        - ✅ **Chart Signing**: Helm provenance files generated
+        - ✅ **Multi-Architecture**: linux/amd64, linux/arm64 support
+
+        ### 📋 Installation
+
+        \`\`\`bash
+        # Add Helm repository
+        helm repo add marty https://ghcr.io/${{ github.repository }}/charts
+        helm repo update
+
+        # Install a service (example)
+        helm install csca-service marty/csca-service --version ${{ steps.tag.outputs.VERSION }}
+        \`\`\`
+
+        ### 🔍 Verification
+
+        \`\`\`bash
+        # Verify image signature
+        cosign verify ghcr.io/${{ github.repository }}/csca-service:${{ steps.tag.outputs.VERSION }}
+
+        # Verify chart provenance
+        helm verify csca-service-${{ steps.tag.outputs.VERSION }}.tgz
+        \`\`\`
+        EOF
+
+    - name: Create GitHub Release
+      uses: softprops/action-gh-release@v1
+      with:
+        tag_name: ${{ github.ref_name }}
+        name: Marty v${{ steps.tag.outputs.VERSION }}
+        body_path: release_notes.md
+        draft: false
+        prerelease: false
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
