@@ -78,6 +78,7 @@ secrets/
 *.password
 config/secrets/
 data/sensitive/
+data/keys/
 test_data/private/
 *_private*
 *secret*
