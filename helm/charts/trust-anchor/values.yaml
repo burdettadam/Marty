@@ -1,0 +1,35 @@
+# Default values for trust-anchor.
+replicaCount: 1
+
+image:
+  repository: marty/trust-anchor
+  tag: "latest"
+  pullPolicy: IfNotPresent
+
+service:
+  type: ClusterIP
+  port: 9080
+  targetPort: 9080
+  healthPort: 9081
+
+config:
+  database:
+    host: "postgres.marty.svc.cluster.local"
+    port: 5432
+    name: "marty"
+    user: "marty"
+    password: ""
+  kafka:
+    brokers: "kafka.marty.svc.cluster.local:9092"
+    topicPrefix: "marty."
+  redis:
+    host: "redis"
+    port: 6379
+
+resources:
+  limits:
+    cpu: 1000m
+    memory: 1Gi
+  requests:
+    cpu: 500m
+    memory: 512Mi

@@ -1,0 +1,35 @@
+# Default values for document-signer.
+replicaCount: 1
+
+image:
+  repository: marty/document-signer
+  tag: "latest"
+  pullPolicy: IfNotPresent
+
+service:
+  type: ClusterIP
+  port: 8082
+  targetPort: 8082
+  healthPort: 8083
+
+config:
+  database:
+    host: "postgres.marty.svc.cluster.local"
+    port: 5432
+    name: "marty"
+    user: "marty"
+    password: ""
+  kafka:
+    brokers: "kafka.marty.svc.cluster.local:9092"
+    topicPrefix: "marty."
+  redis:
+    host: "redis"
+    port: 6379
+
+resources:
+  limits:
+    cpu: 1000m
+    memory: 1Gi
+  requests:
+    cpu: 500m
+    memory: 512Mi

@@ -2,6 +2,8 @@ syntax = "proto3";
 
 package mdl;
 
+import "common_services.proto";
+
 service MDLEngine {
   // Create a new mobile driving license
   rpc CreateMDL (CreateMDLRequest) returns (CreateMDLResponse);
@@ -55,7 +57,7 @@ message AdditionalField {
 message CreateMDLResponse {
   string mdl_id = 1;
   string status = 2; // Consider using an enum for status
-  string error_message = 3;
+  common_services.ApiError error = 3;
 }
 
 // Request to get an MDL
@@ -78,7 +80,7 @@ message MDLResponse {
   repeated AdditionalField additional_fields = 11;
   SignatureInfo signature_info = 12;
   string status = 13; // Consider using an enum for status
-  string error_message = 14;
+  common_services.ApiError error = 14;
 }
 
 // Signature information
@@ -98,7 +100,7 @@ message SignMDLRequest {
 message SignMDLResponse {
   bool success = 1;
   SignatureInfo signature_info = 2;
-  string error_message = 3;
+  common_services.ApiError error = 3;
 }
 
 // Request to generate QR code for offline verification
@@ -111,7 +113,7 @@ message GenerateQRCodeRequest {
 // Response with QR code
 message GenerateQRCodeResponse {
   bytes qr_code = 1;
-  string error_message = 2;
+  common_services.ApiError error = 2;
 }
 
 // Request to transfer MDL to device
@@ -125,7 +127,7 @@ message TransferMDLRequest {
 message TransferMDLResponse {
   bool success = 1;
   string transfer_id = 2;
-  string error_message = 3;
+  common_services.ApiError error = 3;
 }
 
 // Request to verify an MDL
@@ -143,7 +145,7 @@ message VerifyMDLResponse {
   bool is_valid = 1;
   repeated VerificationResult verification_results = 2;
   MDLResponse mdl_data = 3; // Only fields the verifier is authorized to see
-  string error_message = 4;
+  common_services.ApiError error = 4;
 }
 
 // Individual verification result

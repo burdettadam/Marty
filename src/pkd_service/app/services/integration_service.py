@@ -60,9 +60,9 @@ class IntegrationService:
 
     def __init__(self) -> None:
         # Service endpoints from environment variables with defaults for development
-        self.csca_endpoint = os.getenv("CSCA_SERVICE_ENDPOINT", "csca-service:50051")
-        self.ds_endpoint = os.getenv("DS_SERVICE_ENDPOINT", "document-signer:50052")
-        self.ta_endpoint = os.getenv("TRUST_ANCHOR_ENDPOINT", "trust-anchor:50053")
+        self.csca_endpoint = os.getenv("CSCA_SERVICE_ENDPOINT", "csca-service.marty.svc.cluster.local:8081")
+        self.ds_endpoint = os.getenv("DS_SERVICE_ENDPOINT", "document-signer.marty.svc.cluster.local:8082")
+        self.ta_endpoint = os.getenv("TRUST_ANCHOR_ENDPOINT", "trust-anchor.marty.svc.cluster.local:9080")
 
         # Initialize gRPC channels and stubs
         self._csca_channel = None

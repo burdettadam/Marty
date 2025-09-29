@@ -25,6 +25,14 @@ from marty_common.vc import (
     SdJwtIssuanceInput,
     SdJwtIssuer,
 )
+from marty_common.validation import RequestValidationError, validate_request
+from marty_common.validation.schemas.document_signer import (
+    CreateCredentialOfferRequestSchema,
+    GetCredentialOfferRequestSchema,
+    IssueSdJwtCredentialRequestSchema,
+    RedeemPreAuthorizedCodeRequestSchema,
+    SignDocumentRequestSchema,
+)
 from proto import (
     csca_service_pb2,
     csca_service_pb2_grpc,
@@ -106,25 +114,29 @@ class DocumentSigner(document_signer_pb2_grpc.DocumentSignerServicer):
     # Existing signing endpoint
     # ------------------------------------------------------------------
     async def SignDocument(self, request, context):  # noqa: N802
-        document_id = request.document_id or ""
-        payload = request.document_content
+        try:
+            payload = validate_request(SignDocumentRequestSchema, request)
+        except RequestValidationError as exc:
+            error = self._error(
+                document_signer_pb2.DOCUMENT_SIGNER_ERROR_INVALID_ARGUMENT,
+                str(exc),
+                details=exc.details_map(),
+            )
+            return document_signer_pb2.SignResponse(success=False, error_message=error.message, error=error)
 
-        if not document_id:
-            await context.abort(grpc.StatusCode.INVALID_ARGUMENT, "document_id is required")
-            return document_signer_pb2.SignResponse(success=False, error_message="document_id missing")
-
-        if not payload:
-            await context.abort(grpc.StatusCode.INVALID_ARGUMENT, "document_content is required")
-            return document_signer_pb2.SignResponse(success=False, error_message="document_content missing")
+        document_id = payload.document_id
+        document_bytes = payload.document_content
 
         try:
             await self._key_vault.ensure_key(self._signing_key_id, self._signing_algorithm)
             signature = await self._key_vault.sign(
-                self._signing_key_id, payload, self._signing_algorithm
+                self._signing_key_id,
+                document_bytes,
+                self._signing_algorithm,
             )
 
             digest = hashes.Hash(hashes.SHA256())
-            digest.update(payload)
+            digest.update(document_bytes)
             payload_hash = digest.finalize()
 
             storage_key = f"signatures/{document_id}-{int(datetime.now(timezone.utc).timestamp())}.sig"
@@ -152,35 +164,34 @@ class DocumentSigner(document_signer_pb2_grpc.DocumentSignerServicer):
             return document_signer_pb2.SignResponse(success=True, signature_info=signature_info)
         except Exception as exc:  # pylint: disable=broad-except
             self.logger.exception("Failed to sign document %s", document_id)
-            await context.abort(grpc.StatusCode.INTERNAL, str(exc))
-            return document_signer_pb2.SignResponse(success=False, error_message=str(exc))
+            error = self._error(
+                document_signer_pb2.DOCUMENT_SIGNER_ERROR_SIGNING_FAILED,
+                str(exc),
+            )
+            return document_signer_pb2.SignResponse(success=False, error_message=error.message, error=error)
 
     # ------------------------------------------------------------------
     # SD-JWT gRPC endpoints
     # ------------------------------------------------------------------
     async def CreateCredentialOffer(self, request, context):  # noqa: N802
         if not self._sd_jwt_enabled or self._sd_jwt_issuer is None:
-            await context.abort(grpc.StatusCode.UNIMPLEMENTED, "SD-JWT issuance is not configured")
-            return document_signer_pb2.CreateCredentialOfferResponse()
-
-        subject_id = (request.subject_id or "").strip()
-        if not subject_id:
-            await context.abort(grpc.StatusCode.INVALID_ARGUMENT, "subject_id is required")
-            return document_signer_pb2.CreateCredentialOfferResponse()
+            error = self._error(
+                document_signer_pb2.DOCUMENT_SIGNER_ERROR_NOT_CONFIGURED,
+                "SD-JWT issuance is not configured",
+            )
+            return document_signer_pb2.CreateCredentialOfferResponse(error=error)
 
         try:
-            base_claims = json.loads(request.base_claims_json or "{}")
-            selective_disclosures = json.loads(request.selective_disclosures_json or "{}")
-            metadata = json.loads(request.metadata_json) if request.metadata_json else None
-        except json.JSONDecodeError as exc:
-            await context.abort(grpc.StatusCode.INVALID_ARGUMENT, f"Invalid JSON payload: {exc}")
-            return document_signer_pb2.CreateCredentialOfferResponse()
+            payload = validate_request(CreateCredentialOfferRequestSchema, request)
+        except RequestValidationError as exc:
+            error = self._error(
+                document_signer_pb2.DOCUMENT_SIGNER_ERROR_INVALID_ARGUMENT,
+                str(exc),
+                details=exc.details_map(),
+            )
+            return document_signer_pb2.CreateCredentialOfferResponse(error=error)
 
-        if not isinstance(base_claims, dict) or not isinstance(selective_disclosures, dict):
-            await context.abort(grpc.StatusCode.INVALID_ARGUMENT, "claims must be JSON objects")
-            return document_signer_pb2.CreateCredentialOfferResponse()
-
-        credential_type = (request.credential_type or self._sd_jwt_default_type).strip() or self._sd_jwt_default_type
+        credential_type = payload.credential_type or self._sd_jwt_default_type
         now = datetime.now(timezone.utc)
         expires_at = now + self._sd_jwt_offer_ttl
         offer_id = secrets.token_urlsafe(16)
@@ -191,7 +202,8 @@ class DocumentSigner(document_signer_pb2_grpc.DocumentSignerServicer):
             "types": [credential_type],
         }
         configuration_ids = None
-        if metadata and isinstance(metadata, dict):
+        metadata = payload.metadata or {}
+        if isinstance(metadata, dict):
             configuration_ids = metadata.get("credential_configuration_ids")
             if configuration_ids is not None and not isinstance(configuration_ids, list):
                 configuration_ids = None
@@ -210,24 +222,32 @@ class DocumentSigner(document_signer_pb2_grpc.DocumentSignerServicer):
         )
         offer_dict = offer.to_dict()
 
-        await self._key_vault.ensure_key(self._sd_jwt_signing_key_id, self._sd_jwt_vault_algorithm)
-        await self._ensure_document_signer_certificate()
+        try:
+            await self._key_vault.ensure_key(self._sd_jwt_signing_key_id, self._sd_jwt_vault_algorithm)
+            await self._ensure_document_signer_certificate()
 
-        async def handler(session):
-            repo = OidcSessionRepository(session)
-            await repo.create_offer(
-                offer_id=offer_id,
-                subject_id=subject_id,
-                credential_type=credential_type,
-                base_claims=base_claims,
-                selective_disclosures=selective_disclosures,
-                offer_payload=offer_dict,
-                pre_authorized_code=pre_authorized_code,
-                expires_at=expires_at,
-                metadata=metadata,
+            async def handler(session):
+                repo = OidcSessionRepository(session)
+                await repo.create_offer(
+                    offer_id=offer_id,
+                    subject_id=payload.subject_id,
+                    credential_type=credential_type,
+                    base_claims=payload.base_claims,
+                    selective_disclosures=payload.selective_disclosures,
+                    offer_payload=offer_dict,
+                    pre_authorized_code=pre_authorized_code,
+                    expires_at=expires_at,
+                    metadata=metadata,
+                )
+
+            await self._database.run_within_transaction(handler)
+        except Exception as exc:  # pylint: disable=broad-except
+            self.logger.exception("Failed to create credential offer for %s", payload.subject_id)
+            error = self._error(
+                document_signer_pb2.DOCUMENT_SIGNER_ERROR_SIGNING_FAILED,
+                str(exc),
             )
-
-        await self._database.run_within_transaction(handler)
+            return document_signer_pb2.CreateCredentialOfferResponse(error=error)
 
         return document_signer_pb2.CreateCredentialOfferResponse(
             offer_id=offer_id,
@@ -238,22 +258,34 @@ class DocumentSigner(document_signer_pb2_grpc.DocumentSignerServicer):
 
     async def GetCredentialOffer(self, request, context):  # noqa: N802
         if not self._sd_jwt_enabled or self._sd_jwt_issuer is None:
-            await context.abort(grpc.StatusCode.UNIMPLEMENTED, "SD-JWT issuance is not configured")
-            return document_signer_pb2.GetCredentialOfferResponse()
+            error = self._error(
+                document_signer_pb2.DOCUMENT_SIGNER_ERROR_NOT_CONFIGURED,
+                "SD-JWT issuance is not configured",
+            )
+            return document_signer_pb2.GetCredentialOfferResponse(error=error)
 
-        offer_id = (request.offer_id or "").strip()
-        if not offer_id:
-            await context.abort(grpc.StatusCode.INVALID_ARGUMENT, "offer_id is required")
-            return document_signer_pb2.GetCredentialOfferResponse()
+        try:
+            payload = validate_request(GetCredentialOfferRequestSchema, request)
+        except RequestValidationError as exc:
+            error = self._error(
+                document_signer_pb2.DOCUMENT_SIGNER_ERROR_INVALID_ARGUMENT,
+                str(exc),
+                details=exc.details_map(),
+            )
+            return document_signer_pb2.GetCredentialOfferResponse(error=error)
 
         async def handler(session):
             repo = OidcSessionRepository(session)
-            return await repo.get_by_offer_id(offer_id)
+            return await repo.get_by_offer_id(payload.offer_id)
 
         record = await self._database.run_within_transaction(handler)
         if record is None:
-            await context.abort(grpc.StatusCode.NOT_FOUND, "offer not found")
-            return document_signer_pb2.GetCredentialOfferResponse()
+            error = self._error(
+                document_signer_pb2.DOCUMENT_SIGNER_ERROR_OFFER_NOT_FOUND,
+                "Credential offer not found",
+                details={"offer_id": payload.offer_id},
+            )
+            return document_signer_pb2.GetCredentialOfferResponse(error=error)
 
         expires_in = _seconds_until(record.pre_authorized_code_expires_at)
         pre_auth_code = ""
@@ -270,19 +302,21 @@ class DocumentSigner(document_signer_pb2_grpc.DocumentSignerServicer):
 
     async def RedeemPreAuthorizedCode(self, request, context):  # noqa: N802
         if not self._sd_jwt_enabled or self._sd_jwt_issuer is None:
-            await context.abort(grpc.StatusCode.UNIMPLEMENTED, "SD-JWT issuance is not configured")
-            return document_signer_pb2.RedeemPreAuthorizedCodeResponse()
-
-        code = (request.pre_authorized_code or "").strip()
-        if not code:
-            await context.abort(grpc.StatusCode.INVALID_ARGUMENT, "pre_authorized_code is required")
-            return document_signer_pb2.RedeemPreAuthorizedCodeResponse()
+            error = self._error(
+                document_signer_pb2.DOCUMENT_SIGNER_ERROR_NOT_CONFIGURED,
+                "SD-JWT issuance is not configured",
+            )
+            return document_signer_pb2.RedeemPreAuthorizedCodeResponse(error=error)
 
         try:
-            wallet_attestation = json.loads(request.wallet_attestation) if request.wallet_attestation else None
-        except json.JSONDecodeError as exc:
-            await context.abort(grpc.StatusCode.INVALID_ARGUMENT, f"Invalid wallet attestation: {exc}")
-            return document_signer_pb2.RedeemPreAuthorizedCodeResponse()
+            payload = validate_request(RedeemPreAuthorizedCodeRequestSchema, request)
+        except RequestValidationError as exc:
+            error = self._error(
+                document_signer_pb2.DOCUMENT_SIGNER_ERROR_INVALID_ARGUMENT,
+                str(exc),
+                details=exc.details_map(),
+            )
+            return document_signer_pb2.RedeemPreAuthorizedCodeResponse(error=error)
 
         now = datetime.now(timezone.utc)
         access_token = secrets.token_urlsafe(32)
@@ -291,17 +325,25 @@ class DocumentSigner(document_signer_pb2_grpc.DocumentSignerServicer):
 
         async def handler(session):
             repo = OidcSessionRepository(session)
-            record = await repo.get_by_pre_authorized_code(code)
+            record = await repo.get_by_pre_authorized_code(payload.pre_authorized_code)
             return record
 
         record = await self._database.run_within_transaction(handler)
         if record is None:
-            await context.abort(grpc.StatusCode.NOT_FOUND, "Unknown pre-authorized code")
-            return document_signer_pb2.RedeemPreAuthorizedCodeResponse()
+            error = self._error(
+                document_signer_pb2.DOCUMENT_SIGNER_ERROR_OFFER_NOT_FOUND,
+                "Unknown pre-authorized code",
+                details={"pre_authorized_code": payload.pre_authorized_code},
+            )
+            return document_signer_pb2.RedeemPreAuthorizedCodeResponse(error=error)
 
         if record.pre_authorized_code_expires_at < now:
-            await context.abort(grpc.StatusCode.PERMISSION_DENIED, "Pre-authorized code expired")
-            return document_signer_pb2.RedeemPreAuthorizedCodeResponse()
+            error = self._error(
+                document_signer_pb2.DOCUMENT_SIGNER_ERROR_EXPIRED,
+                "Pre-authorized code expired",
+                details={"pre_authorized_code": payload.pre_authorized_code},
+            )
+            return document_signer_pb2.RedeemPreAuthorizedCodeResponse(error=error)
 
         async def update_handler(session):
             repo = OidcSessionRepository(session)
@@ -313,14 +355,18 @@ class DocumentSigner(document_signer_pb2_grpc.DocumentSignerServicer):
                 access_token=access_token,
                 expires_at=token_expires_at,
                 nonce=c_nonce,
-                wallet_attestation=wallet_attestation,
+                wallet_attestation=payload.wallet_attestation,
             )
             return True
 
         updated = await self._database.run_within_transaction(update_handler)
         if not updated:
-            await context.abort(grpc.StatusCode.NOT_FOUND, "Offer vanished")
-            return document_signer_pb2.RedeemPreAuthorizedCodeResponse()
+            error = self._error(
+                document_signer_pb2.DOCUMENT_SIGNER_ERROR_CONFLICT,
+                "Credential offer no longer available",
+                details={"offer_id": record.offer_id},
+            )
+            return document_signer_pb2.RedeemPreAuthorizedCodeResponse(error=error)
 
         return document_signer_pb2.RedeemPreAuthorizedCodeResponse(
             offer_id=record.offer_id,
@@ -331,40 +377,54 @@ class DocumentSigner(document_signer_pb2_grpc.DocumentSignerServicer):
 
     async def IssueSdJwtCredential(self, request, context):  # noqa: N802
         if not self._sd_jwt_enabled or self._sd_jwt_issuer is None:
-            await context.abort(grpc.StatusCode.UNIMPLEMENTED, "SD-JWT issuance is not configured")
-            return document_signer_pb2.IssueSdJwtCredentialResponse()
-
-        access_token = (request.access_token or "").strip()
-        if not access_token:
-            await context.abort(grpc.StatusCode.INVALID_ARGUMENT, "access_token is required")
-            return document_signer_pb2.IssueSdJwtCredentialResponse()
+            error = self._error(
+                document_signer_pb2.DOCUMENT_SIGNER_ERROR_NOT_CONFIGURED,
+                "SD-JWT issuance is not configured",
+            )
+            return document_signer_pb2.IssueSdJwtCredentialResponse(error=error)
 
         try:
-            wallet_attestation = json.loads(request.wallet_attestation) if request.wallet_attestation else None
-        except json.JSONDecodeError as exc:
-            await context.abort(grpc.StatusCode.INVALID_ARGUMENT, f"Invalid wallet attestation: {exc}")
-            return document_signer_pb2.IssueSdJwtCredentialResponse()
+            payload = validate_request(IssueSdJwtCredentialRequestSchema, request)
+        except RequestValidationError as exc:
+            error = self._error(
+                document_signer_pb2.DOCUMENT_SIGNER_ERROR_INVALID_ARGUMENT,
+                str(exc),
+                details=exc.details_map(),
+            )
+            return document_signer_pb2.IssueSdJwtCredentialResponse(error=error)
 
         now = datetime.now(timezone.utc)
 
         async def load_session(session):
             repo = OidcSessionRepository(session)
-            return await repo.get_by_access_token(access_token)
+            return await repo.get_by_access_token(payload.access_token)
 
         session_record = await self._database.run_within_transaction(load_session)
         if session_record is None:
-            await context.abort(grpc.StatusCode.PERMISSION_DENIED, "Unknown access_token")
-            return document_signer_pb2.IssueSdJwtCredentialResponse()
+            error = self._error(
+                document_signer_pb2.DOCUMENT_SIGNER_ERROR_TOKEN_INVALID,
+                "Unknown access_token",
+                details={"access_token": payload.access_token},
+            )
+            return document_signer_pb2.IssueSdJwtCredentialResponse(error=error)
 
         if session_record.access_token_expires_at is None or session_record.access_token_expires_at < now:
-            await context.abort(grpc.StatusCode.PERMISSION_DENIED, "access_token expired")
-            return document_signer_pb2.IssueSdJwtCredentialResponse()
+            error = self._error(
+                document_signer_pb2.DOCUMENT_SIGNER_ERROR_EXPIRED,
+                "access_token expired",
+                details={"access_token": payload.access_token},
+            )
+            return document_signer_pb2.IssueSdJwtCredentialResponse(error=error)
 
-        if session_record.nonce and request.nonce and request.nonce != session_record.nonce:
-            await context.abort(grpc.StatusCode.PERMISSION_DENIED, "nonce mismatch")
-            return document_signer_pb2.IssueSdJwtCredentialResponse()
+        if session_record.nonce and payload.nonce and payload.nonce != session_record.nonce:
+            error = self._error(
+                document_signer_pb2.DOCUMENT_SIGNER_ERROR_INVALID_ARGUMENT,
+                "nonce mismatch",
+                details={"expected": session_record.nonce or "", "received": payload.nonce},
+            )
+            return document_signer_pb2.IssueSdJwtCredentialResponse(error=error)
 
-        disclose_claims = list(request.disclose_claims) or list(session_record.selective_disclosures.keys())
+        disclose_claims = payload.disclose_claims or list(session_record.selective_disclosures.keys())
         disclosures_map = {
             key: value
             for key, value in session_record.selective_disclosures.items()
@@ -376,75 +436,83 @@ class DocumentSigner(document_signer_pb2_grpc.DocumentSignerServicer):
             credential_type=session_record.credential_type,
             base_claims=session_record.base_claims,
             selective_disclosures=disclosures_map,
-            audience=request.audience or None,
-            nonce=request.nonce or session_record.nonce,
+            audience=payload.audience or None,
+            nonce=payload.nonce or session_record.nonce,
             additional_payload=(session_record.offer_payload or {}).get("vc", {}),
         )
 
-        await self._ensure_document_signer_certificate()
-        await self._refresh_certificate_cache()
+        try:
+            await self._ensure_document_signer_certificate()
+            await self._refresh_certificate_cache()
 
-        issuance_result = await self._sd_jwt_issuer.issue(issuance_input)
-        sd_jwt_key, disclosures_key = await self._store_sd_jwt_artifacts(
-            issuance_result.credential_id,
-            issuance_result.token,
-            issuance_result.disclosures,
-        )
-
-        event_payload = {
-            "credential_id": issuance_result.credential_id,
-            "credential_type": session_record.credential_type,
-            "format": "vc+sd-jwt",
-            "subject_id": session_record.subject_id,
-            "issuer": issuance_result.issuer,
-            "payload_location": sd_jwt_key,
-            "disclosures_location": disclosures_key,
-            "expires_at": issuance_result.expires_at.isoformat(),
-        }
-
-        async def persist(session):
-            sd_repo = SdJwtCredentialRepository(session)
-            await sd_repo.create(
-                credential_id=issuance_result.credential_id,
-                subject_id=session_record.subject_id,
-                credential_type=session_record.credential_type,
-                issuer=issuance_result.issuer,
-                audience=issuance_result.audience,
-                sd_jwt_location=sd_jwt_key,
-                disclosures_location=disclosures_key,
-                expires_at=issuance_result.expires_at,
-                metadata=session_record.metadata,
-                wallet_attestation=wallet_attestation,
+            issuance_result = await self._sd_jwt_issuer.issue(issuance_input)
+            sd_jwt_key, disclosures_key = await self._store_sd_jwt_artifacts(
+                issuance_result.credential_id,
+                issuance_result.token,
+                issuance_result.disclosures,
             )
 
-            sessions = OidcSessionRepository(session)
-            refreshed = await sessions.get_by_offer_id(session_record.offer_id)
-            if refreshed:
-                await sessions.mark_issued(refreshed)
+            event_payload = {
+                "credential_id": issuance_result.credential_id,
+                "credential_type": session_record.credential_type,
+                "format": "vc+sd-jwt",
+                "subject_id": session_record.subject_id,
+                "issuer": issuance_result.issuer,
+                "payload_location": sd_jwt_key,
+                "disclosures_location": disclosures_key,
+                "expires_at": issuance_result.expires_at.isoformat(),
+            }
 
-            ledger = CredentialLedgerRepository(session)
-            await ledger.upsert_entry(
-                credential_id=issuance_result.credential_id,
-                credential_type=session_record.credential_type,
-                status="ISSUED",
-                metadata={
-                    "issuer": issuance_result.issuer,
-                    "subject_id": session_record.subject_id,
-                    "payload_location": sd_jwt_key,
-                    "disclosures_location": disclosures_key,
-                },
-                topic="vc.issued",
-                offset=None,
+            async def persist(session):
+                sd_repo = SdJwtCredentialRepository(session)
+                await sd_repo.create(
+                    credential_id=issuance_result.credential_id,
+                    subject_id=session_record.subject_id,
+                    credential_type=session_record.credential_type,
+                    issuer=issuance_result.issuer,
+                    audience=issuance_result.audience,
+                    sd_jwt_location=sd_jwt_key,
+                    disclosures_location=disclosures_key,
+                    expires_at=issuance_result.expires_at,
+                    metadata=session_record.extra_metadata,
+                    wallet_attestation=payload.wallet_attestation,
+                )
+
+                sessions = OidcSessionRepository(session)
+                refreshed = await sessions.get_by_offer_id(session_record.offer_id)
+                if refreshed:
+                    await sessions.mark_issued(refreshed)
+
+                ledger = CredentialLedgerRepository(session)
+                await ledger.upsert_entry(
+                    credential_id=issuance_result.credential_id,
+                    credential_type=session_record.credential_type,
+                    status="ISSUED",
+                    metadata={
+                        "issuer": issuance_result.issuer,
+                        "subject_id": session_record.subject_id,
+                        "payload_location": sd_jwt_key,
+                        "disclosures_location": disclosures_key,
+                    },
+                    topic="vc.issued",
+                    offset=None,
+                )
+
+                outbox = OutboxRepository(session)
+                await outbox.enqueue(
+                    topic="vc.issued",
+                    payload=json.dumps(event_payload).encode("utf-8"),
+                    key=issuance_result.credential_id.encode("utf-8"),
+                )
+
+            await self._database.run_within_transaction(persist)
+        except Exception as exc:  # pylint: disable=broad-except
+            self.logger.exception("Failed to issue SD-JWT credential for %s", session_record.subject_id)
+            error = self._error(
+                document_signer_pb2.DOCUMENT_SIGNER_ERROR_SIGNING_FAILED,
+                str(exc),
             )
-
-            outbox = OutboxRepository(session)
-            await outbox.enqueue(
-                topic="vc.issued",
-                payload=json.dumps(event_payload).encode("utf-8"),
-                key=issuance_result.credential_id.encode("utf-8"),
-            )
-
-        await self._database.run_within_transaction(persist)
+            return document_signer_pb2.IssueSdJwtCredentialResponse(error=error)
 
         return document_signer_pb2.IssueSdJwtCredentialResponse(
             credential=issuance_result.token,
@@ -462,6 +530,16 @@ class DocumentSigner(document_signer_pb2_grpc.DocumentSignerServicer):
     # ------------------------------------------------------------------
     # Internal helpers
     # ------------------------------------------------------------------
+    def _error(
+        self,
+        code: int,
+        message: str,
+        *,
+        details: dict[str, str] | None = None,
+    ) -> document_signer_pb2.ApiError:
+        detail_payload = {key: str(value) for key, value in (details or {}).items()}
+        return document_signer_pb2.ApiError(code=code, message=message, details=detail_payload)
+
     def _certificate_chain_provider(self) -> list[x509.Certificate]:
         return list(self._cached_certificate_chain)
 

@@ -1,0 +1,55 @@
+# Default values for marty-service.
+# This is a YAML-formatted file.
+# Declare variables to be passed into your templates.
+
+replicaCount: 1
+
+image:
+  repository: marty
+  tag: "latest"
+  pullPolicy: IfNotPresent
+
+service:
+  type: ClusterIP
+  port: 8080
+  targetPort: 8080
+  healthPort: 8081
+
+resources:
+  limits:
+    cpu: 1000m
+    memory: 1Gi
+  requests:
+    cpu: 500m
+    memory: 512Mi
+
+config:
+  database:
+    host: ""
+    port: 5432
+    name: ""
+    user: ""
+    password: ""
+  kafka:
+    brokers: ""
+    topicPrefix: ""
+  redis:
+    host: ""
+    port: 6379
+
+ingress:
+  enabled: false
+  className: ""
+  annotations: {}
+  hosts:
+    - host: chart-example.local
+      paths:
+        - path: /
+          pathType: Prefix
+  tls: []
+
+nodeSelector: {}
+
+tolerations: []
+
+affinity: {}

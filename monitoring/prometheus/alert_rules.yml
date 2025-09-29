@@ -1,0 +1,102 @@
+groups:
+  - name: marty_service_alerts
+    rules:
+      # Service availability alerts
+      - alert: MartyServiceDown
+        expr: up{job=~"csca-service|document-signer|inspection-system|mdl-engine|mdoc-engine|passport-engine|pkd-service|trust-anchor"} == 0
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Marty service {{ $labels.job }} is down"
+          description: "Marty service {{ $labels.job }} has been down for more than 5 minutes."
+      - alert: MartyServiceHighErrorRate
+        expr: rate(http_requests_total{status=~"5.."}[5m]) / rate(http_requests_total[5m]) > 0.1
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High error rate on {{ $labels.job }}"
+          description: "Error rate for {{ $labels.job }} is {{ $value | printf \"%.2f\" }}% over the last 5 minutes."
+
+      # High latency alerts
+      - alert: MartyServiceHighLatency
+        expr: histogram_quantile(0.95, rate(http_request_duration_seconds_bucket[5m])) > 5
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High latency on {{ $labels.job }}"
+          description: "95th percentile latency for {{ $labels.job }} is {{ $value | printf \"%.2f\" }}s over the last 5 minutes."
+
+      # Dead letter queue alerts
+      - alert: MartyDeadLetterQueueGrowing
+        expr: increase(marty_dead_letter_queue_size[10m]) > 10
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Dead letter queue growing for {{ $labels.service }}"
+          description: "Dead letter queue for {{ $labels.service }} has grown by {{ $value | printf \"%.0f\" }} messages in the last 10 minutes."
+
+      # Database connection alerts
+      - alert: MartyDatabaseConnectionIssues
+        expr: marty_database_connections_active / marty_database_connections_max > 0.8
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High database connection usage"
+          description: "Database connection usage is at {{ $value | printf \"%.1f\" }}% capacity."
+
+      # Event processing backlog alerts
+      - alert: MartyEventProcessingBacklog
+        expr: marty_event_processing_queue_size > 1000
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Event processing backlog detected"
+          description: "Event processing queue for {{ $labels.service }} has {{ $value }} pending events."
+
+  - name: infrastructure_alerts
+    rules:
+      # Kubernetes node alerts
+      - alert: KubernetesNodeDown
+        expr: up{job="kubernetes-nodes"} == 0
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Kubernetes node {{ $labels.kubernetes_node_name }} is down"
+          description: "Kubernetes node has been down for more than 5 minutes."
+
+      # High CPU usage
+      - alert: HighCPUUsage
+        expr: rate(container_cpu_usage_seconds_total[5m]) > 0.8
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High CPU usage on {{ $labels.kubernetes_pod_name }}"
+          description: "CPU usage is {{ $value | printf \"%.2f\" }} cores for pod {{ $labels.kubernetes_pod_name }}."
+
+      # High memory usage
+      - alert: HighMemoryUsage
+        expr: container_memory_usage_bytes / container_spec_memory_limit_bytes > 0.9
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High memory usage on {{ $labels.kubernetes_pod_name }}"
+          description: "Memory usage is {{ $value | printf \"%.1f\" }}% of limit for pod {{ $labels.kubernetes_pod_name }}."
+
+      # Disk space alerts
+      - alert: LowDiskSpace
+        expr: (1 - node_filesystem_avail_bytes / node_filesystem_size_bytes) > 0.85
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Low disk space on {{ $labels.kubernetes_node_name }}"
+          description: "Disk usage is {{ $value | printf \"%.1f\" }}% on node {{ $labels.kubernetes_node_name }}."

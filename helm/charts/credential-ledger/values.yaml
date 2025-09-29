@@ -1,0 +1,35 @@
+# Default values for credential-ledger.
+replicaCount: 1
+
+image:
+  repository: marty/credential-ledger
+  tag: "latest"
+  pullPolicy: IfNotPresent
+
+service:
+  type: ClusterIP
+  port: 8089
+  targetPort: 8089
+  healthPort: 8090
+
+config:
+  database:
+    host: "postgres"
+    port: 5432
+    name: "marty"
+    user: "marty"
+    password: ""
+  kafka:
+    brokers: "kafka:9092"
+    topicPrefix: "marty."
+  redis:
+    host: "redis"
+    port: 6379
+
+resources:
+  limits:
+    cpu: 1000m
+    memory: 1Gi
+  requests:
+    cpu: 500m
+    memory: 512Mi

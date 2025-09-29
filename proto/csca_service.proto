@@ -2,6 +2,8 @@ syntax = "proto3";
 
 package csca;
 
+import "common_services.proto";
+
 service CscaService {
   // Existing method
   rpc GetCscaData (CscaRequest) returns (CscaResponse);
@@ -37,7 +39,7 @@ message CreateCertificateResponse {
   string certificate_id = 1;
   string certificate_data = 2;  // PEM encoded certificate
   string status = 3;            // ISSUED, RENEWED, FAILED
-  string error_message = 4;     // Present only if status is FAILED
+  common_services.ApiError error = 4;  // Present only if status is FAILED
 }
 
 message RenewCertificateRequest {
@@ -55,7 +57,7 @@ message RevokeCertificateResponse {
   string certificate_id = 1;
   bool success = 2;
   string status = 3;           // REVOKED, FAILED
-  string error_message = 4;    // Present only if status is FAILED
+  common_services.ApiError error = 4;    // Present only if status is FAILED
 }
 
 message CertificateStatusRequest {

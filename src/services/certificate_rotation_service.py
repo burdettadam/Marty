@@ -66,7 +66,7 @@ class CertificateRotationService:
 
         # Set up CSCA service endpoint
         self.csca_endpoint = csca_endpoint or os.environ.get(
-            "CSCA_SERVICE_ENDPOINT", "localhost:8081"
+            "CSCA_SERVICE_ENDPOINT", "csca-service.marty.svc.cluster.local:8081"
         )
 
         # Load configuration if specified or fall back to defaults

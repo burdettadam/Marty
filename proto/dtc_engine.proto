@@ -2,6 +2,8 @@ syntax = "proto3";
 
 package dtc_engine;
 
+import "common_services.proto";
+
 // Digital Travel Credential (DTC) Engine Service
 service DTCEngine {
   // Create a new Digital Travel Credential from passport data

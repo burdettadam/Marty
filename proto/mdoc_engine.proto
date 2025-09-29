@@ -2,6 +2,8 @@ syntax = "proto3";
 
 package mdoc;
 
+import "common_services.proto";
+
 service MDocEngine {
   // Create a new mobile document
   rpc CreateMDoc (CreateMDocRequest) returns (CreateMDocResponse);
@@ -82,7 +84,7 @@ message DocumentImage {
 message CreateMDocResponse {
   string mdoc_id = 1;
   string status = 2; // Consider enum
-  string error_message = 3;
+  common_services.ApiError error = 3;
 }
 
 // Request to get an mDoc

@@ -125,6 +125,24 @@ class EventOutboxRecord(Base):
     last_error: Mapped[str | None] = mapped_column(String(1024), nullable=True)
 
 
+class EventDeadLetterRecord(Base):
+    """Dead-letter queue for events that failed after max retries."""
+
+    __tablename__ = "event_dead_letter"
+
+    id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
+    original_topic: Mapped[str] = mapped_column(String(255), nullable=False)
+    key: Mapped[bytes | None] = mapped_column(LargeBinary, nullable=True)
+    payload: Mapped[bytes] = mapped_column(LargeBinary, nullable=False)
+    headers: Mapped[dict[str, str] | None] = mapped_column(JSON, nullable=True)
+    attempts: Mapped[int] = mapped_column(Integer, nullable=False)
+    last_error: Mapped[str] = mapped_column(String(1024), nullable=False)
+    dead_lettered_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=lambda: datetime.now(timezone.utc)
+    )
+    original_created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+
+
 class CredentialEventLog(Base):
     __tablename__ = "credential_events"
 

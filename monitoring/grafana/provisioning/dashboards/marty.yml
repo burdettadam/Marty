@@ -1,0 +1,12 @@
+apiVersion: 1
+
+providers:
+  - name: 'marty'
+    orgId: 1
+    folder: 'Marty'
+    type: file
+    disableDeletion: false
+    updateIntervalSeconds: 10
+    allowUiUpdates: true
+    options:
+      path: /var/lib/grafana/dashboards/marty

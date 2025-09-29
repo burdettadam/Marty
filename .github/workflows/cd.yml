@@ -6,7 +6,7 @@ on:
       - 'v*'
 
 jobs:
-  build_and_publish:
+  build_and_publish_containers:
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -14,7 +14,7 @@ jobs:
 
     steps:
     - uses: actions/checkout@v3
-    
+
     - name: Set up Docker Buildx
       uses: docker/setup-buildx-action@v2
 
@@ -24,16 +24,17 @@ jobs:
         registry: ghcr.io
         username: ${{ github.actor }}
         password: ${{ secrets.GITHUB_TOKEN }}
-        
+
     - name: Extract version from tag
       id: tag
       run: echo "VERSION=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
-      
+
+    # Build all service containers
     - name: Build and push csca-service
       uses: docker/build-push-action@v4
       with:
         context: .
-        file: ./src/csca-service/Dockerfile
+        file: ./docker/csca-service.Dockerfile
         push: true
         tags: |
           ghcr.io/${{ github.repository }}/csca-service:latest
@@ -45,7 +46,7 @@ jobs:
       uses: docker/build-push-action@v4
       with:
         context: .
-        file: ./src/document-signer/Dockerfile
+        file: ./docker/document-signer.Dockerfile
         push: true
         tags: |
           ghcr.io/${{ github.repository }}/document-signer:latest
@@ -53,15 +54,15 @@ jobs:
         cache-from: type=gha
         cache-to: type=gha,mode=max
 
-    - name: Build and push passport-engine
+    - name: Build and push dtc-engine
       uses: docker/build-push-action@v4
       with:
         context: .
-        file: ./src/passport-engine/Dockerfile
+        file: ./docker/dtc-engine.Dockerfile
         push: true
         tags: |
-          ghcr.io/${{ github.repository }}/passport-engine:latest
-          ghcr.io/${{ github.repository }}/passport-engine:${{ steps.tag.outputs.VERSION }}
+          ghcr.io/${{ github.repository }}/dtc-engine:latest
+          ghcr.io/${{ github.repository }}/dtc-engine:${{ steps.tag.outputs.VERSION }}
         cache-from: type=gha
         cache-to: type=gha,mode=max
 
@@ -69,7 +70,7 @@ jobs:
       uses: docker/build-push-action@v4
       with:
         context: .
-        file: ./src/inspection-system/Dockerfile
+        file: ./docker/inspection-system.Dockerfile
         push: true
         tags: |
           ghcr.io/${{ github.repository }}/inspection-system:latest
@@ -77,14 +78,161 @@ jobs:
         cache-from: type=gha
         cache-to: type=gha,mode=max
 
+    - name: Build and push mdl-engine
+      uses: docker/build-push-action@v4
+      with:
+        context: .
+        file: ./docker/mdl-engine.Dockerfile
+        push: true
+        tags: |
+          ghcr.io/${{ github.repository }}/mdl-engine:latest
+          ghcr.io/${{ github.repository }}/mdl-engine:${{ steps.tag.outputs.VERSION }}
+        cache-from: type=gha
+        cache-to: type=gha,mode=max
+
+    - name: Build and push mdoc-engine
+      uses: docker/build-push-action@v4
+      with:
+        context: .
+        file: ./docker/mdoc-engine.Dockerfile
+        push: true
+        tags: |
+          ghcr.io/${{ github.repository }}/mdoc-engine:latest
+          ghcr.io/${{ github.repository }}/mdoc-engine:${{ steps.tag.outputs.VERSION }}
+        cache-from: type=gha
+        cache-to: type=gha,mode=max
+
+    - name: Build and push passport-engine
+      uses: docker/build-push-action@v4
+      with:
+        context: .
+        file: ./docker/passport-engine.Dockerfile
+        push: true
+        tags: |
+          ghcr.io/${{ github.repository }}/passport-engine:latest
+          ghcr.io/${{ github.repository }}/passport-engine:${{ steps.tag.outputs.VERSION }}
+        cache-from: type=gha
+        cache-to: type=gha,mode=max
+
+    - name: Build and push pkd-service
+      uses: docker/build-push-action@v4
+      with:
+        context: .
+        file: ./docker/pkd-service.Dockerfile
+        push: true
+        tags: |
+          ghcr.io/${{ github.repository }}/pkd-service:latest
+          ghcr.io/${{ github.repository }}/pkd-service:${{ steps.tag.outputs.VERSION }}
+        cache-from: type=gha
+        cache-to: type=gha,mode=max
+
     - name: Build and push trust-anchor
       uses: docker/build-push-action@v4
       with:
         context: .
-        file: ./src/trust-anchor/Dockerfile
+        file: ./docker/trust-anchor.Dockerfile
         push: true
         tags: |
           ghcr.io/${{ github.repository }}/trust-anchor:latest
           ghcr.io/${{ github.repository }}/trust-anchor:${{ steps.tag.outputs.VERSION }}
         cache-from: type=gha
         cache-to: type=gha,mode=max
+
+    - name: Build and push ui-app
+      uses: docker/build-push-action@v4
+      with:
+        context: .
+        file: ./docker/ui-app.Dockerfile
+        push: true
+        tags: |
+          ghcr.io/${{ github.repository }}/ui-app:latest
+          ghcr.io/${{ github.repository }}/ui-app:${{ steps.tag.outputs.VERSION }}
+        cache-from: type=gha
+        cache-to: type=gha,mode=max
+
+  publish_helm_charts:
+    runs-on: ubuntu-latest
+    needs: build_and_publish_containers
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+    - uses: actions/checkout@v3
+
+    - name: Extract version from tag
+      id: tag
+      run: echo "VERSION=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
+
+    - name: Install Helm
+      uses: azure/setup-helm@v3
+      with:
+        version: v3.12.0
+
+    - name: Configure Git
+      run: |
+        git config user.name "$GITHUB_ACTOR"
+        git config user.email "$GITHUB_ACTOR@users.noreply.github.com"
+
+    - name: Login to GitHub Container Registry
+      run: echo ${{ secrets.GITHUB_TOKEN }} | helm registry login ghcr.io -u ${{ github.actor }} --password-stdin
+
+    - name: Package and push csca-service chart
+      run: |
+        cd helm/charts/csca-service
+        helm package .
+        helm push csca-service-${{ steps.tag.outputs.VERSION }}.tgz oci://ghcr.io/${{ github.repository }}/charts
+
+    - name: Package and push document-signer chart
+      run: |
+        cd helm/charts/document-signer
+        helm package .
+        helm push document-signer-${{ steps.tag.outputs.VERSION }}.tgz oci://ghcr.io/${{ github.repository }}/charts
+
+    - name: Package and push dtc-engine chart
+      run: |
+        cd helm/charts/dtc-engine
+        helm package .
+        helm push dtc-engine-${{ steps.tag.outputs.VERSION }}.tgz oci://ghcr.io/${{ github.repository }}/charts
+
+    - name: Package and push inspection-system chart
+      run: |
+        cd helm/charts/inspection-system
+        helm package .
+        helm push inspection-system-${{ steps.tag.outputs.VERSION }}.tgz oci://ghcr.io/${{ github.repository }}/charts
+
+    - name: Package and push mdl-engine chart
+      run: |
+        cd helm/charts/mdl-engine
+        helm package .
+        helm push mdl-engine-${{ steps.tag.outputs.VERSION }}.tgz oci://ghcr.io/${{ github.repository }}/charts
+
+    - name: Package and push mdoc-engine chart
+      run: |
+        cd helm/charts/mdoc-engine
+        helm package .
+        helm push mdoc-engine-${{ steps.tag.outputs.VERSION }}.tgz oci://ghcr.io/${{ github.repository }}/charts
+
+    - name: Package and push passport-engine chart
+      run: |
+        cd helm/charts/passport-engine
+        helm package .
+        helm push passport-engine-${{ steps.tag.outputs.VERSION }}.tgz oci://ghcr.io/${{ github.repository }}/charts
+
+    - name: Package and push pkd-service chart
+      run: |
+        cd helm/charts/pkd-service
+        helm package .
+        helm push pkd-service-${{ steps.tag.outputs.VERSION }}.tgz oci://ghcr.io/${{ github.repository }}/charts
+
+    - name: Package and push trust-anchor chart
+      run: |
+        cd helm/charts/trust-anchor
+        helm package .
+        helm push trust-anchor-${{ steps.tag.outputs.VERSION }}.tgz oci://ghcr.io/${{ github.repository }}/charts
+
+    - name: Package and push ui-app chart
+      run: |
+        cd helm/charts/ui-app
+        helm package .
+        helm push ui-app-${{ steps.tag.outputs.VERSION }}.tgz oci://ghcr.io/${{ github.repository }}/charts

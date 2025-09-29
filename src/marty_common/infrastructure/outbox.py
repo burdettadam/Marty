@@ -13,7 +13,7 @@ from sqlalchemy import Select, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from .event_bus import EventBusMessage, EventBusProvider
-from .models import EventOutboxRecord
+from .models import EventDeadLetterRecord, EventOutboxRecord
 
 if TYPE_CHECKING:  # pragma: no cover - imported for type checking only
     from .database import DatabaseManager
@@ -85,10 +85,34 @@ class OutboxRepository:
         record: EventOutboxRecord,
         error: str,
         retry_delay: timedelta,
+        max_attempts: int = 5,
     ) -> None:
         record.attempts += 1
         record.last_error = error[:1024]
-        record.available_at = datetime.now(timezone.utc) + retry_delay
+
+        if record.attempts >= max_attempts:
+            # Move to dead-letter queue
+            await self._move_to_dead_letter_queue(record, error)
+        else:
+            # Requeue for retry
+            record.available_at = datetime.now(timezone.utc) + retry_delay
+
+    async def _move_to_dead_letter_queue(
+        self, record: EventOutboxRecord, error: str
+    ) -> None:
+        """Move a failed event to the dead-letter queue."""
+        dlq_record = EventDeadLetterRecord(
+            original_topic=record.topic,
+            key=record.key,
+            payload=record.payload,
+            headers=record.headers,
+            attempts=record.attempts,
+            last_error=error[:1024],
+            original_created_at=record.created_at,
+        )
+        self._session.add(dlq_record)
+        # Remove from outbox
+        await self._session.delete(record)
 
     async def requeue(self, records: Iterable[EventOutboxRecord], delay: timedelta) -> None:
         for record in records:
@@ -103,6 +127,7 @@ class OutboxDispatcherSettings:
     batch_size: int = 50
     initial_retry_delay: float = 5.0
     max_retry_delay: float = 300.0
+    max_attempts: int = 5
 
 
 class OutboxDispatcher:
@@ -158,7 +183,9 @@ class OutboxDispatcher:
                     await self._event_bus.publish(message)
                 except Exception as exc:  # pragma: no cover - defensive logging path
                     retry_delay = self._compute_retry_delay(record.attempts + 1)
-                    await repo.mark_failed(record, str(exc), retry_delay)
+                    await repo.mark_failed(
+                        record, str(exc), retry_delay, self._settings.max_attempts
+                    )
                     logger.exception("Failed to publish outbox event %s", record.id)
                 else:
                     await repo.mark_processed(record)

@@ -10,6 +10,25 @@ service DocumentSigner {
   rpc IssueSdJwtCredential (IssueSdJwtCredentialRequest) returns (IssueSdJwtCredentialResponse);
 }
 
+enum DocumentSignerError {
+  DOCUMENT_SIGNER_ERROR_UNSPECIFIED = 0;
+  DOCUMENT_SIGNER_ERROR_INVALID_ARGUMENT = 1;
+  DOCUMENT_SIGNER_ERROR_KEY_MISSING = 2;
+  DOCUMENT_SIGNER_ERROR_SIGNING_FAILED = 3;
+  DOCUMENT_SIGNER_ERROR_STORAGE_FAILED = 4;
+  DOCUMENT_SIGNER_ERROR_OFFER_NOT_FOUND = 5;
+  DOCUMENT_SIGNER_ERROR_TOKEN_INVALID = 6;
+  DOCUMENT_SIGNER_ERROR_EXPIRED = 7;
+  DOCUMENT_SIGNER_ERROR_NOT_CONFIGURED = 8;
+  DOCUMENT_SIGNER_ERROR_CONFLICT = 9;
+}
+
+message ApiError {
+  DocumentSignerError code = 1;
+  string message = 2;
+  map<string, string> details = 3;
+}
+
 message SignRequest {
   string document_id = 1;
   bytes document_content = 2;
@@ -24,8 +43,9 @@ message SignatureInfo {
 
 message SignResponse {
   bool success = 1;
-  string error_message = 2;
+  string error_message = 2; // Deprecated: use error
   SignatureInfo signature_info = 3;
+  ApiError error = 4;
 }
 
 message CreateCredentialOfferRequest {
@@ -41,6 +61,7 @@ message CreateCredentialOfferResponse {
   string credential_offer = 2;
   string pre_authorized_code = 3;
   int64 expires_in = 4;
+  ApiError error = 5;
 }
 
 message GetCredentialOfferRequest {
@@ -51,6 +72,7 @@ message GetCredentialOfferResponse {
   string credential_offer = 1;
   int64 expires_in = 2;
   string pre_authorized_code = 3;
+  ApiError error = 4;
 }
 
 message RedeemPreAuthorizedCodeRequest {
@@ -63,6 +85,7 @@ message RedeemPreAuthorizedCodeResponse {
   string access_token = 2;
   int64 expires_in = 3;
   string c_nonce = 4;
+  ApiError error = 5;
 }
 
 message IssueSdJwtCredentialRequest {
@@ -84,4 +107,5 @@ message IssueSdJwtCredentialResponse {
   string issuer = 8;
   string credential_type = 9;
   string subject_id = 10;
+  ApiError error = 11;
 }
