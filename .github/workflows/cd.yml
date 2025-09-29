@@ -11,10 +11,12 @@ concurrency:
 
 jobs:
   build_and_publish_containers:
+    name: Build & Publish Containers
     runs-on: ubuntu-latest
     permissions:
       contents: read
       packages: write
+      id-token: write   # required for cosign keyless signing
     strategy:
       matrix:
         svc:
@@ -30,52 +32,78 @@ jobs:
           - { name: "ui-app", dockerfile: "docker/ui-app.Dockerfile" }
 
     steps:
-    - uses: actions/checkout@v3
+      - name: Checkout
+        uses: actions/checkout@v3
 
-    - name: Set up Docker Buildx
-      uses: docker/setup-buildx-action@v2
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
 
-    - name: Install Cosign
-      uses: sigstore/cosign-installer@v3
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
 
-    - name: Extract version from tag
-      id: tag
-      run: echo "VERSION=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
 
-    # Build all service containers
-    - name: Build and push ${{ matrix.svc.name }}
-      uses: docker/build-push-action@v4
-      with:
-        context: .
-        file: ${{ matrix.svc.dockerfile }}
-        push: true
-        platforms: linux/amd64,linux/arm64
-        provenance: true
-        tags: |
-          ghcr.io/${{ github.repository }}/${{ matrix.svc.name }}:latest
-          ghcr.io/${{ github.repository }}/${{ matrix.svc.name }}:${{ steps.tag.outputs.VERSION }}
-        cache-from: type=gha,scope=${{ github.repository }}
-        cache-to: type=gha,mode=max,scope=${{ github.repository }}
+      - name: Install Cosign
+        uses: sigstore/cosign-installer@v3
 
-    - name: Generate SBOM for ${{ matrix.svc.name }}
-      uses: anchore/sbom-action@v0
-      with:
-        image: ghcr.io/${{ github.repository }}/${{ matrix.svc.name }}:${{ steps.tag.outputs.VERSION }}
-        output-file: ./sbom-${{ matrix.svc.name }}-${{ steps.tag.outputs.VERSION }}.spdx.json
-        format: spdx-json
+      - name: Extract version from tag
+        id: tag
+        run: echo "VERSION=${GITHUB_REF#refs/tags/v}" >> "$GITHUB_OUTPUT"
 
-    - name: Upload SBOM artifact for ${{ matrix.svc.name }}
-      uses: actions/upload-artifact@v4
-      with:
-        name: sbom-${{ matrix.svc.name }}-${{ steps.tag.outputs.VERSION }}
-        path: ./sbom-${{ matrix.svc.name }}-${{ steps.tag.outputs.VERSION }}.spdx.json
+      - name: Build and push ${{ matrix.svc.name }}
+        id: build
+        uses: docker/build-push-action@v4
+        with:
+          context: .
+          file: ${{ matrix.svc.dockerfile }}
+          push: true
+          platforms: linux/amd64,linux/arm64
+          provenance: true
+          tags: |
+            ghcr.io/${{ github.repository }}/${{ matrix.svc.name }}:latest
+            ghcr.io/${{ github.repository }}/${{ matrix.svc.name }}:${{ steps.tag.outputs.VERSION }}
+          cache-from: type=gha,scope=${{ github.repository }}
+          cache-to: type=gha,mode=max,scope=${{ github.repository }}
 
-    - name: Sign container image for ${{ matrix.svc.name }}
-      run: |
-        cosign sign --yes ghcr.io/${{ github.repository }}/${{ matrix.svc.name }}:${{ steps.tag.outputs.VERSION }}
-        cosign sign --yes ghcr.io/${{ github.repository }}/${{ matrix.svc.name }}:latest
+      - name: Generate SBOM for ${{ matrix.svc.name }}
+        uses: anchore/sbom-action@v0
+        with:
+          image: ghcr.io/${{ github.repository }}/${{ matrix.svc.name }}:${{ steps.tag.outputs.VERSION }}
+          output-file: ./sbom-${{ matrix.svc.name }}-${{ steps.tag.outputs.VERSION }}.spdx.json
+          format: spdx-json
+
+      - name: Upload SBOM artifact for ${{ matrix.svc.name }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: sbom-${{ matrix.svc.name }}-${{ steps.tag.outputs.VERSION }}
+          path: ./sbom-${{ matrix.svc.name }}-${{ steps.tag.outputs.VERSION }}.spdx.json
+
+      - name: Sign image by digest (keyless)
+        env:
+          COSIGN_EXPERIMENTAL: "true"
+        run: |
+          DIGEST="${{ steps.build.outputs.digest }}"
+          IMAGE="ghcr.io/${{ github.repository }}/${{ matrix.svc.name }}"
+          echo "Signing ${IMAGE}@${DIGEST}"
+          cosign sign --yes "${IMAGE}@${DIGEST}"
+
+      - name: Write digest artifact
+        run: |
+          echo "${{ matrix.svc.name }} ghcr.io/${{ github.repository }}/${{ matrix.svc.name }}@${{ steps.build.outputs.digest }}" > digest-${{ matrix.svc.name }}.txt
+
+      - name: Upload digest artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: digest-${{ matrix.svc.name }}
+          path: digest-${{ matrix.svc.name }}.txt
 
   publish_helm_charts:
+    name: Package & Push Helm Charts (OCI)
     runs-on: ubuntu-latest
     needs: build_and_publish_containers
     permissions:
@@ -96,130 +124,162 @@ jobs:
           - "ui-app"
 
     steps:
-    - uses: actions/checkout@v3
+      - name: Checkout
+        uses: actions/checkout@v3
 
-    - name: Extract version from tag
-      id: tag
-      run: echo "VERSION=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
+      - name: Extract version from tag
+        id: tag
+        run: echo "VERSION=${GITHUB_REF#refs/tags/v}" >> "$GITHUB_OUTPUT"
 
-    - name: Install Helm
-      uses: azure/setup-helm@v3
-      with:
-        version: v3.12.0
+      - name: Install Helm
+        uses: azure/setup-helm@v3
+        with:
+          version: v3.12.0
 
-    - name: Configure Git
-      run: |
-        git config user.name "$GITHUB_ACTOR"
-        git config user.email "$GITHUB_ACTOR@users.noreply.github.com"
+      - name: Configure Git (for Helm metadata)
+        run: |
+          git config user.name "$GITHUB_ACTOR"
+          git config user.email "$GITHUB_ACTOR@users.noreply.github.com"
 
-    - name: Login to GitHub Container Registry
-      run: echo ${{ secrets.GITHUB_TOKEN }} | helm registry login ghcr.io -u ${{ github.actor }} --password-stdin
+      - name: Login to GHCR (Helm OCI)
+        run: echo "${{ secrets.GITHUB_TOKEN }}" | helm registry login ghcr.io -u "${{ github.actor }}" --password-stdin
 
-    - name: Package and push ${{ matrix.svc }} chart
-      run: |
-        cd helm/charts/${{ matrix.svc }}
-        helm lint .
-        helm template . --values values.yaml
-        helm package --sign .
-        helm push ${{ matrix.svc }}-${{ steps.tag.outputs.VERSION }}.tgz oci://ghcr.io/${{ github.repository }}/charts
-        # Upload provenance file as artifact
-        if [ -f ${{ matrix.svc }}-${{ steps.tag.outputs.VERSION }}.tgz.prov ]; then
-          echo "Uploading provenance file for ${{ matrix.svc }}"
-          # Copy prov file to workspace root for artifact upload
-          cp ${{ matrix.svc }}-${{ steps.tag.outputs.VERSION }}.tgz.prov ../../../
-        fi
+      # Import your GPG key to enable `helm package --sign`
+      - name: Import GPG private key (for chart signing)
+        if: ${{ secrets.HELM_GPG_PRIVATE_KEY && secrets.HELM_GPG_PASSPHRASE && secrets.HELM_GPG_KEY_ID }}
+        env:
+          HELM_GPG_PRIVATE_KEY: ${{ secrets.HELM_GPG_PRIVATE_KEY }}   # base64-encoded
+          HELM_GPG_PASSPHRASE: ${{ secrets.HELM_GPG_PASSPHRASE }}
+        run: |
+          echo "$HELM_GPG_PRIVATE_KEY" | base64 -d > /tmp/privkey.asc
+          gpg --batch --yes --passphrase "$HELM_GPG_PASSPHRASE" --import /tmp/privkey.asc
+          gpg --list-secret-keys
 
-    - name: Upload Helm provenance artifacts
-      uses: actions/upload-artifact@v4
-      with:
-        name: helm-provenance-${{ steps.tag.outputs.VERSION }}
-        path: ./*.tgz.prov
+      - name: Package and push ${{ matrix.svc }} chart
+        env:
+          VERSION: ${{ steps.tag.outputs.VERSION }}
+          HELM_GPG_PASSPHRASE: ${{ secrets.HELM_GPG_PASSPHRASE }}
+          HELM_GPG_KEY_ID: ${{ secrets.HELM_GPG_KEY_ID }}
+        run: |
+          set -euo pipefail
+          cd helm/charts/${{ matrix.svc }}
+
+          # Lint & render (basic sanity)
+          helm lint .
+          helm template . --values values.yaml >/dev/null
+
+          # Package with the tag version; sign if key is present
+          if [ -n "${HELM_GPG_KEY_ID:-}" ] && [ -n "${HELM_GPG_PASSPHRASE:-}" ]; then
+            export HELM_PROVENANCE_PASSPHRASE="$HELM_GPG_PASSPHRASE"
+            helm package . \
+              --version "$VERSION" \
+              --sign \
+              --key "$HELM_GPG_KEY_ID" \
+              --keyring ~/.gnupg/pubring.kbx
+          else
+            helm package . --version "$VERSION"
+          fi
+
+          # Push to GHCR (OCI)
+          helm push "${{ matrix.svc }}-${VERSION}.tgz" "oci://ghcr.io/${{ github.repository }}/charts"
+
+          # Move provenance file (if exists) up to workspace root for artifact upload
+          if [ -f "${{ matrix.svc }}-${VERSION}.tgz.prov" ]; then
+            cp "${{ matrix.svc }}-${VERSION}.tgz.prov" "${GITHUB_WORKSPACE}/"
+          fi
+
+      - name: Upload Helm provenance artifact for ${{ matrix.svc }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: helm-provenance-${{ matrix.svc }}-${{ steps.tag.outputs.VERSION }}
+          path: ${{ matrix.svc }}-${{ steps.tag.outputs.VERSION }}.tgz.prov
+          if-no-files-found: ignore
 
   create_release:
+    name: Create GitHub Release
     runs-on: ubuntu-latest
     needs: [build_and_publish_containers, publish_helm_charts]
     permissions:
       contents: write
       packages: read
+
     steps:
-    - name: Extract version from tag
-      id: tag
-      run: echo "VERSION=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
+      - name: Extract version from tag
+        id: tag
+        run: echo "VERSION=${GITHUB_REF#refs/tags/v}" >> "$GITHUB_OUTPUT"
 
-    - name: Generate release notes
-      id: release-notes
-      run: |
-        cat << EOF > release_notes.md
-        ## 🚀 Marty v${{ steps.tag.outputs.VERSION }} Release
+      - name: Download digest artifacts
+        uses: actions/download-artifact@v4
+        with:
+          pattern: digest-*
+          path: digests
 
-        ### 📦 Container Images
-        All images are available on [GitHub Container Registry](https://ghcr.io/${{ github.repository }})
+      - name: Assemble digest table
+        id: digest_table
+        run: |
+          echo "| Service | Image | Digest |" > digests_table.md
+          echo "|---------|-------|--------|" >> digests_table.md
+          for f in digests/digest-*.txt; do
+            line="$(cat "$f")"
+            svc="$(basename "$f" .txt | sed 's/^digest-//')"
+            image_ref="$(echo "$line" | awk '{print $2}')"
+            echo "| ${svc} | \`${image_ref%%@*}:${{ steps.tag.outputs.VERSION }}\` | \`${image_ref#*@}\` |" >> digests_table.md
+          done
+          cat digests_table.md >> "$GITHUB_OUTPUT" 2>/dev/null || true
 
-        | Service | Image | Digest |
-        |---------|-------|--------|
-        | CSCA Service | \`ghcr.io/${{ github.repository }}/csca-service:${{ steps.tag.outputs.VERSION }}\` | TBD |
-        | Document Signer | \`ghcr.io/${{ github.repository }}/document-signer:${{ steps.tag.outputs.VERSION }}\` | TBD |
-        | DTC Engine | \`ghcr.io/${{ github.repository }}/dtc-engine:${{ steps.tag.outputs.VERSION }}\` | TBD |
-        | Inspection System | \`ghcr.io/${{ github.repository }}/inspection-system:${{ steps.tag.outputs.VERSION }}\` | TBD |
-        | MDL Engine | \`ghcr.io/${{ github.repository }}/mdl-engine:${{ steps.tag.outputs.VERSION }}\` | TBD |
-        | MDOC Engine | \`ghcr.io/${{ github.repository }}/mdoc-engine:${{ steps.tag.outputs.VERSION }}\` | TBD |
-        | Passport Engine | \`ghcr.io/${{ github.repository }}/passport-engine:${{ steps.tag.outputs.VERSION }}\` | TBD |
-        | PKD Service | \`ghcr.io/${{ github.repository }}/pkd-service:${{ steps.tag.outputs.VERSION }}\` | TBD |
-        | Trust Anchor | \`ghcr.io/${{ github.repository }}/trust-anchor:${{ steps.tag.outputs.VERSION }}\` | TBD |
-        | UI App | \`ghcr.io/${{ github.repository }}/ui-app:${{ steps.tag.outputs.VERSION }}\` | TBD |
+      - name: Generate release notes
+        id: release-notes
+        run: |
+          {
+            echo "## 🚀 Marty v${{ steps.tag.outputs.VERSION }} Release"
+            echo ""
+            echo "### 📦 Container Images (with digests)"
+            echo "All images are available on GHCR."
+            echo ""
+            cat digests_table.md
+            echo ""
+            echo "### 🛡️ Helm Charts (OCI)"
+            echo "Charts are published to \`oci://ghcr.io/${{ github.repository }}/charts/<chart-name>:$${{ steps.tag.outputs.VERSION }}\`"
+            echo ""
+            echo "| Chart | Version | Provenance |"
+            echo "|-------|---------|------------|"
+            for c in csca-service document-signer dtc-engine inspection-system mdl-engine mdoc-engine passport-engine pkd-service trust-anchor ui-app; do
+              echo "| ${c} | ${{ steps.tag.outputs.VERSION }} | ✅ Signed (if key configured) |"
+            done
+            echo ""
+            echo "### 🔒 Supply-chain Security"
+            echo "- ✅ Build attestation (provenance) enabled for images"
+            echo "- ✅ SBOM (SPDX) generated per image (uploaded as artifacts)"
+            echo "- ✅ Cosign keyless signing by digest"
+            echo "- ✅ Helm chart signing (if GPG key provided)"
+            echo "- ✅ Multi-arch images: linux/amd64, linux/arm64"
+            echo ""
+            echo "### 📋 Install from GHCR (Helm OCI)"
+            echo '\\`\\`\\`bash'
+            echo "# Install a chart directly from GHCR (Helm 3.8+)"
+            echo "helm install csca-service oci://ghcr.io/${{ github.repository }}/charts/csca-service \\"
+            echo "  --version ${{ steps.tag.outputs.VERSION }} \\"
+            echo "  --namespace marty --create-namespace"
+            echo '\\`\\`\\`'
+            echo ""
+            echo "### 🔍 Verification"
+            echo '\\`\\`\\`bash'
+            echo "# Pull chart with provenance and verify"
+            echo "helm pull oci://ghcr.io/${{ github.repository }}/charts/csca-service --version ${{ steps.tag.outputs.VERSION }} --prov"
+            echo "helm verify csca-service-${{ steps.tag.outputs.VERSION }}.tgz"
+            echo ""
+            echo "# Verify image signature (keyless)"
+            echo "cosign verify ghcr.io/${{ github.repository }}/csca-service@<digest-from-table>"
+            echo '\\`\\`\\`'
+          } > release_notes.md
 
-        ### 🛡️ Helm Charts
-        Charts are published to [GitHub Container Registry](https://ghcr.io/${{ github.repository }}/charts)
-
-        | Chart | Version | Provenance |
-        |-------|---------|------------|
-        | csca-service | ${{ steps.tag.outputs.VERSION }} | ✅ Signed |
-        | document-signer | ${{ steps.tag.outputs.VERSION }} | ✅ Signed |
-        | dtc-engine | ${{ steps.tag.outputs.VERSION }} | ✅ Signed |
-        | inspection-system | ${{ steps.tag.outputs.VERSION }} | ✅ Signed |
-        | mdl-engine | ${{ steps.tag.outputs.VERSION }} | ✅ Signed |
-        | mdoc-engine | ${{ steps.tag.outputs.VERSION }} | ✅ Signed |
-        | passport-engine | ${{ steps.tag.outputs.VERSION }} | ✅ Signed |
-        | pkd-service | ${{ steps.tag.outputs.VERSION }} | ✅ Signed |
-        | trust-anchor | ${{ steps.tag.outputs.VERSION }} | ✅ Signed |
-        | ui-app | ${{ steps.tag.outputs.VERSION }} | ✅ Signed |
-
-        ### 🔒 Security Features
-        - ✅ **Build Attestation**: Provenance enabled for all images
-        - ✅ **SBOM**: Software Bill of Materials generated (SPDX format)
-        - ✅ **Image Signing**: Cosign signatures with keyless signing
-        - ✅ **Chart Signing**: Helm provenance files generated
-        - ✅ **Multi-Architecture**: linux/amd64, linux/arm64 support
-
-        ### 📋 Installation
-
-        \`\`\`bash
-        # Add Helm repository
-        helm repo add marty https://ghcr.io/${{ github.repository }}/charts
-        helm repo update
-
-        # Install a service (example)
-        helm install csca-service marty/csca-service --version ${{ steps.tag.outputs.VERSION }}
-        \`\`\`
-
-        ### 🔍 Verification
-
-        \`\`\`bash
-        # Verify image signature
-        cosign verify ghcr.io/${{ github.repository }}/csca-service:${{ steps.tag.outputs.VERSION }}
-
-        # Verify chart provenance
-        helm verify csca-service-${{ steps.tag.outputs.VERSION }}.tgz
-        \`\`\`
-        EOF
-
-    - name: Create GitHub Release
-      uses: softprops/action-gh-release@v1
-      with:
-        tag_name: ${{ github.ref_name }}
-        name: Marty v${{ steps.tag.outputs.VERSION }}
-        body_path: release_notes.md
-        draft: false
-        prerelease: false
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: ${{ github.ref_name }}
+          name: Marty v${{ steps.tag.outputs.VERSION }}
+          body_path: release_notes.md
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
