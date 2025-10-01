@@ -5,10 +5,13 @@ from __future__ import annotations
 import asyncio
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Protocol
+from typing import Any, Protocol, Union
 
 from cryptography.hazmat.primitives import hashes, serialization
 from cryptography.hazmat.primitives.asymmetric import ec, ed25519, ed448, padding, rsa
+
+# Type alias for private key types
+PrivateKeyTypes = Union[rsa.RSAPrivateKey, ec.EllipticCurvePrivateKey, ed25519.Ed25519PrivateKey, ed448.Ed448PrivateKey]
 
 
 class KeyVaultClient(Protocol):
@@ -62,7 +65,7 @@ class FileKeyVaultClient(KeyVaultClient):
         )
         await self.store_private_key(key_id, pem)
 
-    def _generate_key_material(self, algorithm: str):
+    def _generate_key_material(self, algorithm: str) -> PrivateKeyTypes:
         key_algorithm = algorithm.lower()
         if key_algorithm.startswith("rsa"):
             key_size = int(key_algorithm.replace("rsa", "") or 2048)
@@ -76,7 +79,7 @@ class FileKeyVaultClient(KeyVaultClient):
             curve_name = key_algorithm.replace("ecdsa-", "") or "p256"
             curve = curve_map.get(curve_name, ec.SECP256R1())
             return ec.generate_private_key(curve)
-        if key_algorithm.startswith("ed") or key_algorithm.startswith("eddsa"):
+        if key_algorithm.startswith(("ed", "eddsa")):
             if "448" in key_algorithm:
                 return ed448.Ed448PrivateKey.generate()
             return ed25519.Ed25519PrivateKey.generate()
@@ -91,16 +94,16 @@ class FileKeyVaultClient(KeyVaultClient):
             signature = await asyncio.to_thread(
                 lambda: private_key.sign(payload, padding.PKCS1v15(), hash_alg)
             )
-            return signature
+            return bytes(signature)
         if algo.startswith("ecdsa"):
             hash_alg = hashes.SHA256()
             signature = await asyncio.to_thread(
                 lambda: private_key.sign(payload, ec.ECDSA(hash_alg))
             )
-            return signature
-        if algo.startswith("ed") or algo.startswith("eddsa"):
+            return bytes(signature)
+        if algo.startswith(("ed", "eddsa")):
             signature = await asyncio.to_thread(lambda: private_key.sign(payload))
-            return signature
+            return bytes(signature)
         msg = f"Unsupported signing algorithm: {algorithm}"
         raise ValueError(msg)
 
@@ -125,7 +128,7 @@ class FileKeyVaultClient(KeyVaultClient):
             raise FileNotFoundError(msg)
         return await asyncio.to_thread(key_file.read_bytes)
 
-    def _load_private_key(self, key_id: str):
+    def _load_private_key(self, key_id: str) -> Any:
         key_file = self._path / f"{key_id}.pem"
         if not key_file.exists():
             msg = f"Key {key_id} not found"

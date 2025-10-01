@@ -51,7 +51,7 @@ jobs:
     - name: Install uv and linting tools
       run: |
         pip install uv
-        uv pip install black isort ruff mypy
+        uv pip install black isort ruff mypy types-requests types-PyYAML
         
     - name: Check code formatting with Black
       run: uv run -m black --check src tests
@@ -60,7 +60,20 @@ jobs:
       run: uv run -m isort --check src tests
       
     - name: Lint with ruff
-      run: uv run -m ruff src tests
+      run: uv run -m ruff check src tests
         
-    - name: Type check with mypy
-      run: uv run -m mypy src
+    - name: Type check with mypy (strict mode)
+      run: |
+        uv run -m mypy src --config-file pyproject.toml --show-error-codes --pretty
+        
+    - name: Generate mypy report
+      if: failure()
+      run: |
+        uv run -m mypy src --config-file pyproject.toml --html-report mypy-report
+        
+    - name: Upload mypy report
+      if: failure()
+      uses: actions/upload-artifact@v3
+      with:
+        name: mypy-report
+        path: mypy-report/

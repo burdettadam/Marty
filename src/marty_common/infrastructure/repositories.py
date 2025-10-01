@@ -77,8 +77,8 @@ class CertificateRepository:
             self._session.add(record)
         else:
             record.pem = pem
-            record.issuer = issuer
-            record.subject = subject
+            record.issuer = issuer  # type: ignore[assignment]
+            record.subject = subject  # type: ignore[assignment]
             record.details = details or record.details
             record.updated_at = datetime.now(timezone.utc)
         return record
@@ -274,6 +274,12 @@ class MobileDrivingLicenseRepository:
 class CredentialLedgerRepository:
     def __init__(self, session: AsyncSession) -> None:
         self._session = session
+
+    async def get(self, mdl_id: str) -> MobileDrivingLicenseRecord | None:
+        """Get MDL record by ID."""
+        stmt = select(MobileDrivingLicenseRecord).where(MobileDrivingLicenseRecord.mdl_id == mdl_id)
+        result = await self._session.execute(stmt)
+        return result.scalars().first()
 
     async def record_event(
         self,
@@ -521,13 +527,13 @@ class OidcSessionRepository:
         session_record.nonce = nonce
         session_record.wallet_attestation = wallet_attestation
         session_record.status = "TOKEN_ISSUED"
-        if session_record.metadata is not None:
-            metadata_payload = dict(session_record.metadata)
+        if session_record.extra_metadata is not None:
+            metadata_payload = dict(session_record.extra_metadata)
             internal_details = dict(metadata_payload.get("_internal", {}))
             if internal_details.pop("pre_authorized_code", None) is not None:
                 metadata_payload["_internal"] = internal_details
-                session_record.metadata = metadata_payload
-                flag_modified(session_record, "metadata")
+                session_record.extra_metadata = metadata_payload
+                flag_modified(session_record, "extra_metadata")
         session_record.updated_at = datetime.now(timezone.utc)
 
     async def get_by_access_token(self, access_token: str) -> Optional[Oidc4VciSessionRecord]:

@@ -4,10 +4,10 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from io import BytesIO
-from typing import Any, Optional
+from typing import Any
 
 import aioboto3
-from botocore.config import Config
+from botocore.config import Config  # type: ignore[import-untyped]
 
 
 @dataclass(slots=True)
@@ -18,12 +18,12 @@ class ObjectStorageConfig:
     access_key: str
     secret_key: str
     region: str = "us-east-1"
-    endpoint_url: Optional[str] = None
+    endpoint_url: str | None = None
     secure: bool = True
     path_style_access: bool = True
 
     @classmethod
-    def from_dict(cls, raw: dict[str, Any]) -> "ObjectStorageConfig":
+    def from_dict(cls, raw: dict[str, Any]) -> ObjectStorageConfig:
         bucket = raw.get("bucket", "marty-dev")
         access_key = raw.get("access_key", "localdev")
         secret_key = raw.get("secret_key", "localdev")
@@ -67,7 +67,8 @@ class ObjectStorageClient:
         async with self._session.client("s3", **self._client_kwargs()) as client:
             response = await client.get_object(Bucket=self._config.bucket, Key=key)
             async with response["Body"] as stream:
-                return await stream.read()
+                data = await stream.read()
+                return bytes(data) if data is not None else b""
 
     async def delete_object(self, key: str) -> None:
         async with self._session.client("s3", **self._client_kwargs()) as client:
