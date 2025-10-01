@@ -21,9 +21,11 @@ class CreateCertificateRequestSchema(BaseModel):
     def _validate_subject_name(cls, value: str) -> str:
         value = (value or "").strip()
         if not value:
-            raise ValueError("subject_name is required")
+            msg = "subject_name is required"
+            raise ValueError(msg)
         if len(value) > 255:
-            raise ValueError("subject_name must be 255 characters or less")
+            msg = "subject_name must be 255 characters or less"
+            raise ValueError(msg)
         return value
 
     @field_validator("key_algorithm")
@@ -31,7 +33,8 @@ class CreateCertificateRequestSchema(BaseModel):
     def _validate_key_algorithm(cls, value: str) -> str:
         allowed_algorithms = {"RSA", "ECDSA"}
         if value.upper() not in allowed_algorithms:
-            raise ValueError(f"key_algorithm must be one of: {', '.join(allowed_algorithms)}")
+            msg = f"key_algorithm must be one of: {', '.join(allowed_algorithms)}"
+            raise ValueError(msg)
         return value.upper()
 
     @field_validator("key_size")
@@ -47,7 +50,8 @@ class CreateCertificateRequestSchema(BaseModel):
             return value
 
         if value not in allowed_sizes:
-            raise ValueError(f"key_size {value} not allowed for {algorithm}")
+            msg = f"key_size {value} not allowed for {algorithm}"
+            raise ValueError(msg)
         return value
 
 

@@ -21,14 +21,16 @@ class SignDocumentRequestSchema(BaseModel):
     def _normalise_document_id(cls, value: str) -> str:
         value = (value or "").strip()
         if not value:
-            raise ValueError("document_id is required")
+            msg = "document_id is required"
+            raise ValueError(msg)
         return value
 
     @field_validator("document_content")
     @classmethod
     def _ensure_payload(cls, value: bytes) -> bytes:
         if not value:
-            raise ValueError("document_content must not be empty")
+            msg = "document_content must not be empty"
+            raise ValueError(msg)
         return bytes(value)
 
 
@@ -48,7 +50,8 @@ class CreateCredentialOfferRequestSchema(BaseModel):
     def _require_subject(cls, value: str) -> str:
         value = (value or "").strip()
         if not value:
-            raise ValueError("subject_id is required")
+            msg = "subject_id is required"
+            raise ValueError(msg)
         return value
 
     @field_validator("credential_type")
@@ -63,18 +66,22 @@ class CreateCredentialOfferRequestSchema(BaseModel):
     @classmethod
     def _parse_json_object(cls, value: Any) -> dict[str, Any]:
         if value is None or value == "":
-            raise ValueError("value must be a JSON object")
+            msg = "value must be a JSON object"
+            raise ValueError(msg)
         if isinstance(value, dict):
             return value
         if isinstance(value, str):
             try:
                 parsed = json.loads(value)
             except json.JSONDecodeError as exc:  # pragma: no cover - defensive
-                raise ValueError(f"Invalid JSON payload: {exc.msg}") from exc
+                msg = f"Invalid JSON payload: {exc.msg}"
+                raise ValueError(msg) from exc
             if not isinstance(parsed, dict):
-                raise ValueError("value must decode to a JSON object")
+                msg = "value must decode to a JSON object"
+                raise ValueError(msg)
             return parsed
-        raise ValueError("value must be a JSON object")
+        msg = "value must be a JSON object"
+        raise ValueError(msg)
 
     @field_validator("metadata", mode="before")
     @classmethod
@@ -87,11 +94,14 @@ class CreateCredentialOfferRequestSchema(BaseModel):
             try:
                 parsed = json.loads(value)
             except json.JSONDecodeError as exc:  # pragma: no cover - defensive
-                raise ValueError(f"Invalid metadata JSON: {exc.msg}") from exc
+                msg = f"Invalid metadata JSON: {exc.msg}"
+                raise ValueError(msg) from exc
             if not isinstance(parsed, dict):
-                raise ValueError("metadata must decode to a JSON object")
+                msg = "metadata must decode to a JSON object"
+                raise ValueError(msg)
             return parsed
-        raise ValueError("metadata must be a JSON object if provided")
+        msg = "metadata must be a JSON object if provided"
+        raise ValueError(msg)
 
 
 class GetCredentialOfferRequestSchema(BaseModel):
@@ -106,7 +116,8 @@ class GetCredentialOfferRequestSchema(BaseModel):
     def _require_offer_id(cls, value: str) -> str:
         value = (value or "").strip()
         if not value:
-            raise ValueError("offer_id is required")
+            msg = "offer_id is required"
+            raise ValueError(msg)
         return value
 
 
@@ -123,7 +134,8 @@ class RedeemPreAuthorizedCodeRequestSchema(BaseModel):
     def _require_code(cls, value: str) -> str:
         value = (value or "").strip()
         if not value:
-            raise ValueError("pre_authorized_code is required")
+            msg = "pre_authorized_code is required"
+            raise ValueError(msg)
         return value
 
     @field_validator("wallet_attestation", mode="before")
@@ -160,7 +172,8 @@ class IssueSdJwtCredentialRequestSchema(BaseModel):
     def _require_access_token(cls, value: str) -> str:
         value = (value or "").strip()
         if not value:
-            raise ValueError("access_token is required")
+            msg = "access_token is required"
+            raise ValueError(msg)
         return value
 
     @field_validator("disclose_claims", mode="before")
@@ -170,7 +183,8 @@ class IssueSdJwtCredentialRequestSchema(BaseModel):
             return []
         if isinstance(value, (list, tuple)):
             return [str(item) for item in value if str(item).strip()]
-        raise ValueError("disclose_claims must be a repeated string field")
+        msg = "disclose_claims must be a repeated string field"
+        raise ValueError(msg)
 
     @field_validator("wallet_attestation", mode="before")
     @classmethod

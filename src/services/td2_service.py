@@ -115,7 +115,8 @@ class TD2Service:
             
         except Exception as e:
             logger.error(f"Failed to create TD-2 document: {e}")
-            raise TD2IssueError(f"Failed to create document: {str(e)}") from e
+            error_msg = f"Failed to create document: {str(e)}"
+            raise TD2IssueError(error_msg) from e
     
     async def issue_document(self, document_id: str, generate_chip_data: bool = False) -> TD2Document:
         """
@@ -139,7 +140,8 @@ class TD2Service:
             
             # Validate document can be issued
             if document.status != TD2Status.DRAFT:
-                raise TD2IssueError(f"Cannot issue document in status: {document.status}")
+                error_msg = f"Cannot issue document in status: {document.status}"
+                raise TD2IssueError(error_msg)
             
             # Generate chip data if requested
             if generate_chip_data:
@@ -159,7 +161,8 @@ class TD2Service:
             raise
         except Exception as e:
             logger.error(f"Failed to issue TD-2 document {document_id}: {e}")
-            raise TD2IssueError(f"Failed to issue document: {str(e)}") from e
+            error_msg = f"Failed to issue document: {str(e)}"
+            raise TD2IssueError(error_msg) from e
     
     async def verify_document(self, request: TD2DocumentVerifyRequest) -> VerificationResult:
         """
@@ -208,7 +211,8 @@ class TD2Service:
             raise
         except Exception as e:
             logger.exception(f"TD-2 verification failed with unexpected error: {str(e)}")
-            raise TD2VerificationError(f"Verification failed: {str(e)}") from e
+            error_msg = f"Verification failed: {str(e)}"
+            raise TD2VerificationError(error_msg) from e
     
     async def _resolve_document_for_verification(self, request: TD2DocumentVerifyRequest) -> TD2Document:
         """Resolve document from various request sources."""
@@ -232,7 +236,8 @@ class TD2Service:
                 parsed_data = parser.parse_td2_mrz(request.mrz_line1, request.mrz_line2)
                 return await self._create_minimal_document_from_parsed_mrz(parsed_data)
         
-        raise TD2VerificationError("No valid document data provided for verification")
+        error_msg = "No valid document data provided for verification"
+        raise TD2VerificationError(error_msg)
     
     async def _execute_td2_verification_protocol(
         self, 
@@ -418,7 +423,8 @@ class TD2Service:
         """
         document = self.document_storage.get(document_id)
         if not document:
-            raise TD2ServiceError(f"TD-2 document not found: {document_id}")
+            error_msg = f"TD-2 document not found: {document_id}"
+            raise TD2ServiceError(error_msg)
         return document
     
     async def search_documents(self, request: TD2DocumentSearchRequest) -> TD2DocumentSearchResponse:
@@ -460,7 +466,8 @@ class TD2Service:
             
         except Exception as e:
             logger.error(f"Failed to search TD-2 documents: {e}")
-            raise TD2ServiceError(f"Search failed: {str(e)}") from e
+            error_msg = f"Search failed: {str(e)}"
+            raise TD2ServiceError(error_msg) from e
     
     async def update_status(self, document_id: str, new_status: TD2Status, reason: Optional[str] = None) -> TD2Document:
         """
@@ -485,7 +492,8 @@ class TD2Service:
             
             # Validate status transition
             if not self._is_valid_status_transition(document.status, new_status):
-                raise TD2ServiceError(f"Invalid status transition from {document.status} to {new_status}")
+                error_msg = f"Invalid status transition from {document.status} to {new_status}"
+                raise TD2ServiceError(error_msg)
             
             # Update status
             document.status = new_status
@@ -506,7 +514,8 @@ class TD2Service:
             raise
         except Exception as e:
             logger.error(f"Failed to update TD-2 document status: {e}")
-            raise TD2ServiceError(f"Failed to update status: {str(e)}") from e
+            error_msg = f"Failed to update status: {str(e)}"
+            raise TD2ServiceError(error_msg) from e
     
     async def revoke_document(self, document_id: str, reason: str) -> TD2Document:
         """
@@ -549,11 +558,13 @@ class TD2Service:
             
             # Validate document can be renewed
             if document.status not in [TD2Status.ISSUED, TD2Status.ACTIVE]:
-                raise TD2ServiceError(f"Cannot renew document in status: {document.status}")
+                error_msg = f"Cannot renew document in status: {document.status}"
+                raise TD2ServiceError(error_msg)
             
             # Check if document allows renewal
             if document.policy_constraints and not document.policy_constraints.renewable:
-                raise TD2ServiceError("Document is not renewable according to policy")
+                error_msg = "Document is not renewable according to policy"
+                raise TD2ServiceError(error_msg)
             
             # Update expiry date
             document.document_data.date_of_expiry = new_expiry_date
@@ -582,7 +593,8 @@ class TD2Service:
             raise
         except Exception as e:
             logger.error(f"Failed to renew TD-2 document {document_id}: {e}")
-            raise TD2ServiceError(f"Failed to renew document: {str(e)}") from e
+            error_msg = f"Failed to renew document: {str(e)}"
+            raise TD2ServiceError(error_msg) from e
     
     async def get_statistics(self) -> Dict[str, Any]:
         """
@@ -643,26 +655,33 @@ class TD2Service:
     async def _validate_create_request(self, request: TD2DocumentCreateRequest) -> None:
         """Validate document creation request."""
         if not request.personal_data:
-            raise TD2IssueError("Personal data is required")
+            error_msg = "Personal data is required"
+            raise TD2IssueError(error_msg)
         
         if not request.document_data:
-            raise TD2IssueError("Document data is required")
+            error_msg = "Document data is required"
+            raise TD2IssueError(error_msg)
         
         if not request.personal_data.primary_identifier:
-            raise TD2IssueError("Primary identifier (surname) is required")
+            error_msg = "Primary identifier (surname) is required"
+            raise TD2IssueError(error_msg)
         
         if not request.personal_data.nationality:
-            raise TD2IssueError("Nationality is required")
+            error_msg = "Nationality is required"
+            raise TD2IssueError(error_msg)
         
         if not request.document_data.document_number:
-            raise TD2IssueError("Document number is required")
+            error_msg = "Document number is required"
+            raise TD2IssueError(error_msg)
         
         if not request.document_data.issuing_state:
-            raise TD2IssueError("Issuing state is required")
+            error_msg = "Issuing state is required"
+            raise TD2IssueError(error_msg)
         
         # Validate dates
         if request.document_data.date_of_expiry <= request.document_data.date_of_issue:
-            raise TD2IssueError("Expiry date must be after issue date")
+            error_msg = "Expiry date must be after issue date"
+            raise TD2IssueError(error_msg)
     
     async def _generate_chip_data(self, document: TD2Document) -> None:
         """Generate chip data for document."""

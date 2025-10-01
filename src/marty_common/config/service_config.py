@@ -55,7 +55,8 @@ class SecurityConfig(BaseModel):
     def validate_secrets(cls, v: str) -> str:
         """Validate secret length."""
         if len(v) < 32:
-            raise ValueError("Secrets must be at least 32 characters")
+            msg = "Secrets must be at least 32 characters"
+            raise ValueError(msg)
         return v
 
 
@@ -98,7 +99,8 @@ class MonitoringConfig(BaseModel):
         """Validate log level."""
         valid_levels = ["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"]
         if v.upper() not in valid_levels:
-            raise ValueError(f"Log level must be one of: {valid_levels}")
+            msg = f"Log level must be one of: {valid_levels}"
+            raise ValueError(msg)
         return v.upper()
 
 
@@ -117,7 +119,8 @@ class TrustConfig(BaseModel):
         """Validate trust policy."""
         valid_policies = ["fail_closed", "fail_open", "selective"]
         if v not in valid_policies:
-            raise ValueError(f"Trust policy must be one of: {valid_policies}")
+            msg = f"Trust policy must be one of: {valid_policies}"
+            raise ValueError(msg)
         return v
 
 
@@ -180,7 +183,8 @@ class ServiceConfig(BaseModel):
         config_path = Path(config_path)
         
         if not config_path.exists():
-            raise FileNotFoundError(f"Configuration file not found: {config_path}")
+            msg = f"Configuration file not found: {config_path}"
+            raise FileNotFoundError(msg)
         
         with open(config_path, "r") as f:
             config_data = yaml.safe_load(f)

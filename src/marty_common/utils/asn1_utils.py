@@ -304,8 +304,7 @@ def verify_cms_signature(cms_data: bytes, cert_data: Optional[bytes] = None) -> 
         certificates = []
         if cert_data is None:
             if "certificates" in signed_data and signed_data["certificates"].native:
-                for cert in signed_data["certificates"]:
-                    certificates.append(cert.chosen)
+                certificates.extend(cert.chosen for cert in signed_data["certificates"])
         else:
             # Convert PEM to DER if necessary
             if is_pem(cert_data):

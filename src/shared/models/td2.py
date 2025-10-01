@@ -96,7 +96,8 @@ class PersonalData(BaseModel):
     def validate_nationality(cls, v):
         """Validate nationality is 3-letter uppercase code."""
         if not v.isalpha() or len(v) != 3:
-            raise ValueError("Nationality must be 3-letter alphabetic code")
+            msg = "Nationality must be 3-letter alphabetic code"
+            raise ValueError(msg)
         return v.upper()
     
     @field_validator('primary_identifier', 'secondary_identifier')
@@ -107,7 +108,8 @@ class PersonalData(BaseModel):
             return v
         allowed_chars = set("ABCDEFGHIJKLMNOPQRSTUVWXYZ '<>-")
         if not all(c in allowed_chars for c in v.upper()):
-            raise ValueError("Names must contain only letters, spaces, apostrophes, angle brackets, and hyphens")
+            msg = "Names must contain only letters, spaces, apostrophes, angle brackets, and hyphens"
+            raise ValueError(msg)
         return v.upper()
 
 

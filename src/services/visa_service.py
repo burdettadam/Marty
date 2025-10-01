@@ -112,11 +112,11 @@ class VisaService:
             self.visa_storage[visa.visa_id] = visa
             
             logger.info(f"Visa created successfully: {visa.visa_id}")
-            return visa
-            
         except Exception as e:
             logger.error(f"Visa creation failed: {str(e)}")
             raise VisaIssueError(f"Failed to create visa: {str(e)}") from e
+        else:
+            return visa
     
     async def issue_visa(self, visa_id: str, issued_by: Optional[str] = None) -> Visa:
         """
@@ -152,11 +152,11 @@ class VisaService:
                 await self._generate_vds_nc_data(visa)
             
             logger.info(f"Visa issued successfully: {visa_id}")
-            return visa
-            
         except Exception as e:
             logger.error(f"Visa issuance failed: {str(e)}")
             raise VisaIssueError(f"Failed to issue visa: {str(e)}") from e
+        else:
+            return visa
     
     async def verify_visa(self, request: VisaVerifyRequest) -> VerificationResult:
         """
@@ -183,11 +183,11 @@ class VisaService:
             result = await self.verification_engine.verify_visa(request, reference_visa)
             
             logger.info(f"Visa verification completed: valid={result.is_valid}")
-            return result
-            
         except Exception as e:
             logger.error(f"Visa verification failed: {str(e)}")
             raise VisaVerificationError(f"Verification failed: {str(e)}") from e
+        else:
+            return result
     
     async def get_visa(self, visa_id: str) -> Visa:
         """
@@ -243,11 +243,11 @@ class VisaService:
             )
             
             logger.info(f"Search completed: {len(paginated_visas)} visas returned")
-            return response
-            
         except Exception as e:
             logger.error(f"Visa search failed: {str(e)}")
             raise VisaServiceError(f"Search failed: {str(e)}") from e
+        else:
+            return response
     
     async def update_visa_status(
         self, 
@@ -288,11 +288,11 @@ class VisaService:
             visa.update_timestamp()
             
             logger.info(f"Visa status updated: {visa_id} from {old_status} to {new_status}")
-            return visa
-            
         except Exception as e:
             logger.error(f"Status update failed: {str(e)}")
             raise VisaServiceError(f"Failed to update status: {str(e)}") from e
+        else:
+            return visa
     
     async def revoke_visa(
         self, 
@@ -351,11 +351,11 @@ class VisaService:
             visa.update_timestamp()
             
             logger.info(f"Visa renewed: {visa_id} with new expiry {new_expiry}")
-            return visa
-            
         except Exception as e:
             logger.error(f"Visa renewal failed: {str(e)}")
             raise VisaServiceError(f"Failed to renew visa: {str(e)}") from e
+        else:
+            return visa
     
     async def _validate_create_request(self, request: VisaCreateRequest) -> None:
         """Validate visa creation request."""

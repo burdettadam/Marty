@@ -421,7 +421,8 @@ async def serve_service_async(
 
     registrar = SERVICE_REGISTRARS.get(service.name)
     if not registrar:
-        raise ValueError(f"Unknown service name: {service.name}")
+        msg = f"Unknown service name: {service.name}"
+        raise ValueError(msg)
 
     registrar(server, channels, health, dependencies)
 

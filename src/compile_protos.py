@@ -100,44 +100,45 @@ def main() -> bool:
         ]
 
         subprocess.run(cmd, check=True, capture_output=True, text=True)
+    except (subprocess.CalledProcessError, FileNotFoundError, OSError) as e:
+        logger.warning("grpc_tools.protoc failed, trying system protoc: %s", e)
+    else:
         logger.info("Successfully compiled proto files using grpc_tools.protoc")
         fix_grpc_imports()
         create_init_file()
         return True
 
-    except Exception as e:
-        logger.warning("grpc_tools.protoc failed, trying system protoc: %s", e)
+    # Fallback to system protoc
+    try:
+        cmd_python = [
+            "protoc",
+            f"--proto_path={PROTO_DIR}",
+            f"--python_out={OUTPUT_DIR}",
+            *[str(proto_file) for proto_file in proto_files],
+        ]
+
+        subprocess.run(cmd_python, check=True, capture_output=True, text=True)
+
+        cmd_grpc = [
+            "protoc",
+            f"--proto_path={PROTO_DIR}",
+            f"--grpc_python_out={OUTPUT_DIR}",
+            *[str(proto_file) for proto_file in proto_files],
+        ]
 
         try:
-            cmd_python = [
-                "protoc",
-                f"--proto_path={PROTO_DIR}",
-                f"--python_out={OUTPUT_DIR}",
-                *[str(proto_file) for proto_file in proto_files],
-            ]
+            subprocess.run(cmd_grpc, check=True, capture_output=True, text=True)
+        except subprocess.CalledProcessError:
+            logger.warning("gRPC generation failed, only Python protobuf files")
 
-            subprocess.run(cmd_python, check=True, capture_output=True, text=True)
-
-            cmd_grpc = [
-                "protoc",
-                f"--proto_path={PROTO_DIR}",
-                f"--grpc_python_out={OUTPUT_DIR}",
-                *[str(proto_file) for proto_file in proto_files],
-            ]
-
-            try:
-                subprocess.run(cmd_grpc, check=True, capture_output=True, text=True)
-            except subprocess.CalledProcessError:
-                logger.warning("gRPC generation failed, only Python protobuf files")
-
-            logger.info("Successfully compiled proto files using system protoc")
-            fix_grpc_imports()
-            create_init_file()
-            return True
-
-        except Exception as e2:
-            logger.exception("System protoc also failed: %s", e2)
-            return False
+    except (subprocess.CalledProcessError, FileNotFoundError, OSError):
+        logger.exception("System protoc also failed")
+        return False
+    else:
+        logger.info("Successfully compiled proto files using system protoc")
+        fix_grpc_imports()
+        create_init_file()
+        return True
 
     return False
 

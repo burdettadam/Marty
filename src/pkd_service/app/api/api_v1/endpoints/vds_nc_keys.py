@@ -1,7 +1,7 @@
 """PKD API endpoints for VDS-NC key distribution.
 
 Provides RESTful endpoints for distributing VDS-NC signer public keys
-according to the unified trust protocol.
+according to ICAO Doc 9303 Part 13 and the unified trust protocol.
 """
 
 from __future__ import annotations

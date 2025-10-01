@@ -477,12 +477,11 @@ class VDSNCKeyManager:
         """
         all_keys = await self.list_keys(status=KeyStatus.ACTIVE)
 
-        needs_rotation = []
-        for metadata in all_keys:
-            if metadata.needs_rotation(self.rotation_config.warning_days):
-                needs_rotation.append(
-                    (metadata.issuer_country, metadata.role.value, metadata)
-                )
+        needs_rotation = [
+            (metadata.issuer_country, metadata.role.value, metadata)
+            for metadata in all_keys
+            if metadata.needs_rotation(self.rotation_config.warning_days)
+        ]
 
         return needs_rotation
 

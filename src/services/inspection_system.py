@@ -371,12 +371,10 @@ class InspectionSystem(inspection_system_pb2_grpc.InspectionSystemServicer):
 
         if result.errors:
             lines.append("Errors:")
-            for err in result.errors:
-                lines.append(f"  - {err}")
+            lines.extend(f"  - {err}" for err in result.errors)
 
         if result.warnings:
             lines.append("Warnings:")
-            for warn in result.warnings:
-                lines.append(f"  - {warn}")
+            lines.extend(f"  - {warn}" for warn in result.warnings)
 
         return "\n".join(lines)

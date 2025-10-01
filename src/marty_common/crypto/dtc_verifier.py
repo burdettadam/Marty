@@ -103,9 +103,11 @@ class DTCVerifier:
             elif actual.lower() != expected_hash.lower():
                 mismatches.append(f"Hash mismatch for DG{dg_number}")
 
-        for dg_number in computed_hashes:
-            if str(dg_number) not in expected_hashes:
-                mismatches.append(f"Unexpected DG{dg_number} in credential payload")
+        mismatches.extend(
+            f"Unexpected DG{dg_number} in credential payload"
+            for dg_number in computed_hashes
+            if str(dg_number) not in expected_hashes
+        )
 
         return DTCIntegrityResult(
             is_valid=len(mismatches) == 0,

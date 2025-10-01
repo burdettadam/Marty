@@ -200,10 +200,11 @@ class DatabaseKeyStore(KeyStore):
                     json.dumps(metadata.tags),
                 ),
             )
-            return True
         except Exception as e:
             logger.exception(f"Failed to store key {key_id}: {e}")
             return False
+        else:
+            return True
 
     def get_key(self, key_id: str) -> Optional[tuple[bytes, KeyMetadata]]:
         """Retrieve a key and its metadata."""
@@ -248,11 +249,11 @@ class DatabaseKeyStore(KeyStore):
                 rotation_policy_id=rotation_policy_id,
                 tags=json.loads(tags) if tags else {},
             )
-
-            return key_data, metadata
         except Exception as e:
             logger.exception(f"Failed to get key {key_id}: {e}")
             return None
+        else:
+            return key_data, metadata
 
     def list_keys(
         self, service_name: Optional[str] = None, key_type: Optional[KeyType] = None
@@ -314,21 +315,22 @@ class DatabaseKeyStore(KeyStore):
                     tags=json.loads(tags) if tags else {},
                 )
                 keys.append(metadata)
-
-            return keys
         except Exception as e:
             logger.exception(f"Failed to list keys: {e}")
             return []
+        else:
+            return keys
 
     def delete_key(self, key_id: str) -> bool:
         """Delete a key."""
         try:
             delete_sql = "DELETE FROM key_store WHERE key_id = %s"
             self.db.execute(delete_sql, (key_id,))
-            return True
         except Exception as e:
             logger.exception(f"Failed to delete key {key_id}: {e}")
             return False
+        else:
+            return True
 
     def update_key_metadata(self, key_id: str, metadata: KeyMetadata) -> bool:
         """Update key metadata."""
@@ -351,10 +353,11 @@ class DatabaseKeyStore(KeyStore):
                     key_id,
                 ),
             )
-            return True
         except Exception as e:
             logger.exception(f"Failed to update key metadata for {key_id}: {e}")
             return False
+        else:
+            return True
 
 
 class KeyDistributor:
@@ -389,11 +392,14 @@ class KeyDistributor:
         try:
             # Handler should implement rotation notification
             if hasattr(handler, "on_key_rotation"):
-                return handler.on_key_rotation(old_key_id, new_key_id)
-            return True
+                rotation_result = handler.on_key_rotation(old_key_id, new_key_id)
+            else:
+                rotation_result = True
         except Exception as e:
             logger.exception(f"Failed to notify {service_name} about rotation: {e}")
             return False
+        else:
+            return rotation_result
 
 
 class KeyRotationManager:
@@ -463,11 +469,11 @@ class KeyRotationManager:
                 logger.warning(f"Failed to distribute key {key_id} to {service_name}")
 
             logger.info(f"Created key {key_id} for {service_name}")
-            return key_id
-
         except Exception as e:
             logger.exception(f"Failed to create key: {e}")
             return None
+        else:
+            return key_id
 
     def rotate_key(self, key_id: str) -> Optional[str]:
         """Rotate a specific key."""
@@ -519,11 +525,11 @@ class KeyRotationManager:
             threading.Thread(target=deprecate_old_key, daemon=True).start()
 
             logger.info(f"Rotated key {key_id} -> {new_key_id}")
-            return new_key_id
-
         except Exception as e:
             logger.exception(f"Failed to rotate key {key_id}: {e}")
             return None
+        else:
+            return new_key_id
 
     def revoke_key(self, key_id: str, reason: str = "") -> bool:
         """Revoke a key."""
@@ -541,12 +547,14 @@ class KeyRotationManager:
                 # Revoke in HSM
                 self.hsm.revoke_key(key_id)
                 logger.info(f"Revoked key {key_id}: {reason}")
-                return True
-
-            return False
+                success = True
+            else:
+                success = False
         except Exception as e:
             logger.exception(f"Failed to revoke key {key_id}: {e}")
             return False
+        else:
+            return success
 
     def start_automatic_rotation(self, check_interval: int = 3600) -> None:
         """Start automatic key rotation monitoring."""

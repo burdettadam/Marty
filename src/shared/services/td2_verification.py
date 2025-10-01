@@ -630,14 +630,12 @@ class TD2VerificationEngine:
         if result.errors:
             report.append("")
             report.append("Errors:")
-            for error in result.errors:
-                report.append(f"  - {error}")
+            report.extend(f"  - {error}" for error in result.errors)
         
         # Warnings
         if result.warnings:
             report.append("")
             report.append("Warnings:")
-            for warning in result.warnings:
-                report.append(f"  - {warning}")
+            report.extend(f"  - {warning}" for warning in result.warnings)
         
         return "\n".join(report)

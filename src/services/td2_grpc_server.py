@@ -55,8 +55,6 @@ class TD2ServiceGRPC:
             response = self._convert_create_response(document, True, "Document created successfully")
             
             logger.info(f"TD-2 document created via gRPC: {document.document_id}")
-            return response
-            
         except TD2IssueError as e:
             logger.error(f"TD-2 creation error: {e}")
             response = self._convert_create_response(None, False, str(e), [str(e)])
@@ -66,6 +64,8 @@ class TD2ServiceGRPC:
             context.set_code(StatusCode.INTERNAL)
             context.set_details(f"Internal error: {str(e)}")
             raise
+        else:
+            return response
     
     async def IssueTD2Document(self, request, context):
         """Issue (finalize) a TD-2 document."""
@@ -82,8 +82,6 @@ class TD2ServiceGRPC:
             response = self._convert_issue_response(document, True, "Document issued successfully")
             
             logger.info(f"TD-2 document issued via gRPC: {document.document_id}")
-            return response
-            
         except TD2ServiceError as e:
             logger.error(f"TD-2 issuance error: {e}")
             response = self._convert_issue_response(None, False, str(e), [str(e)])
@@ -93,6 +91,8 @@ class TD2ServiceGRPC:
             context.set_code(StatusCode.INTERNAL)
             context.set_details(f"Internal error: {str(e)}")
             raise
+        else:
+            return response
     
     async def VerifyTD2Document(self, request, context):
         """Verify a TD-2 document."""
@@ -117,8 +117,6 @@ class TD2ServiceGRPC:
             response = self._convert_verify_response(result, document, True, "Verification completed")
             
             logger.info(f"TD-2 verification completed via gRPC: valid={result.is_valid}")
-            return response
-            
         except TD2VerificationError as e:
             logger.error(f"TD-2 verification error: {e}")
             response = self._convert_verify_response(None, None, False, str(e))
@@ -128,6 +126,8 @@ class TD2ServiceGRPC:
             context.set_code(StatusCode.INTERNAL)
             context.set_details(f"Internal error: {str(e)}")
             raise
+        else:
+            return response
     
     async def GetTD2Document(self, request, context):
         """Get a TD-2 document by ID."""
@@ -141,8 +141,6 @@ class TD2ServiceGRPC:
             response = self._convert_get_response(document, True, "Document retrieved successfully")
             
             logger.info(f"TD-2 document retrieved via gRPC: {document.document_id}")
-            return response
-            
         except TD2ServiceError as e:
             logger.error(f"TD-2 get error: {e}")
             response = self._convert_get_response(None, False, str(e))
@@ -152,6 +150,8 @@ class TD2ServiceGRPC:
             context.set_code(StatusCode.INTERNAL)
             context.set_details(f"Internal error: {str(e)}")
             raise
+        else:
+            return response
     
     async def SearchTD2Documents(self, request, context):
         """Search TD-2 documents."""
@@ -168,8 +168,6 @@ class TD2ServiceGRPC:
             response = self._convert_search_response(search_response)
             
             logger.info(f"TD-2 search completed via gRPC: {len(search_response.documents)} results")
-            return response
-            
         except TD2ServiceError as e:
             logger.error(f"TD-2 search error: {e}")
             response = self._convert_search_response_error(str(e))
@@ -179,6 +177,8 @@ class TD2ServiceGRPC:
             context.set_code(StatusCode.INTERNAL)
             context.set_details(f"Internal error: {str(e)}")
             raise
+        else:
+            return response
     
     async def UpdateTD2DocumentStatus(self, request, context):
         """Update TD-2 document status."""
@@ -199,8 +199,6 @@ class TD2ServiceGRPC:
             response = self._convert_update_status_response(document, True, "Status updated successfully")
             
             logger.info(f"TD-2 document status updated via gRPC: {document.document_id}")
-            return response
-            
         except TD2ServiceError as e:
             logger.error(f"TD-2 status update error: {e}")
             response = self._convert_update_status_response(None, False, str(e))
@@ -210,6 +208,8 @@ class TD2ServiceGRPC:
             context.set_code(StatusCode.INTERNAL)
             context.set_details(f"Internal error: {str(e)}")
             raise
+        else:
+            return response
     
     async def RevokeTD2Document(self, request, context):
         """Revoke a TD-2 document."""
@@ -226,8 +226,6 @@ class TD2ServiceGRPC:
             response = self._convert_revoke_response(document, True, "Document revoked successfully")
             
             logger.info(f"TD-2 document revoked via gRPC: {document.document_id}")
-            return response
-            
         except TD2ServiceError as e:
             logger.error(f"TD-2 revocation error: {e}")
             response = self._convert_revoke_response(None, False, str(e))
@@ -237,6 +235,8 @@ class TD2ServiceGRPC:
             context.set_code(StatusCode.INTERNAL)
             context.set_details(f"Internal error: {str(e)}")
             raise
+        else:
+            return response
     
     async def RenewTD2Document(self, request, context):
         """Renew a TD-2 document."""
@@ -262,8 +262,6 @@ class TD2ServiceGRPC:
             response = self._convert_renew_response(document, True, "Document renewed successfully")
             
             logger.info(f"TD-2 document renewed via gRPC: {document.document_id}")
-            return response
-            
         except TD2ServiceError as e:
             logger.error(f"TD-2 renewal error: {e}")
             response = self._convert_renew_response(None, False, str(e))
@@ -277,6 +275,8 @@ class TD2ServiceGRPC:
             context.set_code(StatusCode.INTERNAL)
             context.set_details(f"Internal error: {str(e)}")
             raise
+        else:
+            return response
     
     async def GetTD2Statistics(self, request, context):
         """Get TD-2 document statistics."""
@@ -290,13 +290,13 @@ class TD2ServiceGRPC:
             response = self._convert_statistics_response(stats)
             
             logger.info("TD-2 statistics retrieved via gRPC")
-            return response
-            
         except Exception as e:
             logger.error(f"Unexpected error in GetTD2Statistics: {e}")
             context.set_code(StatusCode.INTERNAL)
             context.set_details(f"Internal error: {str(e)}")
             raise
+        else:
+            return response
     
     async def GetExpiringTD2Documents(self, request, context):
         """Get expiring TD-2 documents."""
@@ -324,13 +324,13 @@ class TD2ServiceGRPC:
             response = self._convert_expiring_response(paginated_documents, len(documents))
             
             logger.info(f"TD-2 expiring documents retrieved via gRPC: {len(paginated_documents)} results")
-            return response
-            
         except Exception as e:
             logger.error(f"Unexpected error in GetExpiringTD2Documents: {e}")
             context.set_code(StatusCode.INTERNAL)
             context.set_details(f"Internal error: {str(e)}")
             raise
+        else:
+            return response
     
     # Conversion helper methods (mock implementations for protobuf conversion)
     

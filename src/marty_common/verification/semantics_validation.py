@@ -374,20 +374,20 @@ class CategoryConstraintValidator:
     
     def _validate_passport_constraints(self, document_data: Dict[str, Any]) -> List[SemanticsResult]:
         """Validate passport-specific constraints."""
-        results = []
-        
         # Passport should have complete personal information
         required_fields = ["given_names", "surname", "nationality"]
-        for field in required_fields:
-            if not document_data.get(field):
-                results.append(SemanticsResult(
-                    check_name=f"passport_{field}",
-                    passed=False,
-                    details=f"Passport missing required field: {field}",
-                    violation_level=PolicyViolationLevel.WARNING,
-                    confidence=0.8,
-                    error_code="MISSING_REQUIRED_FIELD"
-                ))
+        results = [
+            SemanticsResult(
+                check_name=f"passport_{field}",
+                passed=False,
+                details=f"Passport missing required field: {field}",
+                violation_level=PolicyViolationLevel.WARNING,
+                confidence=0.8,
+                error_code="MISSING_REQUIRED_FIELD"
+            )
+            for field in required_fields
+            if not document_data.get(field)
+        ]
         
         return results
 

@@ -168,16 +168,16 @@ select = [
     "RUF", # ruff-specific rules
 ]
 ignore = [
-    "ANN001", # Missing type annotation for function argument
-    "ANN002", # Missing type annotation for *args
-    "ANN003", # Missing type annotation for **kwargs
+    "ANN001", # Missing type annotation for function argument (gradual typing)
+    "ANN002", # Missing type annotation for *args (gradual typing)
+    "ANN003", # Missing type annotation for **kwargs (gradual typing)
     "COM812", # Missing trailing comma (conflicts with formatter)
     "ISC001", # Single line implicit string concatenation (conflicts with formatter)
-    "D100",   # Missing docstring in public module
-    "D104",   # Missing docstring in public package
+    "D100",   # Missing docstring in public module (gradual documentation)
+    "D104",   # Missing docstring in public package (gradual documentation)
     "S101",   # Use of assert (common in tests)
-    "PLR0913", # Too many arguments in function definition
-    "PLR2004", # Magic value used in comparison
+    "PLR0913", # Too many arguments in function definition (often overly strict)
+    "PLR2004", # Magic value used in comparison (context-dependent)
 ]
 
 [tool.ruff.lint.per-file-ignores]
@@ -190,6 +190,13 @@ ignore = [
     "S101",    # Use of assert
     "PLR2004", # Magic values in tests are OK
     "ANN",     # Type annotations not required in tests
+]
+"src/compile_protos.py" = [
+    "S603",    # subprocess without shell=True
+    "EXE001",  # Shebang is present but file is not executable (fixed with chmod)
+]
+"src/**/data_group_hasher.py" = [
+    "ANN401",  # Dynamically typed expressions (Any) disallowed
 ]
 
 [tool.ruff.lint.mccabe]
@@ -378,7 +385,11 @@ ignore_missing_imports = true
 
 [tool.bandit]
 exclude_dirs = ["tests", "src/tests"]
-skips = ["B101"]  # Skip assert_used test
+skips = [
+    "B101",  # Skip assert_used test
+    "B404",  # Skip subprocess import warnings (handled by ruff)
+    "B603",  # Skip subprocess without shell=True when properly used
+]
 
 [tool.bandit.assert_used]
 skips = ["*_test.py", "*test*.py"]

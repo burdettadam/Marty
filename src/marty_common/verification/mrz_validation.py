@@ -281,10 +281,7 @@ class MRZValidator:
         """Validate MRZ character set (A-Z, 0-9, <)."""
         valid_chars = set("ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789<")
         
-        invalid_chars = []
-        for char in line:
-            if char not in valid_chars:
-                invalid_chars.append(char)
+        invalid_chars = [char for char in line if char not in valid_chars]
         
         if invalid_chars:
             return MRZValidationResult(

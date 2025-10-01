@@ -85,9 +85,8 @@ class EACCertificate:
     def __post_init__(self):
         """Validate certificate dates and structure"""
         if self.certificate_expiration_date <= self.certificate_effective_date:
-            raise CertificateValidationError(
-                "Certificate expiration date must be after effective date"
-            )
+            msg = "Certificate expiration date must be after effective date"
+            raise CertificateValidationError(msg)
 
     def is_valid_at(self, check_date: Optional[datetime] = None) -> bool:
         """Check if certificate is valid at given date"""
@@ -157,7 +156,8 @@ class EACTerminalAuthentication:
     def set_certificate_chain(self, chain: List[EACCertificate]) -> None:
         """Set the certificate chain (CVCA -> DV -> Terminal)"""
         if not chain:
-            raise CertificateValidationError("Certificate chain cannot be empty")
+            msg = "Certificate chain cannot be empty"
+            raise CertificateValidationError(msg)
 
         # Validate chain order and signatures
         for i in range(len(chain) - 1):
@@ -166,9 +166,8 @@ class EACTerminalAuthentication:
 
             # Verify signature chain
             if not self._verify_certificate_signature(current_cert, next_cert):
-                raise CertificateValidationError(
-                    f"Invalid signature in certificate chain at position {i}"
-                )
+                msg = f"Invalid signature in certificate chain at position {i}"
+                raise CertificateValidationError(msg)
 
         self.certificate_chain = chain
         logger.info(f"Certificate chain set with {len(chain)} certificates")
@@ -199,7 +198,8 @@ class EACTerminalAuthentication:
             Signed challenge response
         """
         if not self.certificate_chain:
-            raise TerminalAuthenticationError("Certificate chain not set")
+            msg = "Certificate chain not set"
+            raise TerminalAuthenticationError(msg)
 
         try:
             # Sign the chip challenge with terminal private key
@@ -208,7 +208,8 @@ class EACTerminalAuthentication:
             elif isinstance(self.terminal_private_key, rsa.RSAPrivateKey):
                 signature = self._sign_rsa_challenge(chip_challenge)
             else:
-                raise TerminalAuthenticationError("Unsupported private key type")
+                msg = "Unsupported private key type"
+                raise TerminalAuthenticationError(msg)
 
             # Store challenge-response pair for audit
             self.challenge_response_pairs.append((chip_challenge, signature))
@@ -217,12 +218,14 @@ class EACTerminalAuthentication:
             return signature
 
         except Exception as e:
-            raise TerminalAuthenticationError(f"Failed to sign challenge: {e}")
+            msg = f"Failed to sign challenge: {e}"
+            raise TerminalAuthenticationError(msg)
 
     def _sign_ecdsa_challenge(self, challenge: bytes) -> bytes:
         """Sign challenge using ECDSA"""
         if not isinstance(self.terminal_private_key, ec.EllipticCurvePrivateKey):
-            raise TerminalAuthenticationError("ECDSA key required")
+            msg = "ECDSA key required"
+            raise TerminalAuthenticationError(msg)
 
         signature = self.terminal_private_key.sign(challenge, ec.ECDSA(hashes.SHA256()))
         return signature
@@ -230,7 +233,8 @@ class EACTerminalAuthentication:
     def _sign_rsa_challenge(self, challenge: bytes) -> bytes:
         """Sign challenge using RSA"""
         if not isinstance(self.terminal_private_key, rsa.RSAPrivateKey):
-            raise TerminalAuthenticationError("RSA key required")
+            msg = "RSA key required"
+            raise TerminalAuthenticationError(msg)
 
         signature = self.terminal_private_key.sign(
             challenge,
@@ -302,7 +306,8 @@ class EACChipAuthentication:
             raise ChipAuthenticationError(f"Unsupported algorithm: {self.algorithm}")
 
         except Exception as e:
-            raise ChipAuthenticationError(f"Failed to generate ephemeral keypair: {e}")
+            msg = f"Failed to generate ephemeral keypair: {e}"
+            raise ChipAuthenticationError(msg)
 
     def _generate_ecdh_keypair(self) -> Tuple[bytes, ec.EllipticCurvePrivateKey]:
         """Generate ECDH ephemeral keypair"""
@@ -313,7 +318,8 @@ class EACChipAuthentication:
         elif self.algorithm == EACCryptoAlgorithm.ECDH_BRAINPOOL_P256R1_SHA256:
             curve = ec.BrainpoolP256R1()
         else:
-            raise ChipAuthenticationError(f"Unsupported ECDH algorithm: {self.algorithm}")
+            msg = f"Unsupported ECDH algorithm: {self.algorithm}"
+            raise ChipAuthenticationError(msg)
 
         private_key = ec.generate_private_key(curve)
         public_key = private_key.public_key()
@@ -356,7 +362,8 @@ class EACChipAuthentication:
             Shared secret for secure channel derivation
         """
         if not self.ephemeral_key_pair:
-            raise ChipAuthenticationError("Ephemeral keypair not generated")
+            msg = "Ephemeral keypair not generated"
+            raise ChipAuthenticationError(msg)
 
         try:
             if self.algorithm.value.startswith("ecdh"):
@@ -364,14 +371,16 @@ class EACChipAuthentication:
             elif self.algorithm.value.startswith("rsa"):
                 shared_secret = self._perform_rsa_key_agreement(chip_ephemeral_public_key)
             else:
-                raise ChipAuthenticationError(f"Unsupported algorithm: {self.algorithm}")
+                msg = f"Unsupported algorithm: {self.algorithm}"
+                raise ChipAuthenticationError(msg)
 
             self.shared_secret = shared_secret
             logger.info("Chip Authentication completed successfully")
             return shared_secret
 
         except Exception as e:
-            raise ChipAuthenticationError(f"Failed to perform chip authentication: {e}")
+            msg = f"Failed to perform chip authentication: {e}"
+            raise ChipAuthenticationError(msg)
 
     def _perform_ecdh(self, peer_public_key_bytes: bytes) -> bytes:
         """Perform ECDH key agreement"""
@@ -446,7 +455,8 @@ class EACSecureMessaging:
             logger.info("EAC secure messaging keys derived successfully")
 
         except Exception as e:
-            raise EACError(f"Failed to derive session keys: {e}")
+            msg = f"Failed to derive session keys: {e}"
+            raise EACError(msg)
 
     def encrypt_apdu(self, apdu_data: bytes) -> bytes:
         """

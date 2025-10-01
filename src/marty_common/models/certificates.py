@@ -408,11 +408,11 @@ class CSCAMasterList:
 
     def get_certificates_for_country(self, country_code: str) -> list[Certificate]:
         """Get all CSCA certificates for a specific country."""
-        certificates = []
-        for entry in self.entries:
-            if entry.country.upper() == country_code.upper():
-                certificates.append(entry.certificate)
-        return certificates
+        return [
+            entry.certificate
+            for entry in self.entries
+            if entry.country.upper() == country_code.upper()
+        ]
 
     def is_valid(self, current_time: Optional[datetime] = None) -> bool:
         """Check if master list is currently valid."""

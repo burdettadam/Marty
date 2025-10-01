@@ -354,7 +354,7 @@ class AnomalyDetector:
                 severity = AnomalySeverity.CRITICAL if z_score > 5 else AnomalySeverity.HIGH
 
                 alert = KeyAnomalyAlert(
-                    alert_id=self._generate_alert_id(key_id, AnomalyType.UNUSUAL_FREQUENCY),
+                    alert_id=self.generate_alert_id(key_id, AnomalyType.UNUSUAL_FREQUENCY),
                     key_id=key_id,
                     anomaly_type=AnomalyType.UNUSUAL_FREQUENCY,
                     severity=severity,
@@ -393,7 +393,7 @@ class AnomalyDetector:
 
         if len(unusual_events) > len(events) * 0.3:  # More than 30% outside normal hours
             alert = KeyAnomalyAlert(
-                alert_id=self._generate_alert_id(key_id, AnomalyType.TIME_ANOMALY),
+                alert_id=self.generate_alert_id(key_id, AnomalyType.TIME_ANOMALY),
                 key_id=key_id,
                 anomaly_type=AnomalyType.TIME_ANOMALY,
                 severity=AnomalySeverity.MEDIUM,
@@ -424,14 +424,14 @@ class AnomalyDetector:
 
         # Check against allowed operations
         if key_info and key_info.allowed_operations:
-            unauthorized_ops = []
-            for event in events:
-                if event.operation not in key_info.allowed_operations:
-                    unauthorized_ops.append(event)
+            unauthorized_ops = [
+                event for event in events
+                if event.operation not in key_info.allowed_operations
+            ]
 
             if unauthorized_ops:
                 alert = KeyAnomalyAlert(
-                    alert_id=self._generate_alert_id(key_id, AnomalyType.OPERATION_ANOMALY),
+                    alert_id=self.generate_alert_id(key_id, AnomalyType.OPERATION_ANOMALY),
                     key_id=key_id,
                     anomaly_type=AnomalyType.OPERATION_ANOMALY,
                     severity=AnomalySeverity.HIGH,
@@ -449,14 +449,14 @@ class AnomalyDetector:
 
         # Check against historical patterns
         if pattern and pattern.common_operations:
-            unusual_ops = []
-            for event in events:
-                if event.operation not in pattern.common_operations:
-                    unusual_ops.append(event)
+            unusual_ops = [
+                event for event in events
+                if event.operation not in pattern.common_operations
+            ]
 
             if len(unusual_ops) > len(events) * 0.5:  # More than 50% unusual operations
                 alert = KeyAnomalyAlert(
-                    alert_id=self._generate_alert_id(key_id, AnomalyType.PATTERN_DEVIATION),
+                    alert_id=self.generate_alert_id(key_id, AnomalyType.PATTERN_DEVIATION),
                     key_id=key_id,
                     anomaly_type=AnomalyType.PATTERN_DEVIATION,
                     severity=AnomalySeverity.MEDIUM,
@@ -486,14 +486,14 @@ class AnomalyDetector:
 
         # Check against allowed users
         if key_info and key_info.allowed_users:
-            unauthorized_events = []
-            for event in events:
-                if event.user_id not in key_info.allowed_users:
-                    unauthorized_events.append(event)
+            unauthorized_events = [
+                event for event in events
+                if event.user_id not in key_info.allowed_users
+            ]
 
             if unauthorized_events:
                 alert = KeyAnomalyAlert(
-                    alert_id=self._generate_alert_id(key_id, AnomalyType.UNAUTHORIZED_ACCESS),
+                    alert_id=self.generate_alert_id(key_id, AnomalyType.UNAUTHORIZED_ACCESS),
                     key_id=key_id,
                     anomaly_type=AnomalyType.UNAUTHORIZED_ACCESS,
                     severity=AnomalySeverity.CRITICAL,
@@ -534,7 +534,7 @@ class AnomalyDetector:
 
         if len(unusual_events) > len(events) * 0.2:  # More than 20% from unusual IPs
             alert = KeyAnomalyAlert(
-                alert_id=self._generate_alert_id(key_id, AnomalyType.LOCATION_ANOMALY),
+                alert_id=self.generate_alert_id(key_id, AnomalyType.LOCATION_ANOMALY),
                 key_id=key_id,
                 anomaly_type=AnomalyType.LOCATION_ANOMALY,
                 severity=AnomalySeverity.MEDIUM,
@@ -569,7 +569,7 @@ class AnomalyDetector:
             severity = AnomalySeverity.HIGH if failure_rate > 0.5 else AnomalySeverity.MEDIUM
 
             alert = KeyAnomalyAlert(
-                alert_id=self._generate_alert_id(key_id, AnomalyType.FAILED_OPERATIONS),
+                alert_id=self.generate_alert_id(key_id, AnomalyType.FAILED_OPERATIONS),
                 key_id=key_id,
                 anomaly_type=AnomalyType.FAILED_OPERATIONS,
                 severity=severity,
@@ -603,7 +603,7 @@ class AnomalyDetector:
             expired_events = [e for e in events if e.timestamp > key_info.expires_at]
             if expired_events:
                 alert = KeyAnomalyAlert(
-                    alert_id=self._generate_alert_id(key_id, AnomalyType.EXPIRED_KEY_USAGE),
+                    alert_id=self.generate_alert_id(key_id, AnomalyType.EXPIRED_KEY_USAGE),
                     key_id=key_id,
                     anomaly_type=AnomalyType.EXPIRED_KEY_USAGE,
                     severity=AnomalySeverity.CRITICAL,
@@ -625,7 +625,7 @@ class AnomalyDetector:
             revoked_events = [e for e in events if e.timestamp > key_info.revoked_at]
             if revoked_events:
                 alert = KeyAnomalyAlert(
-                    alert_id=self._generate_alert_id(key_id, AnomalyType.REVOKED_KEY_USAGE),
+                    alert_id=self.generate_alert_id(key_id, AnomalyType.REVOKED_KEY_USAGE),
                     key_id=key_id,
                     anomaly_type=AnomalyType.REVOKED_KEY_USAGE,
                     severity=AnomalySeverity.CRITICAL,
@@ -670,7 +670,7 @@ class AnomalyDetector:
 
             if z_score > 4 * self.sensitivity:  # Significant spike
                 alert = KeyAnomalyAlert(
-                    alert_id=self._generate_alert_id(key_id, AnomalyType.VOLUME_SPIKE),
+                    alert_id=self.generate_alert_id(key_id, AnomalyType.VOLUME_SPIKE),
                     key_id=key_id,
                     anomaly_type=AnomalyType.VOLUME_SPIKE,
                     severity=AnomalySeverity.HIGH,
@@ -690,11 +690,11 @@ class AnomalyDetector:
 
         return []
 
-    def _generate_alert_id(self, key_id: str, anomaly_type: AnomalyType) -> str:
+    def generate_alert_id(self, key_id: str, anomaly_type: AnomalyType) -> str:
         """Generate a unique alert ID."""
         timestamp = int(datetime.now(timezone.utc).timestamp())
         data = f"{key_id}-{anomaly_type.value}-{timestamp}"
-        return hashlib.md5(data.encode()).hexdigest()[:16]
+        return hashlib.sha256(data.encode()).hexdigest()[:16]
 
 
 class KeyUsageAnomalyMonitor:
@@ -822,7 +822,7 @@ class KeyUsageAnomalyMonitor:
         events: list[KeyUsageEvent],
     ) -> None:
         """Create an immediate alert for critical issues."""
-        alert_id = self.detector._generate_alert_id(key_id, anomaly_type)
+        alert_id = self.detector.generate_alert_id(key_id, anomaly_type)
 
         # Check if we already have a similar alert recently
         recent_alerts = [

@@ -7,6 +7,7 @@ for passport data groups according to ICAO Doc 9303 standards.
 
 from __future__ import annotations
 
+import hashlib
 import json
 import logging
 from typing import Any
@@ -53,19 +54,12 @@ class DataGroupHashComputer:
         Raises:
             DataGroupHashingError: If hash computation fails
         """
-        # Validate algorithm first
-        if hash_algorithm not in self.sod_processor.SUPPORTED_HASH_ALGORITHMS:
-            msg = f"Unsupported hash algorithm: {hash_algorithm}"
-            raise DataGroupHashingError(msg)
-
         try:
-            # Get hash function from SODProcessor's supported algorithms
-            hash_func = self.sod_processor.SUPPORTED_HASH_ALGORITHMS[hash_algorithm]
+            hash_func = getattr(hashlib, hash_algorithm.lower())
             return hash_func(data_group_content).digest()
-
-        except Exception as e:
-            msg = "Failed to compute data group hash"
-            raise DataGroupHashingError(msg, str(e)) from e
+        except AttributeError as e:
+            msg = f"Unsupported hash algorithm: {hash_algorithm}"
+            raise DataGroupHashingError(msg) from e
 
     def compute_all_data_group_hashes(
         self, data_groups: dict[int, bytes], hash_algorithm: str

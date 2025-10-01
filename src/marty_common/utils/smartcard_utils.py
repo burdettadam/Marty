@@ -272,14 +272,16 @@ class EPassportReader(SmartCardReader):
             try:
                 mrz = MRZParser.parse_td3_mrz(mrz_data)
             except MRZException as exc:  # pragma: no cover - defensive
-                raise ValueError(f"Invalid MRZ data supplied: {exc}") from exc
+                msg = f"Invalid MRZ data supplied: {exc}"
+                raise ValueError(msg) from exc
         else:
             mrz = mrz_data
 
         # Step 1: obtain challenge from the chip
         challenge_data, sw1, sw2 = self.send_apdu([0x00, 0x84, 0x00, 0x00, 0x08])
         if sw1 != 0x90 or sw2 != 0x00:
-            raise ValueError(f"GET CHALLENGE failed with status {sw1:02X}{sw2:02X}")
+            msg = f"GET CHALLENGE failed with status {sw1:02X}{sw2:02X}"
+            raise ValueError(msg)
         challenge = bytes(challenge_data)
 
         # Step 2: derive BAC keys from MRZ information
@@ -295,7 +297,8 @@ class EPassportReader(SmartCardReader):
 
         auth_response, sw1, sw2 = self.send_apdu(auth_apdu)
         if sw1 != 0x90 or sw2 != 0x00:
-            raise ValueError(f"MUTUAL AUTHENTICATE failed with status {sw1:02X}{sw2:02X}")
+            msg = f"MUTUAL AUTHENTICATE failed with status {sw1:02X}{sw2:02X}"
+            raise ValueError(msg)
 
         session_keys = self.secure_messaging.complete_basic_access_control(
             bac_keys, bytes(auth_response)

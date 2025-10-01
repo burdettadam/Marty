@@ -258,7 +258,8 @@ def get_database_url(config: ServiceConfig) -> str:
     """
     db_url = os.environ.get("DATABASE_URL", config.database_url)
     if not db_url:
-        raise ValueError("Database URL not configured")
+        msg = "Database URL not configured"
+        raise ValueError(msg)
     return db_url
 
 

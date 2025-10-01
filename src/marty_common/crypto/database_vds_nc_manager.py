@@ -100,7 +100,8 @@ class DatabaseVDSNCKeyManager:
         # Get old key info
         old_key = await self.get_key_by_kid(old_kid)
         if not old_key:
-            raise ValueError(f"Old key not found: {old_kid}")
+            msg = f"Old key not found: {old_kid}"
+            raise ValueError(msg)
         
         # Generate new key pair
         private_key, public_key = await self.generate_key_pair(

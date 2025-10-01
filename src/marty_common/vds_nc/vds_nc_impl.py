@@ -320,18 +320,22 @@ class VDSNCVerifier:
         
         # Required fields
         required_fields = ["typ", "doc", "iss", "sur", "nat", "dob", "sex", "exp"]
-        for field in required_fields:
-            if field not in payload:
-                errors.append(f"Missing required field: {field}")
+        errors.extend(
+            f"Missing required field: {field}"
+            for field in required_fields
+            if field not in payload
+        )
         
         # Validate message type
         if payload.get("typ") != "CMC":
             errors.append(f"Invalid message type: {payload.get('typ')}")
         
         # Validate country codes (should be 3 letters)
-        for field in ["iss", "nat"]:
-            if field in payload and len(payload[field]) != 3:
-                errors.append(f"Invalid {field}: must be 3-letter code")
+        errors.extend(
+            f"Invalid {field}: must be 3-letter code"
+            for field in ["iss", "nat"]
+            if field in payload and len(payload[field]) != 3
+        )
         
         # Validate gender
         if "sex" in payload and payload["sex"] not in ["M", "F", "X"]:

@@ -170,11 +170,10 @@ class FaceTemplate:
                 logger.warning(
                     f"Image dimensions mismatch: expected {self.width}x{self.height}, got {image.size}"
                 )
-
-            return image
-
         except Exception as e:
             raise BiometricTemplateError(f"Failed to extract image: {e}")
+        else:
+            return image
 
     def calculate_image_quality(self) -> BiometricQualityScore:
         """Calculate facial image quality metrics"""
@@ -257,10 +256,10 @@ class FaceTemplate:
             )
 
             self.quality_score = quality_score
-            return quality_score
-
         except Exception as e:
             raise BiometricQualityError(f"Failed to calculate face quality: {e}")
+        else:
+            return quality_score
 
 
 @dataclass
@@ -283,14 +282,16 @@ class FingerprintTemplate:
         """Extract minutiae points from fingerprint template"""
         try:
             if self.format == FingerprintFormat.WSQ:
-                return self._extract_wsq_minutiae()
-            if self.format == FingerprintFormat.ISO_FINGER_MINUTIAE:
-                return self._extract_iso_minutiae()
-            logger.warning(f"Minutiae extraction not implemented for {self.format}")
-            return []
-
+                result = self._extract_wsq_minutiae()
+            elif self.format == FingerprintFormat.ISO_FINGER_MINUTIAE:
+                result = self._extract_iso_minutiae()
+            else:
+                logger.warning(f"Minutiae extraction not implemented for {self.format}")
+                result = []
         except Exception as e:
             raise BiometricTemplateError(f"Failed to extract minutiae: {e}")
+        else:
+            return result
 
     def _extract_wsq_minutiae(self) -> list[dict[str, Any]]:
         """Extract minutiae from WSQ compressed fingerprint"""
@@ -360,11 +361,11 @@ class FingerprintTemplate:
                 offset += 6
 
             self.minutiae_points = minutiae
-            return minutiae
-
         except Exception as e:
             logger.error(f"ISO minutiae extraction error: {e}")
             return []
+        else:
+            return minutiae
 
     def calculate_fingerprint_quality(self) -> BiometricQualityScore:
         """Calculate fingerprint template quality"""
@@ -433,10 +434,10 @@ class FingerprintTemplate:
             )
 
             self.quality_score = quality_score
-            return quality_score
-
         except Exception as e:
             raise BiometricQualityError(f"Failed to calculate fingerprint quality: {e}")
+        else:
+            return quality_score
 
 
 @dataclass
@@ -470,11 +471,10 @@ class IrisTemplate:
                 "template_size": len(self.template_data),
                 "capture_device": self.capture_device_id,
             }
-
-            return features
-
         except Exception as e:
             raise BiometricTemplateError(f"Failed to extract iris features: {e}")
+        else:
+            return features
 
     def calculate_iris_quality(self) -> BiometricQualityScore:
         """Calculate iris template quality"""

@@ -35,9 +35,11 @@ def validate_passport_data(data: dict[str, Any]) -> None:
         "dateOfExpiry",
     ]
 
-    for field in required_fields:
-        if field not in data:
-            errors.append(f"Missing required field: {field}")
+    errors.extend(
+        f"Missing required field: {field}"
+        for field in required_fields
+        if field not in data
+    )
 
     if errors:
         raise InvalidInputError(", ".join(errors))
@@ -108,9 +110,11 @@ def validate_certificate_data(data: dict[str, Any]) -> None:
         "status",
     ]
 
-    for field in required_fields:
-        if field not in data:
-            errors.append(f"Missing required field: {field}")
+    errors.extend(
+        f"Missing required field: {field}"
+        for field in required_fields
+        if field not in data
+    )
 
     if errors:
         raise InvalidInputError(", ".join(errors))

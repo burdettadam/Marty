@@ -156,7 +156,8 @@ class ImageProcessor:
             image = Image.open(BytesIO(image_data))
             return image
         except Exception as e:
-            raise ValueError(f"Failed to decode image: {e}")
+            msg = f"Failed to decode image: {e}"
+            raise ValueError(msg)
 
     @staticmethod
     def extract_text_from_image(image: Image.Image) -> list[str]:
@@ -189,7 +190,8 @@ class MRZProcessingService:
         try:
             # Validate scenario
             if request.processParam.scenario not in settings.SUPPORTED_SCENARIOS:
-                raise ValueError(f"Unsupported scenario: {request.processParam.scenario}")
+                msg = f"Unsupported scenario: {request.processParam.scenario}"
+                raise ValueError(msg)
 
             # Generate transaction info
             transaction_info = self._create_transaction_info()
@@ -253,9 +255,11 @@ class MRZProcessingService:
                 text_lines = self.image_processor.extract_text_from_image(image)
             elif image_request.ImageUri:
                 # In real implementation, would fetch from URI
-                raise NotImplementedError("ImageUri processing not yet implemented")
+                msg = "ImageUri processing not yet implemented"
+                raise NotImplementedError(msg)
             else:
-                raise ValueError("No image data provided")
+                msg = "No image data provided"
+                raise ValueError(msg)
 
             # Process MRZ if text was extracted
             mrz_result = None

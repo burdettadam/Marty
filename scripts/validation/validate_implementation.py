@@ -414,8 +414,7 @@ class FeatureValidator:
         if missing:
             report.append("⚠️  CRITICAL MISSING FEATURES")
             report.append("-" * 25)
-            for item in missing[:10]:  # Show top 10
-                report.append(f"  • {item}")
+            report.extend(f"  • {item}" for item in missing[:10])
             if len(missing) > 10:
                 report.append(f"  ... and {len(missing) - 10} more")
         else:

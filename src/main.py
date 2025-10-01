@@ -24,7 +24,8 @@ def resolve_service(name: str) -> ServiceDefinition:
         return SERVICE_DEFINITIONS[name]
     except KeyError as exc:  # pragma: no cover - defensive guard
         valid = ", ".join(available_services())
-        raise ValueError(f"Unknown service '{name}'. Valid options: {valid}") from exc
+        msg = f"Unknown service '{name}'. Valid options: {valid}"
+        raise ValueError(msg) from exc
 
 
 def serve(service_name: str) -> None:
@@ -37,11 +38,12 @@ def main(argv: Sequence[str] | None = None) -> None:
     args = list(argv or sys.argv[1:])
     if not args:
         valid = ", ".join(available_services())
-        raise SystemExit(
+        msg = (
             "src/main.py is deprecated. Choose an explicit service entrypoint, e.g. "
             "'python -m src.apps.csca_service'.\n"
             f"Known services: {valid}"
         )
+        raise SystemExit(msg)
 
     serve(args[0])
 

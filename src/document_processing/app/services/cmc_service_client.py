@@ -89,13 +89,16 @@ class CMCServiceClient:
                 
         except ImportError as e:
             logger.warning("gRPC modules not available for CMC engine")
-            raise CMCServiceError("CMC service not available", {"grpc_error": str(e)}) from e
+            msg = "CMC service not available"
+            raise CMCServiceError(msg, {"grpc_error": str(e)}) from e
         except grpc.RpcError as e:
             logger.exception("CMC engine gRPC error")
-            raise CMCServiceError(f"CMC creation failed: {e.details()}", {"grpc_code": e.code()}) from e
+            msg = f"CMC creation failed: {e.details()}"
+            raise CMCServiceError(msg, {"grpc_code": e.code()}) from e
         except Exception as e:
             logger.exception("Unexpected error calling CMC service")
-            raise CMCServiceError(f"CMC creation failed: {e!s}") from e
+            msg = f"CMC creation failed: {e!s}"
+            raise CMCServiceError(msg) from e
             
     async def sign_cmc(self, cmc_id: str, signer_id: str | None = None) -> dict[str, Any]:
         """Sign a CMC certificate.
@@ -138,10 +141,12 @@ class CMCServiceClient:
             raise CMCServiceError("CMC service not available", {"grpc_error": str(e)}) from e
         except grpc.RpcError as e:
             logger.exception("CMC engine gRPC error")
-            raise CMCServiceError(f"CMC signing failed: {e.details()}", {"grpc_code": e.code()}) from e
+            msg = f"CMC signing failed: {e.details()}"
+            raise CMCServiceError(msg, {"grpc_code": e.code()}) from e
         except Exception as e:
             logger.exception("Unexpected error calling CMC service")
-            raise CMCServiceError(f"CMC signing failed: {e!s}") from e
+            msg = f"CMC signing failed: {e!s}"
+            raise CMCServiceError(msg) from e
             
     async def verify_cmc(self, verification_data: dict[str, Any]) -> dict[str, Any]:
         """Verify a CMC certificate.
@@ -175,20 +180,23 @@ class CMCServiceClient:
                 elif "cmc_id" in verification_data:
                     request.cmc_id = verification_data["cmc_id"]
                 else:
-                    raise CMCServiceError("One of td1_mrz, barcode_data, or cmc_id must be provided")
+                    msg = "One of td1_mrz, barcode_data, or cmc_id must be provided"
+                    raise CMCServiceError(msg)
                 
                 response = await stub.VerifyCMC(request, timeout=self.timeout)
                 
                 # Convert verification results
                 verification_results = []
                 if response.verification_results:
-                    for result in response.verification_results:
-                        verification_results.append({
+                    verification_results = [
+                        {
                             "check_name": result.check_name,
                             "passed": result.passed,
                             "details": result.details,
                             "error_code": getattr(result, "error_code", None)
-                        })
+                        }
+                        for result in response.verification_results
+                    ]
                 
                 return {
                     "success": response.success,
@@ -203,10 +211,12 @@ class CMCServiceClient:
             raise CMCServiceError("CMC service not available", {"grpc_error": str(e)}) from e
         except grpc.RpcError as e:
             logger.exception("CMC engine gRPC error")
-            raise CMCServiceError(f"CMC verification failed: {e.details()}", {"grpc_code": e.code()}) from e
+            error_msg = f"CMC verification failed: {e.details()}"
+            raise CMCServiceError(error_msg, {"grpc_code": e.code()}) from e
         except Exception as e:
             logger.exception("Unexpected error calling CMC service")
-            raise CMCServiceError(f"CMC verification failed: {e!s}") from e
+            error_msg = f"CMC verification failed: {e!s}"
+            raise CMCServiceError(error_msg) from e
             
     async def background_check(self, cmc_id: str, check_authority: str, check_reference: str | None = None) -> dict[str, Any]:
         """Initiate or check background verification for CMC.

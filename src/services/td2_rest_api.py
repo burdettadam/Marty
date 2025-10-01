@@ -188,14 +188,14 @@ class TD2RestAPI:
                 response = self._convert_document_response(document)
                 
                 logger.info(f"TD-2 document created via REST: {document.document_id}")
-                return response
-                
             except TD2IssueError as e:
                 logger.error(f"TD-2 creation error: {e}")
                 raise HTTPException(status_code=400, detail=str(e))
             except Exception as e:
                 logger.error(f"Unexpected error in create_document: {e}")
                 raise HTTPException(status_code=500, detail=f"Internal error: {str(e)}")
+            else:
+                return response
         
         @self.app.post("/td2/documents/{document_id}/issue", response_model=TD2DocumentResponse)
         async def issue_document(document_id: str, generate_chip_data: bool = False):
@@ -205,14 +205,14 @@ class TD2RestAPI:
                 response = self._convert_document_response(document)
                 
                 logger.info(f"TD-2 document issued via REST: {document_id}")
-                return response
-                
             except TD2ServiceError as e:
                 logger.error(f"TD-2 issuance error: {e}")
                 raise HTTPException(status_code=400, detail=str(e))
             except Exception as e:
                 logger.error(f"Unexpected error in issue_document: {e}")
                 raise HTTPException(status_code=500, detail=f"Internal error: {str(e)}")
+            else:
+                return response
         
         @self.app.post("/td2/verify", response_model=VerificationResultResponse)
         async def verify_document(request: VerifyTD2DocumentRequest):
@@ -228,14 +228,14 @@ class TD2RestAPI:
                 response = self._convert_verification_response(result)
                 
                 logger.info(f"TD-2 verification completed via REST: valid={result.is_valid}")
-                return response
-                
             except TD2VerificationError as e:
                 logger.error(f"TD-2 verification error: {e}")
                 raise HTTPException(status_code=400, detail=str(e))
             except Exception as e:
                 logger.error(f"Unexpected error in verify_document: {e}")
                 raise HTTPException(status_code=500, detail=f"Internal error: {str(e)}")
+            else:
+                return response
         
         @self.app.get("/td2/documents/{document_id}", response_model=TD2DocumentResponse)
         async def get_document(document_id: str, include_chip_data: bool = False):
@@ -245,8 +245,6 @@ class TD2RestAPI:
                 response = self._convert_document_response(document, include_chip_data)
                 
                 logger.info(f"TD-2 document retrieved via REST: {document_id}")
-                return response
-                
             except TD2ServiceError as e:
                 logger.error(f"TD-2 get error: {e}")
                 if "not found" in str(e).lower():
@@ -255,6 +253,8 @@ class TD2RestAPI:
             except Exception as e:
                 logger.error(f"Unexpected error in get_document: {e}")
                 raise HTTPException(status_code=500, detail=f"Internal error: {str(e)}")
+            else:
+                return response
         
         @self.app.post("/td2/documents/search")
         async def search_documents(request: SearchTD2DocumentsRequest):

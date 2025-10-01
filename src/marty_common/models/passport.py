@@ -251,10 +251,11 @@ class PassportData(BaseModel):
             try:
                 # Check if it's a valid base64 string
                 base64.b64decode(v)
-                return v
             except Exception:
                 msg = "Photo must be base64 encoded"
                 raise ValueError(msg)
+            else:
+                return v
         return v
 
     @property
@@ -396,10 +397,11 @@ class Passport(BaseModel):
             try:
                 # Check if it's a valid base64 string
                 base64.b64decode(v)
-                return v
             except Exception:
                 msg = "Chip content must be base64 encoded if provided as string"
                 raise ValueError(msg)
+            else:
+                return v
         return v
 
     @property
@@ -579,9 +581,6 @@ class Passport(BaseModel):
                 f"Verified {details.get('data_groups_verified', 0)} data groups "
                 f"using {details.get('hash_algorithm', 'unknown')} algorithm."
             )
-
-            return True
-
         except ImportError:
             logger.warning("Data group hash verification service not available, using fallback")
             # Fallback to basic validation
@@ -593,6 +592,8 @@ class Passport(BaseModel):
         except Exception:
             logger.exception("Data group integrity verification failed")
             return False
+        else:
+            return True
 
     def perform_active_authentication(self) -> bool:
         """
@@ -646,12 +647,15 @@ class Passport(BaseModel):
                         hash_algorithm="SHA-256",
                     )
                     self.add_data_group(dg1)
-                return True
-
-            return False
-
+                    result = True
+                else:
+                    result = True
+            else:
+                result = False
         except Exception:
             return False
+        else:
+            return result
 
     @classmethod
     def from_dict(cls, data: dict) -> Passport:
@@ -834,10 +838,11 @@ class CMCData(BaseModel):
         if v is not None and isinstance(v, str):
             try:
                 base64.b64decode(v)
-                return v
             except Exception:
                 msg = "Face image must be base64 encoded"
                 raise ValueError(msg)
+            else:
+                return v
         return v
 
     @property
@@ -1015,10 +1020,11 @@ class CMCCertificate(BaseModel):
         if v is not None and isinstance(v, str):
             try:
                 base64.b64decode(v)
-                return v
             except Exception:
                 msg = "Chip content must be base64 encoded if provided as string"
                 raise ValueError(msg)
+            else:
+                return v
         return v
 
     @property
@@ -1052,7 +1058,8 @@ class CMCCertificate(BaseModel):
     def add_data_group(self, data_group: DataGroup) -> None:
         """Add a data group to the CMC (for chip-based model)."""
         if not self.uses_chip_security:
-            raise ValueError("Data groups only supported for chip-based security model")
+            msg = "Data groups only supported for chip-based security model"
+            raise ValueError(msg)
         self.data_groups[data_group.type.value] = data_group
 
     def verify_certificate(self) -> bool:
