@@ -34,7 +34,7 @@ class SdJwtDisclosure:
     digest: str
 
     @classmethod
-    def build(cls, name: str, value: Any, *, salt_bytes: bytes | None = None) -> "SdJwtDisclosure":
+    def build(cls, name: str, value: Any, *, salt_bytes: bytes | None = None) -> SdJwtDisclosure:
         salt_bytes = salt_bytes or secrets.token_bytes(16)
         salt = _b64url_encode(salt_bytes)
         disclosure_object = [salt, name, value]

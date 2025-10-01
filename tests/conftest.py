@@ -28,7 +28,9 @@ def pytest_configure(config):
     config.addinivalue_line("markers", "mrz: mark test as MRZ related")
     config.addinivalue_line("markers", "ocr: mark test as OCR related")
     config.addinivalue_line("markers", "pdf: mark test as PDF related")
-    config.addinivalue_line("markers", "document_processing: mark test as document processing service related")
+    config.addinivalue_line(
+        "markers", "document_processing: mark test as document processing service related"
+    )
 
 
 # Collection settings

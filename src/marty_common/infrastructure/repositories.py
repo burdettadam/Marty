@@ -32,10 +32,14 @@ class TrustEntityRepository:
         result = await self._session.execute(stmt)
         return result.scalars().first()
 
-    async def upsert(self, entity_id: str, trusted: bool, attributes: Optional[dict[str, Any]] = None) -> TrustEntity:
+    async def upsert(
+        self, entity_id: str, trusted: bool, attributes: Optional[dict[str, Any]] = None
+    ) -> TrustEntity:
         record = await self.get(entity_id)
         if record is None:
-            record = TrustEntity(entity_id=entity_id, trusted=trusted, attributes=attributes or {}, version=1)
+            record = TrustEntity(
+                entity_id=entity_id, trusted=trusted, attributes=attributes or {}, version=1
+            )
             self._session.add(record)
         else:
             record.trusted = trusted
@@ -145,7 +149,9 @@ class DigitalTravelCredentialRepository:
         return record
 
     async def get(self, dtc_id: str) -> Optional[DigitalTravelCredentialRecord]:
-        stmt = select(DigitalTravelCredentialRecord).where(DigitalTravelCredentialRecord.dtc_id == dtc_id)
+        stmt = select(DigitalTravelCredentialRecord).where(
+            DigitalTravelCredentialRecord.dtc_id == dtc_id
+        )
         result = await self._session.execute(stmt)
         return result.scalars().first()
 
@@ -153,7 +159,9 @@ class DigitalTravelCredentialRepository:
         stmt = (
             update(DigitalTravelCredentialRecord)
             .where(DigitalTravelCredentialRecord.dtc_id == dtc_id)
-            .values(status="REVOKED", revoked_at=datetime.now(timezone.utc), revocation_reason=reason)
+            .values(
+                status="REVOKED", revoked_at=datetime.now(timezone.utc), revocation_reason=reason
+            )
         )
         await self._session.execute(stmt)
 
@@ -310,7 +318,9 @@ class CredentialLedgerRepository:
         topic: str,
         offset: int | None,
     ) -> CredentialLedgerEntry:
-        stmt = select(CredentialLedgerEntry).where(CredentialLedgerEntry.credential_id == credential_id)
+        stmt = select(CredentialLedgerEntry).where(
+            CredentialLedgerEntry.credential_id == credential_id
+        )
         result = await self._session.execute(stmt)
         entry = result.scalars().first()
         now = datetime.now(timezone.utc)
@@ -438,7 +448,9 @@ class SdJwtCredentialRepository:
         return record
 
     async def get(self, credential_id: str) -> Optional[SdJwtCredentialRecord]:
-        stmt = select(SdJwtCredentialRecord).where(SdJwtCredentialRecord.credential_id == credential_id)
+        stmt = select(SdJwtCredentialRecord).where(
+            SdJwtCredentialRecord.credential_id == credential_id
+        )
         result = await self._session.execute(stmt)
         return result.scalars().first()
 

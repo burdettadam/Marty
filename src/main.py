@@ -9,7 +9,7 @@ transition and guides callers towards the dedicated entrypoints.
 from __future__ import annotations
 
 import sys
-from typing import Sequence
+from collections.abc import Sequence
 
 from apps.runtime import SERVICE_DEFINITIONS, ServiceDefinition, serve_service
 

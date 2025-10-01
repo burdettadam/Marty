@@ -7,9 +7,13 @@ import json
 import logging
 import uuid
 from datetime import datetime, timedelta, timezone
-from typing import Any, Optional
+from typing import TYPE_CHECKING, Any
+
+if TYPE_CHECKING:
+    from marty_common.grpc_types import GrpcServicerContext, ProtoMessage, ServiceDependencies
 
 import grpc
+from cryptography.hazmat.primitives import serialization
 
 from marty_common.infrastructure import (
     KeyVaultClient,
@@ -18,9 +22,7 @@ from marty_common.infrastructure import (
     PassportRepository,
 )
 from marty_common.models.passport import DataGroupType, Gender, ICaoPassport, MRZData
-from cryptography.hazmat.primitives import serialization
 from proto import (
-    document_signer_pb2,
     document_signer_pb2_grpc,
     passport_engine_pb2,
     passport_engine_pb2_grpc,
@@ -36,7 +38,11 @@ from src.marty_common.utils.mrz_utils import MRZFormatter
 class PassportEngine(passport_engine_pb2_grpc.PassportEngineServicer):
     """Generates passports and persists artifacts asynchronously."""
 
-    def __init__(self, channels=None, dependencies=None) -> None:
+    def __init__(
+        self,
+        channels: dict[str, Any] | None = None,
+        dependencies: ServiceDependencies | None = None,
+    ) -> None:
         if dependencies is None:
             msg = "PassportEngine requires service dependencies"
             raise ValueError(msg)
@@ -50,14 +56,16 @@ class PassportEngine(passport_engine_pb2_grpc.PassportEngineServicer):
         self._signing_key_id = service_config.get("signing_key_id", DOCUMENT_SIGNER_KEY_ID)
         self._signing_algorithm = service_config.get("signing_algorithm", "rsa2048")
 
-    def _document_signer_stub(self) -> Optional[document_signer_pb2_grpc.DocumentSignerStub]:
+    def _document_signer_stub(self) -> document_signer_pb2_grpc.DocumentSignerStub | None:
         channel = self.channels.get("document_signer")
         if channel is None:
             self.logger.warning("Document signer channel unavailable")
             return None
         return document_signer_pb2_grpc.DocumentSignerStub(channel)
 
-    def _generate_passport_data(self, passport_number: str) -> tuple[ICaoPassport, dict[int, bytes]]:
+    def _generate_passport_data(
+        self, passport_number: str
+    ) -> tuple[ICaoPassport, dict[int, bytes]]:
         now = datetime.now(timezone.utc)
         issue_date = now.date().isoformat()
         expiry_dt = now.replace(year=now.year + 10)
@@ -83,9 +91,9 @@ class PassportEngine(passport_engine_pb2_grpc.PassportEngineServicer):
 
         data_group_bytes: dict[int, bytes] = {
             1: mrz_string.encode("ascii"),
-            2: f"PHOTO-DATA-{passport_number}".encode("utf-8"),
-            3: f"FINGERPRINT-DATA-{passport_number}".encode("utf-8"),
-            4: f"IRIS-DATA-{passport_number}".encode("utf-8"),
+            2: f"PHOTO-DATA-{passport_number}".encode(),
+            3: f"FINGERPRINT-DATA-{passport_number}".encode(),
+            4: f"IRIS-DATA-{passport_number}".encode(),
         }
 
         encoded_groups = {
@@ -108,7 +116,7 @@ class PassportEngine(passport_engine_pb2_grpc.PassportEngineServicer):
         self,
         passport_data: ICaoPassport,
         data_group_bytes: dict[int, bytes],
-    ) -> tuple[Optional[bytes], Optional[dict[str, str]]]:
+    ) -> tuple[bytes | None, dict[str, str] | None]:
         async def _load_certificate(session):
             return await load_or_create_document_signer_certificate(
                 session,
@@ -122,8 +130,10 @@ class PassportEngine(passport_engine_pb2_grpc.PassportEngineServicer):
             private_key_pem = await self._key_vault.load_private_key(self._signing_key_id)
             private_key = serialization.load_pem_private_key(private_key_pem, password=None)
             sod_bytes = create_sod(data_group_bytes, private_key, certificate)
-        except Exception as exc:  # pylint: disable=broad-except
-            self.logger.exception("Failed to create SOD for passport %s", passport_data.passport_number)
+        except Exception:  # pylint: disable=broad-except
+            self.logger.exception(
+                "Failed to create SOD for passport %s", passport_data.passport_number
+            )
             return None, None
 
         signature_info = {
@@ -200,7 +210,11 @@ class PassportEngine(passport_engine_pb2_grpc.PassportEngineServicer):
         else:
             await handler(session)
 
-    async def ProcessPassport(self, request, context):  # noqa: N802 - gRPC naming
+    async def ProcessPassport(
+        self,
+        request: ProtoMessage,
+        context: GrpcServicerContext,
+    ) -> ProtoMessage:
         passport_number = request.passport_number or f"P{uuid.uuid4().hex[:8].upper()}"
         self.logger.info("Processing passport %s", passport_number)
 

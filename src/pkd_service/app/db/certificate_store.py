@@ -174,7 +174,9 @@ class CertificateStore:
                     "serial_number": cert.serial_number,
                     "certificate_data": cert.certificate_data,
                     "status": (
-                        cert.status.value if isinstance(cert.status, CertificateStatus) else str(cert.status)
+                        cert.status.value
+                        if isinstance(cert.status, CertificateStatus)
+                        else str(cert.status)
                     ),
                     "country_code": cert.country_code,
                 }

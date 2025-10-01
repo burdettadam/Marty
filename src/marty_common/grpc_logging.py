@@ -163,7 +163,10 @@ class LoggingStreamerServicer(common_services_pb2_grpc.LoggingStreamerServicer):
         """
         if not self.handler:
             logging.error("StreamLogs called but GrpcLogHandler is not initialized.")
-            await context.abort(grpc.StatusCode.INTERNAL, "Log streaming service not available due to internal error.")
+            await context.abort(
+                grpc.StatusCode.INTERNAL,
+                "Log streaming service not available due to internal error.",
+            )
             return  # pragma: no cover - abort raises
 
         client_log_queue = queue.Queue(maxsize=MAX_CLIENT_QUEUE_SIZE)

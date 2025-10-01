@@ -26,7 +26,6 @@ class MockContext:
     """Mock gRPC context."""
 
 
-
 def test_certificate_lifecycle():
     """Test the complete certificate lifecycle management."""
     # Create test data directory

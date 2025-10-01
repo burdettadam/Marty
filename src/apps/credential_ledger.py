@@ -5,9 +5,8 @@ from __future__ import annotations
 import asyncio
 import logging
 
-from marty_common.config import Config as MartyConfig
-
 from apps.runtime import build_dependencies_async
+from marty_common.config import Config as MartyConfig
 from services.credential_ledger import CredentialLedgerService
 
 logger = logging.getLogger(__name__)

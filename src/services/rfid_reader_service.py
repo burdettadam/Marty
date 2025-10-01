@@ -9,7 +9,10 @@ from __future__ import annotations
 import asyncio
 import logging
 from concurrent import futures
-from typing import Any
+from typing import TYPE_CHECKING, Any
+
+if TYPE_CHECKING:
+    pass
 
 import grpc
 from google.protobuf.empty_pb2 import Empty

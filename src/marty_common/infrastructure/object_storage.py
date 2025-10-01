@@ -59,9 +59,13 @@ class ObjectStorageClient:
             kwargs["config"] = Config(signature_version="s3v4", s3={"addressing_style": "path"})
         return kwargs
 
-    async def put_object(self, key: str, data: bytes, content_type: str = "application/octet-stream") -> None:
+    async def put_object(
+        self, key: str, data: bytes, content_type: str = "application/octet-stream"
+    ) -> None:
         async with self._session.client("s3", **self._client_kwargs()) as client:
-            await client.put_object(Bucket=self._config.bucket, Key=key, Body=data, ContentType=content_type)
+            await client.put_object(
+                Bucket=self._config.bucket, Key=key, Body=data, ContentType=content_type
+            )
 
     async def get_object(self, key: str) -> bytes:
         async with self._session.client("s3", **self._client_kwargs()) as client:

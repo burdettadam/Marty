@@ -45,14 +45,11 @@ def sample_process_request():
     Sample process request for testing
     """
     return {
-        "processParam": {
-            "scenario": "Mrz",
-            "resultTypeOutput": ["MrzText", "MrzFields"]
-        },
+        "processParam": {"scenario": "Mrz", "resultTypeOutput": ["MrzText", "MrzFields"]},
         "List": [
             {
                 "ImageData": "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg=="
             }
         ],
-        "tag": "test-session"
+        "tag": "test-session",
     }

@@ -36,6 +36,7 @@ from PIL import Image
 try:  # pragma: no cover - exercised only in environments missing grpc/marty_common deps
     from marty_common.utils.mrz_utils import MRZException, MRZParser  # type: ignore[attr-defined]
 except (ImportError, ModuleNotFoundError):  # Fallback only for import-related failures
+
     class MRZException(Exception):
         """Fallback MRZ exception used when core library is unavailable."""
 
@@ -170,7 +171,7 @@ class ImageProcessor:
         # This is a mock - real implementation would use OCR
         mock_mrz_lines = [
             "P<USADOE<<JOHN<MICHAEL<<<<<<<<<<<<<<<<",
-            "1234567890USA8504031M3504027<<<<<<<<<<<<6"
+            "1234567890USA8504031M3504027<<<<<<<<<<<<6",
         ]
         return mock_mrz_lines
 
@@ -211,10 +212,7 @@ class MRZProcessingService:
             elapsed_time = int((time.time() - start_time) * 1000)  # Convert to milliseconds
 
             # Create container list
-            container_list = ContainerList(
-                Count=len(containers),
-                List=containers
-            )
+            container_list = ContainerList(Count=len(containers), List=containers)
 
             # Create response
             response = ProcessResponse(
@@ -226,7 +224,7 @@ class MRZProcessingService:
                 ProcessingFinished=ProcessingStatus.FINISHED,
                 morePagesAvailable=0,
                 passBackObject=None,
-                metadata={"processed_images": len(request.images)}
+                metadata={"processed_images": len(request.images)},
             )
 
             return response
@@ -243,7 +241,7 @@ class MRZProcessingService:
             DateTime=datetime.utcnow().isoformat() + "Z",
             coreVersion=settings.CORE_VERSION,
             ComputerName="doc-processing-server",
-            UserName="doc-api"
+            UserName="doc-api",
         )
 
     def _process_single_image(self, image_request: Any, index: int) -> Container | None:
@@ -270,7 +268,7 @@ class MRZProcessingService:
                 optical=CheckResult.POSITIVE if mrz_result else CheckResult.NEGATIVE,
                 portrait=CheckResult.NOT_PERFORMED,
                 rfid=CheckResult.NOT_PERFORMED,
-                stopList=CheckResult.NOT_PERFORMED
+                stopList=CheckResult.NOT_PERFORMED,
             )
 
             # Create container
@@ -281,7 +279,7 @@ class MRZProcessingService:
                 light=getattr(image_request.light, "value", 1) if image_request.light else 1,
                 result_type=1,  # MRZ result type
                 Status=status,  # alias field
-                mrzResult=mrz_result
+                mrzResult=mrz_result,
             )
 
             return container
@@ -294,7 +292,7 @@ class MRZProcessingService:
                 optical=CheckResult.NEGATIVE,
                 portrait=CheckResult.NOT_PERFORMED,
                 rfid=CheckResult.NOT_PERFORMED,
-                stopList=CheckResult.NOT_PERFORMED
+                stopList=CheckResult.NOT_PERFORMED,
             )
 
             return Container(
@@ -303,7 +301,7 @@ class MRZProcessingService:
                 page_idx=image_request.pageIdx or 0,
                 result_type=1,
                 Status=status,
-                mrzResult=None
+                mrzResult=None,
             )
 
     def _process_mrz_lines(self, text_lines: list[str]) -> MRZResult | None:
@@ -311,7 +309,7 @@ class MRZProcessingService:
         try:
             mrz_text = "\n".join(text_lines)
             mrz_data = self._parse_mrz_by_format(text_lines, mrz_text)
-            
+
             if mrz_data is None:
                 logger.warning(f"Unrecognized MRZ format: {len(text_lines)} lines")
                 return None
@@ -324,7 +322,7 @@ class MRZProcessingService:
         except (AttributeError, ValueError, TypeError):
             logger.exception("Data conversion error processing MRZ")
             return None
-    
+
     def _parse_mrz_by_format(self, text_lines: list[str], mrz_text: str) -> Any | None:
         """Attempt to parse MRZ using format-specific parsers."""
         if len(text_lines) == 2:
@@ -332,21 +330,21 @@ class MRZProcessingService:
         if len(text_lines) == 3:
             return self._try_td1(mrz_text)
         return None
-    
+
     def _try_td3_then_td2(self, mrz_text: str) -> Any | None:
         """Try TD-3 parser first, then return None for other formats."""
         try:
             return MRZParser.parse_td3_mrz(mrz_text)
         except MRZException:
             return None
-    
+
     def _try_td1(self, mrz_text: str) -> Any | None:
         """Try TD-3 parser for TD-1 format (fallback handles both)."""
         try:
             return MRZParser.parse_td3_mrz(mrz_text)
         except MRZException:
             return None
-    
+
     def _build_mrz_result(self, mrz_data: Any, text_lines: list[str]) -> MRZResult:
         """Build MRZResult from parsed MRZ data."""
         return MRZResult(
@@ -365,12 +363,12 @@ class MRZProcessingService:
             dateOfExpiryChecksumValid=True,
             mrzLines=text_lines,
             overallValid=True,  # Would validate all checksums in real implementation
-            fields=self._create_mrz_fields(mrz_data)
+            fields=self._create_mrz_fields(mrz_data),
         )
 
     def _safe_str(self, val: Any) -> str | None:
         """Safely convert value to string, handling enums and None values.
-        
+
         Accepts that tests may supply Mock attributes.
         """
         if val is None:
@@ -393,50 +391,58 @@ class MRZProcessingService:
 
         # Document code field
         if mrz_data.document_type:
-            fields.append(MRZField(
-                name="DocumentCode",
-                value=mrz_data.document_type,
-                confidence=0.99,
-                line=0,
-                start=0,
-                length=1,
-                checksumValid=None
-            ))
+            fields.append(
+                MRZField(
+                    name="DocumentCode",
+                    value=mrz_data.document_type,
+                    confidence=0.99,
+                    line=0,
+                    start=0,
+                    length=1,
+                    checksumValid=None,
+                )
+            )
 
         # Issuing state field
         if mrz_data.issuing_country:
-            fields.append(MRZField(
-                name="IssuingState",
-                value=mrz_data.issuing_country,
-                confidence=0.98,
-                line=0,
-                start=2,
-                length=3,
-                checksumValid=None
-            ))
+            fields.append(
+                MRZField(
+                    name="IssuingState",
+                    value=mrz_data.issuing_country,
+                    confidence=0.98,
+                    line=0,
+                    start=2,
+                    length=3,
+                    checksumValid=None,
+                )
+            )
 
         # Document number field
         if mrz_data.document_number:
-            fields.append(MRZField(
-                name="DocumentNumber",
-                value=mrz_data.document_number,
-                confidence=0.99,
-                line=1,
-                start=0,
-                length=9,
-                checksumValid=True
-            ))
+            fields.append(
+                MRZField(
+                    name="DocumentNumber",
+                    value=mrz_data.document_number,
+                    confidence=0.99,
+                    line=1,
+                    start=0,
+                    length=9,
+                    checksumValid=True,
+                )
+            )
 
         # Date of birth field
         if mrz_data.date_of_birth:
-            fields.append(MRZField(
-                name="DateOfBirth",
-                value=mrz_data.date_of_birth.strftime("%Y-%m-%d"),
-                confidence=0.98,
-                line=1,
-                start=13,
-                length=6,
-                checksumValid=True
-            ))
+            fields.append(
+                MRZField(
+                    name="DateOfBirth",
+                    value=mrz_data.date_of_birth.strftime("%Y-%m-%d"),
+                    confidence=0.98,
+                    line=1,
+                    start=13,
+                    length=6,
+                    checksumValid=True,
+                )
+            )
 
         return fields

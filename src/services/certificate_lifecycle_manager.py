@@ -6,6 +6,7 @@ This service provides complete management of the certificate lifecycle,
 integrating the CSCA service with certificate monitoring, rotation,
 and notification capabilities.
 """
+from __future__ import annotations
 
 import json
 import logging
@@ -13,7 +14,11 @@ import os
 import threading
 import time
 from datetime import datetime, timedelta, timezone
-from typing import Any, Optional
+from typing import TYPE_CHECKING, Any
+
+if TYPE_CHECKING:
+    from src.services.certificate_lifecycle_monitor import CertificateLifecycleMonitor
+    from src.services.csca import CscaService
 
 from src.proto import csca_service_pb2
 from src.services.certificate_lifecycle_monitor import CertificateLifecycleMonitor
@@ -35,7 +40,12 @@ class CertificateLifecycleManager:
     - Event history and reporting
     """
 
-    def __init__(self, csca_service=None, lifecycle_monitor=None, config_file=None) -> None:
+    def __init__(
+        self,
+        csca_service: CscaService | None = None,
+        lifecycle_monitor: CertificateLifecycleMonitor | None = None,
+        config_file: str | None = None,
+    ) -> None:
         """
         Initialize the Certificate Lifecycle Manager.
 
@@ -74,7 +84,7 @@ class CertificateLifecycleManager:
 
         self.logger.info("Certificate Lifecycle Manager initialized")
 
-    def _load_config(self, config_file: Optional[str] = None) -> dict[str, Any]:
+    def _load_config(self, config_file: str | None = None) -> dict[str, Any]:
         """
         Load configuration from a file.
 
@@ -116,7 +126,7 @@ class CertificateLifecycleManager:
         validity_days: int = 365,
         key_algorithm: str = "RSA",
         key_size: int = 2048,
-        extensions: Optional[dict[str, str]] = None,
+        extensions: dict[str, str] | None = None,
     ) -> dict[str, Any]:
         """
         Create a new certificate.
@@ -176,7 +186,7 @@ class CertificateLifecycleManager:
         }
 
     def renew_certificate(
-        self, certificate_id: str, validity_days: Optional[int] = None, reuse_key: bool = False
+        self, certificate_id: str, validity_days: int | None = None, reuse_key: bool = False
     ) -> dict[str, Any]:
         """
         Renew an existing certificate.
@@ -320,7 +330,7 @@ class CertificateLifecycleManager:
         return status_info
 
     def list_certificates(
-        self, status_filter: Optional[str] = None, subject_filter: Optional[str] = None
+        self, status_filter: str | None = None, subject_filter: str | None = None
     ) -> list[dict[str, Any]]:
         """
         List certificates with optional filtering.

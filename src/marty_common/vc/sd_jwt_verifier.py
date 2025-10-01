@@ -7,9 +7,9 @@ import hashlib
 import json
 import logging
 import time
+from collections.abc import Iterable, Sequence
 from dataclasses import dataclass
-from datetime import datetime, timezone
-from typing import Any, Iterable, Sequence
+from typing import Any
 
 import jwt
 from cryptography import x509
@@ -21,7 +21,7 @@ LOGGER = logging.getLogger(__name__)
 
 
 def _decode_x5c_entry(entry: str) -> x509.Certificate:
-    padding = '=' * ((4 - len(entry) % 4) % 4)
+    padding = "=" * ((4 - len(entry) % 4) % 4)
     der_bytes = base64.b64decode(entry + padding)
     return x509.load_der_x509_certificate(der_bytes)
 
@@ -127,7 +127,7 @@ class SdJwtVerifier:
 
         for encoded in disclosures:
             try:
-                padding = '=' * ((4 - len(encoded) % 4) % 4)
+                padding = "=" * ((4 - len(encoded) % 4) % 4)
                 decoded_bytes = base64.urlsafe_b64decode(encoded + padding)
                 disclosure_data = json.loads(decoded_bytes.decode("utf-8"))
             except (ValueError, json.JSONDecodeError) as exc:
@@ -184,15 +184,14 @@ class SdJwtVerifier:
         errors: list[str] = []
         try:
             header = jwt.get_unverified_header(attestation)
-            chain = [
-                _decode_x5c_entry(entry)
-                for entry in header.get("x5c", [])
-            ]
+            chain = [_decode_x5c_entry(entry) for entry in header.get("x5c", [])]
             if not chain:
                 return ["Wallet attestation missing x5c chain"]
             public_cert = chain[0]
             if self._wallet_validator.get_trust_anchors():
-                chain_result = self._wallet_validator.validate_certificate_chain(public_cert, chain[1:])
+                chain_result = self._wallet_validator.validate_certificate_chain(
+                    public_cert, chain[1:]
+                )
                 if not chain_result.is_valid:
                     critical = [err.error_message for err in chain_result.errors if err.is_critical]
                     errors.extend(critical or ["Wallet attestation certificate chain invalid"])
@@ -209,4 +208,4 @@ class SdJwtVerifier:
         return errors
 
 
-__all__ = ["SdJwtVerifier", "SdJwtVerificationResult"]
+__all__ = ["SdJwtVerificationResult", "SdJwtVerifier"]

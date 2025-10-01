@@ -7,6 +7,7 @@ environment-specific dependencies.
 
 from .database import DatabaseConfig, DatabaseManager
 from .event_bus import EventBusConfig, EventBusMessage, EventBusProvider
+from .key_vault import KeyVaultClient, KeyVaultConfig, build_key_vault_client
 from .models import (
     Base,
     CertificateRecord,
@@ -19,46 +20,45 @@ from .models import (
     PassportRecord,
     TrustEntity,
 )
-from .key_vault import KeyVaultClient, KeyVaultConfig, build_key_vault_client
 from .object_storage import ObjectStorageClient, ObjectStorageConfig
 from .outbox import OutboxDispatcher, OutboxDispatcherSettings, OutboxRepository
 from .repositories import (
     CertificateRepository,
-    DigitalTravelCredentialRepository,
     CredentialLedgerRepository,
+    DigitalTravelCredentialRepository,
     MobileDrivingLicenseRepository,
     PassportRepository,
     TrustEntityRepository,
 )
 
 __all__ = [
+    "Base",
+    "CertificateRecord",
+    "CertificateRepository",
+    "CredentialEventLog",
+    "CredentialLedgerEntry",
+    "CredentialLedgerRepository",
     "DatabaseConfig",
     "DatabaseManager",
+    "DigitalTravelCredentialRecord",
+    "DigitalTravelCredentialRepository",
     "EventBusConfig",
     "EventBusMessage",
     "EventBusProvider",
+    "EventDeadLetterRecord",
+    "EventOutboxRecord",
+    "KeyVaultClient",
+    "KeyVaultConfig",
+    "MobileDrivingLicenseRecord",
+    "MobileDrivingLicenseRepository",
+    "ObjectStorageClient",
+    "ObjectStorageConfig",
     "OutboxDispatcher",
     "OutboxDispatcherSettings",
     "OutboxRepository",
-    "Base",
-    "CertificateRecord",
-    "CredentialEventLog",
-    "CredentialLedgerEntry",
-    "DigitalTravelCredentialRecord",
-    "EventDeadLetterRecord",
-    "EventOutboxRecord",
-    "TrustEntity",
-    "KeyVaultClient",
-    "KeyVaultConfig",
-    "ObjectStorageClient",
-    "ObjectStorageConfig",
-    "CertificateRepository",
-    "CredentialLedgerRepository",
-    "DigitalTravelCredentialRepository",
-    "MobileDrivingLicenseRepository",
+    "PassportRecord",
     "PassportRepository",
+    "TrustEntity",
     "TrustEntityRepository",
     "build_key_vault_client",
-    "MobileDrivingLicenseRecord",
-    "PassportRecord",
 ]

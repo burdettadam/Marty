@@ -5,7 +5,7 @@ from __future__ import annotations
 from datetime import datetime, timezone
 from typing import Any
 
-from sqlalchemy import JSON, Boolean, DateTime, Integer, LargeBinary, String, Text, BigInteger
+from sqlalchemy import JSON, BigInteger, Boolean, DateTime, Integer, LargeBinary, String, Text
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 
 
@@ -22,7 +22,9 @@ class TrustEntity(Base):
     version: Mapped[int] = mapped_column(nullable=False, default=1)
     attributes: Mapped[dict[str, Any] | None] = mapped_column(JSON, nullable=True)
     updated_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc)
+        DateTime(timezone=True),
+        default=lambda: datetime.now(timezone.utc),
+        onupdate=lambda: datetime.now(timezone.utc),
     )
 
 
@@ -37,9 +39,13 @@ class CertificateRecord(Base):
     pem: Mapped[str] = mapped_column(Text, nullable=False)
     revoked: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
     details: Mapped[dict[str, Any] | None] = mapped_column(JSON, nullable=True)
-    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=lambda: datetime.now(timezone.utc)
+    )
     updated_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc)
+        DateTime(timezone=True),
+        default=lambda: datetime.now(timezone.utc),
+        onupdate=lambda: datetime.now(timezone.utc),
     )
 
 
@@ -55,9 +61,13 @@ class DigitalTravelCredentialRecord(Base):
     payload_location: Mapped[str] = mapped_column(String(256), nullable=False)
     signature: Mapped[bytes | None] = mapped_column(LargeBinary, nullable=True)
     status: Mapped[str] = mapped_column(String(32), nullable=False, default="ACTIVE")
-    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=lambda: datetime.now(timezone.utc)
+    )
     updated_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc)
+        DateTime(timezone=True),
+        default=lambda: datetime.now(timezone.utc),
+        onupdate=lambda: datetime.now(timezone.utc),
     )
     revoked_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     revocation_reason: Mapped[str | None] = mapped_column(String(256), nullable=True)
@@ -166,7 +176,9 @@ class CredentialLedgerEntry(Base):
     status: Mapped[str] = mapped_column(String(32), nullable=False)
     event_metadata: Mapped[dict[str, Any] | None] = mapped_column(JSON, nullable=True)
     updated_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc)
+        DateTime(timezone=True),
+        default=lambda: datetime.now(timezone.utc),
+        onupdate=lambda: datetime.now(timezone.utc),
     )
     last_event_topic: Mapped[str | None] = mapped_column(String(255), nullable=True)
     last_event_offset: Mapped[int | None] = mapped_column(BigInteger, nullable=True)
@@ -194,7 +206,9 @@ class SdJwtCredentialRecord(Base):
         DateTime(timezone=True), default=lambda: datetime.now(timezone.utc)
     )
     updated_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc)
+        DateTime(timezone=True),
+        default=lambda: datetime.now(timezone.utc),
+        onupdate=lambda: datetime.now(timezone.utc),
     )
 
 
@@ -205,14 +219,20 @@ class Oidc4VciSessionRecord(Base):
     offer_id: Mapped[str] = mapped_column(String(96), unique=True, nullable=False)
     subject_id: Mapped[str] = mapped_column(String(128), nullable=False, index=True)
     credential_type: Mapped[str] = mapped_column(String(128), nullable=False)
-    status: Mapped[str] = mapped_column(String(32), nullable=False, default="OFFER_CREATED", index=True)
+    status: Mapped[str] = mapped_column(
+        String(32), nullable=False, default="OFFER_CREATED", index=True
+    )
     offer_payload: Mapped[dict[str, Any] | None] = mapped_column(JSON, nullable=True)
     base_claims: Mapped[dict[str, Any]] = mapped_column(JSON, nullable=False)
     selective_disclosures: Mapped[dict[str, Any]] = mapped_column(JSON, nullable=False)
     pre_authorized_code_hash: Mapped[str] = mapped_column(String(128), unique=True, nullable=False)
-    pre_authorized_code_expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    pre_authorized_code_expires_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False
+    )
     access_token_hash: Mapped[str | None] = mapped_column(String(128), unique=True, nullable=True)
-    access_token_expires_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    access_token_expires_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
     nonce: Mapped[str | None] = mapped_column(String(256), nullable=True)
     extra_metadata: Mapped[dict[str, Any] | None] = mapped_column(JSON, nullable=True)
     wallet_attestation: Mapped[dict[str, Any] | None] = mapped_column(JSON, nullable=True)
@@ -220,5 +240,7 @@ class Oidc4VciSessionRecord(Base):
         DateTime(timezone=True), default=lambda: datetime.now(timezone.utc)
     )
     updated_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc)
+        DateTime(timezone=True),
+        default=lambda: datetime.now(timezone.utc),
+        onupdate=lambda: datetime.now(timezone.utc),
     )

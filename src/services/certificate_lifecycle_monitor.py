@@ -821,7 +821,6 @@ class CertificateLifecycleMonitor:
 # Command line interface for manual testing
 if __name__ == "__main__":
     import sys
-    import time
 
     logging.basicConfig(
         level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"

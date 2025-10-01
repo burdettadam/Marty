@@ -18,6 +18,7 @@ from marty_common.infrastructure import (
     ObjectStorageConfig,
 )
 
+
 class ConfigurationError(Exception):
     """Raised when there's an error loading configuration."""
 
@@ -141,7 +142,7 @@ def _expand_env_vars(config: dict[str, Any]) -> dict[str, Any]:
         elif isinstance(value, str) and "${" in value and "}" in value:
             # Extract environment variable pattern
             var_pattern = value.split("${")[1].split("}")[0]
-            
+
             if ":-" in var_pattern:
                 env_var, default = var_pattern.split(":-", 1)
                 env_value = os.environ.get(env_var)

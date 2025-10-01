@@ -1,3 +1,6 @@
+"""mDoc engine service implementation."""
+from __future__ import annotations
+
 # --- BEGIN Standard Library Imports ---
 import json
 import logging
@@ -5,6 +8,10 @@ import os
 import sys
 import uuid
 from concurrent import futures
+from typing import TYPE_CHECKING, Any
+
+if TYPE_CHECKING:
+    pass
 
 import grpc  # Ensure grpc is imported and grouped with third-party if considered so, or here if standard-like
 
@@ -35,7 +42,7 @@ logger = None
 
 
 class MDocEngineServicer(mdoc_engine_pb2_grpc.MDocEngineServicer):
-    def __init__(self, channels=None) -> None:
+    def __init__(self, channels: dict[str, Any] | None = None) -> None:
         self.logger = logging.getLogger(__name__)
         self.logger.info("MDocEngineServicer initialized.")
         self.channels = channels if channels else {}
@@ -471,8 +478,7 @@ def serve() -> None:
     grpc_port = os.environ.get("GRPC_PORT", "50054")
     server = grpc.server(futures.ThreadPoolExecutor(max_workers=10))
 
-    channels = {}
-
+    channels: dict[str, Any] = {}
     servicer_instance = MDocEngineServicer(channels=channels)
     mdoc_engine_pb2_grpc.add_MDocEngineServicer_to_server(servicer_instance, server)
     logger.info("MDocEngineServicer added to gRPC server.")

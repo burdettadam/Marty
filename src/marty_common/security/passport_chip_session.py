@@ -24,7 +24,7 @@ from src.marty_common.security.active_authentication import (
     ActiveAuthenticationProtocol,
     ActiveAuthenticationResponse,
 )
-from src.marty_common.security.dg15_parser import DG15Parser, ChipAuthenticationInfo
+from src.marty_common.security.dg15_parser import ChipAuthenticationInfo, DG15Parser
 
 logger = logging.getLogger(__name__)
 
@@ -107,9 +107,7 @@ class PassportChipSession:
             raise ValueError("Unexpected BAC challenge length")
 
         # Step 2 – mutual authentication request (RND.IFD || RND.IC || K.IFD)
-        auth_payload = self._secure_messaging.perform_basic_access_control(
-            bac_keys, chip_challenge
-        )
+        auth_payload = self._secure_messaging.perform_basic_access_control(bac_keys, chip_challenge)
         mutual_response = self._transmit_apdu(APDUCommand.mutual_authenticate(auth_payload))
 
         # Step 3 – derive session keys from response
@@ -151,9 +149,7 @@ class PassportChipSession:
         read_cmds = PassportAPDU().build_read_ef(length=2048, offset=0)
 
         response = self._transmit_apdu(select_cmd)
-        self._logger.debug(
-            "Selected DG%d: %s", dg_number, response.status_description
-        )
+        self._logger.debug("Selected DG%d: %s", dg_number, response.status_description)
 
         data_chunks: list[bytes] = []
         for cmd in read_cmds:

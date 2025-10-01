@@ -191,9 +191,9 @@ class IssueSdJwtCredentialRequestSchema(BaseModel):
 
 
 __all__ = [
-    "SignDocumentRequestSchema",
     "CreateCredentialOfferRequestSchema",
     "GetCredentialOfferRequestSchema",
-    "RedeemPreAuthorizedCodeRequestSchema",
     "IssueSdJwtCredentialRequestSchema",
+    "RedeemPreAuthorizedCodeRequestSchema",
+    "SignDocumentRequestSchema",
 ]

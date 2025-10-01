@@ -27,7 +27,7 @@ GRPC_UNAVAILABLE = "gRPC modules not available"
 
 class ServiceClientError(Exception):
     """Base exception for service client errors"""
-    
+
     def __init__(self, service_name: str, details: str | None = None):
         self.service_name = service_name
         self.details = details
@@ -44,7 +44,7 @@ class PassportEngineClient(ABC):
     async def process_passport(self, passport_number: str) -> dict[str, Any]:
         """Process a passport and return metadata"""
 
-    @abstractmethod  
+    @abstractmethod
     async def extract_mrz(self, image_data: bytes) -> dict[str, Any] | None:
         """Extract MRZ data from passport image"""
 
@@ -87,11 +87,11 @@ class GrpcPassportEngineClient(PassportEngineClient):
                 stub = passport_engine_pb2_grpc.PassportEngineStub(channel)
                 request = passport_engine_pb2.PassportRequest(passport_number=passport_number)
                 response = stub.ProcessPassport(request)
-                
+
                 return {
                     "status": response.status,
                     "passport_number": passport_number,
-                    "success": response.status == "SUCCESS"
+                    "success": response.status == "SUCCESS",
                 }
         except ImportError as e:
             logger.warning("gRPC modules not available for passport engine")
@@ -125,11 +125,11 @@ class GrpcInspectionSystemClient(InspectionSystemClient):
                 stub = inspection_system_pb2_grpc.InspectionSystemStub(channel)
                 request = inspection_system_pb2.InspectRequest(item=document_id)
                 response = stub.Inspect(request)
-                
+
                 return {
                     "result": response.result,
                     "valid": "VALID" in response.result.upper(),
-                    "document_id": document_id
+                    "document_id": document_id,
                 }
         except ImportError as e:
             logger.warning("gRPC modules not available for inspection system")
@@ -179,11 +179,7 @@ class MockPassportEngineClient(PassportEngineClient):
     async def process_passport(self, passport_number: str) -> dict[str, Any]:
         """Mock passport processing"""
         logger.info("Using mock passport engine for passport %s", passport_number)
-        return {
-            "status": "SUCCESS",
-            "passport_number": passport_number,
-            "success": True
-        }
+        return {"status": "SUCCESS", "passport_number": passport_number, "success": True}
 
     async def extract_mrz(self, _image_data: bytes) -> dict[str, Any] | None:
         """Mock MRZ extraction"""
@@ -197,7 +193,7 @@ class MockPassportEngineClient(PassportEngineClient):
             "nationality": "USA",
             "date_of_birth": "850403",
             "gender": "M",
-            "date_of_expiry": "350402"
+            "date_of_expiry": "350402",
         }
 
 
@@ -210,7 +206,7 @@ class MockInspectionSystemClient(InspectionSystemClient):
         return {
             "result": f"VALID: Document {document_id} (mock validation)",
             "valid": True,
-            "document_id": document_id
+            "document_id": document_id,
         }
 
     async def validate_mrz(self, _mrz_data: dict[str, Any]) -> dict[str, Any]:
@@ -231,9 +227,7 @@ class ServiceClientFactory:
 
     def __init__(self) -> None:
         self.use_real_services = (
-            settings.USE_REAL_SERVICES
-            if hasattr(settings, "USE_REAL_SERVICES")
-            else False
+            settings.USE_REAL_SERVICES if hasattr(settings, "USE_REAL_SERVICES") else False
         )
 
     def create_passport_engine_client(self) -> PassportEngineClient:
@@ -241,8 +235,7 @@ class ServiceClientFactory:
         if self.use_real_services:
             try:
                 return GrpcPassportEngineClient(
-                    host=settings.PASSPORT_ENGINE_HOST,
-                    port=settings.PASSPORT_ENGINE_PORT
+                    host=settings.PASSPORT_ENGINE_HOST, port=settings.PASSPORT_ENGINE_PORT
                 )
             except (ImportError, grpc.RpcError) as e:
                 logger.warning("Failed to create real passport engine client, using mock: %s", e)
@@ -253,8 +246,7 @@ class ServiceClientFactory:
         if self.use_real_services:
             try:
                 return GrpcInspectionSystemClient(
-                    host=settings.INSPECTION_SYSTEM_HOST,
-                    port=settings.INSPECTION_SYSTEM_PORT
+                    host=settings.INSPECTION_SYSTEM_HOST, port=settings.INSPECTION_SYSTEM_PORT
                 )
             except (ImportError, grpc.RpcError) as e:
                 logger.warning("Failed to create real inspection system client, using mock: %s", e)
@@ -265,8 +257,7 @@ class ServiceClientFactory:
         if self.use_real_services:
             try:
                 return GrpcDocumentSignerClient(
-                    host=settings.DOCUMENT_SIGNER_HOST,
-                    port=settings.DOCUMENT_SIGNER_PORT
+                    host=settings.DOCUMENT_SIGNER_HOST, port=settings.DOCUMENT_SIGNER_PORT
                 )
             except (ImportError, grpc.RpcError) as e:
                 logger.warning("Failed to create real document signer client, using mock: %s", e)

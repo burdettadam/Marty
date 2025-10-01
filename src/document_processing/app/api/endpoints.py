@@ -10,11 +10,7 @@ from datetime import datetime, timezone
 
 from app.api.deps import get_coordinator_service, verify_api_key
 from app.core.config import settings
-from app.models.doc_models_clean import (
-    HealthResponse,
-    ProcessRequest,
-    ProcessResponse,
-)
+from app.models.doc_models_clean import HealthResponse, ProcessRequest, ProcessResponse
 from app.services.coordinator_service import DocumentProcessingCoordinator
 from fastapi import APIRouter, Depends, Header, HTTPException, status
 from fastapi.responses import PlainTextResponse
@@ -43,16 +39,10 @@ async def health() -> HealthResponse:
     """
     uptime_sec = int(time.time() - START_TIME)
 
-    license_info = {
-        "valid": True,
-        "expiresAt": settings.LICENSE_VALID_UNTIL
-    }
+    license_info = {"valid": True, "expiresAt": settings.LICENSE_VALID_UNTIL}
 
     return HealthResponse(
-        status="ready",
-        version=settings.VERSION,
-        uptimeSec=uptime_sec,
-        license=license_info
+        status="ready", version=settings.VERSION, uptimeSec=uptime_sec, license=license_info
     )
 
 
@@ -73,8 +63,8 @@ async def healthz() -> dict[str, object]:
             "id": "MockDB",
             "version": "1.0.0",
             "exportDate": datetime.now(timezone.utc).strftime("%Y-%m-%d"),
-            "description": "Mock document database for testing"
-        }
+            "description": "Mock document database for testing",
+        },
     }
 
 
@@ -97,7 +87,7 @@ async def process_documents(
 ) -> ProcessResponse:
     """
     Process one or more document images
-    
+
     Submit one or more images for processing. For MRZ-only operation set
     processParam.scenario to 'Mrz'. The response contains timing, transaction
     metadata, and structured containers such as mrzResult.
@@ -124,7 +114,7 @@ async def process_documents(
         logger.exception("Unexpected error processing request")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Internal server error during document processing"
+            detail="Internal server error during document processing",
         ) from e
     else:
         logger.info("Processing completed in %dms", result.elapsedTime)

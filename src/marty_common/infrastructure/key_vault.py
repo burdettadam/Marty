@@ -8,10 +8,12 @@ from pathlib import Path
 from typing import Any, Protocol, Union
 
 from cryptography.hazmat.primitives import hashes, serialization
-from cryptography.hazmat.primitives.asymmetric import ec, ed25519, ed448, padding, rsa
+from cryptography.hazmat.primitives.asymmetric import ec, ed448, ed25519, padding, rsa
 
 # Type alias for private key types
-PrivateKeyTypes = Union[rsa.RSAPrivateKey, ec.EllipticCurvePrivateKey, ed25519.Ed25519PrivateKey, ed448.Ed448PrivateKey]
+PrivateKeyTypes = Union[
+    rsa.RSAPrivateKey, ec.EllipticCurvePrivateKey, ed25519.Ed25519PrivateKey, ed448.Ed448PrivateKey
+]
 
 
 class KeyVaultClient(Protocol):
@@ -38,7 +40,7 @@ class KeyVaultConfig:
     hsm_config_path: str | None = None
 
     @classmethod
-    def from_dict(cls, raw: dict[str, Any]) -> "KeyVaultConfig":
+    def from_dict(cls, raw: dict[str, Any]) -> KeyVaultConfig:
         return cls(
             provider=raw.get("provider", "file"),
             file_path=raw.get("file_path", "data/keys"),

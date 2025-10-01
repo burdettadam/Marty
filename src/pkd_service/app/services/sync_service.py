@@ -157,7 +157,9 @@ class SyncService:
         except Exception as exc:  # pragma: no cover - defensive guard around network IO
             logger.exception("PKD sync task %s failed: %s", sync_id, exc)
             status.error_message = str(exc)
-            failed_components.extend(component for component in components if component not in failed_components)
+            failed_components.extend(
+                component for component in components if component not in failed_components
+            )
 
         end_time = datetime.now()
         status.end_time = end_time
@@ -165,7 +167,9 @@ class SyncService:
         if failed_components:
             status.status = SyncStatus.FAILED
             if not status.error_message:
-                status.error_message = "Failed components: " + ", ".join(sorted(set(failed_components)))
+                status.error_message = "Failed components: " + ", ".join(
+                    sorted(set(failed_components))
+                )
         elif components:
             status.status = SyncStatus.COMPLETED
         else:

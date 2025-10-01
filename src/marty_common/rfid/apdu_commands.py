@@ -117,9 +117,7 @@ class APDUCommand:
         )
 
     @classmethod
-    def general_authenticate(
-        cls, payload: bytes, p1: int = 0x00, p2: int = 0x00
-    ) -> "APDUCommand":
+    def general_authenticate(cls, payload: bytes, p1: int = 0x00, p2: int = 0x00) -> "APDUCommand":
         """Create GENERAL AUTHENTICATE command used by PACE (ISO 7816-4)."""
 
         return cls(

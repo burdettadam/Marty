@@ -27,7 +27,9 @@ async def test_processor_certificate_lifecycle_updates_ledger():
             "not_after": "2030-01-01",
         }
         context = MessageContext(topic="certificate.issued", partition=0, offset=1)
-        await repo.record_event(topic="certificate.issued", payload=payload, key="CERT1", partition=0, offset=1)
+        await repo.record_event(
+            topic="certificate.issued", payload=payload, key="CERT1", partition=0, offset=1
+        )
         await processor.process("certificate.issued", payload, "CERT1", context)
 
     async with database.session_scope() as session:
@@ -48,7 +50,9 @@ async def test_processor_certificate_lifecycle_updates_ledger():
             "storage_key": "certs/cert2.pem",
         }
         context = MessageContext(topic="certificate.renewed", partition=0, offset=2)
-        await repo.record_event(topic="certificate.renewed", payload=payload, key="CERT2", partition=0, offset=2)
+        await repo.record_event(
+            topic="certificate.renewed", payload=payload, key="CERT2", partition=0, offset=2
+        )
         await processor.process("certificate.renewed", payload, "CERT2", context)
 
     async with database.session_scope() as session:

@@ -416,9 +416,7 @@ class SecureMessaging:
 
         return cla, ins, p1, p2, data_field, le_field
 
-    def _parse_response_tlvs(
-        self, response: bytes
-    ) -> tuple[list[tuple[int, bytes, bytes]], bytes]:
+    def _parse_response_tlvs(self, response: bytes) -> tuple[list[tuple[int, bytes, bytes]], bytes]:
         idx = 0
         elements: list[tuple[int, bytes, bytes]] = []
 
@@ -472,10 +470,8 @@ class SecureMessaging:
             doc_cd = MRZParser.calculate_check_digit(doc_number)
             dob_cd = MRZParser.calculate_check_digit(mrz.date_of_birth)
             doe_cd = MRZParser.calculate_check_digit(mrz.date_of_expiry)
-            info = (
-                f"{doc_number}{doc_cd}{mrz.date_of_birth}{dob_cd}{mrz.date_of_expiry}{doe_cd}".encode(
-                    "ascii"
-                )
+            info = f"{doc_number}{doc_cd}{mrz.date_of_birth}{dob_cd}{mrz.date_of_expiry}{doe_cd}".encode(
+                "ascii"
             )
             k_seed = hashlib.sha1(info).digest()[:16]
 

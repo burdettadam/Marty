@@ -6,19 +6,17 @@ import gzip
 import io
 import logging
 import zipfile
-from dataclasses import dataclass
-from datetime import datetime
-from typing import Iterable, Iterator, List, Optional, Tuple
+from collections.abc import Iterator
+from typing import List, Optional, Tuple
 
 import asn1crypto.crl
 import asn1crypto.pem
 import asn1crypto.x509
+from app.models.pkd_models import Certificate, RevokedCertificate
+from app.utils.asn1_utils import ASN1Encoder
 from cryptography import x509
 from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives import serialization
-
-from app.models.pkd_models import Certificate, RevokedCertificate
-from app.utils.asn1_utils import ASN1Encoder
 
 logger = logging.getLogger(__name__)
 
@@ -67,7 +65,9 @@ def unwrap_pkd_payload(blob: bytes, label: str = PAYLOAD_ROOT_LABEL) -> List[Tup
     return results
 
 
-def parse_certificate_payload(blob: bytes, *, source_hint: str = PAYLOAD_ROOT_LABEL) -> List[Certificate]:
+def parse_certificate_payload(
+    blob: bytes, *, source_hint: str = PAYLOAD_ROOT_LABEL
+) -> List[Certificate]:
     """Decode the certificates embedded in a PKD payload."""
 
     certificates: dict[Tuple[str, str], Certificate] = {}
@@ -123,7 +123,9 @@ def _decode_raw_certificates(data: bytes) -> List[Certificate]:
     if "-----BEGIN CERTIFICATE-----" in text:
         for pem_block in _iterate_pem_blocks(text):
             try:
-                cert_obj = x509.load_pem_x509_certificate(pem_block.encode("ascii"), default_backend())
+                cert_obj = x509.load_pem_x509_certificate(
+                    pem_block.encode("ascii"), default_backend()
+                )
                 certs.append(_convert_x509_to_model(cert_obj))
             except ValueError as exc:  # pragma: no cover - malformed block logged for diagnosis
                 logger.debug("Failed to parse PEM certificate: %s", exc)
@@ -237,4 +239,3 @@ def _ensure_der(data: bytes) -> bytes:
         _, _, der_bytes = asn1crypto.pem.unarmor(data)
         return der_bytes
     return data
-

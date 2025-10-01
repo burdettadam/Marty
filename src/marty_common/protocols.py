@@ -80,9 +80,7 @@ class CertificateRepositoryProtocol(RepositoryProtocol, Protocol):
         """List all certificates."""
         ...
 
-    async def mark_revoked(
-        self, cert_id: str, reason: str | None, revoked_at: datetime
-    ) -> None:
+    async def mark_revoked(self, cert_id: str, reason: str | None, revoked_at: datetime) -> None:
         """Mark a certificate as revoked."""
         ...
 
@@ -224,15 +222,11 @@ class ObjectStorageProtocol(Protocol):
 class CertificateValidatorProtocol(Protocol):
     """Protocol for certificate validation operations."""
 
-    async def validate(
-        self, certificate: bytes, trust_anchors: Sequence[bytes]
-    ) -> dict[str, Any]:
+    async def validate(self, certificate: bytes, trust_anchors: Sequence[bytes]) -> dict[str, Any]:
         """Validate a certificate against trust anchors."""
         ...
 
-    async def verify_chain(
-        self, certificate: bytes, chain: Sequence[bytes]
-    ) -> dict[str, Any]:
+    async def verify_chain(self, certificate: bytes, chain: Sequence[bytes]) -> dict[str, Any]:
         """Verify a certificate chain."""
         ...
 
@@ -241,9 +235,7 @@ class CertificateValidatorProtocol(Protocol):
 class SigningServiceProtocol(Protocol):
     """Protocol for signing service operations."""
 
-    async def sign(
-        self, data: bytes, key_id: str, algorithm: str | None = None
-    ) -> bytes:
+    async def sign(self, data: bytes, key_id: str, algorithm: str | None = None) -> bytes:
         """Sign data with the specified key."""
         ...
 
@@ -325,9 +317,7 @@ class LoggerProtocol(Protocol):
 class MetricsCollectorProtocol(Protocol):
     """Protocol for metrics collection."""
 
-    def increment(
-        self, metric: str, value: int = 1, tags: dict[str, str] | None = None
-    ) -> None:
+    def increment(self, metric: str, value: int = 1, tags: dict[str, str] | None = None) -> None:
         """Increment a counter metric."""
         ...
 
@@ -335,14 +325,10 @@ class MetricsCollectorProtocol(Protocol):
         """Record a gauge metric."""
         ...
 
-    def histogram(
-        self, metric: str, value: float, tags: dict[str, str] | None = None
-    ) -> None:
+    def histogram(self, metric: str, value: float, tags: dict[str, str] | None = None) -> None:
         """Record a histogram value."""
         ...
 
-    def timing(
-        self, metric: str, value: float, tags: dict[str, str] | None = None
-    ) -> None:
+    def timing(self, metric: str, value: float, tags: dict[str, str] | None = None) -> None:
         """Record a timing metric."""
         ...

@@ -115,6 +115,7 @@ docker_integration_test.log
 bandit_report.json
 safety_report.json
 mypy_report.txt
+mypy-report.xml
 radon_*.json
 ruff_report.json
 CODE_QUALITY.md

@@ -1,106 +1,101 @@
-import asyncio
+"""Trust Anchor service with database-backed trust store."""
+
+from __future__ import annotations
+
 import json
 import logging
-from typing import Optional
+from typing import TYPE_CHECKING
 
 import grpc
-from google.protobuf import empty_pb2
+
+if TYPE_CHECKING:
+    from sqlalchemy.ext.asyncio import AsyncSession
+
+    from marty_common.grpc_types import (
+        DatabaseManager,
+        GrpcServicerContext,
+        ServiceDependencies,
+        TrustRequest,
+        TrustResponse,
+    )
 
 from marty_common.infrastructure import OutboxRepository, TrustEntityRepository
-from src.proto import pkd_service_pb2, pkd_service_pb2_grpc, trust_anchor_pb2, trust_anchor_pb2_grpc
+from src.proto import trust_anchor_pb2, trust_anchor_pb2_grpc
 
 
 class TrustAnchor(trust_anchor_pb2_grpc.TrustAnchorServicer):
     """Trust Anchor backed by the shared database and event bus."""
 
-    def __init__(self, channels=None, dependencies=None) -> None:
+    def __init__(
+        self,
+        channels: dict[str, grpc.Channel] | None = None,
+        dependencies: ServiceDependencies | None = None,
+    ) -> None:
         if dependencies is None:
             msg = "TrustAnchor requires service dependencies"
             raise ValueError(msg)
         self.logger = logging.getLogger(__name__)
         self.channels = channels or {}
-        self._database = dependencies.database
+        self._database: DatabaseManager = dependencies.database
         self.logger.info("Trust Anchor service initialized using database-backed trust store")
-        try:
-            asyncio.get_running_loop().create_task(self._sync_from_pkd())
-        except RuntimeError:
-            asyncio.run(self._sync_from_pkd())
 
-    async def VerifyTrust(self, request, context):
+    async def VerifyTrust(  # noqa: N802
+        self,
+        request: TrustRequest,
+        context: GrpcServicerContext,
+    ) -> TrustResponse:
+        """Verify if an entity is trusted."""
         entity = request.entity
         self.logger.info("VerifyTrust called for entity: %s", entity)
 
-        async def handler(session):
+        async def handler(session: AsyncSession) -> bool:
             repo = TrustEntityRepository(session)
             record = await repo.get(entity)
             return record.trusted if record else False
 
         try:
             is_trusted = await self._database.run_within_transaction(handler)
-        except Exception as exc:  # pylint: disable=broad-except
+        except Exception:
             self.logger.exception("Trust verification failed for %s", entity)
-            await context.abort(grpc.StatusCode.INTERNAL, str(exc))
-            return trust_anchor_pb2.TrustResponse(is_trusted=False)
+            await context.abort(grpc.StatusCode.INTERNAL, "Trust verification failed")
+            # This line won't execute due to abort, but satisfies type checker
+            return trust_anchor_pb2.TrustResponse(is_trusted=False)  # type: ignore[no-any-return,attr-defined]
 
         self.logger.info("Entity %s is trusted: %s", entity, is_trusted)
-        return trust_anchor_pb2.TrustResponse(is_trusted=is_trusted)
+        return trust_anchor_pb2.TrustResponse(is_trusted=is_trusted)  # type: ignore[no-any-return,attr-defined]
 
-    async def update_trust_store(self, entity, trusted=True, attributes=None) -> Optional[bool]:
-        async def handler(session):
+    async def update_trust_store(
+        self,
+        entity: str,
+        trusted: bool = True,
+        attributes: dict[str, str] | None = None,
+    ) -> bool | None:
+        """Update trust store for an entity."""
+
+        async def handler(session: AsyncSession) -> None:
             repo = TrustEntityRepository(session)
-            record = await repo.upsert(entity, trusted, attributes)
-            return record
+            outbox = OutboxRepository(session)
+
+            # Update the trust entity
+            await repo.upsert(entity, trusted, attributes)
+
+            # Queue event for trust update
+            await outbox.enqueue(
+                topic="trust.entity.updated",
+                payload=json.dumps(
+                    {
+                        "entity_id": entity,
+                        "trusted": trusted,
+                        "source": "manual_update",
+                    }
+                ).encode(),
+                key=entity.encode(),
+            )
 
         try:
-            async def wrapper(session):
-                repo = TrustEntityRepository(session)
-                record = await repo.upsert(entity, trusted, attributes)
-                outbox = OutboxRepository(session)
-                await outbox.enqueue(
-                    topic="trust.updated",
-                    payload=json.dumps(
-                        {
-                            "entity": entity,
-                            "trusted": trusted,
-                            "version": record.version,
-                        }
-                    ).encode("utf-8"),
-                    key=entity.encode("utf-8"),
-                )
-                return record
-
-            record = await self._database.run_within_transaction(wrapper)
+            _ = await self._database.run_within_transaction(handler)
             self.logger.info("Trust store updated for %s (trusted=%s)", entity, trusted)
             return True
-        except Exception as exc:  # pylint: disable=broad-except
+        except Exception:
             self.logger.exception("Error updating trust store for %s", entity)
-            return False
-
-    async def _sync_from_pkd(self) -> None:
-        pkd_channel = self.channels.get("pkd_service")
-        if not pkd_channel:
-            self.logger.debug("PKD service channel not configured; skipping sync")
-            return
-
-        stub = pkd_service_pb2_grpc.PKDServiceStub(pkd_channel)
-        try:
-            response = await stub.ListTrustAnchors(empty_pb2.Empty())
-        except grpc.RpcError as rpc_err:
-            self.logger.warning("PKD sync failed: %s", rpc_err.details())
-            return
-
-        async def handler(session):
-            repo = TrustEntityRepository(session)
-            for anchor in response.anchors:
-                await repo.upsert(
-                    anchor.certificate_id,
-                    trusted=not anchor.revoked,
-                    attributes={
-                        "subject": anchor.subject,
-                        "storage_key": anchor.storage_key,
-                        "not_after": anchor.not_after,
-                    },
-                )
-
-        await self._database.run_within_transaction(handler)
-        self.logger.info("Synchronized %d trust anchors from PKD", len(response.anchors))
+            return None

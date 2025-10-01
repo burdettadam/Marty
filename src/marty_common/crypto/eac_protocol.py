@@ -36,20 +36,16 @@ class EACError(Exception):
     """Base exception for EAC protocol errors"""
 
 
-
 class TerminalAuthenticationError(EACError):
     """Terminal Authentication specific errors"""
-
 
 
 class ChipAuthenticationError(EACError):
     """Chip Authentication specific errors"""
 
 
-
 class CertificateValidationError(EACError):
     """Certificate chain validation errors"""
-
 
 
 class EACCryptoAlgorithm(Enum):

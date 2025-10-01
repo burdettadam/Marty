@@ -174,9 +174,7 @@ class DatabaseManager:
             raise
 
     @staticmethod
-    async def update_certificate_status(
-        certificate_id: str, status: CertificateStatus
-    ) -> bool:
+    async def update_certificate_status(certificate_id: str, status: CertificateStatus) -> bool:
         """Update the status of a certificate identified by its ID."""
 
         now = datetime.now().isoformat()

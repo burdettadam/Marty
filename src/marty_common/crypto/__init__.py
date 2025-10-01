@@ -85,14 +85,14 @@ except ImportError:
 __all__ = [
     "DataGroupHashComputer",
     "SODProcessor",
+    "build_lds_security_object",
+    "create_sod",
     "extract_sod_hashes",
     "hash_password",
+    "load_sod",
     "parse_sod",
     "verify_passport_data_groups",
     "verify_password",
     "verify_signature",
-    "build_lds_security_object",
-    "create_sod",
-    "load_sod",
     "verify_sod_signature",
 ]

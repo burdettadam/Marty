@@ -1,5 +1,11 @@
 """Verifiable credential helpers for SD-JWT and OIDC4VCI flows."""
 
+from .oidc4vci import (
+    CredentialOffer,
+    CredentialOfferGrant,
+    CredentialOfferGrantPreAuthorizedCode,
+    Oidc4VciSession,
+)
 from .sd_jwt import (
     SdJwtConfig,
     SdJwtDisclosure,
@@ -7,21 +13,15 @@ from .sd_jwt import (
     SdJwtIssuanceResult,
     SdJwtIssuer,
 )
-from .oidc4vci import (
-    CredentialOffer,
-    CredentialOfferGrant,
-    CredentialOfferGrantPreAuthorizedCode,
-    Oidc4VciSession,
-)
 
 __all__ = [
+    "CredentialOffer",
+    "CredentialOfferGrant",
+    "CredentialOfferGrantPreAuthorizedCode",
+    "Oidc4VciSession",
     "SdJwtConfig",
     "SdJwtDisclosure",
     "SdJwtIssuanceInput",
     "SdJwtIssuanceResult",
     "SdJwtIssuer",
-    "CredentialOffer",
-    "CredentialOfferGrant",
-    "CredentialOfferGrantPreAuthorizedCode",
-    "Oidc4VciSession",
 ]

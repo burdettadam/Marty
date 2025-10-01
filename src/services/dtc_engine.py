@@ -2,13 +2,20 @@
 
 from __future__ import annotations
 
-import io
 import hashlib
+import io
 import json
 import logging
 import uuid
 from datetime import datetime, timezone
-from typing import Any
+from typing import TYPE_CHECKING, Any
+
+if TYPE_CHECKING:
+    from marty_common.grpc_types import (
+        GrpcServicerContext,
+        ProtoMessage,
+        ServiceDependencies,
+    )
 
 import cbor2
 import grpc
@@ -22,18 +29,22 @@ from marty_common.infrastructure import (
     ObjectStorageClient,
     OutboxRepository,
 )
+from proto import document_signer_pb2, document_signer_pb2_grpc, dtc_engine_pb2, dtc_engine_pb2_grpc
 from src.marty_common.crypto.document_signer_certificate import (
     DOCUMENT_SIGNER_KEY_ID,
     load_or_create_document_signer_certificate,
 )
 from src.marty_common.crypto.dtc_verifier import DTCVerifier
-from proto import document_signer_pb2, document_signer_pb2_grpc, dtc_engine_pb2, dtc_engine_pb2_grpc
 
 
 class DTCEngineServicer(dtc_engine_pb2_grpc.DTCEngineServicer):
     """Service responsible for issuing, signing, and managing DTCs."""
 
-    def __init__(self, channels=None, dependencies=None) -> None:
+    def __init__(
+        self,
+        channels: dict[str, Any] | None = None,
+        dependencies: ServiceDependencies | None = None,
+    ) -> None:
         if dependencies is None:
             msg = "DTCEngineServicer requires service dependencies"
             raise ValueError(msg)
@@ -49,7 +60,11 @@ class DTCEngineServicer(dtc_engine_pb2_grpc.DTCEngineServicer):
     # ------------------------------------------------------------------
     # gRPC endpoints
     # ------------------------------------------------------------------
-    async def CreateDTC(self, request, context):  # noqa: N802
+    async def CreateDTC(
+        self,
+        request: Any,
+        context: GrpcServicerContext,
+    ) -> Any:
         dtc_id = f"DTC{uuid.uuid4().hex[:12].upper()}"
         self.logger.info("Issuing DTC %s for passport %s", dtc_id, request.passport_number)
 
@@ -89,7 +104,11 @@ class DTCEngineServicer(dtc_engine_pb2_grpc.DTCEngineServicer):
 
         return dtc_engine_pb2.CreateDTCResponse(dtc_id=dtc_id, status="SUCCESS", error_message="")
 
-    async def GetDTC(self, request, context):  # noqa: N802
+    async def GetDTC(
+        self,
+        request: Any,
+        context: GrpcServicerContext,
+    ) -> Any:
         record = await self._load_record(request.dtc_id)
         if record is None:
             return dtc_engine_pb2.DTCResponse(
@@ -109,7 +128,11 @@ class DTCEngineServicer(dtc_engine_pb2_grpc.DTCEngineServicer):
         response.status = "REVOKED" if record.status == "REVOKED" else "SUCCESS"
         return response
 
-    async def SignDTC(self, request, context):  # noqa: N802
+    async def SignDTC(
+        self,
+        request: ProtoMessage,
+        context: GrpcServicerContext,
+    ) -> ProtoMessage:
         record = await self._load_record(request.dtc_id)
         if record is None:
             return dtc_engine_pb2.SignDTCResponse(
@@ -211,7 +234,11 @@ class DTCEngineServicer(dtc_engine_pb2_grpc.DTCEngineServicer):
 
         return dtc_engine_pb2.RevokeDTCResponse(success=True, status="REVOKED")
 
-    async def GenerateDTCQRCode(self, request, context):  # noqa: N802
+    async def GenerateDTCQRCode(
+        self,
+        request: ProtoMessage,
+        context: GrpcServicerContext,
+    ) -> ProtoMessage:
         record = await self._load_record(request.dtc_id)
         if record is None:
             return dtc_engine_pb2.DTCQRCodeResponse(
@@ -238,7 +265,11 @@ class DTCEngineServicer(dtc_engine_pb2_grpc.DTCEngineServicer):
             payload_location=record.payload_location,
         )
 
-    async def VerifyDTC(self, request, context):  # noqa: N802
+    async def VerifyDTC(
+        self,
+        request: ProtoMessage,
+        context: GrpcServicerContext,
+    ) -> ProtoMessage:
         record = await self._load_record(request.dtc_id)
         if record is None:
             return dtc_engine_pb2.VerifyDTCResponse(
@@ -281,9 +312,7 @@ class DTCEngineServicer(dtc_engine_pb2_grpc.DTCEngineServicer):
             )
 
         certificate = await self._database.run_within_transaction(_load_certificate)
-        signature_result = verifier.verify_signature(
-            compact_payload, record.signature, certificate
-        )
+        signature_result = verifier.verify_signature(compact_payload, record.signature, certificate)
         chain_result = verifier.validate_certificate_chain(certificate, [])
 
         verification_checks = []
@@ -308,7 +337,11 @@ class DTCEngineServicer(dtc_engine_pb2_grpc.DTCEngineServicer):
                 details=(
                     chain_result.error_summary
                     if chain_result.errors
-                    else (chain_result.trust_anchor.subject.rfc4514_string() if chain_result.trust_anchor else "trusted")
+                    else (
+                        chain_result.trust_anchor.subject.rfc4514_string()
+                        if chain_result.trust_anchor
+                        else "trusted"
+                    )
                 ),
             )
         )
@@ -323,7 +356,9 @@ class DTCEngineServicer(dtc_engine_pb2_grpc.DTCEngineServicer):
             )
 
         if request.check_passport_link:
-            linked = bool(record.passport_number) and record.passport_number == request.passport_number
+            linked = (
+                bool(record.passport_number) and record.passport_number == request.passport_number
+            )
             verification_checks.append(
                 dtc_engine_pb2.VerificationCheck(
                     check_name="passport_link",
@@ -334,7 +369,9 @@ class DTCEngineServicer(dtc_engine_pb2_grpc.DTCEngineServicer):
 
         overall_valid = all(check.passed for check in verification_checks)
 
-        if not overall_valid and any(check.check_name == "signature" and not check.passed for check in verification_checks):
+        if not overall_valid and any(
+            check.check_name == "signature" and not check.passed for check in verification_checks
+        ):
             result_enum = dtc_engine_pb2.INVALID_SIGNATURE
         elif not overall_valid and any(
             check.check_name == "revocation" and not check.passed for check in verification_checks
@@ -351,9 +388,9 @@ class DTCEngineServicer(dtc_engine_pb2_grpc.DTCEngineServicer):
             verification_results=verification_checks,
             dtc_data=dtc_response,
             verification_result=result_enum,
-            error_message="" if overall_valid else "; ".join(
-                check.details for check in verification_checks if not check.passed
-            ),
+            error_message=""
+            if overall_valid
+            else "; ".join(check.details for check in verification_checks if not check.passed),
         )
 
     async def LinkDTCToPassport(self, request, context):  # noqa: N802
@@ -407,7 +444,9 @@ class DTCEngineServicer(dtc_engine_pb2_grpc.DTCEngineServicer):
                 try:
                     anchors.append(x509.load_pem_x509_certificate(record.pem.encode("utf-8")))
                 except ValueError:
-                    self.logger.warning("Failed to parse CSCA certificate %s", record.certificate_id)
+                    self.logger.warning(
+                        "Failed to parse CSCA certificate %s", record.certificate_id
+                    )
             return anchors
 
         try:
@@ -469,7 +508,9 @@ class DTCEngineServicer(dtc_engine_pb2_grpc.DTCEngineServicer):
             ],
             "dtc_type": dtc_engine_pb2.DTCType.Name(request.dtc_type),
             "access_control": dtc_engine_pb2.AccessControl.Name(request.access_control),
-            "access_key_hash": self._hash_access_key(request.access_key) if request.access_key else None,
+            "access_key_hash": self._hash_access_key(request.access_key)
+            if request.access_key
+            else None,
             "dtc_valid_from": valid_from,
             "dtc_valid_until": valid_until,
             "created_at": datetime.now(timezone.utc).isoformat(),
@@ -485,8 +526,12 @@ class DTCEngineServicer(dtc_engine_pb2_grpc.DTCEngineServicer):
             gender=personal.get("gender", ""),
             nationality=personal.get("nationality", ""),
             place_of_birth=personal.get("place_of_birth", ""),
-            portrait=bytes.fromhex(personal.get("portrait", "")) if personal.get("portrait") else b"",
-            signature=bytes.fromhex(personal.get("signature", "")) if personal.get("signature") else b"",
+            portrait=bytes.fromhex(personal.get("portrait", ""))
+            if personal.get("portrait")
+            else b"",
+            signature=bytes.fromhex(personal.get("signature", ""))
+            if personal.get("signature")
+            else b"",
             other_names=personal.get("other_names", []),
         )
 

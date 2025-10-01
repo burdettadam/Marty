@@ -1,20 +1,14 @@
-import asyncio
 import base64
 import json
 import logging
 import os
 from typing import Any, Optional
 
-import grpc
 from cryptography import x509
 from cryptography.hazmat.primitives import hashes, serialization
 from cryptography.hazmat.primitives.asymmetric import padding
 
-from marty_common.infrastructure import (
-    CertificateRepository,
-    KeyVaultClient,
-    ObjectStorageClient,
-)
+from marty_common.infrastructure import CertificateRepository, KeyVaultClient, ObjectStorageClient
 from src.marty_common.security.passport_crypto_validator import PassportCryptoValidator
 from src.marty_common.vc.sd_jwt_verifier import SdJwtVerifier
 from src.proto import (
@@ -36,7 +30,7 @@ class InspectionSystem(inspection_system_pb2_grpc.InspectionSystemServicer):
     - Checking revocation status
     """
 
-    def __init__(self, channels=None, dependencies=None) -> None:
+    def __init__(self, channels: dict[str, Any] | None, dependencies: ServiceDependencies) -> None:
         """
         Initialize the Inspection System service.
 
@@ -106,7 +100,9 @@ class InspectionSystem(inspection_system_pb2_grpc.InspectionSystemServicer):
             signature_bytes = bytes.fromhex(signature)
             public_pem = await self._key_vault.public_material(self._signing_key_id)
             public_key = serialization.load_pem_public_key(public_pem)
-            public_key.verify(signature_bytes, document.encode("utf-8"), padding.PKCS1v15(), hashes.SHA256())
+            public_key.verify(
+                signature_bytes, document.encode("utf-8"), padding.PKCS1v15(), hashes.SHA256()
+            )
             self.logger.info("Signature verified for document")
             return True
         except Exception as e:
@@ -128,7 +124,9 @@ class InspectionSystem(inspection_system_pb2_grpc.InspectionSystemServicer):
             payload = await self._object_storage.get_object(storage_key)
             return json.loads(payload.decode("utf-8"))
         except Exception as storage_error:  # pylint: disable=broad-except
-            self.logger.warning("Object storage lookup failed for %s: %s", passport_id, storage_error)
+            self.logger.warning(
+                "Object storage lookup failed for %s: %s", passport_id, storage_error
+            )
 
         try:
             file_path = os.path.join(self.data_dir, f"{passport_id}.json")
@@ -154,7 +152,9 @@ class InspectionSystem(inspection_system_pb2_grpc.InspectionSystemServicer):
                 try:
                     anchors.append(x509.load_pem_x509_certificate(record.pem.encode("utf-8")))
                 except ValueError:
-                    self.logger.warning("Failed to parse CSCA certificate %s", record.certificate_id)
+                    self.logger.warning(
+                        "Failed to parse CSCA certificate %s", record.certificate_id
+                    )
             return anchors
 
         try:
@@ -188,7 +188,11 @@ class InspectionSystem(inspection_system_pb2_grpc.InspectionSystemServicer):
             self.logger.exception("Unable to load wallet attestation certificates")
             return []
 
-    async def Inspect(self, request, context):
+    def Inspect(
+        self,
+        request: ProtoMessage,
+        context: GrpcServicerContext,
+    ) -> ProtoMessage:
         """
         Inspect an item (passport, document, etc).
 
@@ -277,7 +281,9 @@ class InspectionSystem(inspection_system_pb2_grpc.InspectionSystemServicer):
             lines.append(f"Issue Date: {passport_data.get('issue_date', 'Unknown')}")
             lines.append(f"Expiry Date: {passport_data.get('expiry_date', 'Unknown')}")
 
-            mrz_detail = ", ".join(mrz_result.errors) if mrz_result.errors else "MRZ check digits verified"
+            mrz_detail = (
+                ", ".join(mrz_result.errors) if mrz_result.errors else "MRZ check digits verified"
+            )
             lines.append(f"MRZ: {'PASS' if mrz_result.is_valid else 'FAIL'} ({mrz_detail})")
 
             sod_detail = (
@@ -285,7 +291,9 @@ class InspectionSystem(inspection_system_pb2_grpc.InspectionSystemServicer):
                 if sod_result.errors
                 else f"hashes={len(sod_result.expected_hashes)}"
             )
-            lines.append(f"SOD Integrity: {'PASS' if sod_result.is_valid else 'FAIL'} ({sod_detail})")
+            lines.append(
+                f"SOD Integrity: {'PASS' if sod_result.is_valid else 'FAIL'} ({sod_detail})"
+            )
 
             chain_summary = (
                 cert_result.result.error_summary
@@ -333,7 +341,9 @@ class InspectionSystem(inspection_system_pb2_grpc.InspectionSystemServicer):
         if isinstance(wallet_attestation, dict):
             attestation_payload = json.dumps(wallet_attestation)
         else:
-            attestation_payload = wallet_attestation if isinstance(wallet_attestation, str) else None
+            attestation_payload = (
+                wallet_attestation if isinstance(wallet_attestation, str) else None
+            )
 
         result = verifier.verify(
             credential,

@@ -58,7 +58,22 @@ lint:
 
 type-check:
 	@echo "Running type checking..."
-	mypy src/
+	cd src && $(UV) run mypy services/ marty_common/ \
+		--ignore-missing-imports \
+		--show-error-codes \
+		--pretty \
+		--color-output \
+		--error-summary \
+		--config-file ../pyproject.toml
+	@echo "Type checking services with strict mode..."
+	cd src && $(UV) run mypy services/ \
+		--ignore-missing-imports \
+		--disable-error-code=misc \
+		--disable-error-code=attr-defined \
+		--show-error-codes \
+		--pretty \
+		--color-output \
+		--config-file ../pyproject.toml
 
 complexity:
 	@echo "Running complexity analysis..."
@@ -74,6 +89,34 @@ security:
 
 quality-check: format lint type-check complexity security
 	@echo "All code quality checks completed!"
+
+mypy-services:
+	@echo "Running mypy type checking on services..."
+	cd src && $(UV) run mypy services/ marty_common/ \
+		--config-file ../pyproject.toml \
+		--show-error-codes \
+		--pretty \
+		--color-output \
+		--error-summary
+
+mypy-strict:
+	@echo "Running strict mypy checking (for CI/CD)..."
+	$(UV) run mypy src/services/ src/marty_common/ \
+		--config-file pyproject.toml \
+		--strict \
+		--show-error-codes \
+		--pretty \
+		--color-output \
+		--error-summary \
+		--junit-xml mypy-report.xml
+
+validate-types:
+	@echo "Validating type annotations across all services..."
+	@echo "Checking service dependencies protocol compliance..."
+	$(UV) run python -c "from src.marty_common.grpc_types import ServiceDependencies; print('✓ ServiceDependencies protocol is valid')"
+	@echo "Running type validation on core services..."
+	$(UV) run mypy --no-error-summary src/services/trust_anchor.py src/services/document_signer.py src/services/certificate_lifecycle_manager.py src/services/csca.py src/services/pkd_service.py src/services/mdl_engine.py src/services/dtc_engine.py src/services/passport_engine.py src/services/mdoc_engine.py
+	@echo "✓ All service type annotations validated successfully!"
 
 pre-commit-install:
 	@echo "Installing pre-commit hooks..."

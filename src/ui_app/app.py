@@ -907,17 +907,17 @@ def create_app(settings: UiSettings | None = None) -> FastAPI:
                     "openxpki_url": "https://openxpki.example.com",
                     "pkd_sync_enabled": True,
                     "pkd_sync_interval": 24,
-                "notification_email": "admin@example.com",
-            },
-            "metrics": {
-                "cpu_usage": 15,
-                "memory_usage": 42,
-                "disk_usage": 28,
-                "network_io": 1.2,
-                "network_in": 0.8,
-                "network_out": 0.4,
-            },
-            "log_entries": [
+                    "notification_email": "admin@example.com",
+                },
+                "metrics": {
+                    "cpu_usage": 15,
+                    "memory_usage": 42,
+                    "disk_usage": 28,
+                    "network_io": 1.2,
+                    "network_in": 0.8,
+                    "network_out": 0.4,
+                },
+                "log_entries": [
                     {
                         "timestamp": "2024-01-15 10:35:22",
                         "service": "csca",
@@ -1024,11 +1024,14 @@ def create_app(settings: UiSettings | None = None) -> FastAPI:
         factory: GrpcClientFactory = Depends(get_factory),
         grant_type: str = Form(...),
         pre_authorized_code: str = Form(...),
-        user_pin: str | None = Form(default=None),  # noqa: ARG001 - placeholder for future PIN support
+        user_pin: str
+        | None = Form(default=None),
         wallet_attestation: str | None = Form(default=None),
     ) -> dict[str, Any]:
         if grant_type != "urn:ietf:params:oauth:grant-type:pre-authorized_code":
-            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="unsupported_grant_type")
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST, detail="unsupported_grant_type"
+            )
 
         _ = user_pin  # Reserved for future PIN support
 
@@ -1061,12 +1064,12 @@ def create_app(settings: UiSettings | None = None) -> FastAPI:
         if not token and authorization.startswith("Bearer "):
             token = authorization[len("Bearer ") :]
         if not token:
-            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="missing access_token")
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST, detail="missing access_token"
+            )
 
         wallet_attestation_json = (
-            json.dumps(payload.wallet_attestation)
-            if payload.wallet_attestation is not None
-            else ""
+            json.dumps(payload.wallet_attestation) if payload.wallet_attestation is not None else ""
         )
 
         request_pb = document_signer_pb2.IssueSdJwtCredentialRequest(

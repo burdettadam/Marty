@@ -89,9 +89,16 @@ class RevokeCertificateRequestSchema(BaseModel):
     @classmethod
     def _validate_reason(cls, value: str) -> str:
         allowed_reasons = {
-            "UNSPECIFIED", "KEY_COMPROMISE", "CA_COMPROMISE", "AFFILIATION_CHANGED",
-            "SUPERSEDED", "CESSATION_OF_OPERATION", "CERTIFICATE_HOLD",
-            "REMOVE_FROM_CRL", "PRIVILEGE_WITHDRAWN", "AA_COMPROMISE"
+            "UNSPECIFIED",
+            "KEY_COMPROMISE",
+            "CA_COMPROMISE",
+            "AFFILIATION_CHANGED",
+            "SUPERSEDED",
+            "CESSATION_OF_OPERATION",
+            "CERTIFICATE_HOLD",
+            "REMOVE_FROM_CRL",
+            "PRIVILEGE_WITHDRAWN",
+            "AA_COMPROMISE",
         }
         if value.upper() not in allowed_reasons:
             raise ValueError(f"reason must be one of: {', '.join(allowed_reasons)}")

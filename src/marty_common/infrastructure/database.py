@@ -2,11 +2,17 @@
 
 from __future__ import annotations
 
+from collections.abc import AsyncIterator, Awaitable
 from contextlib import asynccontextmanager
 from dataclasses import dataclass
-from typing import Any, AsyncIterator, Awaitable, Callable, Optional, TypeVar
+from typing import Any, Callable, Optional, TypeVar
 
-from sqlalchemy.ext.asyncio import AsyncEngine, AsyncSession, async_sessionmaker, create_async_engine
+from sqlalchemy.ext.asyncio import (
+    AsyncEngine,
+    AsyncSession,
+    async_sessionmaker,
+    create_async_engine,
+)
 
 from .models import Base
 
@@ -22,7 +28,7 @@ class DatabaseConfig:
     pool_timeout: int = 30
 
     @classmethod
-    def from_dict(cls, raw: dict[str, Any]) -> "DatabaseConfig":
+    def from_dict(cls, raw: dict[str, Any]) -> DatabaseConfig:
         if "url" in raw:
             url = raw["url"]
         else:
@@ -95,8 +101,6 @@ class DatabaseManager:
         finally:
             await session.close()
 
-    async def run_within_transaction(
-        self, handler: Callable[[AsyncSession], Awaitable[T]]
-    ) -> T:
+    async def run_within_transaction(self, handler: Callable[[AsyncSession], Awaitable[T]]) -> T:
         async with self.session_scope() as session:
             return await handler(session)

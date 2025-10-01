@@ -23,7 +23,7 @@ class EventBusConfig:
     auto_offset_reset: str = "earliest"
 
     @classmethod
-    def from_dict(cls, raw: dict[str, Any]) -> "EventBusConfig":
+    def from_dict(cls, raw: dict[str, Any]) -> EventBusConfig:
         brokers = raw.get("brokers") or []
         if isinstance(brokers, str):
             brokers = [broker.strip() for broker in brokers.split(",") if broker.strip()]
@@ -83,7 +83,11 @@ class EventBusProvider:
             return
         await self._ensure_started()
         assert self._producer is not None  # for mypy/static hints
-        topic = f"{self._config.topic_prefix}{message.topic}" if self._config.topic_prefix else message.topic
+        topic = (
+            f"{self._config.topic_prefix}{message.topic}"
+            if self._config.topic_prefix
+            else message.topic
+        )
         headers = None
         if message.headers:
             headers = [(key, value) for key, value in message.headers.items()]

@@ -134,7 +134,9 @@ class PKDMirrorService:
 
         try:
             component_results = self.sync_components(["csca", "dsc", "crl"])
-            success = all(component_results.get(component, False) for component in ("csca", "dsc", "crl"))
+            success = all(
+                component_results.get(component, False) for component in ("csca", "dsc", "crl")
+            )
 
             # Update last sync time if at least one component was synced successfully
             if success:

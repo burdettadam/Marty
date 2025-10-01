@@ -2,19 +2,22 @@
 
 from __future__ import annotations
 
+from collections.abc import Mapping, Sequence
 from datetime import datetime, timezone
-from typing import Mapping, Sequence
 
-from asn1crypto import algos as asn1_algos, cms as asn1_cms, core as asn1_core, x509 as asn1_x509
+from asn1crypto import algos as asn1_algos
+from asn1crypto import cms as asn1_cms
+from asn1crypto import core as asn1_core
+from asn1crypto import x509 as asn1_x509
 from cryptography import x509
 from cryptography.hazmat.primitives import hashes, serialization
-from cryptography.hazmat.primitives.asymmetric import ec, ed25519, ed448, padding, rsa
+from cryptography.hazmat.primitives.asymmetric import ec, ed448, ed25519, padding, rsa
 
 from src.marty_common.models.asn1_structures import (
+    SOD,
     DataGroupHash,
     DataGroupHashValues,
     LDSSecurityObject,
-    SOD,
 )
 
 _HASH_OIDS: Mapping[str, str] = {
@@ -98,13 +101,17 @@ def create_sod(
     signature_input = signed_attrs.dump(force=True)
 
     if isinstance(private_key, rsa.RSAPrivateKey):
-        signature_algorithm = asn1_algos.SignedDigestAlgorithm({"algorithm": f"{algorithm_name}_rsa"})
+        signature_algorithm = asn1_algos.SignedDigestAlgorithm(
+            {"algorithm": f"{algorithm_name}_rsa"}
+        )
 
         def sign_payload(payload: bytes) -> bytes:
             return private_key.sign(payload, padding.PKCS1v15(), hash_algorithm)
 
     elif isinstance(private_key, ec.EllipticCurvePrivateKey):
-        signature_algorithm = asn1_algos.SignedDigestAlgorithm({"algorithm": f"{algorithm_name}_ecdsa"})
+        signature_algorithm = asn1_algos.SignedDigestAlgorithm(
+            {"algorithm": f"{algorithm_name}_ecdsa"}
+        )
 
         def sign_payload(payload: bytes) -> bytes:
             return private_key.sign(payload, ec.ECDSA(hash_algorithm))
@@ -127,9 +134,7 @@ def create_sod(
         msg = "Unsupported private key type for SOD signing"
         raise ValueError(msg)
 
-    asn1_cert = asn1_x509.Certificate.load(
-        certificate.public_bytes(serialization.Encoding.DER)
-    )
+    asn1_cert = asn1_x509.Certificate.load(certificate.public_bytes(serialization.Encoding.DER))
 
     signer_info = asn1_cms.SignerInfo(
         {

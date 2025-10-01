@@ -7,7 +7,14 @@ import json
 import logging
 import uuid
 from datetime import datetime, timedelta, timezone
-from typing import Any, Optional
+from typing import TYPE_CHECKING, Any
+
+if TYPE_CHECKING:
+    from marty_common.grpc_types import (
+        GrpcServicerContext,
+        ProtoMessage,
+        ServiceDependencies,
+    )
 
 import grpc
 from cryptography import x509
@@ -27,7 +34,11 @@ from src.proto import csca_service_pb2, csca_service_pb2_grpc
 class CscaService(csca_service_pb2_grpc.CscaServiceServicer):
     """Country Signing Certificate Authority implementation with vault-backed keys."""
 
-    def __init__(self, channels=None, dependencies=None) -> None:
+    def __init__(
+        self,
+        channels: dict[str, Any] | None = None,
+        dependencies: ServiceDependencies | None = None,
+    ) -> None:
         if dependencies is None:
             msg = "CscaService requires service dependencies"
             raise ValueError(msg)
@@ -46,7 +57,11 @@ class CscaService(csca_service_pb2_grpc.CscaServiceServicer):
     # ---------------------------------------------------------------------
     # gRPC API
     # ---------------------------------------------------------------------
-    async def GetCscaData(self, request, context):  # noqa: N802 - proto naming
+    async def GetCscaData(  # noqa: N802 - proto naming
+        self,
+        request: ProtoMessage,  # csca_service_pb2.GetCscaDataRequest
+        context: GrpcServicerContext,  # grpc.ServicerContext
+    ) -> ProtoMessage:  # csca_service_pb2.GetCscaDataResponse
         certificate_id = request.id
         if not certificate_id:
             await context.abort(grpc.StatusCode.INVALID_ARGUMENT, "Certificate ID cannot be empty")
@@ -57,7 +72,9 @@ class CscaService(csca_service_pb2_grpc.CscaServiceServicer):
             record = await self._fetch_certificate_record(certificate_id)
 
         if record is None:
-            await context.abort(grpc.StatusCode.NOT_FOUND, f"Certificate '{certificate_id}' not found")
+            await context.abort(
+                grpc.StatusCode.NOT_FOUND, f"Certificate '{certificate_id}' not found"
+            )
             return csca_service_pb2.CscaResponse()
 
         if record.get("revoked"):
@@ -66,7 +83,11 @@ class CscaService(csca_service_pb2_grpc.CscaServiceServicer):
 
         return csca_service_pb2.CscaResponse(data=record["pem"])
 
-    async def CreateCertificate(self, request, context):  # noqa: N802
+    async def CreateCertificate(  # noqa: N802
+        self,
+        request: ProtoMessage,  # csca_service_pb2.CreateCertificateRequest
+        context: GrpcServicerContext,  # grpc.ServicerContext
+    ) -> ProtoMessage:  # csca_service_pb2.CreateCertificateResponse
         subject_name = request.subject_name
         if not subject_name:
             await context.abort(grpc.StatusCode.INVALID_ARGUMENT, "Subject name cannot be empty")
@@ -85,7 +106,9 @@ class CscaService(csca_service_pb2_grpc.CscaServiceServicer):
 
         not_before = datetime.now(timezone.utc)
         not_after = not_before + timedelta(days=validity_days)
-        certificate = self._build_self_signed_certificate(private_key, subject_name, not_before, not_after)
+        certificate = self._build_self_signed_certificate(
+            private_key, subject_name, not_before, not_after
+        )
 
         private_key_pem = private_key.private_bytes(
             encoding=serialization.Encoding.PEM,
@@ -150,7 +173,11 @@ class CscaService(csca_service_pb2_grpc.CscaServiceServicer):
             status="ISSUED",
         )
 
-    async def RenewCertificate(self, request, context):  # noqa: N802
+    async def RenewCertificate(  # noqa: N802
+        self,
+        request: ProtoMessage,  # csca_service_pb2.RenewCertificateRequest
+        context: GrpcServicerContext,  # grpc.ServicerContext
+    ) -> ProtoMessage:  # csca_service_pb2.RenewCertificateResponse
         if not request.certificate_id:
             await context.abort(grpc.StatusCode.INVALID_ARGUMENT, "Certificate ID is required")
             return csca_service_pb2.CreateCertificateResponse()
@@ -174,7 +201,9 @@ class CscaService(csca_service_pb2_grpc.CscaServiceServicer):
 
         not_before = datetime.now(timezone.utc)
         not_after = not_before + timedelta(days=validity_days)
-        certificate = self._build_self_signed_certificate(private_key, subject, not_before, not_after)
+        certificate = self._build_self_signed_certificate(
+            private_key, subject, not_before, not_after
+        )
 
         private_key_pem = private_key.private_bytes(
             encoding=serialization.Encoding.PEM,
@@ -247,7 +276,11 @@ class CscaService(csca_service_pb2_grpc.CscaServiceServicer):
             status="RENEWED",
         )
 
-    async def RevokeCertificate(self, request, context):  # noqa: N802
+    async def RevokeCertificate(  # noqa: N802
+        self,
+        request: ProtoMessage,  # csca_service_pb2.RevokeCertificateRequest
+        context: GrpcServicerContext,  # grpc.ServicerContext
+    ) -> ProtoMessage:  # csca_service_pb2.RevokeCertificateResponse
         if not request.certificate_id:
             await context.abort(grpc.StatusCode.INVALID_ARGUMENT, "Certificate ID is required")
             return csca_service_pb2.RevokeCertificateResponse()
@@ -295,7 +328,11 @@ class CscaService(csca_service_pb2_grpc.CscaServiceServicer):
             status="REVOKED",
         )
 
-    async def GetCertificateStatus(self, request, context):  # noqa: N802
+    async def GetCertificateStatus(  # noqa: N802
+        self,
+        request: ProtoMessage,  # csca_service_pb2.GetCertificateStatusRequest
+        context: GrpcServicerContext,  # grpc.ServicerContext
+    ) -> ProtoMessage:  # csca_service_pb2.GetCertificateStatusResponse
         if not request.certificate_id:
             await context.abort(grpc.StatusCode.INVALID_ARGUMENT, "Certificate ID is required")
             return csca_service_pb2.CertificateStatusResponse()
@@ -313,7 +350,11 @@ class CscaService(csca_service_pb2_grpc.CscaServiceServicer):
             metadata=json.dumps(record.get("details", {})),
         )
 
-    async def ListCertificates(self, request, context):  # noqa: N802
+    async def ListCertificates(  # noqa: N802
+        self,
+        request: ProtoMessage,  # csca_service_pb2.ListCertificatesRequest
+        context: GrpcServicerContext,  # grpc.ServicerContext
+    ) -> ProtoMessage:  # csca_service_pb2.ListCertificatesResponse
         records = await self._list_certificates()
         summaries = []
         for record in records:
@@ -329,7 +370,11 @@ class CscaService(csca_service_pb2_grpc.CscaServiceServicer):
             )
         return csca_service_pb2.ListCertificatesResponse(certificates=summaries)
 
-    async def CheckExpiringCertificates(self, request, context):  # noqa: N802
+    async def CheckExpiringCertificates(  # noqa: N802
+        self,
+        request: ProtoMessage,  # csca_service_pb2.CheckExpiringCertificatesRequest
+        context: GrpcServicerContext,  # grpc.ServicerContext
+    ) -> ProtoMessage:  # csca_service_pb2.CheckExpiringCertificatesResponse
         threshold_days = request.threshold_days if request.threshold_days > 0 else 30
         now = datetime.now(timezone.utc)
         expiring = []
@@ -357,18 +402,18 @@ class CscaService(csca_service_pb2_grpc.CscaServiceServicer):
     # ------------------------------------------------------------------
     # Lifecycle hooks (no-op placeholders retained for compatibility)
     # ------------------------------------------------------------------
-    def setup_lifecycle_monitoring(self) -> Optional[bool]:  # noqa: D401
+    def setup_lifecycle_monitoring(self) -> bool | None:
         """Lifecycle monitoring is managed externally."""
 
         self.logger.debug("Lifecycle monitoring integration not yet implemented")
         return None
 
-    def perform_lifecycle_checks(self):  # noqa: D401
+    def perform_lifecycle_checks(self) -> None:
         """Placeholder for scheduled lifecycle checks."""
 
         self.logger.debug("perform_lifecycle_checks called – no action")
 
-    def stop_lifecycle_monitoring(self) -> bool:  # noqa: D401
+    def stop_lifecycle_monitoring(self) -> bool:
         """No-op stop hook."""
 
         return True
@@ -452,7 +497,9 @@ class CscaService(csca_service_pb2_grpc.CscaServiceServicer):
 
         return revoked_at
 
-    def _update_revocation_cache(self, certificate_id: str, reason: str, revoked_at: datetime) -> None:
+    def _update_revocation_cache(
+        self, certificate_id: str, reason: str, revoked_at: datetime
+    ) -> None:
         cache_entry = self._certificate_cache.get(certificate_id)
         if cache_entry is None:
             cache_entry = {
@@ -468,7 +515,7 @@ class CscaService(csca_service_pb2_grpc.CscaServiceServicer):
         details["revocation_reason"] = reason
         details["revocation_date"] = revoked_at.isoformat()
 
-    async def _fetch_certificate_record(self, certificate_id: str) -> Optional[dict[str, Any]]:
+    async def _fetch_certificate_record(self, certificate_id: str) -> dict[str, Any] | None:
         async def handler(session):
             repo = CertificateRepository(session)
             return await repo.get(certificate_id)
@@ -485,14 +532,16 @@ class CscaService(csca_service_pb2_grpc.CscaServiceServicer):
         self._certificate_cache[certificate_id] = cache_entry
         return cache_entry
 
-    async def _list_certificates(self):
+    async def _list_certificates(self) -> list[dict[str, Any]]:
         async with self._database.session_scope() as session:
             repo = CertificateRepository(session)
             records = await repo.list_all()
             return records
 
     @staticmethod
-    def _generate_private_key(key_algorithm: str, key_size: int):
+    def _generate_private_key(
+        key_algorithm: str, key_size: int
+    ) -> rsa.RSAPrivateKey | ec.EllipticCurvePrivateKey:
         algorithm = key_algorithm.upper()
         if algorithm == "RSA" or algorithm.startswith("RSA"):
             size = key_size if key_size > 0 else 2048
@@ -504,7 +553,8 @@ class CscaService(csca_service_pb2_grpc.CscaServiceServicer):
             elif key_size >= 384:
                 curve = ec.SECP384R1()
             return ec.generate_private_key(curve)
-        raise ValueError(f"Unsupported key algorithm: {key_algorithm}")
+        msg = f"Unsupported key algorithm: {key_algorithm}"
+        raise ValueError(msg)
 
     @staticmethod
     def _build_self_signed_certificate(

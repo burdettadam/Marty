@@ -144,7 +144,9 @@ class TestIsolationManager:
             ]
 
             for cmd in reset_commands:
-                result = subprocess.run(cmd, shell=True, capture_output=True, text=True, check=False)
+                result = subprocess.run(
+                    cmd, shell=True, capture_output=True, text=True, check=False
+                )
                 if result.returncode != 0:
                     logger.warning(f"Database reset command failed: {cmd}")
                     logger.warning(f"stderr: {result.stderr}")

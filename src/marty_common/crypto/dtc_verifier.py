@@ -3,8 +3,9 @@
 from __future__ import annotations
 
 import logging
+from collections.abc import Iterable, Mapping, Sequence
 from dataclasses import dataclass
-from typing import Any, Iterable, Mapping, Sequence
+from typing import Any
 
 import cbor2
 from cryptography import x509
@@ -13,8 +14,8 @@ from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.primitives.asymmetric import ec, padding, rsa
 
 from src.marty_common.crypto.certificate_validator import (
-    ChainValidationResult,
     CertificateChainValidator,
+    ChainValidationResult,
 )
 
 logger = logging.getLogger(__name__)
@@ -53,7 +54,9 @@ class DTCVerifier:
     # Data group hash verification
     # ------------------------------------------------------------------
     @staticmethod
-    def compute_data_group_hashes(data_groups: Sequence[Mapping[str, Any]], algorithm: str = "sha256") -> dict[str, str]:
+    def compute_data_group_hashes(
+        data_groups: Sequence[Mapping[str, Any]], algorithm: str = "sha256"
+    ) -> dict[str, str]:
         hash_algorithm = algorithm.lower()
         if hash_algorithm not in {"sha256", "sha384", "sha512", "sha224", "sha1"}:
             msg = f"Unsupported hash algorithm for DTC data groups: {algorithm}"
@@ -152,11 +155,13 @@ class DTCVerifier:
         signer_certificate: x509.Certificate,
         intermediates: Sequence[x509.Certificate] | None = None,
     ) -> ChainValidationResult:
-        return self._chain_validator.validate_certificate_chain(signer_certificate, list(intermediates or []))
+        return self._chain_validator.validate_certificate_chain(
+            signer_certificate, list(intermediates or [])
+        )
 
 
 __all__ = [
-    "DTCVerifier",
     "DTCIntegrityResult",
     "DTCSignatureResult",
+    "DTCVerifier",
 ]

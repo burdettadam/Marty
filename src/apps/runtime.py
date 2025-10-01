@@ -3,9 +3,10 @@ from __future__ import annotations
 import asyncio
 import logging
 import os
+from collections.abc import Awaitable
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any, Awaitable, Callable
+from typing import Any, Callable
 
 import grpc
 from grpc import aio as grpc_aio
@@ -232,6 +233,7 @@ def setup_logging_streamer_service(server: grpc_aio.Server, health: HealthServic
 
 # Individual registrar helpers -------------------------------------------------
 
+
 def add_csca_service(
     server: grpc_aio.Server,
     channels: dict[str, grpc_aio.Channel],
@@ -386,7 +388,9 @@ SERVICE_DEFAULT_PORTS: dict[str, int] = {
 }
 
 SERVICE_DEFINITIONS: dict[str, ServiceDefinition] = {
-    name: ServiceDefinition(name=name, default_port=SERVICE_DEFAULT_PORTS[name], registrar=registrar)
+    name: ServiceDefinition(
+        name=name, default_port=SERVICE_DEFAULT_PORTS[name], registrar=registrar
+    )
     for name, registrar in SERVICE_REGISTRARS.items()
 }
 
@@ -400,7 +404,9 @@ async def serve_service_async(
     setup_logging(service.name)
 
     config = get_service_config(service.name, service.default_port)
-    logger.info("Starting %s with config: env=%s port=%s", service.name, config["env"], config["grpc_port"])
+    logger.info(
+        "Starting %s with config: env=%s port=%s", service.name, config["env"], config["grpc_port"]
+    )
 
     runtime_config = runtime_config or MartyConfig()
     tls_options = runtime_config.grpc_tls()
@@ -462,11 +468,11 @@ def serve_service(service: ServiceDefinition) -> None:
 
 
 __all__ = [
+    "SERVICE_DEFAULT_PORTS",
+    "SERVICE_DEFINITIONS",
     "ServiceDefinition",
+    "ServiceDependencies",
+    "build_dependencies_async",
     "serve_service",
     "serve_service_async",
-    "build_dependencies_async",
-    "ServiceDependencies",
-    "SERVICE_DEFINITIONS",
-    "SERVICE_DEFAULT_PORTS",
 ]

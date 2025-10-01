@@ -8,7 +8,6 @@ from typing import Optional
 
 import grpc
 
-
 LOGGER = logging.getLogger(__name__)
 
 

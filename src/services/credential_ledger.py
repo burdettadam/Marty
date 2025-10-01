@@ -5,16 +5,13 @@ from __future__ import annotations
 import asyncio
 import json
 import logging
+from collections.abc import Iterable
 from dataclasses import dataclass
-from typing import Any, Iterable, Optional
+from typing import Any
 
 from aiokafka import AIOKafkaConsumer
 
-from marty_common.infrastructure import (
-    CredentialLedgerRepository,
-    DatabaseManager,
-    EventBusConfig,
-)
+from marty_common.infrastructure import CredentialLedgerRepository, DatabaseManager, EventBusConfig
 
 logger = logging.getLogger(__name__)
 
@@ -74,7 +71,9 @@ class CredentialLedgerProcessor:
         context: MessageContext,
     ) -> None:
         if not credential_id:
-            self._logger.warning("Skipping ledger update for %s without credential_id", context.topic)
+            self._logger.warning(
+                "Skipping ledger update for %s without credential_id", context.topic
+            )
             return
         await self._repository.upsert_entry(
             credential_id=credential_id,
@@ -85,7 +84,9 @@ class CredentialLedgerProcessor:
             offset=context.offset,
         )
 
-    async def _handle_certificate_issued(self, payload: dict[str, Any], key: str | None, context: MessageContext) -> None:
+    async def _handle_certificate_issued(
+        self, payload: dict[str, Any], key: str | None, context: MessageContext
+    ) -> None:
         cert_id = key or payload.get("certificate_id")
         metadata = {
             "subject": payload.get("subject"),
@@ -94,7 +95,9 @@ class CredentialLedgerProcessor:
         }
         await self._upsert(cert_id, "certificate", "ISSUED", metadata, context)
 
-    async def _handle_certificate_renewed(self, payload: dict[str, Any], key: str | None, context: MessageContext) -> None:
+    async def _handle_certificate_renewed(
+        self, payload: dict[str, Any], key: str | None, context: MessageContext
+    ) -> None:
         new_id = key or payload.get("certificate_id")
         previous_id = payload.get("previous_id")
         metadata = {
@@ -112,12 +115,16 @@ class CredentialLedgerProcessor:
                 context,
             )
 
-    async def _handle_certificate_revoked(self, payload: dict[str, Any], key: str | None, context: MessageContext) -> None:
+    async def _handle_certificate_revoked(
+        self, payload: dict[str, Any], key: str | None, context: MessageContext
+    ) -> None:
         cert_id = key or payload.get("certificate_id")
         metadata = {"revocation_reason": payload.get("reason")}
         await self._upsert(cert_id, "certificate", "REVOKED", metadata, context)
 
-    async def _handle_passport_issued(self, payload: dict[str, Any], key: str | None, context: MessageContext) -> None:
+    async def _handle_passport_issued(
+        self, payload: dict[str, Any], key: str | None, context: MessageContext
+    ) -> None:
         passport_number = key or payload.get("passport_number")
         status = payload.get("status", "ISSUED")
         metadata = {
@@ -126,7 +133,9 @@ class CredentialLedgerProcessor:
         }
         await self._upsert(passport_number, "passport", status, metadata, context)
 
-    async def _handle_dtc_issued(self, payload: dict[str, Any], key: str | None, context: MessageContext) -> None:
+    async def _handle_dtc_issued(
+        self, payload: dict[str, Any], key: str | None, context: MessageContext
+    ) -> None:
         dtc_id = key or payload.get("dtc_id")
         metadata = {
             "passport_number": payload.get("passport_number"),
@@ -134,7 +143,9 @@ class CredentialLedgerProcessor:
         }
         await self._upsert(dtc_id, "dtc", "ISSUED", metadata, context)
 
-    async def _handle_dtc_signed(self, payload: dict[str, Any], key: str | None, context: MessageContext) -> None:
+    async def _handle_dtc_signed(
+        self, payload: dict[str, Any], key: str | None, context: MessageContext
+    ) -> None:
         dtc_id = key or payload.get("dtc_id")
         metadata = {
             "signature_date": payload.get("signature_date"),
@@ -142,12 +153,16 @@ class CredentialLedgerProcessor:
         }
         await self._upsert(dtc_id, "dtc", "SIGNED", metadata, context)
 
-    async def _handle_dtc_revoked(self, payload: dict[str, Any], key: str | None, context: MessageContext) -> None:
+    async def _handle_dtc_revoked(
+        self, payload: dict[str, Any], key: str | None, context: MessageContext
+    ) -> None:
         dtc_id = key or payload.get("dtc_id")
         metadata = {"revocation_reason": payload.get("reason")}
         await self._upsert(dtc_id, "dtc", "REVOKED", metadata, context)
 
-    async def _handle_mdl_created(self, payload: dict[str, Any], key: str | None, context: MessageContext) -> None:
+    async def _handle_mdl_created(
+        self, payload: dict[str, Any], key: str | None, context: MessageContext
+    ) -> None:
         mdl_id = key or payload.get("mdl_id")
         metadata = {
             "license_number": payload.get("license_number"),
@@ -156,7 +171,9 @@ class CredentialLedgerProcessor:
         }
         await self._upsert(mdl_id, "mdl", "PENDING_SIGNATURE", metadata, context)
 
-    async def _handle_mdl_signed(self, payload: dict[str, Any], key: str | None, context: MessageContext) -> None:
+    async def _handle_mdl_signed(
+        self, payload: dict[str, Any], key: str | None, context: MessageContext
+    ) -> None:
         mdl_id = key or payload.get("mdl_id")
         metadata = {
             "license_number": payload.get("license_number"),
@@ -176,7 +193,9 @@ class CredentialLedgerProcessor:
         }
         await self._upsert(mdl_id, "mdl", "TRANSFER_PENDING", metadata, context)
 
-    async def _handle_credential_issued(self, payload: dict[str, Any], key: str | None, context: MessageContext) -> None:
+    async def _handle_credential_issued(
+        self, payload: dict[str, Any], key: str | None, context: MessageContext
+    ) -> None:
         credential_id = key or payload.get("document_id")
         metadata = {
             "signer": payload.get("signer"),
@@ -185,7 +204,9 @@ class CredentialLedgerProcessor:
         }
         await self._upsert(credential_id, "document", "ISSUED", metadata, context)
 
-    async def _handle_pkd_sync_completed(self, payload: dict[str, Any], key: str | None, context: MessageContext) -> None:
+    async def _handle_pkd_sync_completed(
+        self, payload: dict[str, Any], key: str | None, context: MessageContext
+    ) -> None:
         dataset = payload.get("dataset") or key or "pkd"
         metadata = {
             "force_refresh": payload.get("force_refresh"),
@@ -193,7 +214,9 @@ class CredentialLedgerProcessor:
         }
         await self._upsert(dataset, "pkd_sync", "SYNCED", metadata, context)
 
-    async def _handle_trust_updated(self, payload: dict[str, Any], key: str | None, context: MessageContext) -> None:
+    async def _handle_trust_updated(
+        self, payload: dict[str, Any], key: str | None, context: MessageContext
+    ) -> None:
         entity = key or payload.get("entity")
         status = "TRUSTED" if payload.get("trusted") else "UNTRUSTED"
         metadata = {"version": payload.get("version")}

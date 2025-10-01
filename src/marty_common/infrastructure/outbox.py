@@ -5,9 +5,10 @@ from __future__ import annotations
 import asyncio
 import base64
 import logging
+from collections.abc import Iterable
 from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
-from typing import TYPE_CHECKING, Iterable
+from typing import TYPE_CHECKING
 
 from sqlalchemy import Select, select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -97,9 +98,7 @@ class OutboxRepository:
             # Requeue for retry
             record.available_at = datetime.now(timezone.utc) + retry_delay
 
-    async def _move_to_dead_letter_queue(
-        self, record: EventOutboxRecord, error: str
-    ) -> None:
+    async def _move_to_dead_letter_queue(self, record: EventOutboxRecord, error: str) -> None:
         """Move a failed event to the dead-letter queue."""
         dlq_record = EventDeadLetterRecord(
             original_topic=record.topic,
@@ -218,4 +217,3 @@ class OutboxDispatcher:
         delay = self._settings.initial_retry_delay * (2 ** max(attempt - 1, 0))
         delay = min(delay, self._settings.max_retry_delay)
         return timedelta(seconds=delay)
-

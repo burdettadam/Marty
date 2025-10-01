@@ -28,13 +28,15 @@ from enum import Enum
 from typing import ClassVar
 
 from cryptography import x509
-from cryptography.x509 import ocsp
 from cryptography.exceptions import InvalidSignature
 from cryptography.hazmat.primitives import hashes, serialization
 from cryptography.hazmat.primitives.asymmetric import ec, padding, rsa
+from cryptography.x509 import ocsp
+
 try:  # cryptography 42+
     from cryptography.x509.verification import Store
 except ImportError:  # pragma: no cover - fallback for older cryptography releases
+
     class Store:  # type: ignore[override]
         """Minimal stand-in for cryptography's X509 Store when unavailable."""
 
@@ -43,6 +45,7 @@ except ImportError:  # pragma: no cover - fallback for older cryptography releas
 
         def __iter__(self):
             return iter(self._certs)
+
 
 logger = logging.getLogger(__name__)
 
@@ -218,9 +221,7 @@ class CertificateChainValidator:
         """Register a CRL for revocation checking."""
         issuer = crl.issuer.rfc4514_string()
         self._crls.setdefault(issuer, []).append(crl)
-        self.logger.debug(
-            "Loaded CRL for %s with %d revoked certificates", issuer, len(crl)
-        )
+        self.logger.debug("Loaded CRL for %s with %d revoked certificates", issuer, len(crl))
 
     def add_ocsp_response(self, response: ocsp.OCSPResponse) -> None:
         """Register an OCSP response for revocation checking."""
@@ -486,14 +487,8 @@ class CertificateChainValidator:
                 if status is None:
                     continue
                 if status == ocsp.OCSPCertStatus.REVOKED:
-                    reason = (
-                        getattr(single_response, "revocation_reason", None)
-                    )
-                    reason_text = (
-                        reason.name
-                        if reason
-                        else "unspecified"
-                    )
+                    reason = getattr(single_response, "revocation_reason", None)
+                    reason_text = reason.name if reason else "unspecified"
                     revocation_time = getattr(single_response, "revocation_time", None)
                     if revocation_time is not None:
                         timestamp = revocation_time.isoformat()
@@ -501,8 +496,7 @@ class CertificateChainValidator:
                         timestamp = "unknown"
 
                     message = (
-                        "Certificate revoked via OCSP on "
-                        f"{timestamp} (reason: {reason_text})"
+                        "Certificate revoked via OCSP on " f"{timestamp} (reason: {reason_text})"
                     )
                     errors.append(
                         ValidationError(

@@ -19,7 +19,7 @@ from typing import Optional
 
 from cryptography import x509
 from cryptography.hazmat.primitives import hashes, serialization
-from cryptography.hazmat.primitives.asymmetric import ec, ed25519, ed448, rsa
+from cryptography.hazmat.primitives.asymmetric import ec, ed448, ed25519, rsa
 from cryptography.x509.oid import ExtendedKeyUsageOID
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -49,9 +49,7 @@ async def ensure_document_signer_certificate(
     await key_vault.ensure_key(key_id, signing_algorithm)
     private_key_pem = await key_vault.load_private_key(key_id)
     private_key = serialization.load_pem_private_key(private_key_pem, password=None)
-    if isinstance(private_key, rsa.RSAPrivateKey):
-        signature_algorithm = hashes.SHA256()
-    elif isinstance(private_key, ec.EllipticCurvePrivateKey):
+    if isinstance(private_key, rsa.RSAPrivateKey) or isinstance(private_key, ec.EllipticCurvePrivateKey):
         signature_algorithm = hashes.SHA256()
     elif isinstance(private_key, (ed25519.Ed25519PrivateKey, ed448.Ed448PrivateKey)):
         signature_algorithm = None
@@ -86,10 +84,12 @@ async def ensure_document_signer_certificate(
             critical=True,
         )
         .add_extension(
-            x509.ExtendedKeyUsage([
-                ExtendedKeyUsageOID.CODE_SIGNING,
-                ExtendedKeyUsageOID.EMAIL_PROTECTION,
-            ]),
+            x509.ExtendedKeyUsage(
+                [
+                    ExtendedKeyUsageOID.CODE_SIGNING,
+                    ExtendedKeyUsageOID.EMAIL_PROTECTION,
+                ]
+            ),
             critical=False,
         )
         .add_extension(
@@ -153,8 +153,8 @@ async def load_or_create_document_signer_certificate(
 
 __all__ = [
     "DOCUMENT_SIGNER_CERT_ID",
-    "DOCUMENT_SIGNER_SUBJECT",
     "DOCUMENT_SIGNER_KEY_ID",
+    "DOCUMENT_SIGNER_SUBJECT",
     "ensure_document_signer_certificate",
     "get_document_signer_certificate",
     "load_or_create_document_signer_certificate",

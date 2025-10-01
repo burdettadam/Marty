@@ -22,15 +22,16 @@ from __future__ import annotations
 
 import base64
 import logging
+from collections.abc import Iterable, Sequence
 from dataclasses import dataclass
-from typing import Any, Iterable, Sequence
+from typing import Any
 
 from cryptography import x509
 from cryptography.hazmat.primitives import hashes
 
 from src.marty_common.crypto.certificate_validator import (
-    ChainValidationResult,
     CertificateChainValidator,
+    ChainValidationResult,
 )
 from src.marty_common.crypto.data_group_hasher import DataGroupHashComputer
 from src.marty_common.crypto.sod_parser import HashAlgorithmError, SODParsingError, SODProcessor
@@ -177,14 +178,8 @@ class PassportCryptoValidator:
             raise PassportCryptoValidationError(str(exc)) from exc
 
         hash_algo = details.get("hash_algorithm") if success else None
-        expected = {
-            int(k): v
-            for k, v in details.get("expected_hashes", {}).items()
-        }
-        computed = {
-            int(k): v
-            for k, v in details.get("computed_hashes", {}).items()
-        }
+        expected = {int(k): v for k, v in details.get("expected_hashes", {}).items()}
+        computed = {int(k): v for k, v in details.get("computed_hashes", {}).items()}
 
         return SODValidationResult(
             is_valid=success,
@@ -356,14 +351,18 @@ class PassportCryptoValidator:
         try:
             return base64.b64decode(data, validate=True)
         except Exception:
-            return bytes.fromhex(data) if all(c in "0123456789abcdefABCDEF" for c in data.strip()) else data.encode("utf-8")
+            return (
+                bytes.fromhex(data)
+                if all(c in "0123456789abcdefABCDEF" for c in data.strip())
+                else data.encode("utf-8")
+            )
 
 
 __all__ = [
-    "PassportCryptoValidator",
-    "PassportCryptoValidationError",
-    "MRZValidationResult",
-    "SODValidationResult",
-    "CertificateValidationSummary",
     "ActiveAuthenticationResult",
+    "CertificateValidationSummary",
+    "MRZValidationResult",
+    "PassportCryptoValidationError",
+    "PassportCryptoValidator",
+    "SODValidationResult",
 ]

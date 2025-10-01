@@ -72,10 +72,7 @@ class DocumentProcessingCoordinator:
         elapsed_time = int((time.time() - start_time) * 1000)  # Convert to milliseconds
 
         # Create container list
-        container_list = ContainerList(
-            Count=len(containers),
-            List=containers
-        )
+        container_list = ContainerList(Count=len(containers), List=containers)
 
         # Create and return response
         return ProcessResponse(
@@ -87,7 +84,7 @@ class DocumentProcessingCoordinator:
             ProcessingFinished=ProcessingStatus.FINISHED,
             morePagesAvailable=0,
             passBackObject=None,
-            metadata={"processed_images": len(request.images), "orchestrated": True}
+            metadata={"processed_images": len(request.images), "orchestrated": True},
         )
 
     async def _process_single_image(self, image_request: Any, index: int) -> Container | None:
@@ -116,7 +113,7 @@ class DocumentProcessingCoordinator:
                 optical=CheckResult.POSITIVE if mrz_result else CheckResult.NEGATIVE,
                 portrait=CheckResult.NOT_PERFORMED,
                 rfid=CheckResult.NOT_PERFORMED,
-                stopList=CheckResult.NOT_PERFORMED
+                stopList=CheckResult.NOT_PERFORMED,
             )
 
             # Create and return container
@@ -127,7 +124,7 @@ class DocumentProcessingCoordinator:
                 light=getattr(image_request.light, "value", 1) if image_request.light else 1,
                 result_type=1,  # MRZ result type
                 Status=status,
-                mrzResult=mrz_result
+                mrzResult=mrz_result,
             )
 
         except (ValueError, NotImplementedError):
@@ -141,7 +138,7 @@ class DocumentProcessingCoordinator:
                 optical=CheckResult.NEGATIVE,
                 portrait=CheckResult.NOT_PERFORMED,
                 rfid=CheckResult.NOT_PERFORMED,
-                stopList=CheckResult.NOT_PERFORMED
+                stopList=CheckResult.NOT_PERFORMED,
             )
 
             return Container(
@@ -150,7 +147,7 @@ class DocumentProcessingCoordinator:
                 page_idx=image_request.pageIdx or 0,
                 result_type=1,
                 Status=status,
-                mrzResult=None
+                mrzResult=None,
             )
 
     async def _extract_mrz_generic(self, image_data: str) -> MRZResult | None:
@@ -183,7 +180,7 @@ class DocumentProcessingCoordinator:
             createdAt=datetime.now(tz=timezone.utc).isoformat().replace("+00:00", "Z"),
             coreVersion=settings.CORE_VERSION,
             computerName="doc-processing-orchestrator",
-            userName="doc-api"
+            userName="doc-api",
         )
 
 

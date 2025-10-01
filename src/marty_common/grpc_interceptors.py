@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import inspect
 import logging
-from typing import Callable, Optional
+from typing import Callable
 
 import grpc
 from grpc import aio as grpc_aio
@@ -231,4 +231,4 @@ async def _async_iter(result):
             yield item
 
 
-__all__ = ["ExceptionToStatusInterceptor", "AsyncExceptionToStatusInterceptor"]
+__all__ = ["AsyncExceptionToStatusInterceptor", "ExceptionToStatusInterceptor"]

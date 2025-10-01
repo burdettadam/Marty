@@ -16,20 +16,24 @@ class CheckResult(int, Enum):
     POSITIVE = 1
     NOT_PERFORMED = 2
 
+
 class ProcessingStatus(int, Enum):
     NOT_FINISHED = 0
     FINISHED = 1
     TIMEOUT = 2
+
 
 class RfidLocation(int, Enum):
     NO_CHIP = 0
     DATA_PAGE = 1
     BACK_PAGE = 2
 
+
 class ContainerType(str, Enum):
     MRZ_CONTAINER = "MrzContainer"
     IMAGE_QUALITY_CONTAINER = "ImageQualityContainer"
     LOG_CONTAINER = "LogContainer"
+
 
 class Light(int, Enum):
     OFF = 0
@@ -37,10 +41,12 @@ class Light(int, Enum):
     UV = 2
     IR = 6
 
+
 class ErrorResponse(BaseModel):
     code: str
     message: str
     details: Optional[dict[str, Any]] = None
+
 
 class HealthResponse(BaseModel):
     status: str = "ready"
@@ -48,9 +54,11 @@ class HealthResponse(BaseModel):
     uptimeSec: int
     license: Optional[dict[str, Any]] = None
 
+
 class LicenseInfo(BaseModel):
     valid: bool
     expiresAt: str
+
 
 class TransactionInfo(BaseModel):
     model_config = ConfigDict(populate_by_name=True)
@@ -60,6 +68,7 @@ class TransactionInfo(BaseModel):
     coreVersion: str
     computerName: Optional[str] = Field(None, alias="ComputerName")
     userName: Optional[str] = Field(None, alias="UserName")
+
 
 class ImageQualityThresholds(BaseModel):
     minFocus: Optional[int] = Field(None, ge=0, le=100)
@@ -76,6 +85,7 @@ class ImageQualityThresholds(BaseModel):
     documentPositionIndent: Optional[int] = None
     expectedPass: Optional[list[str]] = None
 
+
 class ImageQualityReport(BaseModel):
     focus: int
     glare: int
@@ -83,6 +93,7 @@ class ImageQualityReport(BaseModel):
     angle: int
     passed: bool
     failedReasons: Optional[list[str]] = None
+
 
 class ProcessParam(BaseModel):
     scenario: str
@@ -97,12 +108,14 @@ class ProcessParam(BaseModel):
     generateNumericCodes: Optional[bool] = True
     generateAlpha2Codes: Optional[bool] = True
 
+
 class ProcessRequestImage(BaseModel):
     model_config = ConfigDict(populate_by_name=True)
     ImageData: Optional[str] = None
     ImageUri: Optional[str] = None
     pageIdx: Optional[int] = Field(None, alias="page_idx")
     light: Optional[Light] = Light.VISIBLE
+
 
 class ProcessRequest(BaseModel):
     model_config = ConfigDict(populate_by_name=True)
@@ -115,6 +128,7 @@ class ProcessRequest(BaseModel):
     def List(self) -> list[ProcessRequestImage]:  # noqa: N802 (preserve external contract)
         return self.images
 
+
 class MRZField(BaseModel):
     name: str
     value: str
@@ -124,6 +138,7 @@ class MRZField(BaseModel):
     length: Optional[int] = None
     checksumValid: Optional[bool] = None
     warnings: Optional[list[str]] = None
+
 
 class MRZResult(BaseModel):
     docType: Optional[str] = None
@@ -143,12 +158,14 @@ class MRZResult(BaseModel):
     overallValid: Optional[bool] = None
     fields: Optional[list[MRZField]] = None
 
+
 class Status(BaseModel):
     overallStatus: CheckResult
     optical: CheckResult
     portrait: CheckResult
     rfid: CheckResult
     stopList: CheckResult
+
 
 class Container(BaseModel):
     model_config = ConfigDict(populate_by_name=True)
@@ -164,9 +181,11 @@ class Container(BaseModel):
     imageQuality: Optional[ImageQualityReport] = None
     logs: Optional[list[str]] = None
 
+
 class ContainerList(BaseModel):
     Count: int
     List: list[Container]
+
 
 class ProcessResponse(BaseModel):
     model_config = ConfigDict(populate_by_name=True)
@@ -180,6 +199,7 @@ class ProcessResponse(BaseModel):
     passBackObject: Optional[dict[str, Any]] = None
     morePagesAvailable: int = 0
     metadata: Optional[dict[str, Any]] = None
+
 
 ImageQualityThresholds.model_rebuild()
 ImageQualityReport.model_rebuild()

@@ -10,6 +10,7 @@ import requests
 BASE_URL = "http://localhost:8080"
 TIMEOUT = 10
 
+
 def test_health():
     """Test health endpoints"""
     try:
@@ -37,13 +38,14 @@ def test_health():
         print(f"❌ Health test failed: {e}")
         return False
 
+
 def test_api():
     """Test main API endpoint"""
     try:
         payload = {
             "processParam": {"scenario": "Mrz"},
             "List": [{"ImageData": "dGVzdA=="}],
-            "tag": "verification-test"
+            "tag": "verification-test",
         }
 
         response = requests.post(f"{BASE_URL}/api/process", json=payload, timeout=TIMEOUT)
@@ -66,6 +68,7 @@ def test_api():
         print(f"❌ API test failed: {e}")
         return False
 
+
 def main():
     """Run verification tests"""
     print("🔍 Document Processing API Verification")
@@ -85,6 +88,7 @@ def main():
         return 0
     print("❌ Some verification tests failed!")
     return 1
+
 
 if __name__ == "__main__":
     sys.exit(main())

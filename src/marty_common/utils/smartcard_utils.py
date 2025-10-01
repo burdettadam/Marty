@@ -297,7 +297,9 @@ class EPassportReader(SmartCardReader):
         if sw1 != 0x90 or sw2 != 0x00:
             raise ValueError(f"MUTUAL AUTHENTICATE failed with status {sw1:02X}{sw2:02X}")
 
-        session_keys = self.secure_messaging.complete_basic_access_control(bac_keys, bytes(auth_response))
+        session_keys = self.secure_messaging.complete_basic_access_control(
+            bac_keys, bytes(auth_response)
+        )
         self.session_keys = session_keys
         return session_keys
 

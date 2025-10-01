@@ -43,7 +43,7 @@ app = FastAPI(
     openapi_url="/openapi.json",
     docs_url="/docs",
     redoc_url="/redoc",
-    lifespan=lifespan
+    lifespan=lifespan,
 )
 
 # Add CORS middleware
@@ -66,16 +66,13 @@ async def root():
         "message": "Document Processing MRZ API",
         "version": settings.VERSION,
         "docs": "/docs",
-        "health": "/api/health"
+        "health": "/api/health",
     }
 
 
 if __name__ == "__main__":
     import uvicorn
+
     uvicorn.run(
-        "main:app",
-        host=settings.HOST,
-        port=settings.PORT,
-        reload=settings.DEBUG,
-        log_level="info"
+        "main:app", host=settings.HOST, port=settings.PORT, reload=settings.DEBUG, log_level="info"
     )
