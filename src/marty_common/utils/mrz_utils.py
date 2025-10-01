@@ -1,13 +1,13 @@
 """
 Machine Readable Zone (MRZ) parsing and generation utilities.
 
-Implements MRZ processing according to ICAO Doc 9303 Part 3 and Part 4.
+Implements MRZ processing according to ICAO Doc 9303 Part 3, Part 4, and Part 5.
 """
 
 import re
 from datetime import datetime
 
-from ..models.passport import Gender, MRZData
+from src.marty_common.models.passport import Gender, MRZData
 
 
 class MRZException(Exception):
@@ -232,7 +232,7 @@ class MRZParser:
     @classmethod
     def parse_mrz(cls, mrz: str) -> MRZData:
         """
-        Parse any type of MRZ string. Currently only TD3 (passport) is supported.
+        Parse any type of MRZ string. Supports TD3 (passport) and TD1 (ID card) formats.
 
         Args:
             mrz: The MRZ string to parse
@@ -244,10 +244,138 @@ class MRZParser:
             MRZException: If the MRZ format is invalid or unsupported
         """
         lines = cls._split_lines(mrz)
+        
+        # TD3 format: 2 lines of 44 characters (passport)
         if len(lines) == 2 and all(len(line) == 44 for line in lines):
             return cls.parse_td3_mrz("\n".join(lines))
-        msg = "Unsupported MRZ format"
+        
+        # TD1 format: 3 lines of 30 characters (ID card, including CMC)
+        if len(lines) == 3 and all(len(line) == 30 for line in lines):
+            return cls.parse_td1_mrz("\n".join(lines))
+            
+        msg = f"Unsupported MRZ format: {len(lines)} lines"
         raise MRZException(msg)
+
+    @classmethod
+    def parse_td1_mrz(cls, mrz: str) -> MRZData:
+        """
+        Parse a TD1 format MRZ string (ID card format, including CMC).
+
+        TD1 format consists of 3 lines of 30 characters each:
+        Line 1: IUTOERICS<<<<<<<<<<<<<<<<<
+        Line 2: D231458907UTO6908061F9406235
+        Line 3: <<<<<<<<<<<<<<<<ERIKSSON<<ANNA<
+
+        Args:
+            mrz: The MRZ string to parse (3 lines of 30 characters)
+
+        Returns:
+            MRZData object containing the parsed data
+
+        Raises:
+            MRZException: If the MRZ format is invalid
+        """
+        lines = cls._split_lines(mrz)
+
+        if len(lines) != 3:
+            msg = "TD1 MRZ must have exactly 3 lines"
+            raise MRZException(msg)
+
+        if not all(len(line) == 30 for line in lines):
+            msg = "TD1 MRZ lines must be exactly 30 characters long"
+            raise MRZException(msg)
+
+        # Line 1: DOCUMENT_TYPE + ISSUING_COUNTRY + DOCUMENT_NUMBER + OPTIONAL_DATA
+        line1 = lines[0]
+        document_type = line1[0]
+        issuing_country = line1[1:4]
+        document_number_part1 = line1[4:14]  # First part of document number
+        optional_data_line1 = line1[14:30]   # Optional data on line 1
+
+        # Line 2: DOCUMENT_NUMBER_PART2 + CHECK_DIGIT + NATIONALITY + DOB + CHECK + GENDER + DOE + CHECK + OPTIONAL
+        line2 = lines[1]
+        document_number_part2 = line2[0:5]   # Continuation of document number
+        doc_check_digit = line2[5]
+        nationality = line2[6:9]
+        date_of_birth = line2[9:15]
+        dob_check_digit = line2[15]
+        gender_char = line2[16]
+        date_of_expiry = line2[17:23]
+        doe_check_digit = line2[23]
+        optional_data_line2 = line2[24:30]   # Optional data on line 2
+
+        # Line 3: OPTIONAL_DATA + SURNAME + GIVEN_NAMES
+        line3 = lines[2]
+        optional_data_line3 = line3[0:14]    # Optional data on line 3
+        surname_given = line3[14:30]         # Surname and given names
+
+        # Construct full document number from parts
+        full_doc_number = (document_number_part1 + document_number_part2).rstrip('<')
+        
+        # Validate document number check digit
+        doc_number_for_check = (document_number_part1 + document_number_part2).ljust(15, '<')[:15]
+        if not cls.validate_check_digit(doc_number_for_check, doc_check_digit):
+            msg = f"Invalid document number check digit: {doc_number_for_check} -> {doc_check_digit}"
+            raise MRZException(msg)
+
+        # Validate dates
+        cls._validate_date(date_of_birth, "date of birth")
+        cls._validate_date(date_of_expiry, "date of expiry")
+
+        # Validate date check digits
+        if not cls.validate_check_digit(date_of_birth, dob_check_digit):
+            msg = f"Invalid date of birth check digit: {date_of_birth} -> {dob_check_digit}"
+            raise MRZException(msg)
+
+        if not cls.validate_check_digit(date_of_expiry, doe_check_digit):
+            msg = f"Invalid date of expiry check digit: {date_of_expiry} -> {doe_check_digit}"
+            raise MRZException(msg)
+
+        # Parse gender
+        if gender_char == "M":
+            gender = Gender.MALE
+        elif gender_char == "F":
+            gender = Gender.FEMALE
+        else:
+            gender = Gender.UNSPECIFIED
+
+        # Parse names from line 3 (similar to TD3 format)
+        name_part = surname_given.replace('<', ' ').strip()
+        # Look for double space separator between surname and given names
+        if '  ' in name_part:
+            name_parts = name_part.split('  ', 1)
+            surname = name_parts[0].strip()
+            given_names = name_parts[1].strip() if len(name_parts) > 1 else ''
+        else:
+            # Fallback: assume all is surname if no clear separator
+            surname = name_part.strip()
+            given_names = ''
+
+        # Clean up names
+        surname = cls._normalize_whitespace(surname)
+        given_names = cls._normalize_whitespace(given_names)
+
+        # Collect optional data
+        optional_data_parts = [
+            optional_data_line1.rstrip('<'),
+            optional_data_line2.rstrip('<'),
+            optional_data_line3.rstrip('<')
+        ]
+        optional_data = ''.join(part for part in optional_data_parts if part)
+        personal_number = optional_data if optional_data else None
+
+        return MRZData(
+            document_type=document_type,
+            issuing_country=issuing_country,
+            document_number=full_doc_number,
+            surname=surname,
+            given_names=given_names,
+            nationality=nationality,
+            date_of_birth=date_of_birth,
+            gender=gender,
+            date_of_expiry=date_of_expiry,
+            personal_number=personal_number,
+        )
 
 
 class MRZFormatter:
@@ -353,3 +481,88 @@ class MRZFormatter:
         line2 += composite_check_digit
 
         return line1 + "\n" + line2
+
+    @staticmethod
+    def generate_td1_mrz(data) -> str:
+        """
+        Generate a TD1 format MRZ string (ID card format, including CMC).
+
+        TD1 format consists of 3 lines of 30 characters each:
+        Line 1: Document type + Issuing country + Document number + Optional data
+        Line 2: Document number cont. + Check + Nationality + DOB + Check + Gender + DOE + Check + Optional
+        Line 3: Optional data + Surname + Given names
+
+        Args:
+            data: MRZData or CMCTD1MRZData object containing the document data
+
+        Returns:
+            Formatted TD1 MRZ string (3 lines)
+        """
+        # Import here to avoid circular dependency
+        try:
+            from src.marty_common.models.passport import CMCTD1MRZData
+        except ImportError:
+            pass
+
+        # Extract values with proper defaults
+        document_type = getattr(data, "document_type", "I")
+        issuing_country = getattr(data, "issuing_country", "").upper()[:3]
+        document_number = getattr(data, "document_number", "")
+        nationality = getattr(data, "nationality", "").upper()[:3]
+        date_of_birth = getattr(data, "date_of_birth", "")
+        gender = getattr(data, "gender", "")
+        date_of_expiry = getattr(data, "date_of_expiry", "")
+        optional_data = getattr(data, "optional_data", "") or ""
+
+        # Format document number (max 14 characters across lines)
+        doc_number_clean = re.sub(r"[^A-Z0-9]", "", document_number.upper())[:14]
+        doc_number_line1 = doc_number_clean[:10].ljust(10, "<")
+        doc_number_line2 = doc_number_clean[10:].ljust(5, "<")
+
+        # Calculate check digit for full document number
+        full_doc_for_check = (doc_number_line1 + doc_number_line2).ljust(15, "<")[:15]
+        doc_check_digit = MRZParser.calculate_check_digit(full_doc_for_check)
+
+        # Line 1: Document type + Issuing country + Document number part 1 + Optional data
+        line1 = document_type + issuing_country + doc_number_line1
+        optional_line1 = optional_data[:16].ljust(16, "<")  # Fill remaining space
+        line1 += optional_line1
+        line1 = line1[:30].ljust(30, "<")
+
+        # Line 2: Document number part 2 + Check + Nationality + DOB + Check + Gender + DOE + Check + Optional
+        dob_check = MRZParser.calculate_check_digit(date_of_birth)
+        doe_check = MRZParser.calculate_check_digit(date_of_expiry)
+
+        gender_char = gender.value if hasattr(gender, "value") else str(gender)[:1] if gender else "X"
+
+        line2 = (doc_number_line2 + doc_check_digit + nationality +
+                date_of_birth + dob_check + gender_char + date_of_expiry + doe_check)
+
+        # Fill remaining space on line 2 with optional data or fillers
+        remaining_space = 30 - len(line2)
+        optional_line2 = optional_data[16:16+remaining_space].ljust(remaining_space, "<")
+        line2 += optional_line2
+        line2 = line2[:30]
+
+        # Line 3: Optional data + Surname + Given names
+        surname = MRZParser.clean_name(getattr(data, "surname", ""))
+        given_names = MRZParser.clean_name(getattr(data, "given_names", ""))
+
+        # Reserve 14 chars for optional data, 16 for names
+        optional_line3 = optional_data[16+remaining_space:].ljust(14, "<")[:14]
+        line3 = optional_line3
+
+        # Add surname and given names
+        names_space = 30 - len(line3)  # Remaining space for names
+        if surname and given_names:
+            name_combo = surname + "<<" + given_names
+        elif surname:
+            name_combo = surname
+        else:
+            name_combo = given_names
+
+        name_combo = name_combo[:names_space].ljust(names_space, "<")
+        line3 += name_combo
+        line3 = line3[:30]
+
+        return line1 + "\n" + line2 + "\n" + line3

@@ -66,6 +66,7 @@ def create_app(settings: UiSettings | None = None) -> FastAPI:
     templates.env.globals["navigation"] = [
         {"path": "/", "label": "Dashboard"},
         {"path": "/passport", "label": "Passports"},
+        {"path": "/cmc", "label": "CMC"},
         {"path": "/mdl", "label": "Mobile DL"},
         {"path": "/csca", "label": "CSCA Service"},
         {"path": "/document-signer", "label": "Document Signer"},
@@ -952,6 +953,352 @@ def create_app(settings: UiSettings | None = None) -> FastAPI:
             },
         )
 
+    # CMC Routes
+    @app.get("/cmc", response_class=HTMLResponse)
+    async def cmc_console(request: Request):
+        """Render CMC Management interface."""
+        return templates.TemplateResponse(
+            "cmc.html",
+            {
+                "request": request,
+                "settings": settings,
+            },
+        )
+
+    @app.post("/cmc/create")
+    async def create_cmc(
+        document_number: str = Form(),
+        issuing_country: str = Form(),
+        surname: str = Form(),
+        given_names: str = Form(),
+        nationality: str = Form(),
+        date_of_birth: str = Form(),
+        gender: str = Form(),
+        date_of_expiry: str = Form(),
+        employer: str = Form(),
+        crew_id: str = Form(),
+        security_model: str = Form(),
+        background_check_verified: str = Form(default="false"),
+    ):
+        """Create a new CMC via REST API."""
+        import requests
+        from datetime import datetime
+        
+        try:
+            # Convert form data to API format
+            api_payload = {
+                "document_number": document_number,
+                "issuing_country": issuing_country,
+                "surname": surname.upper(),
+                "given_names": given_names.upper(),
+                "nationality": nationality,
+                "date_of_birth": date_of_birth,
+                "gender": gender,
+                "date_of_expiry": date_of_expiry,
+                "employer": employer.upper(),
+                "crew_id": crew_id,
+                "security_model": security_model,
+                "background_check_verified": background_check_verified.lower() == "true",
+            }
+            
+            # Call CMC API endpoint
+            api_base = getattr(settings, 'cmc_api_base', 'http://localhost:8000')
+            response = requests.post(f"{api_base}/api/cmc/create", json=api_payload, timeout=30)
+            
+            if response.status_code == 200:
+                result_data = response.json()
+                create_result = {
+                    "status": "SUCCESS",
+                    "cmc_id": result_data.get("cmc_id"),
+                    "security_model": result_data.get("security_model"),
+                    "td1_mrz": result_data.get("td1_mrz"),
+                    "vds_nc_barcode": result_data.get("vds_nc_barcode"),
+                }
+            else:
+                create_result = {
+                    "status": "ERROR",
+                    "error": f"API Error: {response.status_code} - {response.text}",
+                }
+                
+        except Exception as e:
+            create_result = {
+                "status": "ERROR", 
+                "error": f"Failed to create CMC: {str(e)}",
+            }
+
+        operation_log.append(
+            OperationRecord(
+                operation="CMC_CREATE",
+                status=create_result["status"],
+                details=f"Document: {document_number}, Model: {security_model}",
+                timestamp=datetime.now(),
+            )
+        )
+
+        return templates.TemplateResponse(
+            "cmc.html",
+            {
+                "request": request,
+                "settings": settings,
+                "create_result": create_result,
+            },
+        )
+
+    @app.post("/cmc/verify")
+    async def verify_cmc(
+        request: Request,
+        verify_method: str = Form(),
+        cmc_id: str = Form(default=""),
+        td1_mrz: str = Form(default=""),
+        barcode_data: str = Form(default=""),
+        check_revocation: str = Form(default="false"),
+        validate_background_check: str = Form(default="false"),
+    ):
+        """Verify a CMC via REST API."""
+        import requests
+        from datetime import datetime
+        
+        try:
+            # Build verification payload based on method
+            api_payload = {
+                "check_revocation": check_revocation.lower() == "true",
+                "validate_background_check": validate_background_check.lower() == "true",
+            }
+            
+            if verify_method == "cmc_id" and cmc_id:
+                api_payload["cmc_id"] = cmc_id
+            elif verify_method == "td1_mrz" and td1_mrz:
+                # Clean up MRZ formatting
+                clean_mrz = td1_mrz.replace('\n', '').replace('\r', '')
+                api_payload["td1_mrz"] = clean_mrz
+            elif verify_method == "barcode" and barcode_data:
+                api_payload["barcode_data"] = barcode_data
+            else:
+                raise ValueError("Invalid verification method or missing data")
+            
+            # Call CMC verification API
+            api_base = getattr(settings, 'cmc_api_base', 'http://localhost:8000')
+            response = requests.post(f"{api_base}/api/cmc/verify", json=api_payload, timeout=30)
+            
+            if response.status_code == 200:
+                result_data = response.json()
+                verify_result = {
+                    "is_valid": result_data.get("is_valid", False),
+                    "cmc_data": result_data.get("cmc_data"),
+                    "verification_results": result_data.get("verification_results", []),
+                    "error_message": result_data.get("error_message") if not result_data.get("success", True) else None,
+                }
+            else:
+                verify_result = {
+                    "is_valid": False,
+                    "error_message": f"API Error: {response.status_code} - {response.text}",
+                }
+                
+        except Exception as e:
+            verify_result = {
+                "is_valid": False,
+                "error_message": f"Verification failed: {str(e)}",
+            }
+
+        operation_log.append(
+            OperationRecord(
+                operation="CMC_VERIFY",
+                status="SUCCESS" if verify_result["is_valid"] else "ERROR",
+                details=f"Method: {verify_method}, Valid: {verify_result['is_valid']}",
+                timestamp=datetime.now(),
+            )
+        )
+
+        return templates.TemplateResponse(
+            "cmc.html",
+            {
+                "request": request,
+                "settings": settings,
+                "verify_result": verify_result,
+            },
+        )
+
+    @app.post("/cmc/sign")
+    async def sign_cmc(
+        request: Request,
+        cmc_id: str = Form(),
+        signer_id: str = Form(),
+    ):
+        """Sign a CMC via REST API."""
+        import requests
+        from datetime import datetime
+        
+        try:
+            api_payload = {
+                "cmc_id": cmc_id,
+                "signer_id": signer_id,
+            }
+            
+            api_base = getattr(settings, 'cmc_api_base', 'http://localhost:8000')
+            response = requests.post(f"{api_base}/api/cmc/sign", json=api_payload, timeout=30)
+            
+            if response.status_code == 200:
+                result_data = response.json()
+                sign_result = {
+                    "success": result_data.get("success", False),
+                    "signature_info": result_data.get("signature_info"),
+                    "error_message": result_data.get("error_message") if not result_data.get("success", True) else None,
+                }
+            else:
+                sign_result = {
+                    "success": False,
+                    "error_message": f"API Error: {response.status_code} - {response.text}",
+                }
+                
+        except Exception as e:
+            sign_result = {
+                "success": False,
+                "error_message": f"Signing failed: {str(e)}",
+            }
+
+        operation_log.append(
+            OperationRecord(
+                operation="CMC_SIGN",
+                status="SUCCESS" if sign_result["success"] else "ERROR",
+                details=f"CMC: {cmc_id}, Signer: {signer_id}",
+                timestamp=datetime.now(),
+            )
+        )
+
+        return templates.TemplateResponse(
+            "cmc.html",
+            {
+                "request": request,
+                "settings": settings,
+                "sign_result": sign_result,
+            },
+        )
+
+    @app.post("/cmc/background-check")
+    async def background_check_cmc(
+        request: Request,
+        cmc_id: str = Form(),
+        check_authority: str = Form(),
+        check_reference: str = Form(),
+    ):
+        """Run background check for CMC via REST API."""
+        import requests
+        from datetime import datetime
+        
+        try:
+            api_payload = {
+                "cmc_id": cmc_id,
+                "check_authority": check_authority,
+                "check_reference": check_reference,
+            }
+            
+            api_base = getattr(settings, 'cmc_api_base', 'http://localhost:8000')
+            response = requests.post(f"{api_base}/api/cmc/background-check", json=api_payload, timeout=30)
+            
+            if response.status_code == 200:
+                result_data = response.json()
+                bg_check_result = {
+                    "success": result_data.get("success", False),
+                    "check_passed": result_data.get("check_passed", False),
+                    "check_authority": result_data.get("check_authority"),
+                    "check_reference": result_data.get("check_reference"),
+                    "check_date": result_data.get("check_date"),
+                    "error_message": result_data.get("error_message") if not result_data.get("success", True) else None,
+                }
+            else:
+                bg_check_result = {
+                    "success": False,
+                    "check_passed": False,
+                    "error_message": f"API Error: {response.status_code} - {response.text}",
+                }
+                
+        except Exception as e:
+            bg_check_result = {
+                "success": False,
+                "check_passed": False,
+                "error_message": f"Background check failed: {str(e)}",
+            }
+
+        operation_log.append(
+            OperationRecord(
+                operation="CMC_BACKGROUND_CHECK",
+                status="SUCCESS" if bg_check_result["check_passed"] else "ERROR",
+                details=f"CMC: {cmc_id}, Authority: {check_authority}",
+                timestamp=datetime.now(),
+            )
+        )
+
+        return templates.TemplateResponse(
+            "cmc.html",
+            {
+                "request": request,
+                "settings": settings,
+                "bg_check_result": bg_check_result,
+            },
+        )
+
+    @app.post("/cmc/visa-free-status")
+    async def update_visa_free_status(
+        request: Request,
+        cmc_id: str = Form(),
+        visa_free_eligible: str = Form(),
+        authority: str = Form(),
+        reason: str = Form(),
+    ):
+        """Update visa-free status for CMC via REST API."""
+        import requests
+        from datetime import datetime
+        
+        try:
+            api_payload = {
+                "cmc_id": cmc_id,
+                "visa_free_eligible": visa_free_eligible.lower() == "true",
+                "authority": authority,
+                "reason": reason,
+            }
+            
+            api_base = getattr(settings, 'cmc_api_base', 'http://localhost:8000')
+            response = requests.post(f"{api_base}/api/cmc/visa-free-status", json=api_payload, timeout=30)
+            
+            if response.status_code == 200:
+                result_data = response.json()
+                visa_free_result = {
+                    "success": result_data.get("success", False),
+                    "visa_free_eligible": result_data.get("visa_free_eligible"),
+                    "updated_at": result_data.get("updated_at"),
+                    "error_message": result_data.get("error_message") if not result_data.get("success", True) else None,
+                }
+            else:
+                visa_free_result = {
+                    "success": False,
+                    "error_message": f"API Error: {response.status_code} - {response.text}",
+                }
+                
+        except Exception as e:
+            visa_free_result = {
+                "success": False,
+                "error_message": f"Status update failed: {str(e)}",
+            }
+
+        operation_log.append(
+            OperationRecord(
+                operation="CMC_VISA_FREE_UPDATE",
+                status="SUCCESS" if visa_free_result["success"] else "ERROR",
+                details=f"CMC: {cmc_id}, Eligible: {visa_free_eligible}",
+                timestamp=datetime.now(),
+            )
+        )
+
+        return templates.TemplateResponse(
+            "cmc.html",
+            {
+                "request": request,
+                "settings": settings,
+                "visa_free_result": visa_free_result,
+            },
+        )
+
+    # OIDC4VCI Routes
     @app.get("/oidc4vci/.well-known/openid-credential-issuer")
     async def credential_issuer_metadata() -> dict[str, Any]:
         """Expose minimal metadata for OIDC4VCI wallets."""

@@ -1,5 +1,7 @@
 """Configuration helpers for the Marty operator UI."""
 
+from __future__ import annotations
+
 from functools import lru_cache
 from typing import Literal
 
@@ -26,6 +28,7 @@ class UiSettings(BaseSettings):
     mdl_engine_target: str = Field(default="localhost:9085", alias="UI_MDL_ENGINE_ADDR")
     document_signer_target: str = Field(default="localhost:9082", alias="UI_DOCUMENT_SIGNER_ADDR")
     trust_anchor_target: str = Field(default="localhost:9080", alias="UI_TRUST_ANCHOR_ADDR")
+    cmc_api_base: str = Field(default="http://localhost:8000", alias="UI_CMC_API_BASE")
     grpc_timeout_seconds: int = Field(default=5, alias="UI_GRPC_TIMEOUT_SECONDS")
     enable_mock_data: bool = Field(default=False, alias="UI_ENABLE_MOCK_DATA")
     theme: Literal["light", "dark"] = Field(default="light", alias="UI_THEME")

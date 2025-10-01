@@ -8,6 +8,7 @@ import logging
 from contextlib import asynccontextmanager
 
 from app.api.endpoints import router
+from app.api.cmc_endpoints import cmc_router
 from app.core.config import settings
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
@@ -55,8 +56,9 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Include API router
+# Include API routers
 app.include_router(router)
+app.include_router(cmc_router)
 
 
 @app.get("/")
