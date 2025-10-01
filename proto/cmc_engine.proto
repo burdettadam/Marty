@@ -26,6 +26,10 @@ service CMCEngine {
   // Check background verification status (Annex 9 compliance)
   rpc CheckBackgroundVerification (BackgroundCheckRequest) returns (BackgroundCheckResponse);
   
+  // Annex 9 Background Check Prerequisite Enforcement
+  rpc EnforceBackgroundPrerequisite (BackgroundPrerequisiteRequest) returns (BackgroundPrerequisiteResponse);
+  rpc ValidateIssuanceEligibility (IssuanceEligibilityRequest) returns (IssuanceEligibilityResponse);
+  
   // Update visa-free entry eligibility
   rpc UpdateVisaFreeStatus (VisaFreeStatusRequest) returns (VisaFreeStatusResponse);
 }
@@ -255,4 +259,76 @@ message SignatureInfo {
   bytes signature = 3;
   string algorithm = 4; // Signature algorithm used
   bool is_valid = 5;
+}
+
+// Annex 9 Background Check Prerequisite Messages
+
+// Background check prerequisite enforcement
+message BackgroundPrerequisiteRequest {
+  string document_number = 1;
+  string issuing_country = 2;
+  string surname = 3;
+  string given_names = 4;
+  string nationality = 5;
+  string date_of_birth = 6;
+  string requesting_authority = 7;
+  string check_reference = 8;
+  repeated string required_check_types = 9; // Criminal, employment, security, etc.
+}
+
+message BackgroundPrerequisiteResponse {
+  bool prerequisite_met = 1;
+  string check_status = 2; // "PASSED", "FAILED", "PENDING", "INCOMPLETE"
+  repeated BackgroundCheckRequirement requirements = 3;
+  repeated BackgroundCheckResult completed_checks = 4;
+  string next_required_action = 5;
+  string estimated_completion_date = 6;
+  repeated string errors = 7;
+}
+
+message BackgroundCheckRequirement {
+  string check_type = 1; // "CRIMINAL_HISTORY", "EMPLOYMENT_VERIFICATION", etc.
+  bool is_mandatory = 2;
+  string required_by_authority = 3;
+  string validity_period_days = 4;
+  string status = 5; // "NOT_STARTED", "IN_PROGRESS", "COMPLETED", "EXPIRED"
+}
+
+message BackgroundCheckResult {
+  string check_type = 1;
+  string status = 2; // "PASSED", "FAILED", "CONDITIONAL"
+  string completed_date = 3;
+  string expires_date = 4;
+  string check_authority = 5;
+  string reference_number = 6;
+  repeated string findings = 7;
+}
+
+// Issuance eligibility validation
+message IssuanceEligibilityRequest {
+  string document_number = 1;
+  string issuing_country = 2;
+  string requesting_authority = 3;
+  bool override_pending_checks = 4; // Emergency issuance override
+  string override_justification = 5;
+}
+
+message IssuanceEligibilityResponse {
+  bool eligible_for_issuance = 1;
+  string eligibility_status = 2; // "ELIGIBLE", "PENDING", "INELIGIBLE", "CONDITIONAL"
+  repeated string blocking_issues = 3;
+  repeated string pending_requirements = 4;
+  string conditional_issuance_period_days = 5; // If conditional approval
+  IssuanceRestrictions restrictions = 6;
+  string next_review_date = 7;
+  repeated string warnings = 8;
+}
+
+message IssuanceRestrictions {
+  bool limited_validity_period = 1;
+  int32 max_validity_days = 2;
+  repeated string geographic_restrictions = 3; // Country codes where not valid
+  repeated string operational_restrictions = 4; // Specific limitations
+  bool requires_supervisor_approval = 5;
+  bool enhanced_monitoring_required = 6;
 }

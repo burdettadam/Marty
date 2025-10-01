@@ -238,9 +238,62 @@ class ElementaryFileParser:
         )
 
     def _parse_td2_mrz(self, lines: list[str]) -> MRZInfo:
-        """Parse TD-2 (ID card) MRZ format."""
-        # Simplified TD-2 parsing - extend as needed
-        raise NotImplementedError("TD-2 MRZ parsing not yet implemented")
+        """
+        Parse TD-2 MRZ format per ICAO Doc 9303 Part 6.
+        
+        TD-2 format consists of 2 lines of 36 characters each:
+        Line 1: Document data with dates and check digits
+        Line 2: Name field
+        """
+        if len(lines) != 2:
+            raise ValueError("TD-2 MRZ must have exactly 2 lines")
+            
+        if not all(len(line) == 36 for line in lines):
+            raise ValueError("TD-2 MRZ lines must be exactly 36 characters each")
+        
+        line1 = lines[0]
+        line2 = lines[1]
+        
+        # Parse Line 1: Document data
+        document_code = line1[0:2].rstrip("<")
+        issuing_country = line1[2:5]
+        passport_number = line1[5:14].rstrip("<")
+        check_digit_passport = line1[14]
+        date_of_birth = line1[15:21]
+        check_digit_birth = line1[21]
+        sex = line1[22]
+        date_of_expiry = line1[23:29]
+        check_digit_expiry = line1[29]
+        nationality = line1[30:33]
+        optional_data = line1[33:35].rstrip("<")
+        check_digit_composite = line1[35]
+        
+        # Parse Line 2: Name field
+        name_field = line2.rstrip("<")
+        
+        # Parse names with primary identifier precedence per Part 6
+        if "<<" in name_field:
+            name_parts = name_field.split("<<", 1)
+            surname = name_parts[0].replace("<", " ").strip()
+            given_names = name_parts[1].replace("<", " ").strip() if len(name_parts) > 1 else ""
+        else:
+            # If no clear separator, treat as surname only
+            surname = name_field.replace("<", " ").strip()
+            given_names = ""
+        
+        return MRZInfo(
+            document_code=document_code,
+            issuing_country=issuing_country,
+            surname=surname,
+            given_names=given_names,
+            passport_number=passport_number,
+            nationality=nationality,
+            date_of_birth=date_of_birth,
+            sex=sex,
+            date_of_expiry=date_of_expiry,
+            personal_number=optional_data if optional_data else None,
+            check_digit_composite=check_digit_composite,
+        )
 
     def parse_ef_dg2(self, data: bytes) -> BiometricInfo:
         """Parse EF.DG2 (Facial Image)."""

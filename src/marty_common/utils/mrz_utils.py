@@ -230,6 +230,123 @@ class MRZParser:
         )
 
     @classmethod
+    def parse_td2_mrz(cls, mrz: str) -> MRZData:
+        """
+        Parse a TD-2 format MRZ string per ICAO Doc 9303 Part 6.
+
+        TD-2 format consists of 2 lines of 36 characters each:
+        Line 1: Doc type (2) + Issuing state (3) + Doc number (9) + Check (1) + 
+                Birth date (6) + Check (1) + Sex (1) + Expiry date (6) + Check (1) + 
+                Nationality (3) + Optional data (2) + Composite check (1)
+        Line 2: Name field (36) - Primary identifier << Secondary identifier
+
+        Args:
+            mrz: The MRZ string to parse (2 lines of 36 characters)
+
+        Returns:
+            MRZData object containing the parsed data
+
+        Raises:
+            MRZException: If the MRZ format is invalid
+        """
+        lines = cls._split_lines(mrz)
+
+        if len(lines) != 2:
+            msg = "TD-2 MRZ must have exactly 2 lines"
+            raise MRZException(msg)
+
+        if not all(len(line) == 36 for line in lines):
+            msg = "TD-2 MRZ lines must be exactly 36 characters long"
+            raise MRZException(msg)
+
+        # Line 1: Document data
+        line1 = lines[0]
+        
+        # Parse Line 1 components
+        document_type = line1[0:2].rstrip("<")
+        issuing_country = line1[2:5]
+        document_number_field = line1[5:14]
+        doc_check_digit = line1[14]
+        birth_date = line1[15:21]
+        birth_check_digit = line1[21]
+        gender_code = line1[22]
+        expiry_date = line1[23:29]
+        expiry_check_digit = line1[29]
+        nationality = line1[30:33]
+        optional_data_field = line1[33:35]
+        composite_check_digit = line1[35]
+
+        # Validate document number check digit
+        if not cls.validate_check_digit(document_number_field, doc_check_digit):
+            msg = f"Invalid document number check digit: {document_number_field} -> {doc_check_digit}"
+            raise MRZException(msg)
+
+        document_number = document_number_field.replace("<", "")
+
+        # Validate dates
+        cls._validate_date(birth_date, "date of birth")
+        cls._validate_date(expiry_date, "date of expiry")
+
+        # Validate date check digits
+        if not cls.validate_check_digit(birth_date, birth_check_digit):
+            msg = f"Invalid birth date check digit: {birth_date} -> {birth_check_digit}"
+            raise MRZException(msg)
+
+        if not cls.validate_check_digit(expiry_date, expiry_check_digit):
+            msg = f"Invalid expiry date check digit: {expiry_date} -> {expiry_check_digit}"
+            raise MRZException(msg)
+
+        # Parse gender
+        if gender_code == "M":
+            gender = Gender.MALE
+        elif gender_code == "F":
+            gender = Gender.FEMALE
+        else:
+            gender = Gender.UNSPECIFIED
+
+        # Validate composite check digit
+        composite_string = (
+            document_number_field + doc_check_digit +
+            birth_date + birth_check_digit +
+            expiry_date + expiry_check_digit +
+            optional_data_field
+        )
+        
+        if not cls.validate_check_digit(composite_string, composite_check_digit):
+            msg = "Invalid composite check digit"
+            raise MRZException(msg)
+
+        # Line 2: Name field (36 characters)
+        line2 = lines[1]
+        name_field = line2.rstrip("<")
+        
+        # Parse names per ICAO Part 6 - primary identifier precedence
+        if "<<" in name_field:
+            name_parts = name_field.split("<<", 1)
+            surname = cls._normalize_whitespace(name_parts[0])
+            given_names = cls._normalize_whitespace(name_parts[1]) if len(name_parts) > 1 else ""
+        else:
+            # If no separator, treat entire field as surname
+            surname = cls._normalize_whitespace(name_field)
+            given_names = ""
+
+        # Extract optional data
+        optional_data = optional_data_field.replace("<", "") or None
+
+        return MRZData(
+            document_type=document_type,
+            issuing_country=issuing_country,
+            document_number=document_number,
+            surname=surname,
+            given_names=given_names,
+            nationality=nationality,
+            date_of_birth=birth_date,
+            gender=gender,
+            date_of_expiry=expiry_date,
+            personal_number=optional_data,
+        )
+
+    @classmethod
     def parse_mrz(cls, mrz: str) -> MRZData:
         """
         Parse any type of MRZ string. Supports TD3 (passport) and TD1 (ID card) formats.
@@ -249,11 +366,15 @@ class MRZParser:
         if len(lines) == 2 and all(len(line) == 44 for line in lines):
             return cls.parse_td3_mrz("\n".join(lines))
         
+        # TD2 format: 2 lines of 36 characters (ID card per ICAO Part 6)
+        if len(lines) == 2 and all(len(line) == 36 for line in lines):
+            return cls.parse_td2_mrz("\n".join(lines))
+        
         # TD1 format: 3 lines of 30 characters (ID card, including CMC)
         if len(lines) == 3 and all(len(line) == 30 for line in lines):
             return cls.parse_td1_mrz("\n".join(lines))
             
-        msg = f"Unsupported MRZ format: {len(lines)} lines"
+        msg = f"Unsupported MRZ format: {len(lines)} lines with lengths {[len(line) for line in lines]}"
         raise MRZException(msg)
 
     @classmethod

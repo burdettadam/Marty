@@ -110,60 +110,141 @@ class TD2MRZGenerator:
     @classmethod
     def format_name_for_td2(cls, primary_identifier: str, secondary_identifier: Optional[str] = None) -> str:
         """
-        Format name for TD-2 MRZ with primary identifier precedence.
+        Format name for TD-2 MRZ with primary identifier precedence per ICAO Part 6.
         
-        TD-2 uses the full second line (36 chars) for names.
-        Format: PRIMARY_IDENTIFIER<<SECONDARY_IDENTIFIER
+        Implementation follows ICAO Doc 9303 Part 6 requirements:
+        - Primary identifier (surname) has absolute precedence
+        - Primary identifier must be preserved in full if possible
+        - Secondary identifier (given names) can be truncated if needed
+        - Names are separated by double filler character "<<"
+        - Multiple given names are separated by single filler "<"
+        - Total field length is exactly 36 characters
         
         Args:
             primary_identifier: Primary identifier (surname)
             secondary_identifier: Secondary identifier (given names)
             
         Returns:
-            Formatted name string (36 characters)
+            Formatted name string (exactly 36 characters)
         """
-        # Sanitize primary identifier
-        primary = cls.sanitize_for_mrz(primary_identifier, 35).rstrip("<")
+        if not primary_identifier:
+            # If no primary identifier, fill entire field with fillers
+            return "<" * cls.TD2_LINE_LENGTH
         
-        # Start with primary identifier
+        # Sanitize and prepare primary identifier
+        primary = cls.sanitize_for_mrz(primary_identifier, cls.TD2_LINE_LENGTH - 2).rstrip("<")
+        
+        # If primary identifier alone exceeds available space, truncate it
+        if len(primary) > cls.TD2_LINE_LENGTH - 2:  # Reserve 2 chars for minimal secondary
+            primary = primary[:cls.TD2_LINE_LENGTH - 2]
+        
+        # Start building name field with primary identifier
         name_field = primary
         
         # Add secondary identifier if present and there's space
-        if secondary_identifier:
-            secondary = cls.sanitize_for_mrz(secondary_identifier, 35).rstrip("<")
+        if secondary_identifier and len(name_field) < cls.TD2_LINE_LENGTH - 2:
+            # Add separator
+            name_field += "<<"
             
-            # Add separator if we have secondary identifier
-            if secondary and len(name_field) < 34:  # Leave space for << separator
-                name_field += "<<"
+            # Calculate remaining space for secondary identifier
+            remaining_space = cls.TD2_LINE_LENGTH - len(name_field)
+            
+            if remaining_space > 0:
+                # Process secondary identifier (given names)
+                secondary = cls.sanitize_for_mrz(secondary_identifier, remaining_space).rstrip("<")
                 
-                # Calculate remaining space
-                remaining_space = cls.TD2_LINE_LENGTH - len(name_field)
-                
-                if remaining_space > 0:
-                    # Split secondary identifier into parts
-                    secondary_parts = [part for part in secondary.split("<") if part]
+                # Handle multiple given names with proper truncation
+                if secondary:
+                    # Split into individual given names
+                    given_names = [name.strip() for name in secondary.replace("<", " ").split() if name.strip()]
                     
-                    # Add as many secondary identifier parts as fit
-                    for i, part in enumerate(secondary_parts):
-                        if i > 0:  # Add separator between parts
-                            if len(name_field) + 1 + len(part) <= cls.TD2_LINE_LENGTH:
-                                name_field += "<"
-                            else:
-                                break
+                    # Add given names one by one until space runs out
+                    added_names = []
+                    current_length = len(name_field)
+                    
+                    for i, given_name in enumerate(given_names):
+                        # Calculate space needed for this name (plus separator if not first)
+                        separator_length = 1 if i > 0 else 0  # "<" between given names
+                        needed_space = len(given_name) + separator_length
                         
-                        if len(name_field) + len(part) <= cls.TD2_LINE_LENGTH:
-                            name_field += part
+                        if current_length + needed_space <= cls.TD2_LINE_LENGTH:
+                            # Full name fits
+                            if i > 0:
+                                name_field += "<"
+                            name_field += given_name
+                            current_length += needed_space
+                            added_names.append(given_name)
                         else:
-                            # Truncate the part to fit
-                            available_space = cls.TD2_LINE_LENGTH - len(name_field)
+                            # Try to fit truncated version of current name
+                            available_space = cls.TD2_LINE_LENGTH - current_length - separator_length
                             if available_space > 0:
-                                name_field += part[:available_space]
+                                if i > 0:
+                                    name_field += "<"
+                                truncated_name = given_name[:available_space]
+                                name_field += truncated_name
+                                current_length = cls.TD2_LINE_LENGTH
                             break
         
-        # Pad to full line length
+        # Pad to exact field length with fillers
         name_field = name_field.ljust(cls.TD2_LINE_LENGTH, "<")
         
         return name_field
+    
+    @classmethod
+    def validate_td2_name_compliance(cls, primary_identifier: str, secondary_identifier: Optional[str] = None) -> dict:
+        """
+        Validate TD-2 name formatting compliance with ICAO Part 6.
+        
+        Args:
+            primary_identifier: Primary identifier (surname)
+            secondary_identifier: Secondary identifier (given names)
+            
+        Returns:
+            Dictionary with validation results and warnings
+        """
+        result = {
+            "compliant": True,
+            "warnings": [],
+            "truncations": []
+        }
+        
+        formatted_name = cls.format_name_for_td2(primary_identifier, secondary_identifier)
+        
+        # Check if primary identifier was truncated
+        primary_clean = cls.sanitize_for_mrz(primary_identifier, 50).rstrip("<")
+        if "<<" in formatted_name:
+            name_parts = formatted_name.split("<<", 1)
+            formatted_primary = name_parts[0].rstrip("<")
+            if len(formatted_primary) < len(primary_clean):
+                result["warnings"].append("Primary identifier (surname) was truncated")
+                result["truncations"].append({
+                    "field": "primary_identifier",
+                    "original": primary_identifier,
+                    "truncated": formatted_primary
+                })
+        
+        # Check if secondary identifier was truncated
+        if secondary_identifier and "<<" in formatted_name:
+            name_parts = formatted_name.split("<<", 1)
+            if len(name_parts) > 1:
+                formatted_secondary = name_parts[1].rstrip("<").replace("<", " ")
+                original_secondary = secondary_identifier.strip()
+                if len(formatted_secondary.replace(" ", "")) < len(original_secondary.replace(" ", "")):
+                    result["warnings"].append("Secondary identifier (given names) was truncated")
+                    result["truncations"].append({
+                        "field": "secondary_identifier", 
+                        "original": secondary_identifier,
+                        "truncated": formatted_secondary
+                    })
+        
+        # Check for non-standard characters
+        if primary_identifier and not all(c.isalpha() or c.isspace() or c in "-'" for c in primary_identifier):
+            result["warnings"].append("Primary identifier contains non-standard characters")
+        
+        if secondary_identifier and not all(c.isalpha() or c.isspace() or c in "-'" for c in secondary_identifier):
+            result["warnings"].append("Secondary identifier contains non-standard characters")
+        
+        return result
     
     @classmethod
     def generate_td2_mrz(cls, document: TD2Document) -> TD2MRZData:
