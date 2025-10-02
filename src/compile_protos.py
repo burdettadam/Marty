@@ -16,9 +16,9 @@ OUTPUT_DIR = PROJECT_ROOT / "src" / "proto"
 
 
 def fix_grpc_imports() -> None:
-    """Fix import statements in generated gRPC files to use relative imports."""
+    """Fix import statements in generated gRPC and protobuf files to use relative imports."""
+    # Fix imports in gRPC files
     grpc_files = list(OUTPUT_DIR.glob("*_pb2_grpc.py"))
-
     for grpc_file in grpc_files:
         content = grpc_file.read_text()
 
@@ -40,6 +40,30 @@ def fix_grpc_imports() -> None:
         grpc_file.write_text("\n".join(import_lines))
 
     logger.info("Fixed imports in %d gRPC files", len(grpc_files))
+
+    # Fix imports in pb2 files
+    pb2_files = list(OUTPUT_DIR.glob("*_pb2.py"))
+    for pb2_file in pb2_files:
+        content = pb2_file.read_text()
+
+        # Replace absolute imports with relative imports for other _pb2 modules
+        import_lines = []
+        for line in content.split("\n"):
+            if line.startswith("import ") and "_pb2 as " in line:
+                # Convert "import module_pb2 as alias" to "from . import module_pb2 as alias"
+                parts = line.split(" as ")
+                module_name = parts[0].replace("import ", "")
+                alias = parts[1]
+                new_line = f"from . import {module_name} as {alias}"
+                import_lines.append(new_line)
+                logger.info(f"Fixed import in {pb2_file.name}: {line} -> {new_line}")
+            else:
+                import_lines.append(line)
+
+        # Write back the fixed content
+        pb2_file.write_text("\n".join(import_lines))
+
+    logger.info("Fixed imports in %d pb2 files", len(pb2_files))
 
 
 def create_init_file() -> None:

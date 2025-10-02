@@ -17,13 +17,52 @@ except ModuleNotFoundError:  # pragma: no cover - fallback for minimal test envi
 from tests.fixtures.data_loader import test_data_loader
 
 
+# Kubernetes test fixtures
+@pytest.fixture(scope="session")
+def k8s_orchestrator():
+    """Session-scoped Kubernetes test orchestrator."""
+    from tests.k8s_test_orchestrator import KubernetesTestOrchestrator
+    
+    project_root = Path(__file__).parent.parent
+    orchestrator = KubernetesTestOrchestrator(
+        project_root=project_root,
+        namespace="marty-test",
+    )
+    return orchestrator
+
+
+@pytest.fixture
+def k8s_test_env(k8s_orchestrator, request):
+    """Kubernetes test environment context manager."""
+    from tests.k8s_test_orchestrator import TestMode
+    
+    # Determine test mode from markers
+    test_mode = TestMode.UNIT  # default
+    if request.node.get_closest_marker("integration"):
+        test_mode = TestMode.INTEGRATION
+    elif request.node.get_closest_marker("e2e"):
+        test_mode = TestMode.E2E
+    
+    with k8s_orchestrator.test_environment(test_mode) as env:
+        yield env
+
+
+@pytest.fixture
+def k8s_service_urls(k8s_test_env):
+    """Get service URLs for Kubernetes-deployed services."""
+    return {
+        service_name: k8s_test_env.get_service_url(service_name)
+        for service_name in k8s_test_env.services.keys()
+    }
+
+
 # Test markers
 def pytest_configure(config):
     """Configure pytest with custom markers."""
     config.addinivalue_line("markers", "unit: mark test as a unit test")
     config.addinivalue_line("markers", "integration: mark test as an integration test")
     config.addinivalue_line("markers", "slow: mark test as slow running")
-    config.addinivalue_line("markers", "docker: mark test as requiring docker")
+    config.addinivalue_line("markers", "k8s: mark test as requiring Kubernetes")
     config.addinivalue_line("markers", "external: mark test as requiring external services")
     config.addinivalue_line("markers", "mrz: mark test as MRZ related")
     config.addinivalue_line("markers", "ocr: mark test as OCR related")
@@ -45,9 +84,9 @@ def pytest_collection_modifyitems(config, items):
         if "integration" in str(item.fspath):
             item.add_marker(pytest.mark.integration)
 
-        # Add docker marker to docker tests
-        if "docker" in str(item.fspath):
-            item.add_marker(pytest.mark.docker)
+        # Add k8s marker to Kubernetes tests
+        if "k8s" in str(item.fspath) or "kubernetes" in str(item.fspath):
+            item.add_marker(pytest.mark.k8s)
 
         # Add document processing marker
         if "document_processing" in str(item.fspath):

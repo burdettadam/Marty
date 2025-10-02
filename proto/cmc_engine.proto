@@ -332,3 +332,18 @@ message IssuanceRestrictions {
   bool requires_supervisor_approval = 5;
   bool enhanced_monitoring_required = 6;
 }
+
+// Request to generate QR code for CMC access
+message GenerateQRCodeRequest {
+  string cmc_id = 1;
+  bool include_photo = 2;
+  repeated string fields_to_include = 3; // Empty means include all fields
+  string format = 4; // "URL", "JSON", "MINIMAL" 
+}
+
+// Response with QR code for CMC
+message GenerateQRCodeResponse {
+  bytes qr_code = 1;
+  string qr_data = 2; // Human-readable QR content
+  common_services.ApiError error = 3;
+}

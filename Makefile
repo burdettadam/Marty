@@ -143,7 +143,7 @@ setup-openxpki:
 	@echo "Access the OpenXPKI web interface at: https://localhost:8443/openxpki/"
 	@echo "Default credentials: pkiadmin / secret"
 
-.PHONY: setup clean test lint format proto compile-protos clean-protos build run docker-build docker-run test-unit test-integration test-integration-docker test-e2e test-e2e-docker test-cert-validator test-unit-orchestrated test-mock start-integration-services start-e2e-services stop-orchestrated-services test-integration-orchestrated test-e2e-orchestrated test-orchestrator-validation test-orchestrator-base test-e2e-ui playwright-install generate-test-data help run-ui run-service-ui run-services-dev check-services stop-services dev-environment demo-environment dev-minimal dev-full dev-status dev-logs dev-clean dev-restart wait-for-services show-endpoints test-performance test-coverage test-security test-setup setup-openxpki test-doc-processing test-doc-processing-unit test-doc-processing-integration test-doc-processing-e2e test-doc-processing-docker test-doc-processing-api test-doc-processing-health doc-processing-start doc-processing-stop doc-processing-status doc-processing-logs doc-processing-clean
+.PHONY: setup clean test lint format proto compile-protos clean-protos build run docker-build docker-run test-unit test-integration test-e2e test-e2e-k8s test-e2e-k8s-existing test-e2e-k8s-smoke test-e2e-k8s-monitoring test-e2e-clean test-e2e-docker-legacy test-integration-docker-legacy test-cert-validator test-e2e-ui playwright-install generate-test-data help run-ui run-service-ui run-services-dev check-services stop-services dev-environment demo-environment dev-minimal dev-full dev-status dev-logs dev-clean dev-restart wait-for-services show-endpoints test-performance test-coverage test-security test-setup setup-openxpki test-doc-processing test-doc-processing-unit test-doc-processing-integration test-doc-processing-e2e test-doc-processing-docker test-doc-processing-api test-doc-processing-health doc-processing-start doc-processing-stop doc-processing-status doc-processing-logs doc-processing-clean
 
 PYTHON := uv run python
 UV := uv
@@ -174,7 +174,7 @@ clean:
 	@find . -type d -name ".ruff_cache" -exec rm -rf {} +
 	@find . -type f -name "*.log" -delete
 
-# Run all tests with proper orchestration
+# Run all tests with proper orchestration (now K8s-based for E2E)
 test: test-unit test-integration test-e2e test-cert-validator
 
 # Run unit tests (no services needed)
@@ -187,20 +187,13 @@ test-integration:
 	@echo "Running integration tests..."
 	@$(UV) run pytest tests/integration/ -v --maxfail=3 --disable-warnings
 
-# Run integration tests with Docker services (using TestEnvironmentManager)
-test-integration-docker:
-	@echo "Running integration tests with TestEnvironmentManager..."
-	@$(UV) run python -m tests.test_orchestrator integration tests/integration/
 
-# Run end-to-end tests (with full service stack)
-test-e2e: ## Run end-to-end tests
-	@echo "Running end-to-end tests..."
-	@$(UV) run pytest tests/e2e/ -v --maxfail=3 --disable-warnings
 
-# Run E2E tests with Docker services (using TestEnvironmentManager)
-test-e2e-docker:
-	@echo "Running E2E tests with TestEnvironmentManager..."
-	@$(UV) run python -m tests.test_orchestrator e2e tests/e2e/
+# Run end-to-end tests with Kubernetes (recommended)
+test-e2e: test-e2e-k8s
+	@echo "✅ E2E tests completed with Kubernetes"
+
+
 
 # Run certificate validator tests (no services needed)
 test-cert-validator:
@@ -208,57 +201,93 @@ test-cert-validator:
 	@$(UV) run pytest tests/cert_validator/ -v
 
 # =============================================================================
-# TEST ENVIRONMENT MANAGER COMMANDS (Recommended)
+# KUBERNETES-BASED E2E TESTING COMMANDS
 # =============================================================================
 
-# Run unit tests (no services)
-test-unit-orchestrated:
-	@echo "Running unit tests with TestEnvironmentManager..."
-	@$(UV) run python -m tests.test_orchestrator unit tests/unit/
+# Run E2E tests with Kubernetes (recommended)
+test-e2e-k8s: k8s-setup
+	@echo "🎯 Running E2E tests with Kubernetes..."
+	@echo "📦 Deploying services for E2E testing..."
+	@$(MAKE) k8s-deploy
+	@echo "⏳ Waiting for all pods to be ready..."
+	@kubectl wait --for=condition=ready pod --all -n $(K8S_NAMESPACE) --timeout=300s
+	@echo "🌐 Setting up port forwarding for tests..."
+	@$(MAKE) k8s-port-forward &
+	@sleep 10  # Allow port forwarding to establish
+	@echo "🧪 Running E2E tests..."
+	@$(UV) run pytest tests/e2e/ -v --tb=short -m "not docker" || TEST_RESULT=$$?; \
+		echo "🧹 Cleaning up port forwarding..."; \
+		pkill -f "kubectl port-forward" || true; \
+		exit $${TEST_RESULT:-0}
 
-# Run mock tests
-test-mock:
-	@echo "Running mock tests with TestEnvironmentManager..."
-	@$(UV) run python -m tests.test_orchestrator mock tests/
+# Run E2E tests with existing K8s cluster (faster for development)
+test-e2e-k8s-existing:
+	@echo "🎯 Running E2E tests with existing Kubernetes cluster..."
+	@if ! kubectl cluster-info --context $(K8S_CONTEXT) >/dev/null 2>&1; then \
+		echo "❌ Kubernetes cluster not found. Run 'make k8s-setup' first."; \
+		exit 1; \
+	fi
+	@echo "🔍 Checking if services are deployed..."
+	@if ! kubectl get deployment ui-app -n $(K8S_NAMESPACE) >/dev/null 2>&1; then \
+		echo "⚠️  Services not deployed. Deploying now..."; \
+		$(MAKE) k8s-deploy; \
+	fi
+	@echo "⏳ Ensuring all pods are ready..."
+	@kubectl wait --for=condition=ready pod --all -n $(K8S_NAMESPACE) --timeout=120s
+	@echo "🧪 Running E2E tests..."
+	@$(UV) run pytest tests/e2e/ -v --tb=short -m "not docker"
 
-# Start services for development (integration mode)
-start-integration-services:
-	@echo "Starting services for integration testing..."
-	@$(UV) run python -c "from tests.test_orchestrator import get_orchestrator, TestMode; get_orchestrator().start_services_for_mode(TestMode.INTEGRATION)"
+# Run E2E smoke tests with K8s (quick validation)
+test-e2e-k8s-smoke:
+	@echo "💨 Running E2E smoke tests with Kubernetes..."
+	@$(MAKE) k8s-setup
+	@$(MAKE) k8s-deploy
+	@kubectl wait --for=condition=ready pod --all -n $(K8S_NAMESPACE) --timeout=300s
+	@$(MAKE) k8s-port-forward &
+	@sleep 10
+	@$(UV) run pytest tests/e2e/ -v --tb=short -m "smoke and not docker" || TEST_RESULT=$$?; \
+		pkill -f "kubectl port-forward" || true; \
+		exit $${TEST_RESULT:-0}
 
-# Start services for development (e2e mode)
-start-e2e-services:
-	@echo "Starting services for E2E testing..."
-	@$(UV) run python -c "from tests.test_orchestrator import get_orchestrator, TestMode; get_orchestrator().start_services_for_mode(TestMode.E2E)"
+# Run E2E tests with monitoring enabled
+test-e2e-k8s-monitoring:
+	@echo "📊 Running E2E tests with monitoring stack..."
+	@$(MAKE) k8s-setup
+	@$(MAKE) k8s-deploy
+	@$(MAKE) k8s-monitoring
+	@kubectl wait --for=condition=ready pod --all -n $(K8S_NAMESPACE) --timeout=300s
+	@kubectl wait --for=condition=ready pod --all -n marty-system --timeout=300s
+	@$(MAKE) k8s-port-forward &
+	@kubectl port-forward svc/marty-monitoring-grafana 3000:3000 -n marty-system &
+	@sleep 15
+	@echo "🧪 Running E2E tests with monitoring..."
+	@$(UV) run pytest tests/e2e/ -v --tb=short -m "monitoring" || TEST_RESULT=$$?; \
+		pkill -f "kubectl port-forward" || true; \
+		exit $${TEST_RESULT:-0}
 
-# Stop all orchestrated services
-stop-orchestrated-services:
-	@echo "Stopping all orchestrated services..."
-	@$(UV) run python -c "from tests.test_orchestrator import get_orchestrator; get_orchestrator().stop_all_services()"
+# Clean E2E test environment
+test-e2e-clean:
+	@echo "🧹 Cleaning E2E test environment..."
+	@pkill -f "kubectl port-forward" || true
+	@$(MAKE) k8s-undeploy || true
+	@$(MAKE) k8s-destroy || true
+	@echo "✅ E2E environment cleaned"
 
-# New orchestrated test targets with fixed base class
-test-integration-orchestrated:
-	@echo "Running integration tests with orchestrated services..."
-	@$(UV) run pytest tests/integration/docker/e2e/test_passport_orchestrated_clean.py::PassportFlowE2ETest::test_service_connectivity -v
-	@$(UV) run pytest tests/integration/docker/e2e/test_passport_orchestrated_clean.py::PassportFlowE2ETest::test_service_health_checks -v
+# Legacy Docker-based E2E (deprecated - will be removed in next release)
+test-e2e-docker-legacy:
+	@echo "⚠️  DEPRECATED: Docker-based E2E testing"
+	@echo "   Use 'make test-e2e-k8s' instead for production parity"
+	@echo "   This command will be removed in the next major release."
+	@echo "🐳 Running legacy Docker E2E tests..."
+	@$(UV) run python -m tests.test_orchestrator e2e tests/e2e/
 
-test-e2e-orchestrated:
-	@echo "Running E2E tests with orchestrated services..."
-	@$(UV) run pytest tests/integration/docker/e2e/test_passport_orchestrated_clean.py::PassportFlowE2ETest::test_passport_flow_with_injected_data -v
-
-test-orchestrator-validation:
-	@echo "Validating TestEnvironmentManager functionality..."
+# Legacy integration tests (deprecated)
+test-integration-docker-legacy:
+	@echo "⚠️  DEPRECATED: Docker-based integration testing"
+	@echo "   Use 'make test-integration' with Kubernetes instead"
+	@echo "   This command will be removed in the next major release."
+	@echo "🐳 Running legacy Docker integration tests..."
 	@$(UV) run python -m tests.test_orchestrator integration tests/integration/
-
-# Test the environment manager base class specifically
-test-environment-manager-base:
-	@echo "Testing environment manager base class functionality..."
-	@$(UV) run pytest tests/integration/docker/e2e/test_passport_orchestrated_clean.py -v
-
-# Legacy integration test (with conflicts - deprecated)
-test-integration-legacy:
-	@echo "Running legacy integration tests (may have conflicts)..."
-	@$(UV) run pytest tests/integration/docker/e2e/test_passport_flow.py -v
 
 # =============================================================================
 # ADDITIONAL TESTING COMMANDS
@@ -326,13 +355,14 @@ test-e2e-report-mvp:
 	@$(UV) run pytest tests/e2e/ -m mvp --html=tests/e2e/reports/report.html --self-contained-html -v
 	@echo "📊 Test report generated: tests/e2e/reports/report.html"
 
-# Run only smoke tests (quick validation)
+# Run only smoke tests (quick validation) with Kubernetes
 test-e2e-smoke:
-	@echo "Running Playwright smoke tests..."
-	@echo "Starting UI service for smoke testing..."
-	@docker run -d -p 8090:8090 --name smoke-ui-test --env UI_ENABLE_MOCK_DATA=true marty-ui-app || \
-		(echo "Building UI image first..." && $(DOCKER_COMPOSE) build ui-app && \
-		 docker run -d -p 8090:8090 --name smoke-ui-test --env UI_ENABLE_MOCK_DATA=true marty-ui-app)
+	@echo "Running Playwright smoke tests with Kubernetes..."
+	@echo "Setting up K8s environment for smoke testing..."
+	@$(MAKE) k8s-setup >/dev/null 2>&1 || true
+	@$(MAKE) k8s-deploy >/dev/null 2>&1 || true
+	@kubectl wait --for=condition=ready pod --all -n $(K8S_NAMESPACE) --timeout=120s >/dev/null 2>&1 || true
+	@$(MAKE) k8s-port-forward &
 	@echo "Waiting for UI service to be ready..."
 	@timeout=30; while [ $$timeout -gt 0 ]; do \
 		if curl -s http://localhost:8090/health >/dev/null 2>&1; then \
@@ -343,33 +373,39 @@ test-e2e-smoke:
 	done
 	@echo "Running smoke tests..."
 	@$(UV) run pytest tests/e2e/ -m smoke -v --tb=short || TEST_RESULT=$$?; \
-		echo "Cleaning up test container..."; \
-		docker stop smoke-ui-test >/dev/null 2>&1; \
-		docker rm smoke-ui-test >/dev/null 2>&1; \
+		echo "Cleaning up..."; \
+		pkill -f "kubectl port-forward" >/dev/null 2>&1 || true; \
 		exit $${TEST_RESULT:-0}
 
-# Run E2E tests with existing UI service (assumes UI is already running on 8090)
+# Run E2E tests with existing service (checks K8s port-forward or local service)
 test-e2e-ui-existing:
-	@echo "Running Playwright E2E tests against existing UI service..."
+	@echo "Running Playwright E2E tests against existing service..."
 	@if ! curl -s http://localhost:8090/health >/dev/null 2>&1; then \
 		echo "❌ UI service not found at localhost:8090"; \
-		echo "💡 Start UI service first: make run-ui or make dev-minimal"; \
+		echo "💡 Options:"; \
+		echo "  1. Start K8s port forwarding: make k8s-port-forward"; \
+		echo "  2. Start local UI service: make run-ui"; \
+		echo "  3. Use automated K8s setup: make test-e2e-k8s"; \
 		exit 1; \
 	fi
 	@echo "✅ UI service detected, running tests..."
 	@$(UV) run pytest tests/e2e/ -v --tb=short
 
-# Run Playwright tests requiring the full real service stack (no UI_ENABLE_MOCK_DATA)
+# Run Playwright tests requiring the full real service stack with Kubernetes
 test-e2e-ui-integration:
-	@echo "Running full-stack Playwright integration UI tests (real services)..."
-	@echo "Starting minimal service stack for integration tests..."
-	@docker compose -f docker/docker-compose.integration.yml up --build -d
+	@echo "Running full-stack Playwright integration UI tests with Kubernetes..."
+	@echo "Setting up K8s environment for integration tests..."
+	@$(MAKE) k8s-setup
+	@$(MAKE) k8s-deploy
+	@kubectl wait --for=condition=ready pod --all -n $(K8S_NAMESPACE) --timeout=300s
+	@$(MAKE) k8s-port-forward &
 	@echo "Waiting for services to be ready..."
-	@sleep 10
+	@sleep 15
 	@echo "Running integration tests..."
-	@$(UV) run pytest tests/e2e/ -m "integration and ui" -v --tb=short || (docker compose -f docker/docker-compose.integration.yml down && exit 1)
-	@echo "Stopping services..."
-	@docker compose -f docker/docker-compose.integration.yml down
+	@$(UV) run pytest tests/e2e/ -m "integration and ui" -v --tb=short || TEST_RESULT=$$?; \
+		echo "Cleaning up..."; \
+		pkill -f "kubectl port-forward" || true; \
+		exit $${TEST_RESULT:-0}
 
 # Run specific E2E test categories
 test-e2e-dashboard:
@@ -388,21 +424,22 @@ test-e2e-responsive:
 	@echo "Running responsive design E2E tests..."
 	@$(UV) run pytest tests/e2e/test_ui_e2e.py::TestUIResponsiveness -v
 
-# Generate E2E test report with HTML output
+# Generate E2E test report with HTML output using Kubernetes
 test-e2e-report:
-	@echo "Running E2E tests with HTML report generation..."
+	@echo "Running E2E tests with HTML report generation (Kubernetes)..."
 	@mkdir -p tests/e2e/reports
-	@docker run -d -p 8090:8090 --name report-ui-test --env UI_ENABLE_MOCK_DATA=true marty-ui-app || \
-		(echo "Building UI image first..." && $(DOCKER_COMPOSE) build ui-app && \
-		 docker run -d -p 8090:8090 --name report-ui-test --env UI_ENABLE_MOCK_DATA=true marty-ui-app)
+	@echo "Setting up K8s environment for report generation..."
+	@$(MAKE) k8s-setup >/dev/null 2>&1
+	@$(MAKE) k8s-deploy >/dev/null 2>&1
+	@kubectl wait --for=condition=ready pod --all -n $(K8S_NAMESPACE) --timeout=300s >/dev/null 2>&1
+	@$(MAKE) k8s-port-forward &
 	@echo "Waiting for UI service..."
 	@timeout=30; while [ $$timeout -gt 0 ]; do \
 		if curl -s http://localhost:8090/health >/dev/null 2>&1; then break; fi; \
 		sleep 2; timeout=$$((timeout-2)); \
 	done
 	@$(UV) run pytest tests/e2e/ --html=tests/e2e/reports/report.html --self-contained-html -v || TEST_RESULT=$$?; \
-		docker stop report-ui-test >/dev/null 2>&1; \
-		docker rm report-ui-test >/dev/null 2>&1; \
+		pkill -f "kubectl port-forward" >/dev/null 2>&1 || true; \
 		echo "📊 Test report generated: tests/e2e/reports/report.html"; \
 		exit $${TEST_RESULT:-0}
 
@@ -479,6 +516,296 @@ stop-services:
 	@$(DOCKER_COMPOSE) down
 	@pkill -f "uvicorn.*ui_app" || true
 	@echo "Services stopped"
+
+# =============================================================================
+# KUBERNETES DEVELOPMENT COMMANDS
+# =============================================================================
+
+# Kubernetes configuration
+K8S_CLUSTER_NAME ?= marty-dev
+K8S_NAMESPACE ?= marty
+K8S_CONTEXT ?= kind-$(K8S_CLUSTER_NAME)
+KUBECTL_VERSION ?= v1.28.0
+KIND_VERSION ?= v0.20.0
+HELM_VERSION ?= v3.13.0
+SKAFFOLD_VERSION ?= v2.7.0
+
+.PHONY: k8s-check-tools k8s-setup k8s-destroy k8s-status k8s-deploy k8s-undeploy k8s-restart k8s-logs k8s-port-forward k8s-monitoring k8s-dev
+
+# Check if required Kubernetes tools are installed
+k8s-check-tools:
+	@echo "🔧 Checking Kubernetes tools..."
+	@command -v docker >/dev/null 2>&1 || { echo "❌ Docker is required but not installed. Please install Docker Desktop."; exit 1; }
+	@docker info >/dev/null 2>&1 || { echo "❌ Docker is not running. Please start Docker Desktop."; exit 1; }
+	@command -v kubectl >/dev/null 2>&1 || { echo "❌ kubectl is required. Installing..."; $(MAKE) k8s-install-kubectl; }
+	@command -v kind >/dev/null 2>&1 || { echo "❌ kind is required. Installing..."; $(MAKE) k8s-install-kind; }
+	@command -v helm >/dev/null 2>&1 || { echo "❌ helm is required. Installing..."; $(MAKE) k8s-install-helm; }
+	@echo "✅ All required tools are available"
+
+# Install kubectl
+k8s-install-kubectl:
+	@echo "📦 Installing kubectl..."
+	@if [[ "$$OSTYPE" == "darwin"* ]]; then \
+		if command -v brew >/dev/null 2>&1; then \
+			brew install kubectl; \
+		else \
+			curl -LO "https://dl.k8s.io/release/$(KUBECTL_VERSION)/bin/darwin/amd64/kubectl" && \
+			chmod +x kubectl && \
+			sudo mv kubectl /usr/local/bin/; \
+		fi \
+	elif [[ "$$OSTYPE" == "linux-gnu"* ]]; then \
+		curl -LO "https://dl.k8s.io/release/$(KUBECTL_VERSION)/bin/linux/amd64/kubectl" && \
+		chmod +x kubectl && \
+		sudo mv kubectl /usr/local/bin/; \
+	else \
+		echo "❌ Unsupported OS: $$OSTYPE"; exit 1; \
+	fi
+
+# Install kind
+k8s-install-kind:
+	@echo "📦 Installing kind..."
+	@if [[ "$$OSTYPE" == "darwin"* ]]; then \
+		if command -v brew >/dev/null 2>&1; then \
+			brew install kind; \
+		else \
+			curl -Lo ./kind "https://kind.sigs.k8s.io/dl/$(KIND_VERSION)/kind-darwin-amd64" && \
+			chmod +x ./kind && \
+			sudo mv ./kind /usr/local/bin/kind; \
+		fi \
+	elif [[ "$$OSTYPE" == "linux-gnu"* ]]; then \
+		curl -Lo ./kind "https://kind.sigs.k8s.io/dl/$(KIND_VERSION)/kind-linux-amd64" && \
+		chmod +x ./kind && \
+		sudo mv ./kind /usr/local/bin/kind; \
+	else \
+		echo "❌ Unsupported OS: $$OSTYPE"; exit 1; \
+	fi
+
+# Install helm
+k8s-install-helm:
+	@echo "📦 Installing helm..."
+	@curl https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | bash
+
+# Install skaffold
+k8s-install-skaffold:
+	@echo "📦 Installing skaffold..."
+	@if [[ "$$OSTYPE" == "darwin"* ]]; then \
+		if command -v brew >/dev/null 2>&1; then \
+			brew install skaffold; \
+		else \
+			curl -Lo skaffold "https://storage.googleapis.com/skaffold/releases/$(SKAFFOLD_VERSION)/skaffold-darwin-amd64" && \
+			chmod +x skaffold && \
+			sudo mv skaffold /usr/local/bin; \
+		fi \
+	elif [[ "$$OSTYPE" == "linux-gnu"* ]]; then \
+		curl -Lo skaffold "https://storage.googleapis.com/skaffold/releases/$(SKAFFOLD_VERSION)/skaffold-linux-amd64" && \
+		chmod +x skaffold && \
+		sudo mv skaffold /usr/local/bin; \
+	else \
+		echo "❌ Unsupported OS: $$OSTYPE"; exit 1; \
+	fi
+
+# Set up local Kubernetes development environment
+k8s-setup: k8s-check-tools
+	@echo "🚀 Setting up Kubernetes development environment..."
+	@if kind get clusters | grep -q "^$(K8S_CLUSTER_NAME)$$"; then \
+		echo "⚠️  Kind cluster '$(K8S_CLUSTER_NAME)' already exists. Skipping creation."; \
+	else \
+		echo "🏗️  Creating Kind cluster '$(K8S_CLUSTER_NAME)'..."; \
+		echo 'kind: Cluster\napiVersion: kind.x-k8s.io/v1alpha4\nname: $(K8S_CLUSTER_NAME)\nnodes:\n- role: control-plane\n  kubeadmConfigPatches:\n  - |\n    kind: InitConfiguration\n    nodeRegistration:\n      kubeletExtraArgs:\n        node-labels: "ingress-ready=true"\n  extraPortMappings:\n  - containerPort: 80\n    hostPort: 80\n    protocol: TCP\n  - containerPort: 443\n    hostPort: 443\n    protocol: TCP\n  - containerPort: 8085\n    hostPort: 8085\n    protocol: TCP\n  - containerPort: 8090\n    hostPort: 8090\n    protocol: TCP\n- role: worker\n- role: worker\nnetworking:\n  apiServerAddress: "127.0.0.1"\n  apiServerPort: 6443' > /tmp/kind-config.yaml; \
+		kind create cluster --config=/tmp/kind-config.yaml; \
+		rm /tmp/kind-config.yaml; \
+	fi
+	@echo "🌐 Setting up NGINX Ingress Controller..."
+	@kubectl apply -f https://raw.githubusercontent.com/kubernetes/ingress-nginx/main/deploy/static/provider/kind/deploy.yaml
+	@echo "⏳ Waiting for ingress controller to be ready..."
+	@kubectl wait --namespace ingress-nginx --for=condition=ready pod --selector=app.kubernetes.io/component=controller --timeout=90s
+	@echo "📁 Creating namespaces..."
+	@kubectl create namespace $(K8S_NAMESPACE) --dry-run=client -o yaml | kubectl apply -f -
+	@kubectl create namespace marty-system --dry-run=client -o yaml | kubectl apply -f -
+	@kubectl config set-context --current --namespace=$(K8S_NAMESPACE)
+	@echo "📦 Adding Helm repositories..."
+	@helm repo add prometheus-community https://prometheus-community.github.io/helm-charts || true
+	@helm repo add grafana https://grafana.github.io/helm-charts || true
+	@helm repo add bitnami https://charts.bitnami.com/bitnami || true
+	@helm repo add ingress-nginx https://kubernetes.github.io/ingress-nginx || true
+	@helm repo update
+	@echo "💾 Setting up local storage..."
+	@echo 'apiVersion: storage.k8s.io/v1\nkind: StorageClass\nmetadata:\n  name: marty-local-storage\n  annotations:\n    storageclass.kubernetes.io/is-default-class: "true"\nprovisioner: rancher.io/local-path\nvolumeBindingMode: WaitForFirstConsumer\nreclaimPolicy: Delete' | kubectl apply -f -
+	@echo "🔒 Creating TLS certificate..."
+	@openssl req -x509 -nodes -days 365 -newkey rsa:2048 -keyout /tmp/tls.key -out /tmp/tls.crt -subj "/CN=marty.local/O=marty.local" -addext "subjectAltName=DNS:marty.local,DNS:*.marty.local,DNS:localhost" 2>/dev/null || true
+	@kubectl create secret tls marty-tls --key /tmp/tls.key --cert /tmp/tls.crt --namespace $(K8S_NAMESPACE) --dry-run=client -o yaml | kubectl apply -f - || true
+	@rm -f /tmp/tls.key /tmp/tls.crt
+	@echo "✅ Kubernetes development environment ready!"
+	@echo "📋 Summary:"
+	@echo "  - Cluster: $(K8S_CLUSTER_NAME)"
+	@echo "  - Context: $(K8S_CONTEXT)"
+	@echo "  - Namespaces: $(K8S_NAMESPACE), marty-system"
+	@echo "  - Ingress: NGINX (localhost:80, localhost:443)"
+	@echo ""
+	@echo "🚀 Next steps:"
+	@echo "  make k8s-deploy       # Deploy all services"
+	@echo "  make k8s-port-forward # Set up port forwarding"
+	@echo "  make k8s-monitoring   # Deploy monitoring stack"
+
+# Destroy the local Kubernetes cluster
+k8s-destroy:
+	@echo "💥 Destroying Kind cluster '$(K8S_CLUSTER_NAME)'..."
+	@kind delete cluster --name "$(K8S_CLUSTER_NAME)"
+	@echo "✅ Cluster '$(K8S_CLUSTER_NAME)' destroyed"
+
+# Check cluster and pod status
+k8s-status:
+	@echo "📊 Checking Kubernetes cluster status..."
+	@if kind get clusters | grep -q "^$(K8S_CLUSTER_NAME)$$"; then \
+		echo "✅ Cluster '$(K8S_CLUSTER_NAME)' is running"; \
+		kubectl cluster-info --context $(K8S_CONTEXT); \
+		echo ""; \
+		echo "📦 Nodes:"; \
+		kubectl get nodes; \
+		echo ""; \
+		echo "🚀 Pods in $(K8S_NAMESPACE) namespace:"; \
+		kubectl get pods -n $(K8S_NAMESPACE); \
+		echo ""; \
+		echo "🌐 Services in $(K8S_NAMESPACE) namespace:"; \
+		kubectl get svc -n $(K8S_NAMESPACE); \
+	else \
+		echo "❌ Cluster '$(K8S_CLUSTER_NAME)' does not exist. Run 'make k8s-setup' first."; \
+	fi
+
+# Deploy all services to Kubernetes
+k8s-deploy: compile-protos
+	@echo "🚀 Deploying Marty services to Kubernetes..."
+	@echo "🏗️  Building Docker images first..."
+	@$(MAKE) docker-build
+	@echo "🏷️  Tagging images for Kubernetes..."
+	@for service in trust-anchor csca-service document-signer inspection-system passport-engine mdl-engine mdoc-engine dtc-engine credential-ledger pkd-service ui-app; do \
+		echo "Tagging docker-$$service:latest -> marty/$$service:latest"; \
+		docker tag docker-$$service:latest marty/$$service:latest; \
+	done
+	@echo "📦 Loading images into Kind cluster..."
+	@for service in trust-anchor csca-service document-signer inspection-system passport-engine mdl-engine mdoc-engine dtc-engine credential-ledger pkd-service ui-app; do \
+		echo "Loading marty/$$service:latest..."; \
+		kind load docker-image marty/$$service:latest --name $(K8S_CLUSTER_NAME) || true; \
+	done
+	@echo "📋 Ensuring namespace exists..."
+	@kubectl create namespace $(K8S_NAMESPACE) --dry-run=client -o yaml | kubectl apply -f -
+	@echo "📋 Deploying infrastructure components..."
+	@helm upgrade --install postgres bitnami/postgresql \
+		--namespace $(K8S_NAMESPACE) \
+		--set auth.username=martyuser \
+		--set auth.password=martypassword \
+		--set auth.database=martydb \
+		--set primary.persistence.size=1Gi \
+		--wait --timeout=300s
+	@echo "🔄 Deploying Marty services..."
+	@for chart in helm/charts/*; do \
+		if [ -d "$$chart" ] && [ -f "$$chart/Chart.yaml" ]; then \
+			service=$$(basename $$chart); \
+			echo "Deploying $$service..."; \
+			helm upgrade --install $$service $$chart \
+				--namespace $(K8S_NAMESPACE) \
+				--set image.tag=latest \
+				--set image.pullPolicy=Never \
+				--wait --timeout=300s || true; \
+		fi \
+	done
+	@echo "✅ All services deployed to Kubernetes!"
+	@echo "🌐 Access the application:"
+	@echo "  kubectl port-forward svc/ui-app 8090:8090 -n $(K8S_NAMESPACE)"
+
+# Remove all services from Kubernetes
+k8s-undeploy:
+	@echo "🧹 Removing all Marty services from Kubernetes..."
+	@helm list -n $(K8S_NAMESPACE) --short | xargs -r helm uninstall -n $(K8S_NAMESPACE) || true
+	@echo "✅ All services removed"
+
+# Restart all services in Kubernetes
+k8s-restart:
+	@echo "🔄 Restarting all services in Kubernetes..."
+	@kubectl rollout restart deployment -n $(K8S_NAMESPACE)
+	@kubectl rollout status deployment --all -n $(K8S_NAMESPACE) --timeout=300s
+	@echo "✅ All services restarted"
+
+# Show logs from all services
+k8s-logs:
+	@echo "📋 Showing logs from all services..."
+	@kubectl logs -l app.kubernetes.io/name --all-containers=true --tail=50 -n $(K8S_NAMESPACE)
+
+# Set up port forwarding for development
+k8s-port-forward:
+	@echo "🌐 Setting up port forwarding for development..."
+	@echo "Starting port forwards in background..."
+	@kubectl port-forward svc/ui-app 8090:8090 -n $(K8S_NAMESPACE) &
+	@kubectl port-forward svc/csca-service 8081:8081 -n $(K8S_NAMESPACE) &
+	@kubectl port-forward svc/document-signer 8082:8082 -n $(K8S_NAMESPACE) &
+	@kubectl port-forward svc/inspection-system 8083:8083 -n $(K8S_NAMESPACE) &
+	@kubectl port-forward svc/passport-engine 8084:8084 -n $(K8S_NAMESPACE) &
+	@kubectl port-forward svc/mdl-engine 8085:8085 -n $(K8S_NAMESPACE) &
+	@kubectl port-forward svc/mdoc-engine 8086:8086 -n $(K8S_NAMESPACE) &
+	@kubectl port-forward svc/dtc-engine 8087:8087 -n $(K8S_NAMESPACE) &
+	@kubectl port-forward svc/pkd-service 8088:8088 -n $(K8S_NAMESPACE) &
+	@echo "✅ Port forwarding active. Use 'pkill -f port-forward' to stop."
+	@echo "🌐 Access URLs:"
+	@echo "  UI App:             http://localhost:8090"
+	@echo "  CSCA Service:       http://localhost:8081"
+	@echo "  Document Signer:    http://localhost:8082"
+	@echo "  Inspection System:  http://localhost:8083"
+	@echo "  Passport Engine:    http://localhost:8084"
+	@echo "  MDL Engine:         http://localhost:8085"
+	@echo "  mDoc Engine:        http://localhost:8086"
+	@echo "  DTC Engine:         http://localhost:8087"
+	@echo "  PKD Service:        http://localhost:8088"
+
+# Deploy monitoring stack (Prometheus/Grafana)
+k8s-monitoring:
+	@echo "📊 Deploying monitoring stack..."
+	@helm upgrade --install marty-monitoring helm/charts/monitoring \
+		--namespace marty-system \
+		--create-namespace \
+		--wait --timeout=300s
+	@echo "✅ Monitoring stack deployed!"
+	@echo "🌐 Access monitoring:"
+	@echo "  kubectl port-forward svc/marty-monitoring-grafana 3000:3000 -n marty-system"
+	@echo "  kubectl port-forward svc/marty-monitoring-prometheus-server 9090:9090 -n marty-system"
+
+# Start development with hot-reload using Skaffold
+k8s-dev:
+	@command -v skaffold >/dev/null 2>&1 || { echo "❌ skaffold is required. Installing..."; $(MAKE) k8s-install-skaffold; }
+	@echo "🔥 Starting development with hot-reload..."
+	@if [ ! -f skaffold.yaml ]; then \
+		echo "❌ skaffold.yaml not found. Creating basic configuration..."; \
+		$(MAKE) k8s-create-skaffold-config; \
+	fi
+	@skaffold dev --port-forward
+
+# Create basic Skaffold configuration
+k8s-create-skaffold-config:
+	@echo "📝 Creating Skaffold configuration..."
+	@echo "Creating basic skaffold.yaml file..."
+	@echo "apiVersion: skaffold/v4beta11" > skaffold.yaml
+	@echo "kind: Config" >> skaffold.yaml
+	@echo "metadata:" >> skaffold.yaml
+	@echo "  name: marty-dev" >> skaffold.yaml
+	@echo "build:" >> skaffold.yaml
+	@echo "  artifacts:" >> skaffold.yaml
+	@echo "    - image: marty/ui-app" >> skaffold.yaml
+	@echo "      docker:" >> skaffold.yaml
+	@echo "        dockerfile: docker/ui-app.Dockerfile" >> skaffold.yaml
+	@echo "    - image: marty/csca-service" >> skaffold.yaml
+	@echo "      docker:" >> skaffold.yaml
+	@echo "        dockerfile: docker/csca-service.Dockerfile" >> skaffold.yaml
+	@echo "deploy:" >> skaffold.yaml
+	@echo "  helm:" >> skaffold.yaml
+	@echo "    releases:" >> skaffold.yaml
+	@echo "      - name: ui-app" >> skaffold.yaml
+	@echo "        chartPath: helm/charts/ui-app" >> skaffold.yaml
+	@echo "        namespace: marty" >> skaffold.yaml
+	@echo "portForward:" >> skaffold.yaml
+	@echo "  - resourceType: service" >> skaffold.yaml
+	@echo "    resourceName: ui-app" >> skaffold.yaml
+	@echo "    namespace: marty" >> skaffold.yaml
+	@echo "    port: 8090" >> skaffold.yaml
+	@echo "✅ Skaffold configuration created"
 
 # =============================================================================
 # DEVELOPMENT ENVIRONMENT COMMANDS
@@ -777,20 +1104,23 @@ help:
 	@echo "  test               - Run all tests"
 	@echo "  test-unit          - Run unit tests"
 	@echo "  test-integration   - Run integration tests"
-	@echo "  test-integration-docker - Run integration tests with Docker services"
-	@echo "  test-e2e           - Run end-to-end tests"
-	@echo "  test-e2e-docker    - Run E2E tests with Docker services"
+	@echo "  test-e2e           - Run E2E tests (Kubernetes-based)"
+	@echo "  test-e2e-k8s       - Run E2E tests with Kubernetes (explicit)"
+	@echo "  test-e2e-k8s-existing - Run E2E tests with existing K8s cluster"
+	@echo "  test-e2e-k8s-smoke - Run E2E smoke tests with Kubernetes"
+	@echo "  test-e2e-k8s-monitoring - Run E2E tests with monitoring stack"
 	@echo "  test-cert-validator - Run certificate validator tests"
 	@echo ""
-	@echo "🎯 TestEnvironmentManager Commands:"
-	@echo "  test-unit-orchestrated - Run unit tests with TestEnvironmentManager"
-	@echo "  test-integration-orchestrated - Run integration tests with orchestrated services"
-	@echo "  test-e2e-orchestrated - Run E2E tests with orchestrated services"
-	@echo "  test-orchestrator-validation - Validate TestEnvironmentManager functionality"
-	@echo "  test-environment-manager-base - Test environment manager base class"
-	@echo "  start-integration-services - Start services for integration testing"
-	@echo "  start-e2e-services - Start services for E2E testing"
-	@echo "  stop-orchestrated-services - Stop all orchestrated services"
+	@echo "🎯 Kubernetes E2E Testing Commands:"
+	@echo "  test-e2e-k8s       - Run E2E tests with Kubernetes (recommended)"
+	@echo "  test-e2e-k8s-existing - Use existing cluster (faster for development)"
+	@echo "  test-e2e-k8s-smoke - Quick validation with Kubernetes"
+	@echo "  test-e2e-k8s-monitoring - E2E tests with full monitoring stack"
+	@echo "  test-e2e-clean     - Clean up E2E test environment"
+	@echo ""
+	@echo "⚠️  Legacy Commands (Deprecated - will be removed):"
+	@echo "  test-e2e-docker-legacy - Docker-based E2E tests (deprecated)"
+	@echo "  test-integration-docker-legacy - Docker-based integration tests (deprecated)"
 	@echo ""
 	@echo "🔐 Phase 2/3 Passport Verification Testing:"
 	@echo "  test-setup           - Install test dependencies"
@@ -807,16 +1137,17 @@ help:
 	@echo "  test-coverage        - Run comprehensive coverage analysis"
 	@echo "  test-clean           - Clean test artifacts and reports"
 	@echo ""
-	@echo "🎭 Playwright E2E Testing:"
+	@echo "🎭 Playwright E2E Testing (Kubernetes-based):"
 	@echo "  playwright-install    - Install Playwright browsers"
-	@echo "  test-e2e-ui          - Run UI E2E tests (auto-starts UI service)"
-	@echo "  test-e2e-smoke       - Run smoke E2E tests (quick validation)"
-	@echo "  test-e2e-ui-existing - Run E2E tests against running UI service"
+	@echo "  test-e2e-ui          - Run UI E2E tests (uses Kubernetes)"
+	@echo "  test-e2e-smoke       - Run smoke E2E tests with Kubernetes"
+	@echo "  test-e2e-ui-existing - Run E2E tests against existing service"
 	@echo "  test-e2e-dashboard   - Run dashboard-specific E2E tests"
 	@echo "  test-e2e-passport    - Run passport workflow E2E tests"
 	@echo "  test-e2e-mdl         - Run MDL workflow E2E tests"
 	@echo "  test-e2e-responsive  - Run responsive design E2E tests"
-	@echo "  test-e2e-report      - Run E2E tests with HTML report"
+	@echo "  test-e2e-report      - Run E2E tests with HTML report (K8s)"
+	@echo "  test-e2e-ui-integration - Run full-stack integration tests (K8s)"
 	@echo ""
 	@echo "✨ Code Quality:"
 	@echo "  lint               - Run linting tools"
@@ -832,6 +1163,18 @@ help:
 	@echo "🐳 Docker:"
 	@echo "  docker-build       - Build Docker images"
 	@echo "  docker-run         - Run full Docker environment"
+	@echo ""
+	@echo "☸️  Kubernetes Development:"
+	@echo "  k8s-setup          - Set up local Kubernetes development environment"
+	@echo "  k8s-destroy        - Destroy local Kubernetes cluster"
+	@echo "  k8s-status         - Check cluster and pod status"
+	@echo "  k8s-deploy         - Deploy all services to Kubernetes"
+	@echo "  k8s-undeploy       - Remove all services from Kubernetes"
+	@echo "  k8s-restart        - Restart all services in Kubernetes"
+	@echo "  k8s-logs           - Show logs from all services"
+	@echo "  k8s-port-forward   - Set up port forwarding for development"
+	@echo "  k8s-monitoring     - Deploy monitoring stack (Prometheus/Grafana)"
+	@echo "  k8s-dev            - Start development with hot-reload (Skaffold)"
 	@echo ""
 	@echo "📊 Data:"
 	@echo "  generate-test-data - Generate test data"

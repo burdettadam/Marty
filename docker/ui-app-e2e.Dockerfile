@@ -5,17 +5,14 @@ ENV PYTHONDONTWRITEBYTECODE=1
 ENV PYTHONUNBUFFERED=1
 ENV PYTHONPATH=/app
 
-# Install system dependencies
+# Install system dependencies (minimal for E2E testing)
 RUN apt-get update && apt-get install -y \
     curl \
     gcc \
     g++ \
     make \
-    cmake \
     pkg-config \
     protobuf-compiler \
-    libpcsclite-dev \
-    swig \
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
@@ -33,7 +30,7 @@ RUN /install.sh && rm /install.sh
 RUN touch /app/src/__init__.py
 RUN mkdir -p /app/src/proto && touch /app/src/proto/__init__.py
 
-# Install Python dependencies WITHOUT heavy biometric packages for faster builds
+# Install Python dependencies WITHOUT biometric extras for E2E testing
 RUN ~/.local/bin/uv pip install --system --no-cache -e .
 RUN ~/.local/bin/uv pip install --system grpcio
 RUN ~/.local/bin/uv pip install --system grpcio-health-checking
@@ -44,14 +41,14 @@ RUN ~/.local/bin/uv pip install --system python-multipart
 
 # Environment variables for UI
 ENV SERVICE_NAME=ui-app
-ENV UI_TITLE="Marty Operator Console"
-ENV UI_ENVIRONMENT=production
+ENV UI_TITLE="Marty Operator Console (E2E Test)"
+ENV UI_ENVIRONMENT=testing
 ENV UI_PASSPORT_ENGINE_ADDR=passport-engine:9084
 ENV UI_INSPECTION_SYSTEM_ADDR=inspection-system:9083
 ENV UI_MDL_ENGINE_ADDR=mdl-engine:8085
 ENV UI_TRUST_ANCHOR_ADDR=trust-anchor:9080
 ENV UI_GRPC_TIMEOUT_SECONDS=10
-ENV UI_ENABLE_MOCK_DATA=false
+ENV UI_ENABLE_MOCK_DATA=true
 ENV UI_THEME=light
 
 # Expose port

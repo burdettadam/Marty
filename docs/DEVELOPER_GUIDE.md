@@ -195,6 +195,214 @@ docker-compose logs -f passport-engine
 docker-compose up --scale passport-engine=3
 ```
 
+### Kubernetes Development
+
+The recommended development approach for microservices is using Kubernetes, which better matches production deployment patterns.
+
+#### Prerequisites
+- Docker Desktop (with Kubernetes enabled) or Docker Engine
+- Make (for running commands)
+
+#### Quick Start
+```bash
+# Set up local Kubernetes cluster with all dependencies
+make k8s-setup
+
+# Deploy all services to Kubernetes
+make k8s-deploy
+
+# Set up port forwarding for local development
+make k8s-port-forward
+
+# Check status
+make k8s-status
+```
+
+#### Development Workflow
+
+**1. Initial Setup**
+```bash
+# One-time setup of Kind cluster with ingress, storage, and namespaces
+make k8s-setup
+```
+This creates a local Kubernetes cluster using Kind with:
+- Multi-node cluster (1 control plane + 2 workers)
+- NGINX Ingress Controller
+- Local storage class
+- Namespaces: `marty` (services) and `marty-system` (monitoring)
+- Self-signed TLS certificates
+- Helm repositories configured
+
+**2. Deploy Services**
+```bash
+# Build Docker images and deploy to Kubernetes
+make k8s-deploy
+```
+This will:
+- Compile protocol buffers
+- Build all Docker images
+- Load images into Kind cluster
+- Deploy PostgreSQL database
+- Deploy all Marty microservices via Helm
+
+**3. Development with Hot Reload**
+```bash
+# Start Skaffold for continuous development
+make k8s-dev
+```
+Skaffold provides:
+- Automatic image rebuilds on code changes
+- Deployment to Kubernetes
+- Port forwarding to local machine
+- Log streaming from pods
+
+**4. Access Services**
+```bash
+# Set up port forwarding for all services
+make k8s-port-forward
+
+# Or manually forward specific services
+kubectl port-forward svc/ui-app 8090:8090 -n marty
+kubectl port-forward svc/csca-service 8081:8081 -n marty
+```
+
+**5. Monitoring and Debugging**
+```bash
+# Deploy monitoring stack (Prometheus + Grafana)
+make k8s-monitoring
+
+# View logs from all services
+make k8s-logs
+
+# Check pod status
+kubectl get pods -n marty
+
+# Describe a specific service
+kubectl describe svc csca-service -n marty
+
+# Get events
+kubectl get events -n marty --sort-by='.lastTimestamp'
+```
+
+#### Service Access URLs
+When port forwarding is active:
+- **UI Application**: http://localhost:8090
+- **CSCA Service**: http://localhost:8081
+- **Document Signer**: http://localhost:8082
+- **Inspection System**: http://localhost:8083
+- **Passport Engine**: http://localhost:8084
+- **MDL Engine**: http://localhost:8085
+- **mDoc Engine**: http://localhost:8086
+- **DTC Engine**: http://localhost:8087
+- **PKD Service**: http://localhost:8088
+
+#### Monitoring Access
+```bash
+# Access Grafana dashboard
+kubectl port-forward svc/marty-monitoring-grafana 3000:3000 -n marty-system
+# Open http://localhost:3000 (admin/admin)
+
+# Access Prometheus
+kubectl port-forward svc/marty-monitoring-prometheus-server 9090:9090 -n marty-system
+# Open http://localhost:9090
+```
+
+#### Common Development Tasks
+
+**Restart Services**
+```bash
+# Restart all services
+make k8s-restart
+
+# Restart specific service
+kubectl rollout restart deployment/csca-service -n marty
+```
+
+**Update Configuration**
+```bash
+# Update Helm values and redeploy
+helm upgrade csca-service helm/charts/csca-service -n marty --set image.tag=latest
+
+# Apply configuration changes
+kubectl apply -f k8s/configmap.yaml
+```
+
+**Debugging**
+```bash
+# Get pod logs
+kubectl logs -f deployment/csca-service -n marty
+
+# Execute into a pod
+kubectl exec -it deployment/csca-service -n marty -- /bin/bash
+
+# Port forward to specific pod
+kubectl port-forward pod/csca-service-xxx 8081:8081 -n marty
+```
+
+**Testing Service Communication**
+```bash
+# Test internal service communication
+kubectl run test-pod --image=curlimages/curl -i --tty --rm -- /bin/sh
+# Inside pod:
+curl http://csca-service.marty.svc.cluster.local:8081/health
+```
+
+#### Cleanup
+```bash
+# Remove all services but keep cluster
+make k8s-undeploy
+
+# Destroy entire cluster
+make k8s-destroy
+```
+
+#### Troubleshooting
+
+**Pod Won't Start**
+```bash
+# Check pod status and events
+kubectl describe pod <pod-name> -n marty
+
+# Check logs
+kubectl logs <pod-name> -n marty --previous
+```
+
+**Service Not Accessible**
+```bash
+# Check service and endpoints
+kubectl get svc,ep -n marty
+
+# Test DNS resolution
+kubectl run test-dns --image=busybox -i --tty --rm -- nslookup csca-service.marty.svc.cluster.local
+```
+
+**Image Pull Issues**
+```bash
+# Ensure images are loaded into Kind
+kind load docker-image marty/csca-service:latest --name marty-dev
+
+# Check image pull policy
+kubectl get deployment csca-service -n marty -o yaml | grep imagePullPolicy
+```
+
+**Port Forwarding Issues**
+```bash
+# Kill existing port forwards
+pkill -f "kubectl port-forward"
+
+# Restart port forwarding
+make k8s-port-forward
+```
+
+#### Configuration Management
+
+All Kubernetes configurations are managed through:
+- **Helm Charts**: `helm/charts/` - Service deployment configurations
+- **Skaffold**: `skaffold.yaml` - Development workflow automation  
+- **Makefile**: Kubernetes development targets
+- **Config Maps**: Environment-specific configurations
+- **Secrets**: Sensitive data like database passwords
+
 ### Environment Configuration
 Configuration is managed through environment-specific YAML files:
 
