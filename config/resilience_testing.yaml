@@ -1,0 +1,49 @@
+# Example resilience configuration for testing environment
+service_name: "marty_service"
+environment: "testing"
+
+# General settings
+enable_metrics: true
+enable_health_checks: true
+enable_request_logging: true
+max_concurrent_requests: 20
+request_timeout_seconds: 10.0
+
+# Circuit breaker configuration
+circuit_breaker:
+  failure_threshold: 3           # Quick activation for testing
+  recovery_timeout: 5.0          # Fast recovery for testing
+  half_open_success_threshold: 2
+  failure_reset_timeout: 30.0
+  max_concurrent_requests: 5
+  enable_metrics: true
+
+# Retry configuration
+retry:
+  max_attempts: 2                # Fewer attempts for faster testing
+  base_delay: 0.05               # 50ms base delay
+  max_delay: 1.0                 # 1 second max delay
+  total_timeout: 30.0            # 30 second total timeout
+  backoff_strategy: "exponential"
+  jitter_factor: 0.0             # No jitter for predictable testing
+  multiplier: 2.0
+  enable_circuit_breaker: true
+  enable_adaptive_delays: false
+  success_rate_threshold: 0.8
+  failure_window_size: 50
+  max_concurrent_retries: 10
+  retry_on_exceptions:
+    - "ConnectionError"
+    - "TimeoutError"
+  abort_on_exceptions:
+    - "ValueError"
+    - "TypeError"
+
+# Failure injection (enabled for testing)
+failure_injection:
+  enabled: true
+  base_failure_rate: 0.1         # 10% failure rate for testing
+  method_specific_rates:
+    "/test/high_failure": 0.5    # 50% failure rate for specific test endpoint
+    "/test/low_failure": 0.05    # 5% failure rate for low failure test
+  target_metadata_key: "x-failure-inject"

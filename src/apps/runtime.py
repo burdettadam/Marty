@@ -412,7 +412,13 @@ async def serve_service_async(
     tls_options = runtime_config.grpc_tls()
 
     channels = create_service_channels(config, tls_options)
-    server = grpc_aio.server(interceptors=[AsyncExceptionToStatusInterceptor()])
+    # Resilience interceptor (circuit breaker, failure injection) can be toggled via env
+    from marty_common.resilience import ResilienceServerInterceptor  # local import to avoid circular
+    enable_resilience = os.environ.get("MARTY_RESILIENCE_ENABLED", "true").lower() in {"1", "true", "yes"}
+    interceptors: list[grpc_aio.ServerInterceptor] = [AsyncExceptionToStatusInterceptor()]
+    if enable_resilience:
+        interceptors.append(ResilienceServerInterceptor())
+    server = grpc_aio.server(interceptors=interceptors)
 
     health = setup_health_service(server)
     setup_logging_streamer_service(server, health)

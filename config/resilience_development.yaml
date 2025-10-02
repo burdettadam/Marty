@@ -1,0 +1,52 @@
+# Example resilience configuration for development environment
+service_name: "marty_service"
+environment: "development"
+
+# General settings
+enable_metrics: true
+enable_health_checks: true
+enable_request_logging: true
+max_concurrent_requests: 50
+request_timeout_seconds: 30.0
+
+# Circuit breaker configuration
+circuit_breaker:
+  failure_threshold: 10          # Allow more failures in development
+  recovery_timeout: 10.0         # Faster recovery for development
+  half_open_success_threshold: 2
+  failure_reset_timeout: 60.0
+  max_concurrent_requests: 10
+  enable_metrics: true
+
+# Retry configuration
+retry:
+  max_attempts: 3
+  base_delay: 0.1                # 100ms base delay
+  max_delay: 5.0                 # 5 second max delay
+  total_timeout: 60.0            # 1 minute total timeout
+  backoff_strategy: "exponential_jitter"
+  jitter_factor: 0.1
+  multiplier: 2.0
+  enable_circuit_breaker: true
+  enable_adaptive_delays: false
+  success_rate_threshold: 0.8
+  failure_window_size: 100
+  max_concurrent_retries: 20
+  retry_on_exceptions:
+    - "ConnectionError"
+    - "TimeoutError"
+    - "OSError"
+  abort_on_exceptions:
+    - "ValueError"
+    - "TypeError"
+    - "KeyError"
+
+# Failure injection (for testing)
+failure_injection:
+  enabled: true                  # Enable in development for testing
+  base_failure_rate: 0.05        # 5% failure rate
+  method_specific_rates:
+    "/health": 0.0               # Never fail health checks
+    "/metrics": 0.0              # Never fail metrics endpoints
+    "/test": 0.2                 # Higher failure rate for test endpoints
+  target_metadata_key: "x-failure-inject"

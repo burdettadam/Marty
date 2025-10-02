@@ -490,6 +490,11 @@ make run-service-document-signer
 
 📄 **[API Reference](docs/api/openapi.yaml)** - OpenAPI specification for REST endpoints
 
+**Resilience Layer (gRPC Errors / Retries / Circuit Breakers)**: See `RESILIENCE.md` for
+the unified error taxonomy, server interceptor, outbound helper, circuit breaker
+configuration, retry policies, and failure injection controls
+(`MARTY_RESILIENCE_ENABLED`, `MARTY_CIRCUIT_BREAKER_ENABLED`, `MARTY_FAILURE_INJECTION*`).
+
 ## API Documentation
 
 REST API documentation is available in OpenAPI format at `docs/api/openapi.yaml`. This documentation complements the gRPC service definitions and provides an easier interface for testing.
