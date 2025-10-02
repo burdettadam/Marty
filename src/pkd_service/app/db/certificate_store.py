@@ -4,10 +4,11 @@ Certificate Store for PKD Mirror Service
 This module provides a simplified interface for storing and retrieving
 certificates from the database for the PKD Mirror Service.
 """
+from __future__ import annotations
 
 import asyncio
 import logging
-from typing import Any, Optional
+from typing import Any
 
 from app.db.database import DatabaseManager
 from app.models.pkd_models import CertificateStatus
@@ -54,11 +55,12 @@ class CertificateStore:
                 stored += 1
 
             self.logger.info("Stored %s CSCA certificates", stored)
-            return True
 
         except Exception as e:
             self.logger.exception("Failed to store CSCA certificates: %s", e)
             return False
+        else:
+            return True
 
     def store_dsc_certificates(self, cert_data: bytes) -> bool:
         """
@@ -82,11 +84,12 @@ class CertificateStore:
                 stored += 1
 
             self.logger.info("Stored %s DSC certificates", stored)
-            return True
 
         except Exception as e:
             self.logger.exception("Failed to store DSC certificates: %s", e)
             return False
+        else:
+            return True
 
     def store_crls(self, crl_data: bytes) -> bool:
         """
@@ -109,15 +112,16 @@ class CertificateStore:
 
             self._update_certificate_status_from_crls(crls)
             self.logger.info("Stored %s CRLs", len(crls))
-            return True
 
         except Exception as e:
             self.logger.exception("Failed to store CRLs: %s", e)
             return False
+        else:
+            return True
 
     async def _store_certificate(
         self, certificate: dict[str, Any], cert_type: str
-    ) -> Optional[str]:
+    ) -> str | None:
         """
         Store a certificate in the database.
 
@@ -134,7 +138,7 @@ class CertificateStore:
             self.logger.exception(f"Error storing certificate: {e}")
             return None
 
-    async def _store_crl(self, crl: dict[str, Any]) -> Optional[str]:
+    async def _store_crl(self, crl: dict[str, Any]) -> str | None:
         """
         Store a CRL in the database.
 
@@ -194,8 +198,7 @@ class CertificateStore:
         Returns:
             list: List of CRL data dictionaries
         """
-        crls = parse_crl_payload(crl_data)
-        return crls
+        return parse_crl_payload(crl_data)
 
     def _update_certificate_status_from_crls(self, crls: list[dict[str, Any]]) -> None:
         """
@@ -229,7 +232,7 @@ class CertificateStore:
                         "Failed to update status for serial %s (%s): %s", serial, cert_type, exc
                     )
 
-    def get_csca_certificates(self, country_code: Optional[str] = None) -> list[dict[str, Any]]:
+    def get_csca_certificates(self, country_code: str | None = None) -> list[dict[str, Any]]:
         """
         Get CSCA certificates from the database.
 
@@ -242,7 +245,7 @@ class CertificateStore:
         # Run async get in a synchronous context
         return asyncio.run(DatabaseManager.get_certificates("CSCA", country_code))
 
-    def get_dsc_certificates(self, country_code: Optional[str] = None) -> list[dict[str, Any]]:
+    def get_dsc_certificates(self, country_code: str | None = None) -> list[dict[str, Any]]:
         """
         Get DSC certificates from the database.
 
@@ -255,7 +258,7 @@ class CertificateStore:
         # Run async get in a synchronous context
         return asyncio.run(DatabaseManager.get_certificates("DSC", country_code))
 
-    def get_crls(self, issuer: Optional[str] = None) -> Optional[dict[str, Any]]:
+    def get_crls(self, issuer: str | None = None) -> dict[str, Any] | None:
         """
         Get the latest CRL from the database.
 

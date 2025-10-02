@@ -175,11 +175,12 @@ Please investigate immediately if severity is HIGH or CRITICAL.
             server.quit()
 
             logger.info(f"Security alert sent via email for incident {incident.incident_id}")
-            return True
 
         except Exception as e:
             logger.exception(f"Failed to send email alert for incident {incident.incident_id}: {e}")
             return False
+        else:
+            return True
 
 
 class WebhookAlertChannel(AlertChannel):
@@ -253,13 +254,14 @@ class WebhookAlertChannel(AlertChannel):
             response.raise_for_status()
 
             logger.info(f"Security alert sent via webhook for incident {incident.incident_id}")
-            return True
 
         except Exception as e:
             logger.exception(
                 f"Failed to send webhook alert for incident {incident.incident_id}: {e}"
             )
             return False
+        else:
+            return True
 
 
 class SecurityMonitor:

@@ -149,11 +149,14 @@ class RedeemPreAuthorizedCodeRequestSchema(BaseModel):
             try:
                 parsed = json.loads(value)
             except json.JSONDecodeError as exc:  # pragma: no cover - defensive
-                raise ValueError(f"Invalid wallet attestation JSON: {exc.msg}") from exc
+                msg = f"Invalid wallet attestation JSON: {exc.msg}"
+                raise ValueError(msg) from exc
             if not isinstance(parsed, dict):
-                raise ValueError("wallet_attestation must decode to a JSON object")
+                msg = "wallet_attestation must decode to a JSON object"
+                raise ValueError(msg)
             return parsed
-        raise ValueError("wallet_attestation must be JSON if provided")
+        msg = "wallet_attestation must be JSON if provided"
+        raise ValueError(msg)
 
 
 class IssueSdJwtCredentialRequestSchema(BaseModel):
@@ -197,11 +200,14 @@ class IssueSdJwtCredentialRequestSchema(BaseModel):
             try:
                 parsed = json.loads(value)
             except json.JSONDecodeError as exc:  # pragma: no cover - defensive
-                raise ValueError(f"Invalid wallet attestation JSON: {exc.msg}") from exc
+                msg = f"Invalid wallet attestation JSON: {exc.msg}"
+                raise ValueError(msg) from exc
             if not isinstance(parsed, dict):
-                raise ValueError("wallet_attestation must decode to a JSON object")
+                msg = "wallet_attestation must decode to a JSON object"
+                raise ValueError(msg)
             return parsed
-        raise ValueError("wallet_attestation must be JSON if provided")
+        msg = "wallet_attestation must be JSON if provided"
+        raise ValueError(msg)
 
 
 __all__ = [

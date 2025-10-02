@@ -5,4 +5,4 @@ its symbols under a top-level `mock` module name so that `import mock` works
 without adding a dependency.
 """
 
-from unittest.mock import *  # noqa: F403
+from unittest.mock import *

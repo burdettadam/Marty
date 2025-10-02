@@ -19,20 +19,20 @@ def main() -> None:
     if not service_name:
         print("ERROR: SERVICE_NAME environment variable is required", file=sys.stderr)
         sys.exit(1)
-        
+
     try:
         # Load service configuration
         config = get_service_config(service_name)
         validate_service_config(config)
-        
+
         # Import service-specific modules dynamically
         service_module = import_module(f"src.services.{service_name}")
         servicer_class = getattr(service_module, f"{service_name.title().replace('_', '')}Servicer")
-        
+
         # Import the protobuf add_servicer function
         proto_module = import_module(f"src.proto.{service_name}_pb2_grpc")
         add_servicer_func = getattr(proto_module, f"add_{servicer_class.__name__}_to_server")
-        
+
         # Create and run the server
         server = create_standard_server(
             service_name=service_name,
@@ -43,9 +43,9 @@ def main() -> None:
             enable_health_check=config.grpc_enable_health_check,
             enable_logging_streamer=config.grpc_enable_logging_streamer
         )
-        
+
         server.serve()
-        
+
     except Exception as e:
         print(f"ERROR: Failed to start {service_name} service: {e}", file=sys.stderr)
         sys.exit(1)

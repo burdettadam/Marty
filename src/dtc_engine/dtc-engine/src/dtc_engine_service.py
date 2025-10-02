@@ -16,7 +16,7 @@ import os
 import uuid
 from io import BytesIO
 from pathlib import Path
-from typing import Any, Optional
+from typing import Any
 
 import qrcode
 
@@ -110,12 +110,13 @@ class DTCEngineService(DTCEngineServicer):
             file_path = self._get_dtc_file_path(dtc_id)
             with Path(file_path).open("w", encoding="utf-8") as f:
                 json.dump(dtc_data, f, indent=2)
-            return True
-        except Exception as e:
-            logger.exception(f"Error storing DTC {dtc_id}: {e!s}")
+        except Exception:
+            logger.exception(f"Error storing DTC {dtc_id}")
             return False
+        else:
+            return True
 
-    def _load_dtc(self, dtc_id: str) -> Optional[dict[str, Any]]:
+    def _load_dtc(self, dtc_id: str) -> dict[str, Any] | None:
         """
         Load DTC data from file.
 
@@ -133,8 +134,8 @@ class DTCEngineService(DTCEngineServicer):
 
             with Path(file_path).open(encoding="utf-8") as f:
                 return json.load(f)
-        except Exception as e:
-            logger.exception(f"Error loading DTC {dtc_id}: {e!s}")
+        except Exception:
+            logger.exception(f"Error loading DTC {dtc_id}")
             return None
 
     def _check_access(self, dtc_data: dict[str, Any], access_key: str) -> bool:
@@ -229,10 +230,10 @@ class DTCEngineService(DTCEngineServicer):
                 dtc_id="", status="FAILURE", error_message="Failed to store DTC data"
             )
 
-        except Exception as e:
-            logger.exception(f"Error creating DTC: {e!s}")
+        except Exception:
+            logger.exception("Error creating DTC")
             return CreateDTCResponse(
-                dtc_id="", status="ERROR", error_message=f"Error creating DTC: {e!s}"
+                dtc_id="", status="ERROR", error_message="Error creating DTC"
             )
 
     def GetDTC(self, request, context) -> DTCResponse:
@@ -306,11 +307,11 @@ class DTCEngineService(DTCEngineServicer):
                 response.signature_info.signature = sig_info.get("signature", b"")
                 response.signature_info.is_valid = sig_info.get("is_valid", False)
 
+        except Exception:
+            logger.exception(f"Error getting DTC {request.dtc_id}")
+            return DTCResponse(status="ERROR", error_message="Error getting DTC")
+        else:
             return response
-
-        except Exception as e:
-            logger.exception(f"Error getting DTC {request.dtc_id}: {e!s}")
-            return DTCResponse(status="ERROR", error_message=f"Error getting DTC: {e!s}")
 
     def SignDTC(self, request, context) -> SignDTCResponse:
         """
@@ -398,13 +399,13 @@ class DTCEngineService(DTCEngineServicer):
                     success=False, error_message="Failed to update DTC after signing"
                 )
 
-            except Exception as e:
-                logger.exception(f"Error during signing DTC {dtc_id}: {e!s}")
-                return SignDTCResponse(success=False, error_message=f"Error during signing: {e!s}")
+            except Exception:
+                logger.exception(f"Error during signing DTC {dtc_id}")
+                return SignDTCResponse(success=False, error_message="Error during signing")
 
-        except Exception as e:
-            logger.exception(f"Error signing DTC {request.dtc_id}: {e!s}")
-            return SignDTCResponse(success=False, error_message=f"Error signing DTC: {e!s}")
+        except Exception:
+            logger.exception(f"Error signing DTC {request.dtc_id}")
+            return SignDTCResponse(success=False, error_message="Error signing DTC")
 
     def RevokeDTC(self, request, context) -> RevokeDTCResponse:
         """
@@ -453,9 +454,9 @@ class DTCEngineService(DTCEngineServicer):
                 success=False, error_message="Failed to update DTC after revocation"
             )
 
-        except Exception as e:
-            logger.exception(f"Error revoking DTC {request.dtc_id}: {e!s}")
-            return RevokeDTCResponse(success=False, error_message=f"Error revoking DTC: {e!s}")
+        except Exception:
+            logger.exception(f"Error revoking DTC {request.dtc_id}")
+            return RevokeDTCResponse(success=False, error_message="Error revoking DTC")
 
     def GenerateDTCQRCode(self, request, context) -> GenerateDTCQRCodeResponse:
         """
@@ -554,9 +555,9 @@ class DTCEngineService(DTCEngineServicer):
 
             return GenerateDTCQRCodeResponse(qr_code=qr_bytes, error_message="")
 
-        except Exception as e:
-            logger.exception(f"Error generating QR code for DTC {request.dtc_id}: {e!s}")
-            return GenerateDTCQRCodeResponse(error_message=f"Error generating QR code: {e!s}")
+        except Exception:
+            logger.exception(f"Error generating QR code for DTC {request.dtc_id}")
+            return GenerateDTCQRCodeResponse(error_message="Error generating QR code")
 
     def TransferDTCToDevice(self, request, context) -> TransferDTCToDeviceResponse:
         """
@@ -613,10 +614,10 @@ class DTCEngineService(DTCEngineServicer):
                 success=True, transfer_id=transfer_id, error_message=""
             )
 
-        except Exception as e:
-            logger.exception(f"Error transferring DTC {request.dtc_id}: {e!s}")
+        except Exception:
+            logger.exception(f"Error transferring DTC {request.dtc_id}")
             return TransferDTCToDeviceResponse(
-                success=False, error_message=f"Error transferring DTC: {e!s}"
+                success=False, error_message="Error transferring DTC"
             )
 
     def VerifyDTC(self, request, context) -> VerifyDTCResponse:
@@ -815,11 +816,11 @@ class DTCEngineService(DTCEngineServicer):
             # Add verification results
             response.verification_results.extend(verification_results)
 
+        except Exception:
+            logger.exception("Error verifying DTC")
+            return VerifyDTCResponse(is_valid=False, error_message="Error verifying DTC")
+        else:
             return response
-
-        except Exception as e:
-            logger.exception(f"Error verifying DTC: {e!s}")
-            return VerifyDTCResponse(is_valid=False, error_message=f"Error verifying DTC: {e!s}")
 
     def LinkDTCToPassport(self, request, context) -> LinkDTCToPassportResponse:
         """
@@ -881,8 +882,8 @@ class DTCEngineService(DTCEngineServicer):
                 success=False, error_message="Failed to update DTC after linking"
             )
 
-        except Exception as e:
-            logger.exception(f"Error linking DTC {request.dtc_id} to passport: {e!s}")
+        except Exception:
+            logger.exception(f"Error linking DTC {request.dtc_id} to passport")
             return LinkDTCToPassportResponse(
-                success=False, error_message=f"Error linking DTC to passport: {e!s}"
+                success=False, error_message="Error linking DTC to passport"
             )

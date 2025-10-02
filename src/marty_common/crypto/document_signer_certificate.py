@@ -15,7 +15,6 @@ that key and persists it via the shared ``CertificateRepository``.
 from __future__ import annotations
 
 from datetime import datetime, timedelta, timezone
-from typing import Optional
 
 from cryptography import x509
 from cryptography.hazmat.primitives import hashes, serialization
@@ -49,7 +48,7 @@ async def ensure_document_signer_certificate(
     await key_vault.ensure_key(key_id, signing_algorithm)
     private_key_pem = await key_vault.load_private_key(key_id)
     private_key = serialization.load_pem_private_key(private_key_pem, password=None)
-    if isinstance(private_key, rsa.RSAPrivateKey) or isinstance(private_key, ec.EllipticCurvePrivateKey):
+    if isinstance(private_key, (rsa.RSAPrivateKey, ec.EllipticCurvePrivateKey)):
         signature_algorithm = hashes.SHA256()
     elif isinstance(private_key, (ed25519.Ed25519PrivateKey, ed448.Ed448PrivateKey)):
         signature_algorithm = None
@@ -123,7 +122,7 @@ async def ensure_document_signer_certificate(
 async def get_document_signer_certificate(
     session: AsyncSession,
     certificate_id: str = DOCUMENT_SIGNER_CERT_ID,
-) -> Optional[x509.Certificate]:
+) -> x509.Certificate | None:
     """Fetch an existing DSC from the repository if present."""
     repository = CertificateRepository(session)
     record = await repository.get(certificate_id)

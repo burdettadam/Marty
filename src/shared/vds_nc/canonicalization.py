@@ -32,14 +32,14 @@ class CanonicalField:
 class VDSNCCanonicalizer:
     """
     VDS-NC canonicalization engine following Doc 9303 Part 13.
-    
+
     Provides deterministic canonicalization with:
     - Sorted keys (UTF-8 lexicographic order)
     - No insignificant whitespace
     - UTF-8 encoding
     - Strict field validation
     """
-    
+
     # Canonical field definitions for each document type
     CANONICAL_FIELDS: ClassVar[dict[DocumentType, list[CanonicalField]]] = {
         DocumentType.CMC: [
@@ -97,19 +97,19 @@ class VDSNCCanonicalizer:
             ),
         ],
     }
-    
+
     @staticmethod
     def canonicalize(data: dict[str, Any], doc_type: DocumentType) -> str:
         """
         Create canonical representation of document data.
-        
+
         Args:
             data: Document data dictionary
             doc_type: Type of document for field validation
-            
+
         Returns:
             Canonical JSON string with sorted keys, no whitespace
-            
+
         Raises:
             CanonicalizeError: If validation fails
         """
@@ -117,35 +117,35 @@ class VDSNCCanonicalizer:
         if not canonical_fields:
             msg = f"Unsupported document type: {doc_type}"
             raise CanonicalizeError(msg)
-        
+
         # Validate and normalize fields
         canonical_data = {}
-        
+
         for field in canonical_fields:
             value = data.get(field.key)
-            
+
             # Check required fields
             if field.required and value is None:
                 msg = f"Required field '{field.key}' is missing"
                 raise CanonicalizeError(msg)
-            
+
             if value is not None:
                 # Type validation and conversion
                 canonical_data[field.key] = VDSNCCanonicalizer._validate_and_convert_field(
                     field, value
                 )
-        
+
         # Check for extra fields not in schema
         extra_fields = set(data.keys()) - {f.key for f in canonical_fields}
         if extra_fields:
             msg = f"Extra fields not allowed in canonical form: {extra_fields}"
             raise CanonicalizeError(msg)
-        
+
         # Create canonical JSON with sorted keys, no spaces
         return json.dumps(
             canonical_data, sort_keys=True, separators=(",", ":"), ensure_ascii=False
         )
-    
+
     @staticmethod
     def _validate_and_convert_field(field: CanonicalField, value: Any) -> Any:
         """Validate and convert a single field value."""
@@ -162,45 +162,45 @@ class VDSNCCanonicalizer:
             except (ValueError, TypeError) as e:
                 msg = f"Field '{field.key}' type validation failed: {e}"
                 raise CanonicalizeError(msg) from e
-        
+
         # String field validation
         if isinstance(value, str):
             value = VDSNCCanonicalizer._validate_string_field(field, value)
-        
+
         return value
-    
+
     @staticmethod
     def _validate_string_field(field: CanonicalField, value: str) -> str:
         """Validate and normalize string fields."""
         # Remove insignificant whitespace and normalize
         value = value.strip().upper()
-        
+
         # Length validation
         if field.max_length and len(value) > field.max_length:
             msg = f"Field '{field.key}' exceeds maximum length {field.max_length}"
             raise CanonicalizeError(msg)
-        
+
         # Pattern validation
         if field.format_pattern and not re.match(field.format_pattern, value):
             msg = f"Field '{field.key}' format invalid: {value}"
             raise CanonicalizeError(msg)
-        
+
         return value
-    
+
     @staticmethod
     def validate_canonicalization_drift(
-        original_canonical: str, 
-        new_data: dict[str, Any], 
+        original_canonical: str,
+        new_data: dict[str, Any],
         doc_type: DocumentType
     ) -> list[str]:
         """
         Detect canonicalization drift between original and new data.
-        
+
         Args:
             original_canonical: Original canonical form
             new_data: New data to validate
             doc_type: Document type
-            
+
         Returns:
             List of drift errors (empty if no drift)
         """
@@ -210,5 +210,5 @@ class VDSNCCanonicalizer:
                 return ["Canonicalization drift detected: original != new"]
         except CanonicalizeError as e:
             return [f"Canonicalization validation failed: {e}"]
-        
+
         return []

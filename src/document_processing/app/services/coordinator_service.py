@@ -164,7 +164,7 @@ class DocumentProcessingCoordinator:
             if text_lines:
                 service = MRZProcessingService()
                 # Access the protected method for now - in the future this could be public
-                return service._process_mrz_lines(text_lines)  # noqa: SLF001
+                return service._process_mrz_lines(text_lines)
 
         except ImportError:
             logger.warning("MRZ service not available for generic extraction")
@@ -184,7 +184,7 @@ class DocumentProcessingCoordinator:
         )
 
 
-def request_looks_like_passport(image_request: Any) -> bool:  # noqa: ANN401
+def request_looks_like_passport(image_request: Any) -> bool:
     """Heuristic to determine if image request looks like a passport"""
     # Simple heuristics - could be enhanced
     if hasattr(image_request, "metadata"):

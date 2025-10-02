@@ -10,7 +10,6 @@ import logging
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from enum import Enum
-from typing import Optional
 
 logger = logging.getLogger(__name__)
 
@@ -42,9 +41,9 @@ class NFCDevice:
     device_id: str
     protocol: NFCProtocol
     uid: bytes
-    atqa: Optional[bytes] = None  # Answer to Request Type A
-    sak: Optional[int] = None  # Select Acknowledge
-    ats: Optional[bytes] = None  # Answer to Select
+    atqa: bytes | None = None  # Answer to Request Type A
+    sak: int | None = None  # Select Acknowledge
+    ats: bytes | None = None  # Answer to Select
 
 
 class NFCInterface(ABC):
@@ -81,7 +80,7 @@ class MockNFCInterface(NFCInterface):
 
     def __init__(self) -> None:
         self.initialized = False
-        self.connected_device: Optional[NFCDevice] = None
+        self.connected_device: NFCDevice | None = None
         self.logger = logging.getLogger(__name__)
 
     def initialize(self) -> bool:
@@ -214,10 +213,10 @@ class NFCProtocolHandler:
     """Cross-platform NFC protocol handler."""
 
     def __init__(self) -> None:
-        self.interface: Optional[NFCInterface] = None
+        self.interface: NFCInterface | None = None
         self.logger = logging.getLogger(__name__)
 
-    def get_available_interface(self) -> Optional[NFCInterface]:
+    def get_available_interface(self) -> NFCInterface | None:
         """Get the best available NFC interface for current platform."""
         import platform
 
@@ -241,7 +240,8 @@ class NFCProtocolHandler:
 
             return NFCPyInterface(nfc)
         except ImportError as e:
-            raise ImportError("nfcpy library not available") from e
+            msg = "nfcpy library not available"
+            raise ImportError(msg) from e
 
     def initialize_best_interface(self) -> bool:
         """Initialize the best available NFC interface."""
@@ -285,12 +285,11 @@ class NFCProtocolHandler:
                 raise RuntimeError(msg)
 
             # Read basic passport data (would be expanded)
-            data = {
+            return {
                 "application_selected": True,
                 "atr": device.uid,
             }
 
-            return data
 
         finally:
             self.interface.disconnect()
@@ -312,8 +311,8 @@ class NFCPyInterface(NFCInterface):
             if self.clf:
                 self.logger.info("nfcpy interface initialized")
                 return True
-        except Exception as e:
-            self.logger.error("Failed to initialize nfcpy: %s", str(e))
+        except Exception:
+            self.logger.exception("Failed to initialize nfcpy")
         return False
 
     def poll_devices(self, protocols: list[NFCProtocol]) -> list[NFCDevice]:
@@ -325,9 +324,6 @@ class NFCPyInterface(NFCInterface):
 
         try:
             # Configure polling based on requested protocols
-            rdwr_options = {
-                "on-connect": lambda tag: False,  # Don't connect automatically
-            }
 
             target = self.clf.sense(
                 self.nfc.clf.RemoteTarget("106A"),  # ISO14443 Type A
@@ -343,8 +339,8 @@ class NFCPyInterface(NFCInterface):
                 )
                 devices.append(device)
 
-        except Exception as e:
-            self.logger.error("Error polling NFC devices: %s", str(e))
+        except Exception:
+            self.logger.exception("Error polling NFC devices")
 
         return devices
 

@@ -7,6 +7,7 @@ This module provides additional functionality for the Key Management Service:
 2. Key usage tracking
 3. Security reporting
 """
+from __future__ import annotations
 
 import datetime
 import json
@@ -15,7 +16,7 @@ import os
 import sqlite3
 import threading
 from collections import defaultdict
-from typing import Any, Optional
+from typing import Any
 
 from .key_management_service import KeyManagementService, KeyType
 
@@ -154,7 +155,7 @@ class KeyUsageTracker:
     """
 
     def __init__(
-        self, key_management_service: KeyManagementService, usage_db_path: Optional[str] = None
+        self, key_management_service: KeyManagementService, usage_db_path: str | None = None
     ) -> None:
         """
         Initialize the key usage tracker.
@@ -209,7 +210,7 @@ class KeyUsageTracker:
             raise
 
     def record_usage(
-        self, key_id: str, operation: str, details: Optional[dict[str, Any]] = None
+        self, key_id: str, operation: str, details: dict[str, Any] | None = None
     ) -> None:
         """
         Record a usage event for a key.
@@ -249,9 +250,9 @@ class KeyUsageTracker:
     def get_key_usage(
         self,
         key_id: str,
-        operation: Optional[str] = None,
-        start_time: Optional[str] = None,
-        end_time: Optional[str] = None,
+        operation: str | None = None,
+        start_time: str | None = None,
+        end_time: str | None = None,
         limit: int = 1000,
     ) -> list[dict[str, Any]]:
         """
@@ -306,11 +307,11 @@ class KeyUsageTracker:
                 result.append(record)
 
             conn.close()
-            return result
-
         except sqlite3.Error as e:
             logger.exception(f"Error retrieving key usage: {e!s}")
             return []
+        else:
+            return result
 
     def get_usage_statistics(self, key_id: str) -> dict[str, Any]:
         """
@@ -389,7 +390,7 @@ class SecurityReportGenerator:
     def __init__(
         self,
         key_management_service: KeyManagementService,
-        usage_tracker: Optional[KeyUsageTracker] = None,
+        usage_tracker: KeyUsageTracker | None = None,
     ) -> None:
         """
         Initialize the security report generator.

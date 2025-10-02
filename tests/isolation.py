@@ -104,7 +104,7 @@ class TestIsolationManager:
         ]
 
         for pattern in cache_patterns:
-            if pattern.startswith("*") or pattern.startswith("."):
+            if pattern.startswith(("*", ".")):
                 # File patterns
                 for cache_file in self.project_root.rglob(pattern):
                     try:

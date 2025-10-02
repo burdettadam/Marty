@@ -1,9 +1,9 @@
 """
 API endpoints for ICAO PKD Document Signer Certificate (DSC) List operations
 """
+from __future__ import annotations
 
 import io
-from typing import Optional
 
 from app.api.dependencies import get_dsclist_service
 from app.models.pkd_models import DSCListResponse, DSCListUploadResponse
@@ -16,7 +16,7 @@ router = APIRouter()
 
 @router.get("/", response_model=DSCListResponse)
 async def get_dsc_list(
-    country: Optional[str] = None, service: DSCListService = Depends(get_dsclist_service)
+    country: str | None = None, service: DSCListService = Depends(get_dsclist_service)
 ):
     """
     Get the Document Signer Certificate List in JSON format, optionally filtered by country.
@@ -28,7 +28,7 @@ async def get_dsc_list(
 
 @router.get("/download", response_class=StreamingResponse)
 async def download_dsc_list(
-    country: Optional[str] = None, service: DSCListService = Depends(get_dsclist_service)
+    country: str | None = None, service: DSCListService = Depends(get_dsclist_service)
 ):
     """
     Download the DSC List in ASN.1 binary format, optionally filtered by country.

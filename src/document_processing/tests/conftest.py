@@ -31,7 +31,7 @@ def client():
 
 
 @pytest.fixture
-def sample_mrz_base64():
+def sample_mrz_base64() -> str:
     """
     Sample base64 encoded image with MRZ (mock data)
     """

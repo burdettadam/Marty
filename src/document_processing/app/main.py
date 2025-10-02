@@ -7,8 +7,8 @@ from __future__ import annotations
 import logging
 from contextlib import asynccontextmanager
 
-from app.api.endpoints import router
 from app.api.cmc_endpoints import cmc_router
+from app.api.endpoints import router
 from app.core.config import settings
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware

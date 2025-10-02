@@ -4,9 +4,10 @@ HTTP Client utility for making HTTP requests
 This module provides a simple wrapper around the requests library
 for making HTTP requests with consistent error handling and logging.
 """
+from __future__ import annotations
 
 import logging
-from typing import Any, Optional
+from typing import Any
 
 import requests
 from requests.exceptions import RequestException
@@ -31,8 +32,8 @@ class HttpClient:
     def get(
         self,
         url: str,
-        params: Optional[dict[str, Any]] = None,
-        headers: Optional[dict[str, str]] = None,
+        params: dict[str, Any] | None = None,
+        headers: dict[str, str] | None = None,
     ):
         """
         Make a GET request.
@@ -52,17 +53,18 @@ class HttpClient:
             self.logger.debug(f"Making GET request to {url}")
             response = requests.get(url, params=params, headers=headers, timeout=self.timeout)
             self.logger.debug(f"Received response: HTTP {response.status_code}")
-            return response
         except RequestException as e:
             self.logger.exception(f"GET request failed: {e}")
             raise
+        else:
+            return response
 
     def post(
         self,
         url: str,
-        data: Optional[dict[str, Any]] = None,
-        json: Optional[dict[str, Any]] = None,
-        headers: Optional[dict[str, str]] = None,
+        data: dict[str, Any] | None = None,
+        json: dict[str, Any] | None = None,
+        headers: dict[str, str] | None = None,
     ):
         """
         Make a POST request.
@@ -85,7 +87,8 @@ class HttpClient:
                 url, data=data, json=json, headers=headers, timeout=self.timeout
             )
             self.logger.debug(f"Received response: HTTP {response.status_code}")
-            return response
         except RequestException as e:
             self.logger.exception(f"POST request failed: {e}")
             raise
+        else:
+            return response

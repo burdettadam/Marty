@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import asyncio
 from dataclasses import dataclass
-from typing import Any, Optional
+from typing import Any
 
 from aiokafka import AIOKafkaProducer
 
@@ -15,11 +15,11 @@ class EventBusConfig:
     client_id: str = "marty"
     topic_prefix: str = ""
     security_protocol: str = "PLAINTEXT"
-    ssl_cafile: Optional[str] = None
-    ssl_certfile: Optional[str] = None
-    ssl_keyfile: Optional[str] = None
+    ssl_cafile: str | None = None
+    ssl_certfile: str | None = None
+    ssl_keyfile: str | None = None
     enabled: bool = True
-    consumer_group: Optional[str] = None
+    consumer_group: str | None = None
     auto_offset_reset: str = "earliest"
 
     @classmethod
@@ -54,7 +54,7 @@ class EventBusProvider:
 
     def __init__(self, config: EventBusConfig) -> None:
         self._config = config
-        self._producer: Optional[AIOKafkaProducer] = None
+        self._producer: AIOKafkaProducer | None = None
         self._lock = asyncio.Lock()
 
     async def _ensure_started(self) -> None:

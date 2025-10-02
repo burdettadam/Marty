@@ -4,10 +4,10 @@ Certificate Validator utility for validating X.509 certificates
 This module provides functionality to validate X.509 certificates
 used in eMRTD (electronic Machine Readable Travel Documents) systems.
 """
+from __future__ import annotations
 
 import logging
 from datetime import datetime
-from typing import Optional, Union
 
 from certvalidator import CertificateValidator as CertValidatorLib
 from certvalidator import ValidationContext
@@ -30,8 +30,8 @@ class CertificateValidator:
 
     def __init__(
         self,
-        trust_roots: Optional[list[Union[str, x509.Certificate]]] = None,
-        other_certs: Optional[list[Union[str, x509.Certificate]]] = None,
+        trust_roots: list[str | x509.Certificate] | None = None,
+        other_certs: list[str | x509.Certificate] | None = None,
         logger=None,
         revocation_mode: str = "soft_fail",
     ) -> None:
@@ -92,8 +92,8 @@ class CertificateValidator:
         )
 
     def _load_certificate(
-        self, certificate_data: Union[str, bytes, x509.Certificate]
-    ) -> Optional[x509.Certificate]:
+        self, certificate_data: str | bytes | x509.Certificate
+    ) -> x509.Certificate | None:
         """Helper to load a certificate from various formats."""
         if isinstance(certificate_data, x509.Certificate):
             return certificate_data
@@ -121,9 +121,9 @@ class CertificateValidator:
 
     def validate(
         self,
-        certificate_to_validate: Union[str, bytes, x509.Certificate],
+        certificate_to_validate: str | bytes | x509.Certificate,
         usage: str = "digital_signature",
-        moment: Optional[datetime] = None,
+        moment: datetime | None = None,
     ) -> bool:
         """
         Validate a single certificate.
@@ -171,7 +171,6 @@ class CertificateValidator:
                 subject_str,
                 usage,
             )
-            return False
         except RevokedError as e:
             self.logger.exception(
                 "Certificate %s is revoked (usage: %s): %s", subject_str, usage, e
@@ -188,14 +187,15 @@ class CertificateValidator:
             self.logger.exception(
                 "Unexpected error during validation for %s (usage: %s): %s", subject_str, usage, e
             )
-
-        return False
+            return False
+        else:
+            return False
 
     def validate_chain(
         self,
-        certificate_chain: list[Union[str, bytes, x509.Certificate]],
+        certificate_chain: list[str | bytes | x509.Certificate],
         usage: str = "digital_signature",
-        moment: Optional[datetime] = None,
+        moment: datetime | None = None,
     ) -> bool:
         """
         Validate a given certificate chain. The first certificate in the list is
@@ -257,7 +257,6 @@ class CertificateValidator:
                 subject_str,
                 usage,
             )
-            return False
         except RevokedError as e:
             self.logger.exception(
                 "Certificate in chain for %s is revoked (usage: %s): %s", subject_str, usage, e
@@ -277,5 +276,6 @@ class CertificateValidator:
                 usage,
                 e,
             )
-
-        return False
+            return False
+        else:
+            return False

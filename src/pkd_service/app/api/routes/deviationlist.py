@@ -1,9 +1,9 @@
 """
 API endpoints for ICAO PKD Deviation List operations
 """
+from __future__ import annotations
 
 import io
-from typing import Optional
 
 from app.api.dependencies import get_deviationlist_service
 from app.models.pkd_models import DeviationListResponse, DeviationListUploadResponse
@@ -16,7 +16,7 @@ router = APIRouter()
 
 @router.get("/", response_model=DeviationListResponse)
 async def get_deviation_list(
-    country: Optional[str] = None,
+    country: str | None = None,
     service: DeviationListService = Depends(get_deviationlist_service),
 ):
     """
@@ -29,7 +29,7 @@ async def get_deviation_list(
 
 @router.get("/download", response_class=StreamingResponse)
 async def download_deviation_list(
-    country: Optional[str] = None,
+    country: str | None = None,
     service: DeviationListService = Depends(get_deviationlist_service),
 ):
     """

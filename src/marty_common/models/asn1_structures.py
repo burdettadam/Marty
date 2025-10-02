@@ -3,9 +3,10 @@ ASN.1 data structures for e-passport chip data.
 
 These structures implement the ASN.1 formats defined in ICAO Doc 9303.
 """
+from __future__ import annotations
 
 from datetime import datetime
-from typing import Any, Optional
+from typing import Any
 
 from asn1crypto import algos, cms, core, pem, x509
 
@@ -21,9 +22,9 @@ class ElementaryFile(core.Asn1Value):
     """
 
     # These are class-level attributes on purpose; tests mutate them.
-    class_: Optional[int] = None
-    method: Optional[int] = None
-    tag: Optional[int] = None
+    class_: int | None = None
+    method: int | None = None
+    tag: int | None = None
 
     @classmethod
     def load(cls, encoded_data, strict: bool = False, **kwargs):  # type: ignore[override]
@@ -188,13 +189,13 @@ class SOD(cms.ContentInfo):
     """Document Security Object (SOD) for e-passport."""
 
     @classmethod
-    def load(cls, encoded_data: bytes) -> "SOD":  # type: ignore[override]
+    def load(cls, encoded_data: bytes) -> SOD:  # type: ignore[override]
         """Load SOD from DER or PEM encoded bytes."""
 
         if pem.detect(encoded_data):
             _, _, encoded_data = pem.unarmor(encoded_data)
 
-        return super(SOD, cls).load(encoded_data)
+        return super().load(encoded_data)
 
     @property
     def signed_data(self) -> cms.SignedData:
@@ -218,7 +219,7 @@ class SOD(cms.ContentInfo):
 
         return LDSSecurityObject.load(content.dump())
 
-    def get_signing_time(self) -> Optional[datetime]:
+    def get_signing_time(self) -> datetime | None:
         """
         Get the signing time from the SOD.
 
@@ -233,7 +234,7 @@ class SOD(cms.ContentInfo):
 
         return None
 
-    def get_certificate(self) -> Optional[DSCertificate]:
+    def get_certificate(self) -> DSCertificate | None:
         """
         Get the Document Signer Certificate from the SOD.
 
@@ -365,10 +366,11 @@ def parse_dg15_content(dg15_data: bytes) -> dict[str, Any]:
         elif isinstance(public_key, ed448.Ed448PublicKey):
             key_info["algorithm"] = "Ed448"
 
-        return key_info
     except Exception as e:
         # Fallback if the cryptography module can't parse the key
         return {
             "error": f"Could not parse public key: {e!s}",
             "raw_data_length": len(dg15_data) - offset,
         }
+    else:
+        return key_info

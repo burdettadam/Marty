@@ -583,10 +583,11 @@ Certificate Summary:
             self.logger.warning(
                 "Cannot send report: lifecycle_monitor does not have send_notification method"
             )
-            return False
 
         except Exception as e:
             self.logger.exception(f"Error generating or sending periodic report: {e}")
+            return False
+        else:
             return False
 
     def perform_lifecycle_checks(self) -> dict[str, Any]:
@@ -650,11 +651,11 @@ Certificate Summary:
                 ):
                     results["reports_sent"] = self.send_periodic_report()
 
-            return results
-
         except Exception as e:
             self.logger.exception(f"Error performing lifecycle checks: {e}")
             results["error"] = str(e)
+            return results
+        else:
             return results
 
     def background_monitoring_loop(self) -> None:

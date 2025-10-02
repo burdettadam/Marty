@@ -4,6 +4,7 @@ Automated key rotation system for Marty services.
 Provides automated key lifecycle management including creation, rotation,
 distribution, and revocation of cryptographic keys across all services.
 """
+from __future__ import annotations
 
 import json
 import logging
@@ -15,7 +16,7 @@ from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta
 from enum import Enum
-from typing import Any, Callable, Optional
+from typing import Any, Callable
 
 from src.marty_common.security.hsm import HSMInterface, create_hsm_service
 
@@ -58,8 +59,8 @@ class KeyMetadata:
     expires_at: datetime
     status: KeyStatus = KeyStatus.ACTIVE
     version: int = 1
-    parent_key_id: Optional[str] = None
-    rotation_policy_id: Optional[str] = None
+    parent_key_id: str | None = None
+    rotation_policy_id: str | None = None
     tags: dict[str, str] = field(default_factory=dict)
 
     def is_expired(self) -> bool:
@@ -106,12 +107,12 @@ class KeyStore(ABC):
         """Store a key with metadata."""
 
     @abstractmethod
-    def get_key(self, key_id: str) -> Optional[tuple[bytes, KeyMetadata]]:
+    def get_key(self, key_id: str) -> tuple[bytes, KeyMetadata] | None:
         """Retrieve a key and its metadata."""
 
     @abstractmethod
     def list_keys(
-        self, service_name: Optional[str] = None, key_type: Optional[KeyType] = None
+        self, service_name: str | None = None, key_type: KeyType | None = None
     ) -> list[KeyMetadata]:
         """List keys matching criteria."""
 
@@ -206,7 +207,7 @@ class DatabaseKeyStore(KeyStore):
         else:
             return True
 
-    def get_key(self, key_id: str) -> Optional[tuple[bytes, KeyMetadata]]:
+    def get_key(self, key_id: str) -> tuple[bytes, KeyMetadata] | None:
         """Retrieve a key and its metadata."""
         try:
             select_sql = """
@@ -256,7 +257,7 @@ class DatabaseKeyStore(KeyStore):
             return key_data, metadata
 
     def list_keys(
-        self, service_name: Optional[str] = None, key_type: Optional[KeyType] = None
+        self, service_name: str | None = None, key_type: KeyType | None = None
     ) -> list[KeyMetadata]:
         """List keys matching criteria."""
         try:
@@ -415,7 +416,7 @@ class KeyRotationManager:
 
         self._running = False
         self._check_interval = 3600  # 1 hour
-        self._rotation_thread: Optional[threading.Thread] = None
+        self._rotation_thread: threading.Thread | None = None
         self._executor = ThreadPoolExecutor(max_workers=5)
 
     def add_rotation_policy(self, policy: RotationPolicy) -> None:
@@ -435,8 +436,8 @@ class KeyRotationManager:
         algorithm: str,
         key_size: int,
         validity_days: int = 365,
-        rotation_policy_id: Optional[str] = None,
-    ) -> Optional[str]:
+        rotation_policy_id: str | None = None,
+    ) -> str | None:
         """Create a new key."""
         try:
             # Generate key using HSM
@@ -475,7 +476,7 @@ class KeyRotationManager:
         else:
             return key_id
 
-    def rotate_key(self, key_id: str) -> Optional[str]:
+    def rotate_key(self, key_id: str) -> str | None:
         """Rotate a specific key."""
         try:
             # Get existing key
@@ -604,7 +605,7 @@ class KeyRotationManager:
                     logger.info(f"Scheduling rotation for {key_metadata.key_id}")
                     self._executor.submit(self.rotate_key, key_metadata.key_id)
 
-    def get_key_status(self, key_id: str) -> Optional[dict[str, Any]]:
+    def get_key_status(self, key_id: str) -> dict[str, Any] | None:
         """Get detailed status for a key."""
         key_result = self.key_store.get_key(key_id)
         if not key_result:
@@ -629,7 +630,7 @@ class KeyRotationManager:
 
 
 def create_default_rotation_manager(
-    db_connector, hsm_service: Optional[HSMInterface] = None
+    db_connector, hsm_service: HSMInterface | None = None
 ) -> KeyRotationManager:
     """Create a key rotation manager with default configuration."""
     if not hsm_service:

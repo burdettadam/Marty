@@ -1,11 +1,11 @@
 """
 Certificate data models for Marty services.
 """
+from __future__ import annotations
 
 from dataclasses import dataclass
 from datetime import datetime
 from enum import Enum
-from typing import Optional
 from uuid import UUID
 
 
@@ -35,7 +35,7 @@ class Certificate:
     valid_to: datetime
     certificate_data: bytes
     status: CertificateStatus
-    public_key: Optional[str] = None
+    public_key: str | None = None
 
     def to_dict(self) -> dict:
         """Convert certificate to dictionary."""
@@ -55,7 +55,7 @@ class Certificate:
         return result
 
     @classmethod
-    def from_dict(cls, data: dict) -> "Certificate":
+    def from_dict(cls, data: dict) -> Certificate:
         """Create Certificate from dictionary."""
         return cls(
             id=UUID(data["id"]),
@@ -68,7 +68,7 @@ class Certificate:
             public_key=data.get("publicKey"),
         )
 
-    def is_valid_at(self, timestamp: Optional[datetime] = None) -> bool:
+    def is_valid_at(self, timestamp: datetime | None = None) -> bool:
         """
         Check if certificate is valid at given timestamp.
         If no timestamp is provided, checks for current time.
@@ -101,7 +101,7 @@ class CertificateRequest:
         }
 
     @classmethod
-    def from_dict(cls, data: dict) -> "CertificateRequest":
+    def from_dict(cls, data: dict) -> CertificateRequest:
         """Create CertificateRequest from dictionary."""
         return cls(
             subject=data["subject"],

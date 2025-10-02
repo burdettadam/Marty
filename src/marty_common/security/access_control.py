@@ -4,6 +4,7 @@ Access control and audit logging system for Marty services.
 Provides comprehensive access control management with role-based permissions
 and detailed audit logging for security compliance and monitoring.
 """
+from __future__ import annotations
 
 import json
 import logging
@@ -14,7 +15,7 @@ from dataclasses import dataclass, field
 from datetime import datetime, timedelta
 from enum import Enum
 from functools import wraps
-from typing import Any, Callable, Optional
+from typing import Any, Callable
 
 logger = logging.getLogger(__name__)
 
@@ -95,11 +96,11 @@ class User:
     custom_permissions: set[Permission] = field(default_factory=set)
     is_active: bool = True
     created_at: datetime = field(default_factory=datetime.now)
-    last_login: Optional[datetime] = None
+    last_login: datetime | None = None
     failed_login_attempts: int = 0
-    account_locked_until: Optional[datetime] = None
-    session_token: Optional[str] = None
-    session_expires_at: Optional[datetime] = None
+    account_locked_until: datetime | None = None
+    session_token: str | None = None
+    session_expires_at: datetime | None = None
 
 
 @dataclass
@@ -109,16 +110,16 @@ class AuditLogEntry:
     event_id: str = field(default_factory=lambda: str(uuid.uuid4()))
     event_type: AuditEvent = AuditEvent.SECURITY_INCIDENT
     timestamp: datetime = field(default_factory=datetime.now)
-    user_id: Optional[str] = None
-    username: Optional[str] = None
-    service_name: Optional[str] = None
-    resource_id: Optional[str] = None
-    resource_type: Optional[str] = None
-    action: Optional[str] = None
+    user_id: str | None = None
+    username: str | None = None
+    service_name: str | None = None
+    resource_id: str | None = None
+    resource_type: str | None = None
+    action: str | None = None
     result: str = "success"  # success, failure, error
-    error_message: Optional[str] = None
-    ip_address: Optional[str] = None
-    user_agent: Optional[str] = None
+    error_message: str | None = None
+    ip_address: str | None = None
+    user_agent: str | None = None
     additional_data: dict[str, Any] = field(default_factory=dict)
     risk_level: str = "low"  # low, medium, high, critical
 
@@ -137,11 +138,11 @@ class AuditLogger(ABC):
     @abstractmethod
     def query_events(
         self,
-        start_time: Optional[datetime] = None,
-        end_time: Optional[datetime] = None,
-        event_types: Optional[list[AuditEvent]] = None,
-        user_id: Optional[str] = None,
-        risk_level: Optional[str] = None,
+        start_time: datetime | None = None,
+        end_time: datetime | None = None,
+        event_types: list[AuditEvent] | None = None,
+        user_id: str | None = None,
+        risk_level: str | None = None,
     ) -> list[AuditLogEntry]:
         """Query audit events with filters."""
 
@@ -175,16 +176,16 @@ class FileAuditLogger(AuditLogger):
                     "risk_level": entry.risk_level,
                 }
                 f.write(json.dumps(log_data) + "\n")
-        except Exception as e:
-            logger.exception(f"Failed to write audit log: {e}")
+        except Exception:
+            logger.exception("Failed to write audit log")
 
     def query_events(
         self,
-        start_time: Optional[datetime] = None,
-        end_time: Optional[datetime] = None,
-        event_types: Optional[list[AuditEvent]] = None,
-        user_id: Optional[str] = None,
-        risk_level: Optional[str] = None,
+        start_time: datetime | None = None,
+        end_time: datetime | None = None,
+        event_types: list[AuditEvent] | None = None,
+        user_id: str | None = None,
+        risk_level: str | None = None,
     ) -> list[AuditLogEntry]:
         """Query audit events from file."""
         events = []
@@ -230,8 +231,8 @@ class FileAuditLogger(AuditLogger):
                         continue
         except FileNotFoundError:
             logger.warning(f"Audit log file not found: {self.log_file_path}")
-        except Exception as e:
-            logger.exception(f"Error reading audit log: {e}")
+        except Exception:
+            logger.exception("Error reading audit log")
 
         return events
 
@@ -302,8 +303,8 @@ class AccessControlManager:
         user_id: str,
         username: str,
         email: str,
-        roles: Optional[set[Role]] = None,
-        custom_permissions: Optional[set[Permission]] = None,
+        roles: set[Role] | None = None,
+        custom_permissions: set[Permission] | None = None,
     ) -> User:
         """Create a new user account."""
         with self._lock:
@@ -333,7 +334,7 @@ class AccessControlManager:
 
             return user
 
-    def authenticate_user(self, username: str, password_hash: str) -> Optional[str]:
+    def authenticate_user(self, username: str, password_hash: str) -> str | None:
         """Authenticate user and create session token."""
         user = None
         for u in self.users.values():
@@ -394,7 +395,7 @@ class AccessControlManager:
 
         return session_token
 
-    def get_user_by_session(self, session_token: str) -> Optional[User]:
+    def get_user_by_session(self, session_token: str) -> User | None:
         """Get user by session token."""
         user = self.sessions.get(session_token)
         if not user:

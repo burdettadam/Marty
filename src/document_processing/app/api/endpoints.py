@@ -81,7 +81,7 @@ async def readyz() -> dict[str, str]:
 @router.post("/api/process", response_model=ProcessResponse, tags=["Process"])
 async def process_documents(
     request: ProcessRequest,
-    coordinator: DocumentProcessingCoordinator = Depends(get_coordinator_service),  # noqa: B008
+    coordinator: DocumentProcessingCoordinator = Depends(get_coordinator_service),
     _: bool = Depends(verify_api_key),
     x_request_id: str | None = Header(None, alias="X-RequestID"),
 ) -> ProcessResponse:

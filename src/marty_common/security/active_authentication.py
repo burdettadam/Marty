@@ -10,7 +10,6 @@ import hashlib
 import logging
 import os
 from dataclasses import dataclass
-from typing import Optional
 
 from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.primitives.asymmetric import rsa
@@ -25,7 +24,7 @@ class ActiveAuthenticationChallenge:
     challenge: bytes
     hash_algorithm: str
     key_size: int
-    timestamp: Optional[int] = None
+    timestamp: int | None = None
 
 
 @dataclass
@@ -33,8 +32,8 @@ class ActiveAuthenticationResponse:
     """Active Authentication response from chip."""
 
     signature: bytes
-    recovered_message: Optional[bytes] = None
-    trailer: Optional[bytes] = None
+    recovered_message: bytes | None = None
+    trailer: bytes | None = None
     is_valid: bool = False
 
 
@@ -170,15 +169,15 @@ class ActiveAuthenticationProtocol:
             else:
                 self.logger.warning("Challenge verification failed in AA response")
 
-            return is_valid
-
         except Exception as e:
             self.logger.exception("AA verification failed: %s", str(e))
             return False
+        else:
+            return is_valid
 
     def _recover_iso9796_message(
         self, signature: bytes, public_key: rsa.RSAPublicKey
-    ) -> Optional[bytes]:
+    ) -> bytes | None:
         """Recover message from ISO 9796-2 signature.
 
         ISO 9796-2 uses message recovery where part of the message
@@ -207,7 +206,7 @@ class ActiveAuthenticationProtocol:
             self.logger.exception("Message recovery failed: %s", str(e))
             return None
 
-    def _parse_iso9796_structure(self, recovered_bytes: bytes) -> Optional[bytes]:
+    def _parse_iso9796_structure(self, recovered_bytes: bytes) -> bytes | None:
         """Parse ISO 9796-2 message structure.
 
         ISO 9796-2 format:
@@ -254,7 +253,7 @@ class ActiveAuthenticationProtocol:
 
         return None
 
-    def _get_hash_length_from_id(self, hash_id: int) -> Optional[int]:
+    def _get_hash_length_from_id(self, hash_id: int) -> int | None:
         """Get hash length from ISO 9796-2 hash identifier."""
         hash_lengths = {
             0x33: 20,  # SHA-1
@@ -265,7 +264,7 @@ class ActiveAuthenticationProtocol:
         }
         return hash_lengths.get(hash_id)
 
-    def _compute_hash_by_id(self, hash_id: int, data: bytes) -> Optional[bytes]:
+    def _compute_hash_by_id(self, hash_id: int, data: bytes) -> bytes | None:
         """Compute hash using algorithm specified by ID."""
         hash_algorithms = {
             0x33: hashlib.sha1,
@@ -364,9 +363,8 @@ class ActiveAuthenticationProtocol:
         )
 
         # Convert to bytes
-        signature = signature_int.to_bytes(key_size_bytes, "big")
+        return signature_int.to_bytes(key_size_bytes, "big")
 
-        return signature
 
 
 class ActiveAuthenticationManager:
@@ -407,11 +405,11 @@ class ActiveAuthenticationManager:
             else:
                 self.logger.warning("Active Authentication failed")
 
-            return is_valid
-
         except Exception as e:
             self.logger.exception("Active Authentication error: %s", str(e))
             return False
+        else:
+            return is_valid
 
     def verify_chip_authenticity(
         self, reader, public_key: rsa.RSAPublicKey, num_rounds: int = 3

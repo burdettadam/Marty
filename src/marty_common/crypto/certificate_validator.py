@@ -40,7 +40,7 @@ except ImportError:  # pragma: no cover - fallback for older cryptography releas
     class Store:  # type: ignore[override]
         """Minimal stand-in for cryptography's X509 Store when unavailable."""
 
-        def __init__(self, certificates):
+        def __init__(self, certificates) -> None:
             self._certs = list(certificates)
 
         def __iter__(self):

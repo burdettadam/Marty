@@ -7,7 +7,6 @@ requests and responses in the FastAPI document processing service.
 
 from __future__ import annotations
 
-from datetime import date
 from enum import Enum
 from typing import Any
 
@@ -16,14 +15,14 @@ from pydantic import BaseModel, Field
 
 class CMCSecurityModelAPI(str, Enum):
     """Security models for CMC documents in API."""
-    
+
     CHIP_LDS = "CHIP_LDS"
     VDS_NC = "VDS_NC"
 
 
 class GenderAPI(str, Enum):
     """Gender enum for API requests."""
-    
+
     MALE = "M"
     FEMALE = "F"
     UNSPECIFIED = "X"
@@ -31,7 +30,7 @@ class GenderAPI(str, Enum):
 
 class CMCCreateRequest(BaseModel):
     """Request model for creating a new Crew Member Certificate."""
-    
+
     # Mandatory fields
     document_number: str = Field(..., description="CMC document number")
     issuing_country: str = Field(..., description="3-letter issuing country code", min_length=3, max_length=3)
@@ -41,20 +40,20 @@ class CMCCreateRequest(BaseModel):
     date_of_birth: str = Field(..., description="Date of birth (YYYY-MM-DD)")
     gender: GenderAPI = Field(..., description="Gender designation")
     date_of_expiry: str = Field(..., description="Date of expiry (YYYY-MM-DD)")
-    
+
     # Optional CMC-specific fields
     employer: str | None = Field(None, description="Employing airline/organization")
     crew_id: str | None = Field(None, description="Crew member identification number")
-    
+
     # Security model selection
     security_model: CMCSecurityModelAPI = Field(
-        CMCSecurityModelAPI.CHIP_LDS, 
+        CMCSecurityModelAPI.CHIP_LDS,
         description="Security model to use for the CMC"
     )
-    
+
     # Face image for chip-based model (DG2)
     face_image: str | None = Field(None, description="Base64 encoded face image for chip model")
-    
+
     # Annex 9 compliance fields
     background_check_verified: bool = Field(False, description="Background check completion status")
 
@@ -80,13 +79,13 @@ class CMCCreateRequest(BaseModel):
 
 class CMCCreateResponse(BaseModel):
     """Response model for CMC creation."""
-    
+
     success: bool = Field(..., description="Operation success status")
     cmc_id: str | None = Field(None, description="Generated CMC ID")
     td1_mrz: str | None = Field(None, description="Generated TD-1 MRZ string")
     security_model: str | None = Field(None, description="Applied security model")
     error_message: str | None = Field(None, description="Error message if operation failed")
-    
+
     model_config = {
         "json_schema_extra": {
             "example": {
@@ -101,10 +100,10 @@ class CMCCreateResponse(BaseModel):
 
 class CMCSignRequest(BaseModel):
     """Request model for signing a CMC."""
-    
+
     cmc_id: str = Field(..., description="CMC ID to sign")
     signer_id: str | None = Field(None, description="Signer identification")
-    
+
     model_config = {
         "json_schema_extra": {
             "example": {
@@ -117,11 +116,11 @@ class CMCSignRequest(BaseModel):
 
 class CMCSignResponse(BaseModel):
     """Response model for CMC signing."""
-    
+
     success: bool = Field(..., description="Signing operation success status")
     signature_info: dict[str, Any | None] = Field(None, description="Signature information")
     error_message: str | None = Field(None, description="Error message if operation failed")
-    
+
     model_config = {
         "json_schema_extra": {
             "example": {
@@ -138,16 +137,16 @@ class CMCSignResponse(BaseModel):
 
 class CMCVerificationRequest(BaseModel):
     """Request model for CMC verification."""
-    
+
     # One of these must be provided
     td1_mrz: str | None = Field(None, description="TD-1 MRZ string for verification")
     barcode_data: str | None = Field(None, description="VDS-NC barcode data")
     cmc_id: str | None = Field(None, description="Direct CMC ID lookup")
-    
+
     # Verification options
     check_revocation: bool = Field(True, description="Check revocation status")
     validate_background_check: bool = Field(True, description="Validate Annex 9 compliance")
-    
+
     model_config = {
         "json_schema_extra": {
             "example": {
@@ -161,7 +160,7 @@ class CMCVerificationRequest(BaseModel):
 
 class VerificationResult(BaseModel):
     """Individual verification result."""
-    
+
     check_name: str = Field(..., description="Name of the verification check")
     passed: bool = Field(..., description="Whether the check passed")
     details: str = Field(..., description="Details about the check result")
@@ -170,16 +169,16 @@ class VerificationResult(BaseModel):
 
 class CMCVerificationResponse(BaseModel):
     """Response model for CMC verification."""
-    
+
     success: bool = Field(..., description="Verification operation success status")
     is_valid: bool = Field(False, description="Overall validity of the CMC")
     cmc_data: dict[str, Any | None] = Field(None, description="CMC certificate data")
     verification_results: list[VerificationResult] = Field(
-        default_factory=list, 
+        default_factory=list,
         description="Detailed verification results"
     )
     error_message: str | None = Field(None, description="Error message if operation failed")
-    
+
     model_config = {
         "json_schema_extra": {
             "example": {
@@ -210,11 +209,11 @@ class CMCVerificationResponse(BaseModel):
 
 class CMCBackgroundCheckRequest(BaseModel):
     """Request model for background check operations."""
-    
+
     cmc_id: str = Field(..., description="CMC ID for background check")
     check_authority: str = Field(..., description="Authority performing the check")
     check_reference: str | None = Field(None, description="Reference number for the check")
-    
+
     model_config = {
         "json_schema_extra": {
             "example": {
@@ -228,7 +227,7 @@ class CMCBackgroundCheckRequest(BaseModel):
 
 class CMCBackgroundCheckResponse(BaseModel):
     """Response model for background check operations."""
-    
+
     success: bool = Field(..., description="Operation success status")
     check_passed: bool = Field(False, description="Whether the background check passed")
     check_date: str | None = Field(None, description="Date of the check (ISO format)")
@@ -239,12 +238,12 @@ class CMCBackgroundCheckResponse(BaseModel):
 
 class CMCVisaFreeStatusRequest(BaseModel):
     """Request model for visa-free status updates."""
-    
+
     cmc_id: str = Field(..., description="CMC ID for status update")
     visa_free_eligible: bool = Field(..., description="Visa-free entry eligibility")
     authority: str = Field(..., description="Authority granting/revoking status")
     reason: str = Field(..., description="Reason for status change")
-    
+
     model_config = {
         "json_schema_extra": {
             "example": {
@@ -259,7 +258,7 @@ class CMCVisaFreeStatusRequest(BaseModel):
 
 class CMCVisaFreeStatusResponse(BaseModel):
     """Response model for visa-free status updates."""
-    
+
     success: bool = Field(..., description="Operation success status")
     visa_free_eligible: bool = Field(False, description="Current visa-free eligibility")
     updated_at: str | None = Field(None, description="Update timestamp (ISO format)")
@@ -268,12 +267,12 @@ class CMCVisaFreeStatusResponse(BaseModel):
 
 class CMCListRequest(BaseModel):
     """Request model for listing CMCs."""
-    
+
     limit: int = Field(10, description="Maximum number of results", ge=1, le=100)
     offset: int = Field(0, description="Number of results to skip", ge=0)
     issuing_country: str | None = Field(None, description="Filter by issuing country")
     security_model: CMCSecurityModelAPI | None = Field(None, description="Filter by security model")
-    
+
     model_config = {
         "json_schema_extra": {
             "example": {
@@ -288,12 +287,12 @@ class CMCListRequest(BaseModel):
 
 class CMCListResponse(BaseModel):
     """Response model for listing CMCs."""
-    
+
     success: bool = Field(..., description="Operation success status")
     total_count: int = Field(0, description="Total number of CMCs")
     cmcs: list[dict[str, Any]] = Field(default_factory=list, description="List of CMC data")
     error_message: str | None = Field(None, description="Error message if operation failed")
-    
+
     model_config = {
         "json_schema_extra": {
             "example": {
@@ -316,7 +315,7 @@ class CMCListResponse(BaseModel):
 
 class CMCStatusResponse(BaseModel):
     """Response model for CMC status information."""
-    
+
     success: bool = Field(..., description="Operation success status")
     cmc_id: str | None = Field(None, description="CMC ID")
     status: str | None = Field(None, description="Current CMC status")

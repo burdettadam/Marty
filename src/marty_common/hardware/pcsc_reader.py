@@ -7,7 +7,6 @@ Requires pyscard library for PC/SC communication.
 from __future__ import annotations
 
 import logging
-from typing import Optional
 
 from . import ReaderInterface
 
@@ -49,7 +48,7 @@ class PCSCReader(ReaderInterface):
 
         except ImportError as e:
             msg = f"PC/SC library not available: {e}"
-            self.logger.error(msg)
+            self.logger.exception(msg)
             raise ImportError(msg) from e
 
     def connect(self) -> bool:
@@ -62,14 +61,15 @@ class PCSCReader(ReaderInterface):
             self.card_service.connection.connect()
 
             self.logger.info("Connected to reader: %s", self.name)
-            return True
 
         except self.CardRequestTimeoutException:
             self.logger.warning("No card found in reader: %s", self.name)
             return False
-        except Exception as e:
-            self.logger.error("Failed to connect to reader %s: %s", self.name, str(e))
+        except Exception:
+            self.logger.exception("Failed to connect to reader %s", self.name)
             return False
+        else:
+            return True
 
     def disconnect(self) -> None:
         """Disconnect from the reader."""
@@ -78,8 +78,8 @@ class PCSCReader(ReaderInterface):
                 self.card_service.connection.disconnect()
                 self.card_service = None
                 self.logger.info("Disconnected from reader: %s", self.name)
-        except Exception as e:
-            self.logger.error("Error disconnecting from reader %s: %s", self.name, str(e))
+        except Exception:
+            self.logger.exception("Error disconnecting from reader %s", self.name)
 
     def is_connected(self) -> bool:
         """Check if reader is connected to a card."""
@@ -99,17 +99,17 @@ class PCSCReader(ReaderInterface):
             response, sw1, sw2 = self.card_service.connection.transmit(apdu_list)
 
             # Convert response back to bytes
-            response_bytes = bytes(response + [sw1, sw2])
+            response_bytes = bytes([*response, sw1, sw2])
 
             self.logger.debug("APDU sent: %s, response: %s", apdu.hex(), response_bytes.hex())
 
+        except Exception:
+            self.logger.exception("Failed to send APDU")
+            raise
+        else:
             return response_bytes
 
-        except Exception as e:
-            self.logger.error("Failed to send APDU: %s", str(e))
-            raise
-
-    def get_atr(self) -> Optional[bytes]:
+    def get_atr(self) -> bytes | None:
         """Get Answer To Reset from the card."""
         if not self.is_connected():
             return None
@@ -117,6 +117,6 @@ class PCSCReader(ReaderInterface):
         try:
             atr = self.card_service.connection.getATR()
             return bytes(atr)
-        except Exception as e:
-            self.logger.error("Failed to get ATR: %s", str(e))
+        except Exception:
+            self.logger.exception("Failed to get ATR")
             return None

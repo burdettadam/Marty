@@ -1,52 +1,46 @@
+import importlib
+import importlib.abc
+import importlib.util
 import os
 import sys
 import unittest
 
-if sys.version_info < (3, 5):
-    import imp
-else:
-    import importlib
-    import importlib.abc
-    import importlib.util
 
+class ModCryptoMetaFinder(importlib.abc.MetaPathFinder):
+    def setup(self):
+        self.modules = {}
+        sys.meta_path.insert(0, self)
 
-if sys.version_info >= (3, 5):
+    def add_module(self, package_name, package_path):
+        if package_name not in self.modules:
+            self.modules[package_name] = package_path
 
-    class ModCryptoMetaFinder(importlib.abc.MetaPathFinder):
-        def setup(self):
-            self.modules = {}
-            sys.meta_path.insert(0, self)
+    def find_spec(self, fullname, path, target=None):
+        name_parts = fullname.split(".")
+        if name_parts[0] not in self.modules:
+            return None
 
-        def add_module(self, package_name, package_path):
-            if package_name not in self.modules:
-                self.modules[package_name] = package_path
+        package = name_parts[0]
+        package_path = self.modules[package]
 
-        def find_spec(self, fullname, path, target=None):
-            name_parts = fullname.split(".")
-            if name_parts[0] not in self.modules:
-                return None
+        fullpath = os.path.join(package_path, *name_parts[1:])
 
-            package = name_parts[0]
-            package_path = self.modules[package]
+        if os.path.isdir(fullpath):
+            filename = os.path.join(fullpath, "__init__.py")
+            submodule_locations = [fullpath]
+        else:
+            filename = fullpath + ".py"
+            submodule_locations = None
 
-            fullpath = os.path.join(package_path, *name_parts[1:])
+        if not os.path.exists(filename):
+            return None
 
-            if os.path.isdir(fullpath):
-                filename = os.path.join(fullpath, "__init__.py")
-                submodule_locations = [fullpath]
-            else:
-                filename = fullpath + ".py"
-                submodule_locations = None
+        return importlib.util.spec_from_file_location(
+            fullname, filename, loader=None, submodule_search_locations=submodule_locations
+        )
 
-            if not os.path.exists(filename):
-                return None
-
-            return importlib.util.spec_from_file_location(
-                fullname, filename, loader=None, submodule_search_locations=submodule_locations
-            )
-
-    CUSTOM_FINDER = ModCryptoMetaFinder()
-    CUSTOM_FINDER.setup()
+CUSTOM_FINDER = ModCryptoMetaFinder()
+CUSTOM_FINDER.setup()
 
 
 def _import_from(mod, path, mod_dir=None):
@@ -70,10 +64,7 @@ def _import_from(mod, path, mod_dir=None):
     if mod in sys.modules:
         return sys.modules[mod]
 
-    if mod_dir is None:
-        full_mod = mod
-    else:
-        full_mod = mod_dir.replace(os.sep, ".")
+    full_mod = mod if mod_dir is None else mod_dir.replace(os.sep, ".")
 
     if mod_dir is None:
         mod_dir = mod.replace(".", os.sep)
@@ -93,9 +84,6 @@ def _import_from(mod, path, mod_dir=None):
         path = os.path.join(path, append)
 
     try:
-        if sys.version_info < (3, 5):
-            mod_info = imp.find_module(mod_dir, [path])
-            return imp.load_module(mod, *mod_info)
 
         package = mod.split(".", 1)[0]
         package_dir = full_mod.split(".", 1)[0]

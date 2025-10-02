@@ -284,8 +284,8 @@ class ErrorHandler:
         for callback in self.error_callbacks:
             try:
                 callback(error_details)
-            except Exception as cb_error:
-                self.logger.exception(f"Error callback failed: {cb_error}")
+            except Exception:
+                self.logger.exception("Error callback failed")
 
         return error_details
 
@@ -617,9 +617,10 @@ def require_valid_uuid(value: str, message: str = "Invalid UUID format") -> str:
     """Require that a string is a valid UUID."""
     try:
         uuid.UUID(value)
-        return value
     except ValueError:
         raise ValidationError(message)
+    else:
+        return value
 
 
 def safe_execute(

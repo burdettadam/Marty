@@ -15,7 +15,6 @@ import logging
 import threading
 import time
 from datetime import datetime, timezone
-from typing import Optional, Union
 
 from app.db.certificate_store import CertificateStore
 from app.utils.certificate_validator import CertificateValidator
@@ -52,8 +51,8 @@ class PKDMirrorService:
         pkd_url: str,
         sync_interval: int = 3600,
         logger=None,
-        trust_roots: Optional[list[Union[str, x509.Certificate]]] = None,
-        other_certs_for_validation: Optional[list[Union[str, x509.Certificate]]] = None,
+        trust_roots: list[str | x509.Certificate] | None = None,
+        other_certs_for_validation: list[str | x509.Certificate] | None = None,
     ) -> None:
         """
         Initialize the PKD Mirror Service.
@@ -191,13 +190,14 @@ class PKDMirrorService:
             # Store the certificates or CRLs
             store_func(data)
             self.logger.info(f"Successfully downloaded and stored {endpoint}")
-            return True
 
         except Exception as e:
             self.logger.exception(f"Error downloading or storing {endpoint}: {e}")
             return False
+        else:
+            return True
 
-    def resolve_component(self, component: str) -> Optional[str]:
+    def resolve_component(self, component: str) -> str | None:
         """Resolve a component alias to its canonical name."""
 
         if not component:
@@ -229,7 +229,7 @@ class PKDMirrorService:
 
         return results
 
-    def get_last_sync_time(self) -> Optional[datetime]:
+    def get_last_sync_time(self) -> datetime | None:
         """
         Get the time of the last successful synchronization.
 
@@ -239,7 +239,7 @@ class PKDMirrorService:
         return self.last_sync_time
 
     def validate_certificates(
-        self, cert_data: bytes, usage: Optional[str] = "digital_signature"
+        self, cert_data: bytes, usage: str | None = "digital_signature"
     ) -> bool:
         """
         Validate a batch of certificates.
@@ -267,16 +267,17 @@ class PKDMirrorService:
                         f"Validation failed for certificate: {cert.subject.rfc4514_string() if cert else 'Unknown'}"
                     )
                     all_valid = False
-            return all_valid
 
         except Exception as e:
             self.logger.exception(f"Certificate validation error: {e}")
             return False
+        else:
+            return all_valid
 
     def validate_certificate(
         self,
-        certificate: Union[str, bytes, x509.Certificate],
-        usage: Optional[str] = "digital_signature",
+        certificate: str | bytes | x509.Certificate,
+        usage: str | None = "digital_signature",
     ) -> bool:
         """
         Validate a single certificate.

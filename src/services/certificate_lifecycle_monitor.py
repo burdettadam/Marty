@@ -5,6 +5,7 @@ Certificate Lifecycle Monitor
 This service monitors the lifecycle of certificates, including expiration dates,
 and provides notifications for upcoming certificate events.
 """
+from __future__ import annotations
 
 import asyncio
 import json
@@ -13,7 +14,7 @@ import os
 import smtplib
 from datetime import datetime, timedelta, timezone
 from email.message import EmailMessage
-from typing import Any, Optional
+from typing import Any
 
 import grpc
 
@@ -33,7 +34,7 @@ class CertificateLifecycleMonitor:
     """
 
     def __init__(
-        self, csca_endpoint: Optional[str] = None, config_file: Optional[str] = None
+        self, csca_endpoint: str | None = None, config_file: str | None = None
     ) -> None:
         """
         Initialize the Certificate Lifecycle Monitor.
@@ -109,8 +110,8 @@ class CertificateLifecycleMonitor:
                     self.logger.info(f"Loaded configuration from {config_file}")
             else:
                 self.logger.warning(f"Configuration file {config_file} not found, using defaults")
-        except Exception as e:
-            self.logger.exception(f"Error loading configuration: {e}")
+        except Exception:
+            self.logger.exception("Error loading configuration")
 
     def _load_event_history(self) -> dict[str, Any]:
         """
@@ -126,8 +127,8 @@ class CertificateLifecycleMonitor:
                 with open(self.history_file) as f:
                     history = json.load(f)
                     self.logger.info(f"Loaded event history from {self.history_file}")
-        except Exception as e:
-            self.logger.exception(f"Error loading event history: {e}")
+        except Exception:
+            self.logger.exception("Error loading event history")
 
         return history
 
@@ -140,8 +141,8 @@ class CertificateLifecycleMonitor:
             with open(self.history_file, "w") as f:
                 json.dump(self.event_history, f, indent=2)
                 self.logger.debug(f"Saved event history to {self.history_file}")
-        except Exception as e:
-            self.logger.exception(f"Error saving event history: {e}")
+        except Exception:
+            self.logger.exception("Error saving event history")
 
     def record_event(self, certificate_id: str, event_type: str, details: dict[str, Any]) -> None:
         """
@@ -171,7 +172,7 @@ class CertificateLifecycleMonitor:
         recipients: list[str],
         subject: str,
         status: str,
-        details: Optional[dict[str, Any]] = None,
+        details: dict[str, Any] | None = None,
     ) -> None:
         """
         Record a notification event.
@@ -255,8 +256,8 @@ class CertificateLifecycleMonitor:
 
                 return expiring_certs
 
-        except Exception as e:
-            self.logger.exception(f"Error checking expiring certificates: {e}")
+        except Exception:
+            self.logger.exception("Error checking expiring certificates")
             return []
 
     def send_notification(self, subject: str, message: str, level: str = "INFO") -> bool:
@@ -326,7 +327,7 @@ class CertificateLifecycleMonitor:
                     )
                     success = True
             except Exception as e:
-                self.logger.exception(f"Failed to send email notification: {e}")
+                self.logger.exception("Failed to send email notification")
                 self.record_notification(
                     notification_type="email",
                     recipients=email_config.get("recipients", []),
@@ -376,7 +377,7 @@ class CertificateLifecycleMonitor:
                             },
                         )
             except Exception as e:
-                self.logger.exception(f"Failed to send Slack notification: {e}")
+                self.logger.exception("Failed to send Slack notification")
                 self.record_notification(
                     notification_type="slack",
                     recipients=["slack_channel"],
@@ -486,8 +487,8 @@ class CertificateLifecycleMonitor:
 
                 return recently_revoked
 
-        except Exception as e:
-            self.logger.exception(f"Error checking revoked certificates: {e}")
+        except Exception:
+            self.logger.exception("Error checking revoked certificates")
             return []
 
     def notify_revoked_certificates(self) -> None:
@@ -564,11 +565,11 @@ class CertificateLifecycleMonitor:
 
                 return certificates_to_rotate
 
-        except Exception as e:
-            self.logger.exception(f"Error checking certificates for rotation: {e}")
+        except Exception:
+            self.logger.exception("Error checking certificates for rotation")
             return []
 
-    def rotate_certificate(self, certificate_id: str) -> Optional[str]:
+    def rotate_certificate(self, certificate_id: str) -> str | None:
         """
         Rotate a certificate by issuing a renewal.
 
@@ -628,8 +629,8 @@ class CertificateLifecycleMonitor:
                 )
                 return None
 
-        except Exception as e:
-            self.logger.exception(f"Error rotating certificate {certificate_id}: {e}")
+        except Exception:
+            self.logger.exception(f"Error rotating certificate {certificate_id}")
             return None
 
     def process_certificate_rotation(self) -> dict[str, Any]:
@@ -744,8 +745,8 @@ class CertificateLifecycleMonitor:
         while self.running:
             try:
                 self.perform_lifecycle_checks()
-            except Exception as e:
-                self.logger.exception(f"Error in monitoring loop: {e}")
+            except Exception:
+                self.logger.exception("Error in monitoring loop")
 
             # Sleep for the configured interval
             check_interval_hours = self.config.get("check_interval", 24)
@@ -828,7 +829,7 @@ if __name__ == "__main__":
 
     if len(sys.argv) > 1 and sys.argv[1] == "daemon":
         # Run as a daemon
-        async def run_daemon():
+        async def run_daemon() -> None:
             monitor = CertificateLifecycleMonitor()
             await monitor.start()
 

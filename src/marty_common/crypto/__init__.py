@@ -71,7 +71,6 @@ except ImportError:
             # Short signatures - use hash comparison for backward compatibility
             # This maintains compatibility with existing simple test cases
             expected_signature = hashlib.sha256(data + public_key).digest()
-            return signature == expected_signature
 
         except Exception:
             # If any processing fails, fallback to basic validation
@@ -80,6 +79,8 @@ except ImportError:
                 return len(data) > 0 and len(signature) > 0
             except Exception:
                 return False
+        else:
+            return signature == expected_signature
 
 
 __all__ = [

@@ -1,6 +1,6 @@
 """DG15 Public Key Extraction for Active Authentication.
 
-Parses Data Group 15 (DG15) from ePassport chips to extract the 
+Parses Data Group 15 (DG15) from ePassport chips to extract the
 chip authentication public key used for Active Authentication.
 """
 
@@ -264,11 +264,12 @@ class DG15Parser:
                     return False
 
                 self.logger.debug("Chip public key validation successful")
-                return True
 
             except Exception as e:
-                self.logger.error("Key validation failed: %s", str(e))
+                self.logger.exception("Key validation failed: %s", str(e))
                 return False
+            else:
+                return True
 
         except Exception:
             self.logger.exception("Key validation error")
@@ -296,11 +297,12 @@ class DG15Parser:
             fingerprint = hashlib.sha256(der_bytes).hexdigest()
 
             self.logger.debug("Generated key fingerprint: %s", fingerprint[:16] + "...")
-            return fingerprint
 
         except Exception:
             self.logger.exception("Failed to generate key fingerprint")
             return ""
+        else:
+            return fingerprint
 
 
 class DG15Manager:
@@ -320,7 +322,7 @@ class DG15Manager:
             ChipAuthenticationInfo if successful, None otherwise
         """
         try:
-            from ..rfid.apdu_commands import PassportAPDU
+            from src.marty_common.rfid.apdu_commands import PassportAPDU
 
             # Create APDU handler
             passport_apdu = PassportAPDU()
@@ -352,10 +354,11 @@ class DG15Manager:
                 self.logger.info("Successfully extracted chip public key from DG15")
                 return chip_info
             self.logger.error("Chip public key validation failed")
-            return None
 
         except Exception as e:
             self.logger.exception("Failed to read/parse DG15: %s", str(e))
+            return None
+        else:
             return None
 
     def get_chip_capabilities(self, chip_info: ChipAuthenticationInfo) -> dict[str, Any]:

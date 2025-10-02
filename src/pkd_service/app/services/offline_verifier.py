@@ -1,12 +1,12 @@
 """
 Service for offline verification of certificates against a local trust store
 """
+from __future__ import annotations
 
 import logging
 import os
 from datetime import datetime
 from pathlib import Path
-from typing import Optional
 
 from app.core.config import settings
 from app.db.database import DatabaseManager
@@ -87,7 +87,7 @@ class OfflineVerifier:
                 is_valid=False, status="ERROR", details=f"Error during verification: {e!s}"
             )
 
-    def _parse_certificate(self, certificate_data: bytes) -> Optional[dict]:
+    def _parse_certificate(self, certificate_data: bytes) -> dict | None:
         """
         Parse certificate data into a dictionary of certificate properties
 
@@ -185,10 +185,11 @@ class OfflineVerifier:
 
             # For demo purposes, we'll assume the certificate is not in the trust store
             # In a real implementation, we would load each certificate and compare
-            return False
 
         except Exception as e:
             logger.exception(f"Error checking filesystem trust store: {e}")
+            return False
+        else:
             return False
 
     async def _is_certificate_revoked(self, cert: dict) -> bool:
@@ -211,10 +212,11 @@ class OfflineVerifier:
             # 2. Check if the certificate's serial number is in any of the CRLs
 
             # For this implementation, we'll assume the certificate is not revoked
-            return False
 
         except Exception as e:
             logger.exception(f"Error checking if certificate is revoked: {e}")
+            return False
+        else:
             return False
 
     async def build_trust_store(self) -> int:
@@ -255,11 +257,12 @@ class OfflineVerifier:
                     logger.exception(f"Error exporting certificate {cert_dict.get('id')}: {e}")
 
             logger.info(f"Exported {count} certificates to local trust store")
-            return count
 
         except Exception as e:
             logger.exception(f"Error building trust store: {e}")
             return 0
+        else:
+            return count
 
     async def update_local_crls(self) -> int:
         """
@@ -278,8 +281,9 @@ class OfflineVerifier:
 
             # For this implementation, we'll just return 0
             logger.info("CRL update not implemented in this version")
-            return 0
 
         except Exception as e:
             logger.exception(f"Error updating local CRLs: {e}")
+            return 0
+        else:
             return 0

@@ -1,8 +1,10 @@
+from __future__ import annotations
+
 import base64
 import json
 import logging
 import os
-from typing import Any, Optional
+from typing import Any
 
 from cryptography import x509
 from cryptography.hazmat.primitives import hashes, serialization
@@ -80,12 +82,13 @@ class InspectionSystem(inspection_system_pb2_grpc.InspectionSystemServicer):
             response = await trust_stub.VerifyTrust(trust_anchor_pb2.TrustRequest(entity=entity))
 
             self.logger.info(f"Entity {entity} trust verification: {response.is_trusted}")
-            return response.is_trusted
         except Exception as e:
             self.logger.exception(f"Error verifying trust for entity {entity}: {e}")
             return False
+        else:
+            return response.is_trusted
 
-    async def _verify_signature(self, document, signature) -> Optional[bool]:
+    async def _verify_signature(self, document, signature) -> bool | None:
         """
         Verify the signature of a document.
 
@@ -104,10 +107,11 @@ class InspectionSystem(inspection_system_pb2_grpc.InspectionSystemServicer):
                 signature_bytes, document.encode("utf-8"), padding.PKCS1v15(), hashes.SHA256()
             )
             self.logger.info("Signature verified for document")
-            return True
         except Exception as e:
             self.logger.exception("Error verifying signature: %s", e)
             return False
+        else:
+            return True
 
     async def _load_passport_data(self, passport_id):
         """
@@ -363,10 +367,7 @@ class InspectionSystem(inspection_system_pb2_grpc.InspectionSystemServicer):
         if result.disclosures:
             lines.append("Disclosed Claims:")
             for key, value in result.disclosures.items():
-                if isinstance(value, (dict, list)):
-                    value_repr = json.dumps(value)
-                else:
-                    value_repr = value
+                value_repr = json.dumps(value) if isinstance(value, (dict, list)) else value
                 lines.append(f"  - {key}: {value_repr}")
 
         if result.errors:

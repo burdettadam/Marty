@@ -4,6 +4,7 @@ Machine Readable Zone (MRZ) parsing and generation utilities.
 Implements MRZ processing according to ICAO Doc 9303 Part 3, Part 4, and Part 5.
 """
 
+import contextlib
 import re
 from datetime import datetime
 
@@ -235,8 +236,8 @@ class MRZParser:
         Parse a TD-2 format MRZ string per ICAO Doc 9303 Part 6.
 
         TD-2 format consists of 2 lines of 36 characters each:
-        Line 1: Doc type (2) + Issuing state (3) + Doc number (9) + Check (1) + 
-                Birth date (6) + Check (1) + Sex (1) + Expiry date (6) + Check (1) + 
+        Line 1: Doc type (2) + Issuing state (3) + Doc number (9) + Check (1) +
+                Birth date (6) + Check (1) + Sex (1) + Expiry date (6) + Check (1) +
                 Nationality (3) + Optional data (2) + Composite check (1)
         Line 2: Name field (36) - Primary identifier << Secondary identifier
 
@@ -261,7 +262,7 @@ class MRZParser:
 
         # Line 1: Document data
         line1 = lines[0]
-        
+
         # Parse Line 1 components
         document_type = line1[0:2].rstrip("<")
         issuing_country = line1[2:5]
@@ -311,7 +312,7 @@ class MRZParser:
             expiry_date + expiry_check_digit +
             optional_data_field
         )
-        
+
         if not cls.validate_check_digit(composite_string, composite_check_digit):
             msg = "Invalid composite check digit"
             raise MRZException(msg)
@@ -319,7 +320,7 @@ class MRZParser:
         # Line 2: Name field (36 characters)
         line2 = lines[1]
         name_field = line2.rstrip("<")
-        
+
         # Parse names per ICAO Part 6 - primary identifier precedence
         if "<<" in name_field:
             name_parts = name_field.split("<<", 1)
@@ -361,19 +362,19 @@ class MRZParser:
             MRZException: If the MRZ format is invalid or unsupported
         """
         lines = cls._split_lines(mrz)
-        
+
         # TD3 format: 2 lines of 44 characters (passport)
         if len(lines) == 2 and all(len(line) == 44 for line in lines):
             return cls.parse_td3_mrz("\n".join(lines))
-        
+
         # TD2 format: 2 lines of 36 characters (ID card per ICAO Part 6)
         if len(lines) == 2 and all(len(line) == 36 for line in lines):
             return cls.parse_td2_mrz("\n".join(lines))
-        
+
         # TD1 format: 3 lines of 30 characters (ID card, including CMC)
         if len(lines) == 3 and all(len(line) == 30 for line in lines):
             return cls.parse_td1_mrz("\n".join(lines))
-            
+
         msg = f"Unsupported MRZ format: {len(lines)} lines with lengths {[len(line) for line in lines]}"
         raise MRZException(msg)
 
@@ -431,10 +432,10 @@ class MRZParser:
         surname_given = line3[14:30]         # Surname and given names
 
         # Construct full document number from parts
-        full_doc_number = (document_number_part1 + document_number_part2).rstrip('<')
-        
+        full_doc_number = (document_number_part1 + document_number_part2).rstrip("<")
+
         # Validate document number check digit
-        doc_number_for_check = (document_number_part1 + document_number_part2).ljust(15, '<')[:15]
+        doc_number_for_check = (document_number_part1 + document_number_part2).ljust(15, "<")[:15]
         if not cls.validate_check_digit(doc_number_for_check, doc_check_digit):
             msg = f"Invalid document number check digit: {doc_number_for_check} -> {doc_check_digit}"
             raise MRZException(msg)
@@ -461,16 +462,16 @@ class MRZParser:
             gender = Gender.UNSPECIFIED
 
         # Parse names from line 3 (similar to TD3 format)
-        name_part = surname_given.replace('<', ' ').strip()
+        name_part = surname_given.replace("<", " ").strip()
         # Look for double space separator between surname and given names
-        if '  ' in name_part:
-            name_parts = name_part.split('  ', 1)
+        if "  " in name_part:
+            name_parts = name_part.split("  ", 1)
             surname = name_parts[0].strip()
-            given_names = name_parts[1].strip() if len(name_parts) > 1 else ''
+            given_names = name_parts[1].strip() if len(name_parts) > 1 else ""
         else:
             # Fallback: assume all is surname if no clear separator
             surname = name_part.strip()
-            given_names = ''
+            given_names = ""
 
         # Clean up names
         surname = cls._normalize_whitespace(surname)
@@ -478,11 +479,11 @@ class MRZParser:
 
         # Collect optional data
         optional_data_parts = [
-            optional_data_line1.rstrip('<'),
-            optional_data_line2.rstrip('<'),
-            optional_data_line3.rstrip('<')
+            optional_data_line1.rstrip("<"),
+            optional_data_line2.rstrip("<"),
+            optional_data_line3.rstrip("<")
         ]
-        optional_data = ''.join(part for part in optional_data_parts if part)
+        optional_data = "".join(part for part in optional_data_parts if part)
         personal_number = optional_data if optional_data else None
 
         return MRZData(
@@ -620,9 +621,7 @@ class MRZFormatter:
             Formatted TD1 MRZ string (3 lines)
         """
         # Import here to avoid circular dependency
-        try:
-            from src.marty_common.models.passport import CMCTD1MRZData
-        except ImportError:
+        with contextlib.suppress(ImportError):
             pass
 
         # Extract values with proper defaults

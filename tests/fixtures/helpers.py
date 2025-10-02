@@ -20,7 +20,7 @@ def create_test_image(width: int = 100, height: int = 100):
 def create_test_pdf_bytes():
     """Create test PDF bytes for PDF extraction testing."""
     # Minimal PDF structure
-    pdf_content = b"""%PDF-1.4
+    return b"""%PDF-1.4
 1 0 obj
 <<
 /Type /Catalog
@@ -43,10 +43,10 @@ endobj
 endobj
 xref
 0 4
-0000000000 65535 f 
-0000000010 00000 n 
-0000000062 00000 n 
-0000000119 00000 n 
+0000000000 65535 f
+0000000010 00000 n
+0000000062 00000 n
+0000000119 00000 n
 trailer
 <<
 /Size 4
@@ -55,4 +55,3 @@ trailer
 startxref
 197
 %%EOF"""
-    return pdf_content

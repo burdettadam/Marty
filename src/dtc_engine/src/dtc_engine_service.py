@@ -57,8 +57,8 @@ class DTCEngineService(dtc_engine_pb2_grpc.DTCEngineServicer):
                 config=config,
             )
             self.logger.info("Successfully connected to Document Signer service")
-        except Exception as e:
-            self.logger.exception(f"Failed to connect to Document Signer service: {e!s}")
+        except Exception:
+            self.logger.exception("Failed to connect to Document Signer service")
 
     def _vr(self, name: str) -> int:
         """Resolve overall verification result enum to its integer value."""
@@ -150,10 +150,10 @@ class DTCEngineService(dtc_engine_pb2_grpc.DTCEngineServicer):
                 status="SUCCESS", dtc_id=dtc_id, error_message=""
             )
 
-        except Exception as e:
-            self.logger.exception(f"Failed to create DTC: {e!s}")
+        except Exception:
+            self.logger.exception("Failed to create DTC")
             return dtc_engine_pb2.CreateDTCResponse(
-                status="ERROR", dtc_id="", error_message=f"Failed to create DTC: {e!s}"
+                status="ERROR", dtc_id="", error_message="Failed to create DTC"
             )
 
     def GetDTC(self, request: dtc_engine_pb2.GetDTCRequest, context: grpc.ServicerContext):
@@ -261,15 +261,16 @@ class DTCEngineService(dtc_engine_pb2_grpc.DTCEngineServicer):
                 response.signature_info = signature_info
 
             self.logger.info(f"Successfully retrieved DTC with ID: {request.dtc_id}")
-            return response
 
-        except Exception as e:
-            self.logger.exception(f"Failed to retrieve DTC: {e!s}")
+        except Exception:
+            self.logger.exception("Failed to retrieve DTC")
             return SimpleNamespace(
                 status="ERROR",
-                error_message=f"Failed to retrieve DTC: {e!s}",
+                error_message="Failed to retrieve DTC",
                 dtc_id=request.dtc_id,
             )
+        else:
+            return response
 
     def SignDTC(
         self, request: dtc_engine_pb2.SignDTCRequest, context: grpc.ServicerContext
@@ -377,10 +378,10 @@ class DTCEngineService(dtc_engine_pb2_grpc.DTCEngineServicer):
                 success=True, error_message="", signature_info=signature_info
             )
 
-        except Exception as e:
-            self.logger.exception(f"Failed to sign DTC: {e!s}")
+        except Exception:
+            self.logger.exception("Failed to sign DTC")
             return dtc_engine_pb2.SignDTCResponse(
-                success=False, error_message=f"Failed to sign DTC: {e!s}"
+                success=False, error_message="Failed to sign DTC"
             )
 
     def RevokeDTC(
@@ -436,10 +437,10 @@ class DTCEngineService(dtc_engine_pb2_grpc.DTCEngineServicer):
             self.logger.info(f"Successfully revoked DTC with ID: {request.dtc_id}")
             return dtc_engine_pb2.RevokeDTCResponse(success=True, error_message="")
 
-        except Exception as e:
-            self.logger.exception(f"Failed to revoke DTC: {e!s}")
+        except Exception:
+            self.logger.exception("Failed to revoke DTC")
             return dtc_engine_pb2.RevokeDTCResponse(
-                success=False, error_message=f"Failed to revoke DTC: {e!s}"
+                success=False, error_message="Failed to revoke DTC"
             )
 
     def GenerateDTCQRCode(
@@ -547,11 +548,11 @@ class DTCEngineService(dtc_engine_pb2_grpc.DTCEngineServicer):
                 success=True, error_message="", qr_code=qr_code_data, mime_type="image/png"
             )
 
-        except Exception as e:
-            self.logger.exception(f"Failed to generate QR code: {e!s}")
+        except Exception:
+            self.logger.exception("Failed to generate QR code")
             return SimpleNamespace(
                 success=False,
-                error_message=f"Failed to generate QR code: {e!s}",
+                error_message="Failed to generate QR code",
                 qr_code=b"",
                 mime_type="",
             )
@@ -664,8 +665,8 @@ class DTCEngineService(dtc_engine_pb2_grpc.DTCEngineServicer):
                 success=True, error_message="", verification_result=self._vr("VALID")
             )
 
-        except Exception as e:
-            self.logger.exception(f"Failed to verify DTC: {e!s}")
+        except Exception:
+            self.logger.exception("Failed to verify DTC")
             return SimpleNamespace(
                 success=False,
                 error_message=f"Failed to verify DTC: {e!s}",

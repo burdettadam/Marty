@@ -228,9 +228,7 @@ def verify_sod_signature(
             if isinstance(public_key, ec.EllipticCurvePublicKey):
                 public_key.verify(signature, data, ec.ECDSA(hash_cls()))
                 return True
-            if isinstance(public_key, ed25519.Ed25519PublicKey) or isinstance(
-                public_key, ed448.Ed448PublicKey
-            ):
+            if isinstance(public_key, (ed25519.Ed25519PublicKey, ed448.Ed448PublicKey)):
                 public_key.verify(signature, data)
                 return True
         except Exception:  # pragma: no cover - verification failure handled below

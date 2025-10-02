@@ -200,11 +200,11 @@ class ISO9796Verifier:
             key_size_bytes = (public_key.key_size + 7) // 8
             recovered_bytes = recovered_int.to_bytes(key_size_bytes, "big")
 
-            return recovered_bytes
-
         except Exception as e:
             self.logger.exception("RSA recovery failed: %s", str(e))
             return None
+        else:
+            return recovered_bytes
 
     def _parse_scheme_1_structure(
         self, data: bytes
@@ -309,11 +309,11 @@ class ISO9796Verifier:
             # Convert to bytes
             signature = signature_int.to_bytes(key_size_bytes, "big")
 
-            return signature
-
         except Exception as e:
             self.logger.exception("Failed to create test signature: %s", str(e))
             return b""
+        else:
+            return signature
 
 
 class PassportActiveAuthenticationVerifier:
@@ -352,10 +352,11 @@ class PassportActiveAuthenticationVerifier:
                 return True
 
             self.logger.warning("Challenge not found in recovered message")
-            return False
 
         except Exception as e:
             self.logger.exception("Active Authentication verification error: %s", str(e))
+            return False
+        else:
             return False
 
     def analyze_signature_structure(

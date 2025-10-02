@@ -17,11 +17,11 @@ HandlerResult = TypeVar("HandlerResult")
 class GrpcMessage(Protocol):
     """Protocol for protobuf message types."""
 
-    def SerializeToString(self) -> bytes:  # noqa: N802
+    def SerializeToString(self) -> bytes:
         """Serialize message to bytes."""
         ...
 
-    def ParseFromString(self, data: bytes) -> None:  # noqa: N802
+    def ParseFromString(self, data: bytes) -> None:
         """Parse message from bytes."""
         ...
 

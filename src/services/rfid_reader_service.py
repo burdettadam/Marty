@@ -80,13 +80,13 @@ class RFIDReaderService(rfid_service_pb2_grpc.RFIDServiceServicer):
                 reader_info.capabilities.extend(["ISO14443", "ISO15693", "MIFARE"])
 
             self.logger.info("Listed %d RFID readers", len(readers))
-            return response
-
         except Exception as e:
             self.logger.exception("Error listing readers")
             context.set_code(grpc.StatusCode.INTERNAL)
             context.set_details(f"Failed to list readers: {e!s}")
             return rfid_service_pb2.ListReadersResponse()
+        else:
+            return response
 
     def ConnectReader(
         self, request: rfid_service_pb2.ConnectReaderRequest, context: grpc.ServicerContext
@@ -112,13 +112,13 @@ class RFIDReaderService(rfid_service_pb2_grpc.RFIDServiceServicer):
                 context.set_code(grpc.StatusCode.UNAVAILABLE)
                 context.set_details("Failed to connect to reader")
 
-            return response
-
         except Exception as e:
             self.logger.exception("Error connecting to reader")
             context.set_code(grpc.StatusCode.INTERNAL)
             context.set_details(f"Connection error: {e!s}")
             return rfid_service_pb2.ConnectReaderResponse()
+        else:
+            return response
 
     def ReadPassport(
         self, request: rfid_service_pb2.ReadPassportRequest, context: grpc.ServicerContext
@@ -134,7 +134,7 @@ class RFIDReaderService(rfid_service_pb2_grpc.RFIDServiceServicer):
 
             # Perform Basic Access Control if MRZ data provided
             if request.mrz_data.document_number:
-                bac_keys = self.secure_messaging.derive_bac_keys(
+                self.secure_messaging.derive_bac_keys(
                     request.mrz_data.document_number,
                     request.mrz_data.date_of_birth,
                     request.mrz_data.date_of_expiry,
@@ -177,13 +177,13 @@ class RFIDReaderService(rfid_service_pb2_grpc.RFIDServiceServicer):
                     bio_template.quality_score = biometric_data.quality or 50
 
             self.logger.info("Successfully read passport data")
-            return response
-
         except Exception as e:
             self.logger.exception("Error reading passport")
             context.set_code(grpc.StatusCode.INTERNAL)
             context.set_details(f"Passport reading error: {e!s}")
             return rfid_service_pb2.ReadPassportResponse()
+        else:
+            return response
 
     def VerifyDocument(
         self, request: rfid_service_pb2.VerifyDocumentRequest, context: grpc.ServicerContext
@@ -210,13 +210,13 @@ class RFIDReaderService(rfid_service_pb2_grpc.RFIDServiceServicer):
             )
 
             self.logger.info("Document verification completed")
-            return response
-
         except Exception as e:
             self.logger.exception("Error verifying document")
             context.set_code(grpc.StatusCode.INTERNAL)
             context.set_details(f"Verification error: {e!s}")
             return rfid_service_pb2.VerifyDocumentResponse()
+        else:
+            return response
 
     def ExtractBiometrics(
         self, request: rfid_service_pb2.ExtractBiometricsRequest, context: grpc.ServicerContext
@@ -251,13 +251,13 @@ class RFIDReaderService(rfid_service_pb2_grpc.RFIDServiceServicer):
                     bio_result.error_message = str(e)
 
             self.logger.info("Extracted %d biometric templates", len(response.biometric_results))
-            return response
-
         except Exception as e:
             self.logger.exception("Error extracting biometrics")
             context.set_code(grpc.StatusCode.INTERNAL)
             context.set_details(f"Biometric extraction error: {e!s}")
             return rfid_service_pb2.ExtractBiometricsResponse()
+        else:
+            return response
 
     def _read_passport_data_groups(self, reader) -> dict[str, bytes]:
         """Read all available passport data groups."""

@@ -174,7 +174,7 @@ class DocumentSigner(document_signer_pb2_grpc.DocumentSignerServicer):
     # ------------------------------------------------------------------
     # Document signing endpoint
     # ------------------------------------------------------------------
-    async def SignDocument(  # noqa: N802
+    async def SignDocument(
         self,
         request: ProtoMessage,  # document_signer_pb2.SignRequest
         context: GrpcServicerContext,  # grpc.ServicerContext
@@ -253,7 +253,7 @@ class DocumentSigner(document_signer_pb2_grpc.DocumentSignerServicer):
     # ------------------------------------------------------------------
     # SD-JWT gRPC endpoints
     # ------------------------------------------------------------------
-    async def CreateCredentialOffer(  # noqa: N802
+    async def CreateCredentialOffer(
         self,
         request: ProtoMessage,  # document_signer_pb2.CreateCredentialOfferRequest
         context: GrpcServicerContext,  # grpc.ServicerContext
@@ -306,7 +306,7 @@ class DocumentSigner(document_signer_pb2_grpc.DocumentSignerServicer):
             expires_in=expires_in,
         )
 
-    async def GetCredentialOffer(  # noqa: N802
+    async def GetCredentialOffer(
         self,
         request: ProtoMessage,  # document_signer_pb2.GetCredentialOfferRequest
         context: GrpcServicerContext,  # grpc.ServicerContext
@@ -344,7 +344,7 @@ class DocumentSigner(document_signer_pb2_grpc.DocumentSignerServicer):
             pre_authorized_code=pre_auth_code,
         )
 
-    async def RedeemPreAuthorizedCode(  # noqa: N802
+    async def RedeemPreAuthorizedCode(
         self,
         request: ProtoMessage,  # document_signer_pb2.RedeemPreAuthorizedCodeRequest
         context: GrpcServicerContext,  # grpc.ServicerContext
@@ -387,7 +387,7 @@ class DocumentSigner(document_signer_pb2_grpc.DocumentSignerServicer):
             c_nonce=c_nonce,
         )
 
-    async def IssueSdJwtCredential(  # noqa: N802
+    async def IssueSdJwtCredential(
         self,
         request: ProtoMessage,  # document_signer_pb2.IssueSdJwtCredentialRequest
         context: GrpcServicerContext,  # grpc.ServicerContext
@@ -483,7 +483,7 @@ class DocumentSigner(document_signer_pb2_grpc.DocumentSignerServicer):
 
         pem_data = response.data
 
-        async def handler(session):
+        async def handler(session) -> None:
             from marty_common.infrastructure import CertificateRepository
 
             repo = CertificateRepository(session)

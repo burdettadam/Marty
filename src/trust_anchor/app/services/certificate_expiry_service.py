@@ -114,12 +114,13 @@ class CertificateExpiryService:
             logger.info(
                 f"No notification history file found at {self.history_file} or file is empty"
             )
-            return {}
         except json.JSONDecodeError as e:
             logger.exception(f"Error decoding notification history JSON: {e!s}")
             return {}
         except Exception as e:
             logger.exception(f"Error loading notification history: {e!s}")
+            return {}
+        else:
             return {}
 
     def save_notification_history(self, history: dict[str, dict[str, Any]]) -> None:

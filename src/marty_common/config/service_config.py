@@ -21,7 +21,7 @@ from pydantic import BaseModel, Field, validator
 
 class DatabaseConfig(BaseModel):
     """Database configuration."""
-    
+
     host: str = Field(..., description="Database host")
     port: int = Field(5432, description="Database port")
     database: str = Field(..., description="Database name")
@@ -31,7 +31,7 @@ class DatabaseConfig(BaseModel):
     pool_size: int = Field(10, description="Connection pool size")
     max_overflow: int = Field(20, description="Max pool overflow")
     pool_timeout: int = Field(30, description="Pool timeout seconds")
-    
+
     @property
     def connection_string(self) -> str:
         """Get SQLAlchemy connection string."""
@@ -43,16 +43,16 @@ class DatabaseConfig(BaseModel):
 
 class SecurityConfig(BaseModel):
     """Security configuration."""
-    
+
     encryption_key: str = Field(..., description="Encryption key for private keys")
     jwt_secret: str = Field(..., description="JWT signing secret")
     api_keys: dict[str, str] = Field(default_factory=dict, description="API key mappings")
     cors_origins: list[str] = Field(default_factory=list, description="CORS allowed origins")
     rate_limit_requests: int = Field(100, description="Rate limit requests per minute")
     rate_limit_window: int = Field(60, description="Rate limit window seconds")
-    
+
     @validator("encryption_key", "jwt_secret")
-    def validate_secrets(cls, v: str) -> str:
+    def validate_secrets(self, v: str) -> str:
         """Validate secret length."""
         if len(v) < 32:
             msg = "Secrets must be at least 32 characters"
@@ -62,14 +62,14 @@ class SecurityConfig(BaseModel):
 
 class PKDConfig(BaseModel):
     """PKD service configuration."""
-    
+
     base_url: str = Field(..., description="PKD service base URL")
     api_version: str = Field("v1", description="API version")
     timeout_seconds: int = Field(30, description="Request timeout")
     retry_attempts: int = Field(3, description="Retry attempts")
     retry_delay: int = Field(5, description="Retry delay seconds")
     cache_ttl: int = Field(3600, description="Cache TTL seconds")
-    
+
     @property
     def endpoints(self) -> dict[str, str]:
         """Get API endpoints."""
@@ -86,16 +86,16 @@ class PKDConfig(BaseModel):
 
 class MonitoringConfig(BaseModel):
     """Monitoring configuration."""
-    
+
     enable_metrics: bool = Field(True, description="Enable Prometheus metrics")
     metrics_port: int = Field(8080, description="Metrics server port")
     enable_tracing: bool = Field(True, description="Enable distributed tracing")
     jaeger_endpoint: str = Field("", description="Jaeger endpoint URL")
     log_level: str = Field("INFO", description="Log level")
     log_format: str = Field("json", description="Log format (json/text)")
-    
+
     @validator("log_level")
-    def validate_log_level(cls, v: str) -> str:
+    def validate_log_level(self, v: str) -> str:
         """Validate log level."""
         valid_levels = ["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"]
         if v.upper() not in valid_levels:
@@ -106,16 +106,16 @@ class MonitoringConfig(BaseModel):
 
 class TrustConfig(BaseModel):
     """Trust management configuration."""
-    
+
     policy: str = Field("fail_closed", description="Trust policy")
     refresh_interval: int = Field(86400, description="Trust list refresh interval seconds")
     warning_threshold: int = Field(24, description="Stale warning threshold hours")
     critical_threshold: int = Field(48, description="Stale critical threshold hours")
     cache_directory: str = Field("/var/cache/marty/trust", description="Trust cache directory")
     backup_directory: str = Field("/var/backup/marty/trust", description="Trust backup directory")
-    
+
     @validator("policy")
-    def validate_policy(cls, v: str) -> str:
+    def validate_policy(self, v: str) -> str:
         """Validate trust policy."""
         valid_policies = ["fail_closed", "fail_open", "selective"]
         if v not in valid_policies:
@@ -126,7 +126,7 @@ class TrustConfig(BaseModel):
 
 class KeyRotationConfig(BaseModel):
     """Key rotation configuration."""
-    
+
     rotation_warning_days: int = Field(30, description="Key rotation warning days")
     overlap_days: int = Field(30, description="Key overlap period days")
     auto_rotation: bool = Field(False, description="Enable automatic rotation")
@@ -137,7 +137,7 @@ class KeyRotationConfig(BaseModel):
 @dataclass
 class DeploymentConfig:
     """Deployment configuration."""
-    
+
     environment: str  # "development", "staging", "production"
     cluster_name: str
     namespace: str
@@ -145,7 +145,7 @@ class DeploymentConfig:
     resources: dict[str, Any] = field(default_factory=dict)
     health_check_path: str = "/health"
     readiness_check_path: str = "/ready"
-    
+
     def __post_init__(self) -> None:
         """Set default resources based on environment."""
         if not self.resources:
@@ -168,7 +168,7 @@ class DeploymentConfig:
 
 class ServiceConfig(BaseModel):
     """Complete service configuration."""
-    
+
     database: DatabaseConfig
     security: SecurityConfig
     pkd: PKDConfig
@@ -176,26 +176,26 @@ class ServiceConfig(BaseModel):
     trust: TrustConfig
     key_rotation: KeyRotationConfig
     deployment: DeploymentConfig | None = None
-    
+
     @classmethod
     def from_file(cls, config_path: Path | str) -> ServiceConfig:
         """Load configuration from YAML file."""
         config_path = Path(config_path)
-        
+
         if not config_path.exists():
             msg = f"Configuration file not found: {config_path}"
             raise FileNotFoundError(msg)
-        
-        with open(config_path, "r") as f:
+
+        with open(config_path) as f:
             config_data = yaml.safe_load(f)
-        
+
         # Convert deployment config to dataclass
         if "deployment" in config_data:
             deployment_data = config_data.pop("deployment")
             config_data["deployment"] = DeploymentConfig(**deployment_data)
-        
+
         return cls(**config_data)
-    
+
     @classmethod
     def from_env(cls) -> ServiceConfig:
         """Load configuration from environment variables."""
@@ -228,12 +228,12 @@ class ServiceConfig(BaseModel):
                 auto_rotation=os.getenv("AUTO_ROTATION", "false").lower() == "true",
             ),
         )
-    
+
     def save_to_file(self, config_path: Path | str) -> None:
         """Save configuration to YAML file."""
         config_path = Path(config_path)
         config_path.parent.mkdir(parents=True, exist_ok=True)
-        
+
         # Convert to dict and handle deployment dataclass
         config_dict = self.dict()
         if self.deployment:
@@ -246,14 +246,14 @@ class ServiceConfig(BaseModel):
                 "health_check_path": self.deployment.health_check_path,
                 "readiness_check_path": self.deployment.readiness_check_path,
             }
-        
+
         with open(config_path, "w") as f:
             yaml.dump(config_dict, f, default_flow_style=False, sort_keys=False)
 
 
 def get_config() -> ServiceConfig:
     """Get configuration from file or environment.
-    
+
     Priority:
     1. MARTY_CONFIG_FILE environment variable
     2. ./config/production.yaml (if in production)
@@ -261,17 +261,17 @@ def get_config() -> ServiceConfig:
     4. Environment variables (fallback)
     """
     config_file = os.getenv("MARTY_CONFIG_FILE")
-    
+
     if config_file:
         return ServiceConfig.from_file(config_file)
-    
+
     # Try standard config locations
     environment = os.getenv("ENVIRONMENT", "development")
     config_path = Path(f"config/{environment}.yaml")
-    
+
     if config_path.exists():
         return ServiceConfig.from_file(config_path)
-    
+
     # Fallback to environment variables
     return ServiceConfig.from_env()
 

@@ -981,9 +981,10 @@ def create_app(settings: UiSettings | None = None) -> FastAPI:
         background_check_verified: str = Form(default="false"),
     ):
         """Create a new CMC via REST API."""
-        import requests
         from datetime import datetime
-        
+
+        import requests
+
         try:
             # Convert form data to API format
             api_payload = {
@@ -1000,11 +1001,11 @@ def create_app(settings: UiSettings | None = None) -> FastAPI:
                 "security_model": security_model,
                 "background_check_verified": background_check_verified.lower() == "true",
             }
-            
+
             # Call CMC API endpoint
-            api_base = getattr(settings, 'cmc_api_base', 'http://localhost:8000')
+            api_base = getattr(settings, "cmc_api_base", "http://localhost:8000")
             response = requests.post(f"{api_base}/api/cmc/create", json=api_payload, timeout=30)
-            
+
             if response.status_code == 200:
                 result_data = response.json()
                 create_result = {
@@ -1019,11 +1020,11 @@ def create_app(settings: UiSettings | None = None) -> FastAPI:
                     "status": "ERROR",
                     "error": f"API Error: {response.status_code} - {response.text}",
                 }
-                
+
         except Exception as e:
             create_result = {
-                "status": "ERROR", 
-                "error": f"Failed to create CMC: {str(e)}",
+                "status": "ERROR",
+                "error": f"Failed to create CMC: {e!s}",
             }
 
         operation_log.append(
@@ -1055,31 +1056,33 @@ def create_app(settings: UiSettings | None = None) -> FastAPI:
         validate_background_check: str = Form(default="false"),
     ):
         """Verify a CMC via REST API."""
-        import requests
         from datetime import datetime
-        
+
+        import requests
+
         try:
             # Build verification payload based on method
             api_payload = {
                 "check_revocation": check_revocation.lower() == "true",
                 "validate_background_check": validate_background_check.lower() == "true",
             }
-            
+
             if verify_method == "cmc_id" and cmc_id:
                 api_payload["cmc_id"] = cmc_id
             elif verify_method == "td1_mrz" and td1_mrz:
                 # Clean up MRZ formatting
-                clean_mrz = td1_mrz.replace('\n', '').replace('\r', '')
+                clean_mrz = td1_mrz.replace("\n", "").replace("\r", "")
                 api_payload["td1_mrz"] = clean_mrz
             elif verify_method == "barcode" and barcode_data:
                 api_payload["barcode_data"] = barcode_data
             else:
-                raise ValueError("Invalid verification method or missing data")
-            
+                msg = "Invalid verification method or missing data"
+                raise ValueError(msg)
+
             # Call CMC verification API
-            api_base = getattr(settings, 'cmc_api_base', 'http://localhost:8000')
+            api_base = getattr(settings, "cmc_api_base", "http://localhost:8000")
             response = requests.post(f"{api_base}/api/cmc/verify", json=api_payload, timeout=30)
-            
+
             if response.status_code == 200:
                 result_data = response.json()
                 verify_result = {
@@ -1093,11 +1096,11 @@ def create_app(settings: UiSettings | None = None) -> FastAPI:
                     "is_valid": False,
                     "error_message": f"API Error: {response.status_code} - {response.text}",
                 }
-                
+
         except Exception as e:
             verify_result = {
                 "is_valid": False,
-                "error_message": f"Verification failed: {str(e)}",
+                "error_message": f"Verification failed: {e!s}",
             }
 
         operation_log.append(
@@ -1125,18 +1128,19 @@ def create_app(settings: UiSettings | None = None) -> FastAPI:
         signer_id: str = Form(),
     ):
         """Sign a CMC via REST API."""
-        import requests
         from datetime import datetime
-        
+
+        import requests
+
         try:
             api_payload = {
                 "cmc_id": cmc_id,
                 "signer_id": signer_id,
             }
-            
-            api_base = getattr(settings, 'cmc_api_base', 'http://localhost:8000')
+
+            api_base = getattr(settings, "cmc_api_base", "http://localhost:8000")
             response = requests.post(f"{api_base}/api/cmc/sign", json=api_payload, timeout=30)
-            
+
             if response.status_code == 200:
                 result_data = response.json()
                 sign_result = {
@@ -1149,11 +1153,11 @@ def create_app(settings: UiSettings | None = None) -> FastAPI:
                     "success": False,
                     "error_message": f"API Error: {response.status_code} - {response.text}",
                 }
-                
+
         except Exception as e:
             sign_result = {
                 "success": False,
-                "error_message": f"Signing failed: {str(e)}",
+                "error_message": f"Signing failed: {e!s}",
             }
 
         operation_log.append(
@@ -1182,19 +1186,20 @@ def create_app(settings: UiSettings | None = None) -> FastAPI:
         check_reference: str = Form(),
     ):
         """Run background check for CMC via REST API."""
-        import requests
         from datetime import datetime
-        
+
+        import requests
+
         try:
             api_payload = {
                 "cmc_id": cmc_id,
                 "check_authority": check_authority,
                 "check_reference": check_reference,
             }
-            
-            api_base = getattr(settings, 'cmc_api_base', 'http://localhost:8000')
+
+            api_base = getattr(settings, "cmc_api_base", "http://localhost:8000")
             response = requests.post(f"{api_base}/api/cmc/background-check", json=api_payload, timeout=30)
-            
+
             if response.status_code == 200:
                 result_data = response.json()
                 bg_check_result = {
@@ -1211,12 +1216,12 @@ def create_app(settings: UiSettings | None = None) -> FastAPI:
                     "check_passed": False,
                     "error_message": f"API Error: {response.status_code} - {response.text}",
                 }
-                
+
         except Exception as e:
             bg_check_result = {
                 "success": False,
                 "check_passed": False,
-                "error_message": f"Background check failed: {str(e)}",
+                "error_message": f"Background check failed: {e!s}",
             }
 
         operation_log.append(
@@ -1246,9 +1251,10 @@ def create_app(settings: UiSettings | None = None) -> FastAPI:
         reason: str = Form(),
     ):
         """Update visa-free status for CMC via REST API."""
-        import requests
         from datetime import datetime
-        
+
+        import requests
+
         try:
             api_payload = {
                 "cmc_id": cmc_id,
@@ -1256,10 +1262,10 @@ def create_app(settings: UiSettings | None = None) -> FastAPI:
                 "authority": authority,
                 "reason": reason,
             }
-            
-            api_base = getattr(settings, 'cmc_api_base', 'http://localhost:8000')
+
+            api_base = getattr(settings, "cmc_api_base", "http://localhost:8000")
             response = requests.post(f"{api_base}/api/cmc/visa-free-status", json=api_payload, timeout=30)
-            
+
             if response.status_code == 200:
                 result_data = response.json()
                 visa_free_result = {
@@ -1273,11 +1279,11 @@ def create_app(settings: UiSettings | None = None) -> FastAPI:
                     "success": False,
                     "error_message": f"API Error: {response.status_code} - {response.text}",
                 }
-                
+
         except Exception as e:
             visa_free_result = {
                 "success": False,
-                "error_message": f"Status update failed: {str(e)}",
+                "error_message": f"Status update failed: {e!s}",
             }
 
         operation_log.append(

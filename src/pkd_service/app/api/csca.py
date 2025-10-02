@@ -1,9 +1,10 @@
 """
 API endpoints for CSCA & Master List Management
 """
+from __future__ import annotations
 
 import logging
-from typing import Any, Optional
+from typing import Any
 
 from app.controllers.csca_manager import CscaManager
 from app.models.pkd_models import MasterListResponse, MasterListUploadResponse, VerificationResult
@@ -30,7 +31,7 @@ async def shutdown_event() -> None:
 
 
 @router.get("/masterlist", response_model=MasterListResponse)
-async def get_master_list(country: Optional[str] = None):
+async def get_master_list(country: str | None = None):
     """
     Retrieve the CSCA Master List, optionally filtered by country.
 
@@ -48,7 +49,7 @@ async def get_master_list(country: Optional[str] = None):
 
 
 @router.get("/masterlist/binary", response_class=Response)
-async def get_master_list_binary(country: Optional[str] = None):
+async def get_master_list_binary(country: str | None = None):
     """
     Download the ASN.1 encoded CSCA Master List, optionally filtered by country.
 
@@ -92,7 +93,7 @@ async def upload_master_list(file: UploadFile = File(...)):
 
 
 @router.post("/sync", response_model=dict[str, Any])
-async def trigger_synchronization(source_id: Optional[str] = None):
+async def trigger_synchronization(source_id: str | None = None):
     """
     Trigger synchronization with trusted sources.
 

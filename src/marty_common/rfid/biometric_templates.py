@@ -10,7 +10,7 @@ import logging
 import struct
 from dataclasses import dataclass
 from enum import Enum
-from typing import Any, Optional
+from typing import Any
 
 logger = logging.getLogger(__name__)
 
@@ -43,9 +43,9 @@ class BiometricHeader:
     format_type: int
     biometric_type: BiometricType
     biometric_subtype: int
-    creation_date: Optional[str]
-    validity_period: Optional[tuple[str, str]]
-    creator: Optional[str]
+    creation_date: str | None
+    validity_period: tuple[str, str] | None
+    creator: str | None
 
 
 @dataclass
@@ -61,7 +61,7 @@ class FacialImageTemplate:
     device_type: int  # 0=unknown, 1=basic, 2=enhanced
     quality: int  # 0-100
     image_data: bytes
-    feature_points: Optional[list[tuple[int, int]]] = None
+    feature_points: list[tuple[int, int]] | None = None
 
 
 @dataclass
@@ -78,7 +78,7 @@ class FingerprintTemplate:
     resolution_y: int
     compression: int  # 0=uncompressed, 1=WSQ, 2=JPEG
     minutiae: list[dict[str, Any]]  # Minutiae points
-    image_data: Optional[bytes] = None
+    image_data: bytes | None = None
 
 
 @dataclass
@@ -117,8 +117,8 @@ class BiometricTemplateProcessor:
             msg = f"Unsupported biometric type: {biometric_type}"
             raise ValueError(msg)
 
-        except Exception as e:
-            self.logger.error("Failed to parse biometric template: %s", str(e))
+        except Exception:
+            self.logger.exception("Failed to parse biometric template")
             raise
 
     def parse_facial_image_template(self, data: bytes) -> FacialImageTemplate:

@@ -165,7 +165,7 @@ class PassportEngine(passport_engine_pb2_grpc.PassportEngineServicer):
         signature: bytes | None,
         event_payload: dict[str, Any] | None = None,
     ) -> None:
-        async def handler(session):
+        async def handler(session) -> None:
             repo = PassportRepository(session)
             await repo.upsert(
                 passport_number=passport_number,
@@ -197,7 +197,7 @@ class PassportEngine(passport_engine_pb2_grpc.PassportEngineServicer):
     ) -> None:
         serialized = json.dumps(payload).encode("utf-8")
 
-        async def handler(db_session):
+        async def handler(db_session) -> None:
             outbox = OutboxRepository(db_session)
             await outbox.enqueue(
                 topic=topic,

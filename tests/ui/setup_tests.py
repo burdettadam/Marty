@@ -30,7 +30,6 @@ def run_command(cmd, description=""):
         print(f"   ✅ Success: {description}")
         if result.stdout.strip():
             print(f"   Output: {result.stdout.strip()}")
-        return True
     except subprocess.CalledProcessError as e:
         print(f"   ❌ Failed: {description}")
         if e.stderr:
@@ -41,6 +40,8 @@ def run_command(cmd, description=""):
     except FileNotFoundError:
         print(f"   ❌ Command not found: {cmd[0]}")
         return False
+    else:
+        return True
 
 
 def check_python_version():
@@ -140,8 +141,8 @@ testpaths = tests
 python_files = test_*.py
 python_classes = Test*
 python_functions = test_*
-addopts = 
-    -v 
+addopts =
+    -v
     --tb=short
     --strict-markers
     --strict-config
@@ -164,10 +165,11 @@ filterwarnings =
         with open(pytest_ini_path, "w") as f:
             f.write(pytest_config)
         print("   ✅ Created pytest.ini configuration")
-        return True
     except Exception as e:
         print(f"   ❌ Failed to create pytest.ini: {e}")
         return False
+    else:
+        return True
 
 
 def create_vs_code_settings():
@@ -210,10 +212,11 @@ def create_vs_code_settings():
         with open(settings_path, "w") as f:
             json.dump(existing_settings, f, indent=2)
         print("   ✅ Created/updated VS Code settings")
-        return True
     except Exception as e:
         print(f"   ❌ Failed to create VS Code settings: {e}")
         return False
+    else:
+        return True
 
 
 def print_next_steps():

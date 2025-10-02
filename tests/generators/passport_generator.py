@@ -19,12 +19,13 @@ To ensure licensing compliance:
 References to pypassport are marked with PYPASSPORT_REFERENCE and will be
 removed in a future update once validation is complete.
 """
+from __future__ import annotations
 
 import hashlib
 import os
 import sys
 from pathlib import Path
-from typing import Any, Dict, Optional
+from typing import Any
 
 # Add project root to path
 project_root = Path(__file__).resolve().parents[2]
@@ -43,7 +44,7 @@ class PassportGenerator:
     data groups and the necessary cryptographic signatures.
     """
 
-    def __init__(self, output_dir: Optional[str] = None):
+    def __init__(self, output_dir: str | None = None):
         """
         Initialize the passport generator.
 
@@ -111,10 +112,7 @@ class PassportGenerator:
         check_digit_expiry = self._calculate_check_digit(expiry_date)
 
         # Format optional data
-        if not optional_data:
-            optional_data = "<<<<<<<<<<<<<<"
-        else:
-            optional_data = optional_data[:14].ljust(14, "<")
+        optional_data = "<<<<<<<<<<<<<<" if not optional_data else optional_data[:14].ljust(14, "<")
 
         # First line of MRZ
         line1 = f"{document_type}<{issuing_country}{surname}<<{name}"
@@ -153,7 +151,7 @@ class PassportGenerator:
 
         return str(total % 10)
 
-    def create_data_group_1(self, mrz_data: str) -> Dict[str, Any]:
+    def create_data_group_1(self, mrz_data: str) -> dict[str, Any]:
         """
         Create a DG1 data group containing the MRZ data.
 
@@ -163,14 +161,13 @@ class PassportGenerator:
         Returns:
             A dictionary representing DG1 data
         """
-        dg1 = {
+        return {
             "type": DataGroupType.DG1,
             "tag": "61",  # DG1 tag
             "data": mrz_data,
             "raw_bytes": self._format_dg1_bytes(mrz_data),
         }
 
-        return dg1
 
     def _format_dg1_bytes(self, mrz_data: str) -> bytes:
         """
@@ -195,8 +192,7 @@ class PassportGenerator:
         total_length_bytes = self._encode_length(total_length)
 
         # Combine all parts
-        dg1_bytes = tag + total_length_bytes + content_tag + content_length_bytes + mrz_bytes
-        return dg1_bytes
+        return tag + total_length_bytes + content_tag + content_length_bytes + mrz_bytes
 
     def _encode_length(self, length: int) -> bytes:
         """
@@ -221,7 +217,7 @@ class PassportGenerator:
         length_bytes.insert(0, 0x80 | len(length_bytes))
         return bytes(length_bytes)
 
-    def create_data_group_2(self, image_path: str) -> Dict[str, Any]:
+    def create_data_group_2(self, image_path: str) -> dict[str, Any]:
         """
         Create a DG2 data group containing facial image data.
 
@@ -235,14 +231,13 @@ class PassportGenerator:
         with open(image_path, "rb") as f:
             image_data = f.read()
 
-        dg2 = {
+        return {
             "type": DataGroupType.DG2,
             "tag": "75",  # DG2 tag
             "data": image_data,
             "raw_bytes": self._format_dg2_bytes(image_data),
         }
 
-        return dg2
 
     def _format_dg2_bytes(self, image_data: bytes) -> bytes:
         """
@@ -270,13 +265,12 @@ class PassportGenerator:
         content = (
             biometric_header + biometric_info + biometric_data + biometric_data_header + image_data
         )
-        dg2_bytes = tag + self._encode_length(len(content)) + content
+        return tag + self._encode_length(len(content)) + content
 
-        return dg2_bytes
 
     def create_signature_data(
-        self, dg1: Dict[str, Any], dg2: Dict[str, Any], cert_path: str, key_path: str
-    ) -> Dict[str, Any]:
+        self, dg1: dict[str, Any], dg2: dict[str, Any], cert_path: str, key_path: str
+    ) -> dict[str, Any]:
         """
         Create Security Object (SOD) containing document signatures.
 
@@ -297,7 +291,7 @@ class PassportGenerator:
 
         # Create a simplified SOD structure
         # In a real implementation, this would use OpenSSL to create a proper signature
-        sod = {
+        return {
             "type": "SOD",
             "tag": "77",  # SOD tag
             "algorithm": "sha256WithRSAEncryption",
@@ -306,7 +300,6 @@ class PassportGenerator:
             "raw_bytes": b"\x77\x04\x00\x00\x00\x00",  # Placeholder bytes
         }
 
-        return sod
 
     def generate_passport(
         self,
@@ -318,11 +311,11 @@ class PassportGenerator:
         passport_num: str = "123456789",
         birth_date: str = "850531",  # YYMMDD
         expiry_date: str = "250531",  # YYMMDD
-        image_path: str = None,
-        cert_path: str = None,
-        key_path: str = None,
-        output_file: str = None,
-    ) -> Dict[str, Any]:
+        image_path: str | None = None,
+        cert_path: str | None = None,
+        key_path: str | None = None,
+        output_file: str | None = None,
+    ) -> dict[str, Any]:
         """
         Generate a complete passport data structure.
 
@@ -390,7 +383,7 @@ class PassportGenerator:
 
         return passport
 
-    def _save_passport(self, passport: Dict[str, Any], output_path: str):
+    def _save_passport(self, passport: dict[str, Any], output_path: str):
         """
         Save passport data to a file.
 

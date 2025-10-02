@@ -267,7 +267,7 @@ class GrpcServiceProtocol(Protocol):
 class ConfigurationProtocol(Protocol):
     """Protocol for configuration management."""
 
-    def get(self, key: str, default: Any = None) -> Any:  # noqa: ANN401
+    def get(self, key: str, default: Any = None) -> Any:
         """Get a configuration value."""
         ...
 
@@ -288,27 +288,27 @@ class ConfigurationProtocol(Protocol):
 class LoggerProtocol(Protocol):
     """Protocol for structured logging."""
 
-    def debug(self, message: str, *args: Any, **kwargs: Any) -> None:  # noqa: ANN401
+    def debug(self, message: str, *args: Any, **kwargs: Any) -> None:
         """Log a debug message."""
         ...
 
-    def info(self, message: str, *args: Any, **kwargs: Any) -> None:  # noqa: ANN401
+    def info(self, message: str, *args: Any, **kwargs: Any) -> None:
         """Log an info message."""
         ...
 
-    def warning(self, message: str, *args: Any, **kwargs: Any) -> None:  # noqa: ANN401
+    def warning(self, message: str, *args: Any, **kwargs: Any) -> None:
         """Log a warning message."""
         ...
 
-    def error(self, message: str, *args: Any, **kwargs: Any) -> None:  # noqa: ANN401
+    def error(self, message: str, *args: Any, **kwargs: Any) -> None:
         """Log an error message."""
         ...
 
-    def critical(self, message: str, *args: Any, **kwargs: Any) -> None:  # noqa: ANN401
+    def critical(self, message: str, *args: Any, **kwargs: Any) -> None:
         """Log a critical message."""
         ...
 
-    def exception(self, message: str, *args: Any, **kwargs: Any) -> None:  # noqa: ANN401
+    def exception(self, message: str, *args: Any, **kwargs: Any) -> None:
         """Log an exception with traceback."""
         ...
 

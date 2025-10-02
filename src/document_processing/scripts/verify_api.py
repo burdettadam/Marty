@@ -11,7 +11,7 @@ BASE_URL = "http://localhost:8080"
 TIMEOUT = 10
 
 
-def test_health():
+def test_health() -> bool:
     """Test health endpoints"""
     try:
         # Test ping
@@ -33,13 +33,14 @@ def test_health():
             return False
         print("✅ Health endpoint working")
 
-        return True
     except requests.RequestException as e:
         print(f"❌ Health test failed: {e}")
         return False
+    else:
+        return True
 
 
-def test_api():
+def test_api() -> bool:
     """Test main API endpoint"""
     try:
         payload = {
@@ -62,14 +63,15 @@ def test_api():
             return False
 
         print("✅ API endpoint working")
-        return True
 
     except requests.RequestException as e:
         print(f"❌ API test failed: {e}")
         return False
+    else:
+        return True
 
 
-def main():
+def main() -> int:
     """Run verification tests"""
     print("🔍 Document Processing API Verification")
     print("=" * 40)

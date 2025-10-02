@@ -1,13 +1,14 @@
 """
 Database connection and interface for PKD service
 """
+from __future__ import annotations
 
 import logging
 import os
 import uuid
 from collections.abc import AsyncGenerator
 from datetime import datetime
-from typing import Any, Optional
+from typing import Any
 
 import aiosqlite
 from app.core.config import settings
@@ -225,7 +226,7 @@ class DatabaseManager:
 
     @staticmethod
     async def get_certificates(
-        cert_type: str = "CSCA", country: Optional[str] = None
+        cert_type: str = "CSCA", country: str | None = None
     ) -> list[dict[str, Any]]:
         """
         Get certificates from the database.
@@ -340,7 +341,7 @@ class DatabaseManager:
             raise
 
     @staticmethod
-    async def get_crl(issuer: Optional[str] = None) -> Optional[dict[str, Any]]:
+    async def get_crl(issuer: str | None = None) -> dict[str, Any] | None:
         """
         Get the latest CRL from the database.
 
@@ -450,7 +451,7 @@ class DatabaseManager:
             raise
 
     @staticmethod
-    async def get_deviations(country: Optional[str] = None) -> list[dict[str, Any]]:
+    async def get_deviations(country: str | None = None) -> list[dict[str, Any]]:
         """
         Get deviations from the database.
 
@@ -601,7 +602,7 @@ class DatabaseManager:
             return False
 
     @staticmethod
-    async def get_sync_job(sync_id: str) -> Optional[dict[str, Any]]:
+    async def get_sync_job(sync_id: str) -> dict[str, Any] | None:
         """
         Get a sync job from the database.
 
@@ -647,7 +648,7 @@ class DatabaseManager:
             return None
 
     @staticmethod
-    async def get_latest_sync_job() -> Optional[dict[str, Any]]:
+    async def get_latest_sync_job() -> dict[str, Any] | None:
         """
         Get the latest sync job from the database.
 

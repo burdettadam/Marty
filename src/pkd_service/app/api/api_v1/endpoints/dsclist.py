@@ -1,9 +1,9 @@
 """
 Document Signer Certificate List API endpoints
 """
+from __future__ import annotations
 
 import io
-from typing import Optional
 
 from app.api.deps import get_dsclist_service, verify_api_key
 from app.models.pkd_models import DscListResponse, DscListUploadResponse
@@ -16,7 +16,7 @@ router = APIRouter()
 
 @router.get("/", response_model=DscListResponse)
 async def get_dsc_list(
-    country: Optional[str] = Query(None, description="Filter DSC list by country code"),
+    country: str | None = Query(None, description="Filter DSC list by country code"),
     service: DSCListService = Depends(get_dsclist_service),
     _: bool = Depends(verify_api_key),
 ):
@@ -33,7 +33,7 @@ async def get_dsc_list(
 
 @router.get("/download", response_class=StreamingResponse)
 async def download_dsc_list(
-    country: Optional[str] = Query(None, description="Filter DSC list by country code"),
+    country: str | None = Query(None, description="Filter DSC list by country code"),
     service: DSCListService = Depends(get_dsclist_service),
     _: bool = Depends(verify_api_key),
 ):
@@ -70,11 +70,12 @@ async def get_country_dsc_list(
             raise HTTPException(
                 status_code=404, detail=f"No certificates found for country: {country}"
             )
-        return dsc_list
     except HTTPException:
         raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to retrieve DSC list: {e!s}")
+    else:
+        return dsc_list
 
 
 @router.post("/", response_model=DscListUploadResponse, status_code=201)

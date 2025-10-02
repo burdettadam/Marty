@@ -10,7 +10,6 @@ from __future__ import annotations
 import logging
 import os
 import signal
-import sys
 from concurrent import futures
 from types import FrameType
 from typing import Any, Callable, Protocol
@@ -28,14 +27,14 @@ logger = logging.getLogger(__name__)
 
 class ServerNotInitializedError(RuntimeError):
     """Raised when server operations are attempted before initialization."""
-    
+
     def __init__(self) -> None:
         super().__init__("Server not initialized. Call setup() first.")
 
 
 class ServiceProtocol(Protocol):
     """Protocol for gRPC service classes."""
-    
+
     def add_to_server(self, server: grpc.Server) -> None:
         """Add the service to a gRPC server."""
         ...
@@ -43,7 +42,7 @@ class ServiceProtocol(Protocol):
 
 class GrpcServerConfig:
     """Configuration for gRPC server setup."""
-    
+
     def __init__(
         self,
         service_name: str,
@@ -67,41 +66,41 @@ class GrpcServerConfig:
 
 class MartyGrpcServer:
     """Standardized gRPC server for Marty services."""
-    
+
     def __init__(self, config: GrpcServerConfig) -> None:
         self.config = config
         self.server: grpc.Server | None = None
         self.health_servicer: HealthServicer | None = None
         self._services: list[ServiceProtocol] = []
         self._shutdown_requested = False
-        
+
     def add_service(self, service: ServiceProtocol) -> None:
         """Add a service to the server."""
         self._services.append(service)
-        
+
     def add_servicer_to_server(
-        self, 
-        servicer: object, 
+        self,
+        servicer: object,
         add_servicer_func: Callable[[object, grpc.Server], None]
     ) -> None:
         """Add a servicer using the generated add_servicer_to_server function."""
         if self.server is None:
             raise ServerNotInitializedError
-        
+
         add_servicer_func(servicer, self.server)
         logger.info(f"Added {servicer.__class__.__name__} to gRPC server")
-        
+
     def setup(self) -> None:
         """Set up the gRPC server with all configured services."""
         # Setup logging first
         setup_logging(service_name=self.config.service_name)
         logger.info(f"Starting {self.config.service_name} gRPC server...")
-        
+
         # Create server
         self.server = grpc.server(
             futures.ThreadPoolExecutor(max_workers=self.config.max_workers)
         )
-        
+
         # Add health check service
         if self.config.enable_health_check:
             self.health_servicer = HealthServicer()
@@ -109,7 +108,7 @@ class MartyGrpcServer:
                 self.health_servicer, self.server
             )
             logger.info("Added HealthServicer to gRPC server")
-        
+
         # Add logging streamer service
         if self.config.enable_logging_streamer:
             try:
@@ -120,31 +119,31 @@ class MartyGrpcServer:
                 logger.info("Successfully added LoggingStreamerServicer to gRPC server")
             except Exception as e:
                 logger.error(f"Failed to add LoggingStreamerServicer: {e}", exc_info=True)
-        
+
         # Add all registered services
         for service in self._services:
             service.add_to_server(self.server)
-            
+
         # Configure server port
         self.server.add_insecure_port(f"[::]:{self.config.port}")
-        
+
     def start(self) -> None:
         """Start the gRPC server."""
         if self.server is None:
             raise ServerNotInitializedError
-            
+
         self.server.start()
         logger.info(f"{self.config.service_name} server started successfully on port {self.config.port}")
-        
+
         # Set up signal handlers for graceful shutdown
         signal.signal(signal.SIGINT, self._signal_handler)
         signal.signal(signal.SIGTERM, self._signal_handler)
-        
+
     def serve(self) -> None:
         """Start the server and wait for termination."""
         self.setup()
         self.start()
-        
+
         try:
             self.server.wait_for_termination()
         except KeyboardInterrupt:
@@ -153,14 +152,14 @@ class MartyGrpcServer:
             logger.error(f"Server termination error: {e}", exc_info=True)
         finally:
             self._shutdown()
-            
+
     def _signal_handler(self, signum: int, frame: FrameType | None) -> None:
         """Handle shutdown signals."""
         logger.info(f"Received signal {signum}, initiating graceful shutdown...")
         self._shutdown_requested = True
         if self.server:
             self.server.stop(self.config.graceful_shutdown_timeout)
-            
+
     def _shutdown(self) -> None:
         """Perform graceful shutdown."""
         logger.info("Stopping gRPC server...")
@@ -178,25 +177,25 @@ def create_standard_server(
 ) -> MartyGrpcServer:
     """
     Create a standard gRPC server with minimal configuration.
-    
+
     Args:
         service_name: Name of the service
         servicer_class: Class of the main servicer
         add_servicer_func: Function to add servicer to server
         servicer_kwargs: Keyword arguments for servicer initialization
         **config_kwargs: Additional configuration for GrpcServerConfig
-        
+
     Returns:
         Configured MartyGrpcServer instance
     """
     config = GrpcServerConfig(service_name=service_name, **config_kwargs)
     server = MartyGrpcServer(config)
-    
+
     # Create and add the main servicer
     servicer_kwargs = servicer_kwargs or {}
     servicer = servicer_class(**servicer_kwargs)
     server.add_servicer_to_server(servicer, add_servicer_func)
-    
+
     return server
 
 

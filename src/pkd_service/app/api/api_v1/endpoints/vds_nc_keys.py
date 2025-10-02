@@ -7,19 +7,18 @@ according to ICAO Doc 9303 Part 13 and the unified trust protocol.
 from __future__ import annotations
 
 import logging
-from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Path, Query
 from pydantic import BaseModel, Field
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from marty_common.crypto.vds_nc_keys import (
-    KeyRole,
-    KeyStatus,
-)
 from marty_common.crypto.database_vds_nc_manager import (
     DatabaseVDSNCKeyManager,
     VDSNCKeyRepository,
+)
+from marty_common.crypto.vds_nc_keys import (
+    KeyRole,
+    KeyStatus,
 )
 
 logger = logging.getLogger(__name__)
@@ -194,7 +193,7 @@ async def get_all_vds_nc_keys(
     except KeyError:
         raise HTTPException(status_code=400, detail=f"Invalid role: {role}")
     except Exception as e:
-        logger.exception(f"Error retrieving all VDS-NC keys: {e}")
+        logger.exception("Error retrieving all VDS-NC keys")
         raise HTTPException(
             status_code=500, detail=f"Failed to retrieve VDS-NC keys: {e!s}"
         )
@@ -225,7 +224,7 @@ async def get_vds_nc_key_by_kid(
     except HTTPException:
         raise
     except Exception as e:
-        logger.exception(f"Error retrieving VDS-NC key {kid}: {e}")
+        logger.exception(f"Error retrieving VDS-NC key {kid}")
         raise HTTPException(status_code=500, detail=f"Failed to retrieve key: {e!s}")
 
 

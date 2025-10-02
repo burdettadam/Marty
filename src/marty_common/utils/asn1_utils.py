@@ -4,10 +4,11 @@ ASN.1 utilities for Marty services.
 This module provides utilities for working with ASN.1 structures commonly used in e-passports,
 leveraging the asn1crypto library for efficient and robust handling.
 """
+from __future__ import annotations
 
 import base64
 import logging
-from typing import Any, Optional
+from typing import Any
 
 from asn1crypto import cms, core, pem, x509
 
@@ -219,11 +220,12 @@ def extract_signed_data(cms_data: bytes) -> dict[str, Any]:
                 signers.append(signer)
             result["signers"] = signers
 
-        return result
     except Exception as e:
         logger.exception(f"Failed to extract SignedData: {e}")
         msg = "Failed to extract SignedData"
         raise ValueError(msg) from e
+    else:
+        return result
 
 
 def extract_certificate_info(cert_data: bytes) -> dict[str, Any]:
@@ -273,14 +275,15 @@ def extract_certificate_info(cert_data: bytes) -> dict[str, Any]:
         # Extract the full certificate in PEM format
         result["pem"] = der_to_pem(cert_data).decode("ascii")
 
-        return result
     except Exception as e:
         logger.exception(f"Failed to extract certificate info: {e}")
         msg = "Failed to extract certificate info"
         raise ValueError(msg) from e
+    else:
+        return result
 
 
-def verify_cms_signature(cms_data: bytes, cert_data: Optional[bytes] = None) -> bool:
+def verify_cms_signature(cms_data: bytes, cert_data: bytes | None = None) -> bool:
     """
     Verify the signature on a CMS SignedData structure.
 
@@ -330,7 +333,9 @@ def verify_cms_signature(cms_data: bytes, cert_data: Optional[bytes] = None) -> 
 
         # For now, just return True to indicate successful verification
         # In a real implementation, return the actual verification result
-        return True
+
     except Exception as e:
         logger.exception(f"Signature verification failed: {e}")
         return False
+    else:
+        return True

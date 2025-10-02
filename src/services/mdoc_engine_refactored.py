@@ -3,6 +3,7 @@ Refactored mDoc Engine service using shared gRPC utilities.
 
 This demonstrates how to use the new shared infrastructure to reduce code duplication.
 """
+from __future__ import annotations
 
 import json
 import logging
@@ -24,7 +25,7 @@ class MDocEngineServicer(mdoc_engine_pb2_grpc.MDocEngineServicer):
     def __init__(self, config: dict[str, Any] | None = None) -> None:
         """
         Initialize the mDoc Engine servicer.
-        
+
         Args:
             config: Optional configuration dictionary (for backward compatibility)
         """
@@ -51,17 +52,17 @@ class MDocEngineServicer(mdoc_engine_pb2_grpc.MDocEngineServicer):
     def CreateMDoc(self, request, context):
         """Create a new mDoc."""
         self.logger.info(f"CreateMDoc request received for doc_type: {request.doc_type}")
-        
+
         try:
             if not request.doc_type:
                 return self._create_error_response(
-                    context, 
+                    context,
                     grpc.StatusCode.INVALID_ARGUMENT,
                     "doc_type cannot be empty"
                 )
 
             mdoc_id = str(uuid.uuid4())
-            
+
             # Validate data elements
             if not self._validate_data_elements(request.data_elements):
                 return self._create_error_response(
@@ -72,10 +73,10 @@ class MDocEngineServicer(mdoc_engine_pb2_grpc.MDocEngineServicer):
 
             self.logger.info(f"mDoc created with ID: {mdoc_id} for type: {request.doc_type}")
             return mdoc_engine_pb2.CreateMDocResponse(
-                mdoc_id=mdoc_id, 
+                mdoc_id=mdoc_id,
                 status_message="mDoc created successfully"
             )
-            
+
         except Exception as e:
             self.logger.exception("Error creating mDoc")
             return self._create_error_response(
@@ -90,7 +91,7 @@ class MDocEngineServicer(mdoc_engine_pb2_grpc.MDocEngineServicer):
             f"PresentMDoc request received for mdoc_id: {request.mdoc_id}, "
             f"elements: {request.requested_elements}"
         )
-        
+
         try:
             if not request.mdoc_id:
                 return self._create_error_response(
@@ -110,7 +111,7 @@ class MDocEngineServicer(mdoc_engine_pb2_grpc.MDocEngineServicer):
                 presentation_data=presentation_data,
                 status_message="mDoc presentation prepared"
             )
-            
+
         except Exception as e:
             self.logger.exception("Error presenting mDoc")
             return self._create_error_response(
@@ -122,7 +123,7 @@ class MDocEngineServicer(mdoc_engine_pb2_grpc.MDocEngineServicer):
     def GetMDoc(self, request, context):
         """Retrieve an mDoc by document ID."""
         self.logger.info(f"GetMDoc request received for mdoc_id: {request.mdoc_id}")
-        
+
         try:
             if not request.mdoc_id:
                 return mdoc_engine_pb2.MDocResponse(
@@ -131,20 +132,21 @@ class MDocEngineServicer(mdoc_engine_pb2_grpc.MDocEngineServicer):
 
             # Create mock response (in real implementation, retrieve from database)
             mock_response = self._create_mock_mdoc_response(request.mdoc_id)
-            
+
             self.logger.info(f"Retrieved mDoc with ID: {request.mdoc_id}")
-            return mock_response
-            
+
         except Exception as e:
             self.logger.exception("Error retrieving mDoc")
             return mdoc_engine_pb2.MDocResponse(
                 error_message=f"Internal server error: {e}"
             )
+        else:
+            return mock_response
 
     def SignMDoc(self, request, context):
         """Sign an mDoc using Document Signer."""
         self.logger.info(f"SignMDoc request received for mdoc_id: {request.mdoc_id}")
-        
+
         try:
             if not request.mdoc_id:
                 return mdoc_engine_pb2.SignMDocResponse(
@@ -154,13 +156,13 @@ class MDocEngineServicer(mdoc_engine_pb2_grpc.MDocEngineServicer):
 
             # Create mock signature (in real implementation, call Document Signer service)
             signature_info = self._create_mock_signature(request.mdoc_id)
-            
+
             self.logger.info(f"Successfully signed mDoc: {request.mdoc_id}")
             return mdoc_engine_pb2.SignMDocResponse(
                 success=True,
                 signature_info=signature_info
             )
-            
+
         except Exception as e:
             self.logger.exception("Error signing mDoc")
             return mdoc_engine_pb2.SignMDocResponse(
@@ -171,7 +173,7 @@ class MDocEngineServicer(mdoc_engine_pb2_grpc.MDocEngineServicer):
     def VerifyMDoc(self, request, context):
         """Verify an mDoc."""
         self.logger.info("VerifyMDoc request received")
-        
+
         try:
             # Determine mDoc source
             mdoc_source = self._determine_mdoc_source(request)
@@ -184,14 +186,14 @@ class MDocEngineServicer(mdoc_engine_pb2_grpc.MDocEngineServicer):
             # Perform verification (mock implementation)
             verification_results = self._create_mock_verification_results()
             mdoc_data = self._create_mock_mdoc_response("verified_mdoc_id")
-            
+
             self.logger.info(f"Successfully verified mDoc from {mdoc_source}")
             return mdoc_engine_pb2.VerifyMDocResponse(
                 is_valid=True,
                 verification_results=verification_results,
                 mdoc_data=mdoc_data
             )
-            
+
         except Exception as e:
             self.logger.exception("Error verifying mDoc")
             return mdoc_engine_pb2.VerifyMDocResponse(
@@ -216,10 +218,11 @@ class MDocEngineServicer(mdoc_engine_pb2_grpc.MDocEngineServicer):
                 json.dumps(data_dict)  # Test serialization
             elif isinstance(data_elements, str):
                 json.loads(data_elements)  # Test deserialization
-            return True
         except Exception as e:
-            self.logger.error(f"Data elements validation failed: {e}")
+            self.logger.exception(f"Data elements validation failed: {e}")
             return False
+        else:
+            return True
 
     def _create_presentation_data(self, mdoc_id: str, requested_elements: list[str]) -> bytes:
         """Create presentation data for an mDoc."""
@@ -277,9 +280,9 @@ class MDocEngineServicer(mdoc_engine_pb2_grpc.MDocEngineServicer):
         """Determine the source of mDoc data in the request."""
         if request.HasField("mdoc_id"):
             return f"mdoc_id: {request.mdoc_id}"
-        elif request.HasField("qr_code_data"):
+        if request.HasField("qr_code_data"):
             return f"qr_code_data: {len(request.qr_code_data)} bytes"
-        elif request.HasField("device_data"):
+        if request.HasField("device_data"):
             return f"device_data: {len(request.device_data)} bytes"
         return None
 
@@ -297,8 +300,8 @@ class MDocEngineServicer(mdoc_engine_pb2_grpc.MDocEngineServicer):
                 details="Certificate chain is trusted",
             ),
             mdoc_engine_pb2.VerificationResult(
-                check_name="expiration_check", 
-                passed=True, 
+                check_name="expiration_check",
+                passed=True,
                 details="Document has not expired"
             ),
         ]

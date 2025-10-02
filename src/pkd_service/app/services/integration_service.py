@@ -1,6 +1,7 @@
 """
 Integration service for connecting with other Marty microservices
 """
+from __future__ import annotations
 
 import logging
 import os
@@ -9,7 +10,6 @@ import os
 import sys
 import uuid
 from datetime import datetime
-from typing import Optional
 
 import grpc
 
@@ -111,7 +111,7 @@ class IntegrationService:
                 # Return a mock stub that will handle the error case
         return self._ta_stub
 
-    async def get_csca_certificates(self, country: Optional[str] = None) -> list[Certificate]:
+    async def get_csca_certificates(self, country: str | None = None) -> list[Certificate]:
         """
         Get CSCA certificates from the CSCA service.
 
@@ -149,8 +149,6 @@ class IntegrationService:
                     )
                 )
 
-            return certificates
-
         except Exception as e:
             logger.warning(f"Failed to get CSCA certificates from service: {e}")
             logger.info("Returning mock CSCA certificate data")
@@ -185,9 +183,11 @@ class IntegrationService:
             if country:
                 return [cert for cert in mock_certificates if cert.country_code == country]
             return mock_certificates
+        else:
+            return certificates
 
     async def get_document_signer_certificates(
-        self, country: Optional[str] = None
+        self, country: str | None = None
     ) -> list[Certificate]:
         """
         Get Document Signer certificates from the Document Signer service.
@@ -226,8 +226,6 @@ class IntegrationService:
                     )
                 )
 
-            return certificates
-
         except Exception as e:
             logger.warning(f"Failed to get DS certificates from service: {e}")
             logger.info("Returning mock DS certificate data")
@@ -261,5 +259,7 @@ class IntegrationService:
             if country:
                 return [cert for cert in mock_certificates if cert.country_code == country]
             return mock_certificates
+        else:
+            return certificates
 
     # Additional integration methods would be implemented here

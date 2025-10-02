@@ -10,7 +10,7 @@ import logging
 import struct
 from dataclasses import dataclass
 from enum import Enum
-from typing import Any, Optional
+from typing import Any
 
 logger = logging.getLogger(__name__)
 
@@ -46,7 +46,7 @@ class EFData:
     tag: int
     length: int
     data: bytes
-    parsed_content: Optional[dict[str, Any]] = None
+    parsed_content: dict[str, Any] | None = None
 
 
 @dataclass
@@ -62,7 +62,7 @@ class MRZInfo:
     date_of_birth: str
     sex: str
     date_of_expiry: str
-    personal_number: Optional[str]
+    personal_number: str | None
     check_digit_composite: str
 
 
@@ -72,19 +72,19 @@ class BiometricInfo:
 
     biometric_type: int
     biometric_subtype: int
-    creation_date: Optional[str]
-    validity_period: Optional[tuple[str, str]]
-    creator: Optional[str]
+    creation_date: str | None
+    validity_period: tuple[str, str] | None
+    creator: str | None
     format_owner: int
     format_type: int
-    quality: Optional[int]
+    quality: int | None
     data: bytes
 
 
 class ElementaryFileParser:
     """Parser for ICAO elementary files."""
 
-    def __init__(self):
+    def __init__(self) -> None:
         self.logger = logging.getLogger(__name__)
 
     def parse_tlv(self, data: bytes, offset: int = 0) -> tuple[int, int, bytes, int]:
@@ -94,7 +94,8 @@ class ElementaryFileParser:
             tuple: (tag, length, value, next_offset)
         """
         if offset >= len(data):
-            raise ValueError("Offset beyond data length")
+            msg = "Offset beyond data length"
+            raise ValueError(msg)
 
         # Parse tag
         tag = data[offset]
@@ -113,7 +114,8 @@ class ElementaryFileParser:
             # Long form length
             length_octets = length & 0x7F
             if length_octets == 0:
-                raise ValueError("Indefinite length not supported")
+                msg = "Indefinite length not supported"
+                raise ValueError(msg)
 
             length = 0
             for _ in range(length_octets):
@@ -122,7 +124,8 @@ class ElementaryFileParser:
 
         # Extract value
         if offset + length > len(data):
-            raise ValueError("Length extends beyond data")
+            msg = "Length extends beyond data"
+            raise ValueError(msg)
 
         value = data[offset : offset + length]
 
@@ -134,7 +137,8 @@ class ElementaryFileParser:
             tag, length, value, _ = self.parse_tlv(data)
 
             if tag != 0x60:  # SET OF tag
-                raise ValueError(f"Invalid EF.COM tag: 0x{tag:02X}")
+                msg = f"Invalid EF.COM tag: 0x{tag:02X}"
+                raise ValueError(msg)
 
             result = {"lod_version": None, "unicode_version": None, "data_groups": []}
 
@@ -155,11 +159,11 @@ class ElementaryFileParser:
 
                 offset = next_offset
 
-            return result
-
-        except Exception as e:
-            self.logger.error("Failed to parse EF.COM: %s", str(e))
+        except Exception:
+            self.logger.exception("Failed to parse EF.COM")
             raise
+        else:
+            return result
 
     def parse_ef_dg1(self, data: bytes) -> MRZInfo:
         """Parse EF.DG1 (MRZ Information)."""
@@ -167,13 +171,15 @@ class ElementaryFileParser:
             tag, length, value, _ = self.parse_tlv(data)
 
             if tag != 0x61:  # DG1 tag
-                raise ValueError(f"Invalid DG1 tag: 0x{tag:02X}")
+                msg = f"Invalid DG1 tag: 0x{tag:02X}"
+                raise ValueError(msg)
 
             # Parse inner TLV for MRZ data
             mrz_tag, mrz_length, mrz_data, _ = self.parse_tlv(value)
 
             if mrz_tag != 0x5F1F:  # MRZ tag
-                raise ValueError(f"Invalid MRZ tag: 0x{mrz_tag:02X}")
+                msg = f"Invalid MRZ tag: 0x{mrz_tag:02X}"
+                raise ValueError(msg)
 
             # Parse MRZ text (typically 2 or 3 lines)
             mrz_text = mrz_data.decode("utf-8")
@@ -184,7 +190,8 @@ class ElementaryFileParser:
             )
 
             if len(lines) < 2:
-                raise ValueError("Invalid MRZ format")
+                msg = "Invalid MRZ format"
+                raise ValueError(msg)
 
             # Parse TD-3 format (passport)
             if len(lines[0]) == 44:
@@ -192,14 +199,15 @@ class ElementaryFileParser:
             # Parse TD-1 or TD-2 format
             return self._parse_td2_mrz(lines)
 
-        except Exception as e:
-            self.logger.error("Failed to parse DG1: %s", str(e))
+        except Exception:
+            self.logger.exception("Failed to parse DG1")
             raise
 
     def _parse_td3_mrz(self, lines: list[str]) -> MRZInfo:
         """Parse TD-3 (passport) MRZ format."""
         if len(lines) != 2 or len(lines[0]) != 44 or len(lines[1]) != 44:
-            raise ValueError("Invalid TD-3 MRZ format")
+            msg = "Invalid TD-3 MRZ format"
+            raise ValueError(msg)
 
         line1 = lines[0]
         line2 = lines[1]
@@ -240,37 +248,39 @@ class ElementaryFileParser:
     def _parse_td2_mrz(self, lines: list[str]) -> MRZInfo:
         """
         Parse TD-2 MRZ format per ICAO Doc 9303 Part 6.
-        
+
         TD-2 format consists of 2 lines of 36 characters each:
         Line 1: Document data with dates and check digits
         Line 2: Name field
         """
         if len(lines) != 2:
-            raise ValueError("TD-2 MRZ must have exactly 2 lines")
-            
+            msg = "TD-2 MRZ must have exactly 2 lines"
+            raise ValueError(msg)
+
         if not all(len(line) == 36 for line in lines):
-            raise ValueError("TD-2 MRZ lines must be exactly 36 characters each")
-        
+            msg = "TD-2 MRZ lines must be exactly 36 characters each"
+            raise ValueError(msg)
+
         line1 = lines[0]
         line2 = lines[1]
-        
+
         # Parse Line 1: Document data
         document_code = line1[0:2].rstrip("<")
         issuing_country = line1[2:5]
         passport_number = line1[5:14].rstrip("<")
-        check_digit_passport = line1[14]
+        line1[14]
         date_of_birth = line1[15:21]
-        check_digit_birth = line1[21]
+        line1[21]
         sex = line1[22]
         date_of_expiry = line1[23:29]
-        check_digit_expiry = line1[29]
+        line1[29]
         nationality = line1[30:33]
         optional_data = line1[33:35].rstrip("<")
         check_digit_composite = line1[35]
-        
+
         # Parse Line 2: Name field
         name_field = line2.rstrip("<")
-        
+
         # Parse names with primary identifier precedence per Part 6
         if "<<" in name_field:
             name_parts = name_field.split("<<", 1)
@@ -280,7 +290,7 @@ class ElementaryFileParser:
             # If no clear separator, treat as surname only
             surname = name_field.replace("<", " ").strip()
             given_names = ""
-        
+
         return MRZInfo(
             document_code=document_code,
             issuing_country=issuing_country,
@@ -301,18 +311,20 @@ class ElementaryFileParser:
             tag, length, value, _ = self.parse_tlv(data)
 
             if tag != 0x75:  # DG2 tag
-                raise ValueError(f"Invalid DG2 tag: 0x{tag:02X}")
+                msg = f"Invalid DG2 tag: 0x{tag:02X}"
+                raise ValueError(msg)
 
             # Parse biometric information template
             bio_tag, bio_length, bio_data, _ = self.parse_tlv(value)
 
             if bio_tag != 0x7F2E:  # Biometric Information Template
-                raise ValueError(f"Invalid biometric template tag: 0x{bio_tag:02X}")
+                msg = f"Invalid biometric template tag: 0x{bio_tag:02X}"
+                raise ValueError(msg)
 
             return self._parse_biometric_template(bio_data)
 
-        except Exception as e:
-            self.logger.error("Failed to parse DG2: %s", str(e))
+        except Exception:
+            self.logger.exception("Failed to parse DG2")
             raise
 
     def _parse_biometric_template(self, data: bytes) -> BiometricInfo:
@@ -374,11 +386,11 @@ class ElementaryFileParser:
             else:
                 self.logger.info("No specific parser for %s, returning raw data", file_id)
 
-            return ef_data
-
-        except Exception as e:
-            self.logger.error("Failed to parse EF %s: %s", file_id, str(e))
+        except Exception:
+            self.logger.exception("Failed to parse EF %s", file_id)
             raise
+        else:
+            return ef_data
 
     def validate_mrz_check_digit(self, data: str, check_digit: str) -> bool:
         """Validate MRZ check digit."""

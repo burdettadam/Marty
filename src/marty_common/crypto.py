@@ -4,6 +4,7 @@ Cryptographic utilities for Marty services.
 This module provides cryptographic functions used across multiple Marty services,
 including certificate operations, key management, and digital signatures.
 """
+from __future__ import annotations
 
 import base64
 import hashlib

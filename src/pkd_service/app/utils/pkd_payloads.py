@@ -7,7 +7,6 @@ import io
 import logging
 import zipfile
 from collections.abc import Iterator
-from typing import List, Optional, Tuple
 
 import asn1crypto.crl
 import asn1crypto.pem
@@ -24,12 +23,12 @@ logger = logging.getLogger(__name__)
 PAYLOAD_ROOT_LABEL = "payload"
 
 
-def unwrap_pkd_payload(blob: bytes, label: str = PAYLOAD_ROOT_LABEL) -> List[Tuple[str, bytes]]:
+def unwrap_pkd_payload(blob: bytes, label: str = PAYLOAD_ROOT_LABEL) -> list[tuple[str, bytes]]:
     """Recursively unwrap PKD payload containers into raw binary blobs."""
 
-    results: List[Tuple[str, bytes]] = []
-    stack: list[Tuple[str, bytes]] = [(label, blob)]
-    seen: set[Tuple[str, int]] = set()
+    results: list[tuple[str, bytes]] = []
+    stack: list[tuple[str, bytes]] = [(label, blob)]
+    seen: set[tuple[str, int]] = set()
 
     while stack:
         name, data = stack.pop()
@@ -67,12 +66,12 @@ def unwrap_pkd_payload(blob: bytes, label: str = PAYLOAD_ROOT_LABEL) -> List[Tup
 
 def parse_certificate_payload(
     blob: bytes, *, source_hint: str = PAYLOAD_ROOT_LABEL
-) -> List[Certificate]:
+) -> list[Certificate]:
     """Decode the certificates embedded in a PKD payload."""
 
-    certificates: dict[Tuple[str, str], Certificate] = {}
+    certificates: dict[tuple[str, str], Certificate] = {}
 
-    for name, data in unwrap_pkd_payload(blob, source_hint):
+    for _name, data in unwrap_pkd_payload(blob, source_hint):
         decoded = _decode_masterlist_like(data)
         if not decoded:
             decoded = _decode_raw_certificates(data)
@@ -84,11 +83,11 @@ def parse_certificate_payload(
     return list(certificates.values())
 
 
-def parse_crl_payload(blob: bytes, *, source_hint: str = PAYLOAD_ROOT_LABEL) -> List[dict]:
+def parse_crl_payload(blob: bytes, *, source_hint: str = PAYLOAD_ROOT_LABEL) -> list[dict]:
     """Decode the CRLs embedded in a PKD payload."""
 
-    crls: List[dict] = []
-    for name, data in unwrap_pkd_payload(blob, source_hint):
+    crls: list[dict] = []
+    for _name, data in unwrap_pkd_payload(blob, source_hint):
         crl_entry = _decode_single_crl(data)
         if crl_entry:
             crls.append(crl_entry)
@@ -96,7 +95,7 @@ def parse_crl_payload(blob: bytes, *, source_hint: str = PAYLOAD_ROOT_LABEL) -> 
     return crls
 
 
-def _decode_masterlist_like(data: bytes) -> List[Certificate]:
+def _decode_masterlist_like(data: bytes) -> list[Certificate]:
     """Try interpreting data as an ICAO master list (CMS SignedData)."""
 
     # Late import avoids circular dependency with ASN1Decoder
@@ -104,16 +103,17 @@ def _decode_masterlist_like(data: bytes) -> List[Certificate]:
 
     try:
         certificates = ASN1Decoder.decode_master_list(data)
-        return certificates or []
     except Exception as exc:  # pragma: no cover - defensive guard
         logger.debug("Master list decode failed: %s", exc)
         return []
+    else:
+        return certificates or []
 
 
-def _decode_raw_certificates(data: bytes) -> List[Certificate]:
+def _decode_raw_certificates(data: bytes) -> list[Certificate]:
     """Decode loose PEM/DER encoded certificates."""
 
-    certs: List[Certificate] = []
+    certs: list[Certificate] = []
 
     try:
         text = data.decode("ascii")
@@ -180,7 +180,7 @@ def _convert_x509_to_model(cert_obj: x509.Certificate) -> Certificate:
     )
 
 
-def _decode_single_crl(data: bytes) -> Optional[dict]:
+def _decode_single_crl(data: bytes) -> dict | None:
     """Decode a single CRL, returning a dictionary suitable for storage."""
 
     try:
@@ -193,7 +193,7 @@ def _decode_single_crl(data: bytes) -> Optional[dict]:
         next_update_field = tbs_cert_list.get("next_update")
         next_update = next_update_field.native if next_update_field is not None else this_update
 
-        revoked_entries: List[RevokedCertificate] = []
+        revoked_entries: list[RevokedCertificate] = []
         for revoked in tbs_cert_list.get("revoked_certificates", []):
             serial = format(revoked["user_certificate"].native, "X")
             revocation_date = revoked["revocation_date"].native

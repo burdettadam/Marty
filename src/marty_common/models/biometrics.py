@@ -8,12 +8,13 @@ Models for biometric data formats used in e-passports:
 
 These models comply with the ICAO Doc 9303 and ISO/IEC standards for biometrics.
 """
+from __future__ import annotations
 
 import base64
 from dataclasses import dataclass, field
 from datetime import datetime
 from enum import Enum, IntEnum
-from typing import Any, Optional, Union
+from typing import Any
 
 
 class BiometricType(IntEnum):
@@ -130,7 +131,7 @@ class BiometricSubtypeInfo:
         return {"biometricType": self.biometric_type, "subtype": self.subtype}
 
     @classmethod
-    def from_dict(cls, data: dict[str, Any]) -> "BiometricSubtypeInfo":
+    def from_dict(cls, data: dict[str, Any]) -> BiometricSubtypeInfo:
         """Create BiometricSubtypeInfo from dictionary."""
         return cls(biometric_type=BiometricType(data["biometricType"]), subtype=data["subtype"])
 
@@ -148,7 +149,7 @@ class FeaturePoint:
         return {"featureType": self.feature_type, "x": self.x, "y": self.y}
 
     @classmethod
-    def from_dict(cls, data: dict[str, Any]) -> "FeaturePoint":
+    def from_dict(cls, data: dict[str, Any]) -> FeaturePoint:
         """Create FeaturePoint from dictionary."""
         return cls(feature_type=FaceFeaturePoint(data["featureType"]), x=data["x"], y=data["y"])
 
@@ -163,11 +164,11 @@ class FacialImageInfo:
     color_space: str
     source_type: str
     device_type: str
-    quality: Optional[int] = None
-    pose_angle: Optional[FacePoseAngle] = None
-    pose_angle_yaw: Optional[int] = None
-    pose_angle_pitch: Optional[int] = None
-    pose_angle_roll: Optional[int] = None
+    quality: int | None = None
+    pose_angle: FacePoseAngle | None = None
+    pose_angle_yaw: int | None = None
+    pose_angle_pitch: int | None = None
+    pose_angle_roll: int | None = None
     feature_points: list[FeaturePoint] = field(default_factory=list)
 
     def to_dict(self) -> dict[str, Any]:
@@ -202,7 +203,7 @@ class FacialImageInfo:
         return result
 
     @classmethod
-    def from_dict(cls, data: dict[str, Any]) -> "FacialImageInfo":
+    def from_dict(cls, data: dict[str, Any]) -> FacialImageInfo:
         """Create FacialImageInfo from dictionary."""
         info = cls(
             image_type=FaceImageType(data["imageType"]),
@@ -235,7 +236,7 @@ class FingerImageInfo:
     horizontal_resolution: int  # pixels per cm
     vertical_resolution: int  # pixels per cm
     grayscale_depth: int
-    quality: Optional[int] = None
+    quality: int | None = None
 
     def to_dict(self) -> dict[str, Any]:
         """Convert to dictionary."""
@@ -255,7 +256,7 @@ class FingerImageInfo:
         return result
 
     @classmethod
-    def from_dict(cls, data: dict[str, Any]) -> "FingerImageInfo":
+    def from_dict(cls, data: dict[str, Any]) -> FingerImageInfo:
         """Create FingerImageInfo from dictionary."""
         return cls(
             position=FingerPosition(data["position"]),
@@ -278,7 +279,7 @@ class IrisImageInfo:
     width: int
     height: int
     device_unique_id: str
-    quality: Optional[int] = None
+    quality: int | None = None
 
     def to_dict(self) -> dict[str, Any]:
         """Convert to dictionary."""
@@ -296,7 +297,7 @@ class IrisImageInfo:
         return result
 
     @classmethod
-    def from_dict(cls, data: dict[str, Any]) -> "IrisImageInfo":
+    def from_dict(cls, data: dict[str, Any]) -> IrisImageInfo:
         """Create IrisImageInfo from dictionary."""
         return cls(
             image_type=IrisImageType(data["imageType"]),
@@ -319,9 +320,9 @@ class BiometricDataBlock:
     format_type: int
     compression_type: CompressionType
     image_data: bytes
-    facial_info: Optional[FacialImageInfo] = None
-    finger_info: Optional[FingerImageInfo] = None
-    iris_info: Optional[IrisImageInfo] = None
+    facial_info: FacialImageInfo | None = None
+    finger_info: FingerImageInfo | None = None
+    iris_info: IrisImageInfo | None = None
 
     def to_dict(self) -> dict[str, Any]:
         """Convert to dictionary."""
@@ -347,7 +348,7 @@ class BiometricDataBlock:
         return result
 
     @classmethod
-    def from_dict(cls, data: dict[str, Any]) -> "BiometricDataBlock":
+    def from_dict(cls, data: dict[str, Any]) -> BiometricDataBlock:
         """Create BiometricDataBlock from dictionary."""
         block = cls(
             biometric_type=BiometricType(data["biometricType"]),
@@ -370,7 +371,7 @@ class BiometricDataBlock:
 
         return block
 
-    def get_specific_info(self) -> Union[FacialImageInfo, FingerImageInfo, IrisImageInfo, None]:
+    def get_specific_info(self) -> FacialImageInfo | FingerImageInfo | IrisImageInfo | None:
         """Get the specific biometric info for this block."""
         if self.biometric_type == BiometricType.FACIAL:
             return self.facial_info
@@ -400,7 +401,7 @@ class BiometricInfoGroup:
         }
 
     @classmethod
-    def from_dict(cls, data: dict[str, Any]) -> "BiometricInfoGroup":
+    def from_dict(cls, data: dict[str, Any]) -> BiometricInfoGroup:
         """Create BiometricInfoGroup from dictionary."""
         group = cls(
             biometric_type=BiometricType(data["biometricType"]),
@@ -436,7 +437,7 @@ class CBEFFContainer:
         }
 
     @classmethod
-    def from_dict(cls, data: dict[str, Any]) -> "CBEFFContainer":
+    def from_dict(cls, data: dict[str, Any]) -> CBEFFContainer:
         """Create CBEFFContainer from dictionary."""
         container = cls(version=data.get("version", 1))
 
@@ -447,7 +448,7 @@ class CBEFFContainer:
 
         return container
 
-    def get_group_by_type(self, biometric_type: BiometricType) -> Optional[BiometricInfoGroup]:
+    def get_group_by_type(self, biometric_type: BiometricType) -> BiometricInfoGroup | None:
         """Get a biometric group by its type."""
         for group in self.biometric_groups:
             if group.biometric_type == biometric_type:
@@ -471,7 +472,7 @@ class CBEFFContainer:
         return json.dumps(self.to_dict()).encode("utf-8")
 
     @classmethod
-    def from_binary(cls, data: bytes) -> "CBEFFContainer":
+    def from_binary(cls, data: bytes) -> CBEFFContainer:
         """
         Create CBEFFContainer from binary CBEFF data (stub implementation).
 
@@ -492,7 +493,7 @@ class BiometricMatchResult:
     score: float
     decision: bool
     match_time: datetime = field(default_factory=datetime.now)
-    match_details: Optional[dict[str, Any]] = None
+    match_details: dict[str, Any] | None = None
 
     def to_dict(self) -> dict[str, Any]:
         """Convert to dictionary."""
@@ -509,7 +510,7 @@ class BiometricMatchResult:
         return result
 
     @classmethod
-    def from_dict(cls, data: dict[str, Any]) -> "BiometricMatchResult":
+    def from_dict(cls, data: dict[str, Any]) -> BiometricMatchResult:
         """Create BiometricMatchResult from dictionary."""
         return cls(
             biometric_type=BiometricType(data["biometricType"]),

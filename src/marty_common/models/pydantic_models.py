@@ -4,11 +4,12 @@ Pydantic models for Marty services.
 These models leverage Pydantic for automatic validation and serialization/deserialization.
 They complement the existing dataclass models but provide additional type safety and validation.
 """
+from __future__ import annotations
 
 import base64
 from datetime import date, datetime
 from enum import Enum
-from typing import Any, Optional
+from typing import Any
 from uuid import UUID, uuid4
 
 from pydantic import BaseModel, Field, field_validator
@@ -67,7 +68,7 @@ class MRZDataModel(BaseModel):
     date_of_birth: str = Field(pattern=r"^\d{6}$", description="Date of birth in YYMMDD format")
     gender: Gender = Field(description="Gender as per ICAO standards")
     date_of_expiry: str = Field(pattern=r"^\d{6}$", description="Date of expiry in YYMMDD format")
-    personal_number: Optional[str] = Field(None, description="Optional personal number")
+    personal_number: str | None = Field(None, description="Optional personal number")
 
     model_config = {
         "validate_assignment": True,
@@ -138,7 +139,7 @@ class SignedObjectModel(BaseModel):
         return f"{self.signature}.{self.timestamp}"
 
     @classmethod
-    def from_string(cls, sod_string: str) -> "SignedObjectModel":
+    def from_string(cls, sod_string: str) -> SignedObjectModel:
         """Create SOD from string format."""
         parts = sod_string.split(".")
         if len(parts) != 2:
@@ -159,8 +160,8 @@ class PassportDataModel(BaseModel):
     date_of_birth: date = Field(description="Date of birth")
     gender: Gender = Field(description="Gender as per ICAO standards")
     date_of_expiry: date = Field(description="Date of expiry")
-    personal_number: Optional[str] = Field(None, description="Optional personal number")
-    photo: Optional[str] = Field(None, description="Base64 encoded JPEG photo")
+    personal_number: str | None = Field(None, description="Optional personal number")
+    photo: str | None = Field(None, description="Base64 encoded JPEG photo")
 
     model_config = {
         "validate_assignment": True,
@@ -207,9 +208,9 @@ class PassportModel(BaseModel):
 
     id: UUID = Field(default_factory=uuid4, description="Unique passport identifier")
     passport_data: PassportDataModel = Field(description="Basic passport data")
-    mrz: Optional[str] = Field(None, description="Machine Readable Zone data")
-    security_object: Optional[str] = Field(None, description="Document Security Object")
-    chip_content: Optional[str] = Field(None, description="Base64 encoded binary chip data")
+    mrz: str | None = Field(None, description="Machine Readable Zone data")
+    security_object: str | None = Field(None, description="Document Security Object")
+    chip_content: str | None = Field(None, description="Base64 encoded binary chip data")
     data_groups: dict[str, DataGroupModel] = Field(
         default_factory=dict, description="Passport data groups"
     )

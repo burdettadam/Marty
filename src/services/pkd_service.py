@@ -41,7 +41,7 @@ class PKDService(pkd_service_pb2_grpc.PKDServiceServicer):
         if self._auto_sync_interval > 0:
             self._start_background_sync()
 
-    async def ListTrustAnchors(  # noqa: N802
+    async def ListTrustAnchors(
         self,
         _request: Any,  # empty_pb2.Empty
         _context: GrpcServicerContext,  # grpc.ServicerContext
@@ -62,7 +62,7 @@ class PKDService(pkd_service_pb2_grpc.PKDServiceServicer):
             )
         return pkd_service_pb2.ListTrustAnchorsResponse(anchors=anchors)
 
-    async def Sync(  # noqa: N802
+    async def Sync(
         self,
         request: Any,  # pkd_service_pb2.SyncRequest
         _context: GrpcServicerContext,  # grpc.ServicerContext

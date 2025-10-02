@@ -1,10 +1,11 @@
 """
 Data models for the PKD service
 """
+from __future__ import annotations
 
 from datetime import datetime
 from enum import Enum
-from typing import Any, Optional
+from typing import Any
 from uuid import UUID, uuid4
 
 from pydantic import BaseModel, Field, validator
@@ -151,7 +152,7 @@ class RevokedCertificate(BaseModel):
 
     serial_number: str
     revocation_date: datetime
-    reason_code: Optional[int] = None
+    reason_code: int | None = None
 
 
 class CrlResponse(BaseModel):
@@ -171,8 +172,8 @@ class Deviation(BaseModel):
 
     country: str
     type: DeviationType
-    certificate_id: Optional[str] = None
-    description: Optional[str] = None
+    certificate_id: str | None = None
+    description: str | None = None
 
 
 class DeviationListResponse(BaseModel):
@@ -241,10 +242,10 @@ class PkdSyncStatusResponse(BaseModel):
 
     id: UUID
     status: SyncStatus
-    start_time: Optional[datetime] = None
-    end_time: Optional[datetime] = None
+    start_time: datetime | None = None
+    end_time: datetime | None = None
     components: dict[str, ComponentSyncStatus] = {}
-    error_message: Optional[str] = None
+    error_message: str | None = None
 
 
 class VerificationResult(BaseModel):

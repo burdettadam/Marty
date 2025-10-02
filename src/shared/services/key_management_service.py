@@ -9,6 +9,7 @@ This service is responsible for:
 4. Key backup and recovery
 5. Key usage auditing and tracking
 """
+from __future__ import annotations
 
 import datetime
 import enum
@@ -20,7 +21,7 @@ import tempfile
 import uuid
 import zipfile
 from dataclasses import dataclass
-from typing import Any, Optional
+from typing import Any
 
 from cryptography import x509
 from cryptography.hazmat.primitives import serialization
@@ -66,8 +67,8 @@ class KeyRotationPolicy:
 
     rotation_interval_days: int
     key_usage: KeyUsage
-    min_key_size: Optional[int] = None
-    curve_name: Optional[str] = None
+    min_key_size: int | None = None
+    curve_name: str | None = None
     auto_rotate: bool = False
 
     def to_dict(self) -> dict[str, Any]:
@@ -87,7 +88,7 @@ class KeyRotationPolicy:
         return result
 
     @classmethod
-    def from_dict(cls, data: dict[str, Any]) -> "KeyRotationPolicy":
+    def from_dict(cls, data: dict[str, Any]) -> KeyRotationPolicy:
         """Create a policy object from dictionary data."""
         return cls(
             rotation_interval_days=data["rotation_interval_days"],
@@ -112,7 +113,7 @@ class KeyManagementService:
     DEFAULT_EC_CURVE = "secp256r1"
 
     def __init__(
-        self, key_store_path: Optional[str] = None, use_hsm: bool = False, hsm_service=None
+        self, key_store_path: str | None = None, use_hsm: bool = False, hsm_service=None
     ) -> None:
         """
         Initialize the Key Management Service.
@@ -138,10 +139,10 @@ class KeyManagementService:
         key_id: str,
         key_type: KeyType,
         key_usage: KeyUsage,
-        key_size: Optional[int] = None,
-        curve_name: Optional[str] = None,
-        metadata: Optional[dict[str, Any]] = None,
-        expiry_date: Optional[str] = None,
+        key_size: int | None = None,
+        curve_name: str | None = None,
+        metadata: dict[str, Any] | None = None,
+        expiry_date: str | None = None,
     ) -> dict[str, Any]:
         """
         Generate a new cryptographic key.
@@ -411,7 +412,7 @@ class KeyManagementService:
             format=serialization.PublicFormat.SubjectPublicKeyInfo,
         )
 
-    def get_certificate(self, key_id: str) -> Optional[x509.Certificate]:
+    def get_certificate(self, key_id: str) -> x509.Certificate | None:
         """
         Get a certificate associated with a key.
 

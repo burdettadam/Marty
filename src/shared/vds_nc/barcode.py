@@ -13,10 +13,10 @@ from .types import BarcodeFormat, DocumentType, ErrorCorrectionLevel
 class VDSNCBarcodeSelector:
     """
     Intelligent barcode format selection based on payload size and requirements.
-    
+
     Follows Doc 9303 Part 13 guidance for optimal print/scan survival.
     """
-    
+
     # Size thresholds for different barcode formats (approximate characters)
     SIZE_THRESHOLDS = {
         BarcodeFormat.QR_CODE: {
@@ -38,7 +38,7 @@ class VDSNCBarcodeSelector:
             ErrorCorrectionLevel.HIGH: 2335,
         },
     }
-    
+
     @staticmethod
     def select_optimal_format(
         payload_size: int,
@@ -47,12 +47,12 @@ class VDSNCBarcodeSelector:
     ) -> BarcodeFormat:
         """
         Select optimal barcode format based on payload size and requirements.
-        
+
         Args:
             payload_size: Size of payload in characters
             error_correction: Required error correction level
             preferred_format: Preferred format if size allows
-            
+
         Returns:
             Optimal barcode format
         """
@@ -63,10 +63,10 @@ class VDSNCBarcodeSelector:
             )
             if payload_size <= threshold:
                 return preferred_format
-        
+
         # Find best format that can handle the payload
         best_format = BarcodeFormat.QR_CODE  # Default fallback
-        
+
         for format_type, thresholds in VDSNCBarcodeSelector.SIZE_THRESHOLDS.items():
             threshold = thresholds.get(error_correction, 0)
             if payload_size <= threshold:
@@ -74,17 +74,17 @@ class VDSNCBarcodeSelector:
                 if format_type == BarcodeFormat.QR_CODE:
                     return format_type
                 best_format = format_type
-        
+
         return best_format
-    
+
     @staticmethod
     def get_recommended_error_correction(doc_type: DocumentType) -> ErrorCorrectionLevel:
         """
         Get recommended error correction level for document type.
-        
+
         Args:
             doc_type: Document type
-            
+
         Returns:
             Recommended error correction level
         """

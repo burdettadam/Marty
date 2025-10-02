@@ -1,36 +1,20 @@
 import re
-import sys
 import unittest
 
-if sys.version_info < (3,):
-    str_cls = unicode  # noqa
-else:
-    str_cls = str
+str_cls = str
 
 
 _non_local = {"patched": False}
 
 
 def patch():
-    if sys.version_info >= (3, 0):
-        return
+    return
 
     if _non_local["patched"]:
         return
 
-    if sys.version_info < (2, 7):
-        unittest.TestCase.assertIsInstance = _assert_is_instance
-        unittest.TestCase.assertRegex = _assert_regex
-        unittest.TestCase.assertRaises = _assert_raises
-        unittest.TestCase.assertRaisesRegex = _assert_raises_regex
-        unittest.TestCase.assertGreaterEqual = _assert_greater_equal
-        unittest.TestCase.assertLess = _assert_less
-        unittest.TestCase.assertLessEqual = _assert_less_equal
-        unittest.TestCase.assertIn = _assert_in
-        unittest.TestCase.assertNotIn = _assert_not_in
-    else:
-        unittest.TestCase.assertRegex = unittest.TestCase.assertRegexpMatches
-        unittest.TestCase.assertRaisesRegex = unittest.TestCase.assertRaisesRegexp
+    unittest.TestCase.assertRegex = unittest.TestCase.assertRegexpMatches
+    unittest.TestCase.assertRaisesRegex = unittest.TestCase.assertRaisesRegexp
     _non_local["patched"] = True
 
 
@@ -92,12 +76,13 @@ def _assert_regex(self, text, expected_regexp, msg=None):
         self.fail(msg)
 
 
-def _assert_raises(self, excClass, callableObj=None, *args, **kwargs):  # noqa
+def _assert_raises(self, excClass, callableObj=None, *args, **kwargs):
     context = _AssertRaisesContext(excClass, self)
     if callableObj is None:
         return context
     with context:
         callableObj(*args, **kwargs)
+        return None
 
 
 def _assert_raises_regex(
@@ -110,6 +95,7 @@ def _assert_raises_regex(
         return context
     with context:
         callable_obj(*args, **kwargs)
+        return None
 
 
 class _AssertRaisesContext:
@@ -127,7 +113,8 @@ class _AssertRaisesContext:
                 exc_name = self.expected.__name__
             except AttributeError:
                 exc_name = str(self.expected)
-            raise self.failureException(f"{exc_name} not raised")
+            msg = f"{exc_name} not raised"
+            raise self.failureException(msg)
         if not issubclass(exc_type, self.expected):
             # let unexpected exceptions pass through
             return False
@@ -137,7 +124,8 @@ class _AssertRaisesContext:
 
         expected_regexp = self.expected_regexp
         if not expected_regexp.search(str(exc_value)):
+            msg = f'"{expected_regexp.pattern}" does not match "{exc_value!s}"'
             raise self.failureException(
-                f'"{expected_regexp.pattern}" does not match "{exc_value!s}"'
+                msg
             )
         return True

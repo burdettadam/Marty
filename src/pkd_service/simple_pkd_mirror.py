@@ -5,6 +5,7 @@ This module implements a simplified version of the PKD Mirror Service
 that doesn't rely on external dependencies. It's meant for demonstration
 purposes only.
 """
+from __future__ import annotations
 
 import logging
 import os
@@ -12,7 +13,6 @@ import sys
 import threading
 import time
 from datetime import datetime
-from typing import Optional
 
 # Configure logging
 logging.basicConfig(
@@ -125,7 +125,7 @@ class SimplePKDMirrorService:
         self.is_syncing = False
         return success
 
-    def _download_and_store_certificates(self, endpoint) -> Optional[bool]:
+    def _download_and_store_certificates(self, endpoint) -> bool | None:
         """
         Download and store certificates from a specific endpoint.
 
@@ -145,11 +145,11 @@ class SimplePKDMirrorService:
             # Simulate a successful response
             self._store_data(endpoint, f"Simulated {endpoint} data from {url}")
             logger.info(f"Successfully downloaded and stored {endpoint}")
-            return True
-
         except Exception as e:
             logger.exception(f"Error downloading or storing {endpoint}: {e}")
             return False
+        else:
+            return True
 
     def _store_data(self, data_type, data) -> None:
         """

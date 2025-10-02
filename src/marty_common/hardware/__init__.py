@@ -36,8 +36,8 @@ class ReaderInfo:
     name: str
     reader_type: ReaderType
     status: ReaderStatus
-    atr: Optional[bytes] = None  # Answer To Reset
-    protocol: Optional[str] = None
+    atr: bytes | None = None  # Answer To Reset
+    protocol: str | None = None
 
 
 class ReaderInterface(ABC):
@@ -60,14 +60,14 @@ class ReaderInterface(ABC):
         """Send APDU command and return response."""
 
     @abstractmethod
-    def get_atr(self) -> Optional[bytes]:
+    def get_atr(self) -> bytes | None:
         """Get Answer To Reset from card."""
 
 
 class MockReader(ReaderInterface):
     """Mock reader for testing purposes."""
 
-    def __init__(self, name: str = "Mock Reader"):
+    def __init__(self, name: str = "Mock Reader") -> None:
         self.name = name
         self.connected = False
         self.atr = bytes.fromhex("3B8F8001804F0CA000000306030001000000006A")
@@ -96,7 +96,7 @@ class MockReader(ReaderInterface):
 
         # Simulate basic responses for common commands
         if len(apdu) >= 4:
-            cla, ins, p1, p2 = apdu[0], apdu[1], apdu[2], apdu[3]
+            _cla, ins, p1, p2 = apdu[0], apdu[1], apdu[2], apdu[3]
 
             # SELECT commands
             if ins == 0xA4:
@@ -120,7 +120,7 @@ class MockReader(ReaderInterface):
         # Default error response
         return bytes([0x6D, 0x00])  # Instruction not supported
 
-    def get_atr(self) -> Optional[bytes]:
+    def get_atr(self) -> bytes | None:
         """Return mock ATR."""
         return self.atr if self.connected else None
 
@@ -128,7 +128,7 @@ class MockReader(ReaderInterface):
 class ReaderManager:
     """Manages multiple RFID readers."""
 
-    def __init__(self):
+    def __init__(self) -> None:
         self.readers: dict[str, ReaderInterface] = {}
         self.logger = logging.getLogger(__name__)
 
@@ -160,7 +160,7 @@ class ReaderManager:
 
         return readers
 
-    def get_reader(self, name: str) -> Optional[ReaderInterface]:
+    def get_reader(self, name: str) -> ReaderInterface | None:
         """Get reader by name."""
         if name in self.readers:
             return self.readers[name]
@@ -177,10 +177,11 @@ class ReaderManager:
 
             reader = PCSCReader(name)
             self.readers[name] = reader
-            return reader
         except ImportError:
-            self.logger.error("PC/SC reader not available")
+            self.logger.exception("PC/SC reader not available")
             return None
+        else:
+            return reader
 
     def connect_reader(self, name: str) -> bool:
         """Connect to a specific reader."""

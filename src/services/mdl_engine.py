@@ -89,7 +89,7 @@ class MDLEngineServicer(mdl_engine_pb2_grpc.MDLEngineServicer):
     ) -> None:
         serialized = json.dumps(payload).encode("utf-8")
 
-        async def handler(db_session):
+        async def handler(db_session) -> None:
             outbox = OutboxRepository(db_session)
             await outbox.enqueue(
                 topic=topic,
@@ -228,7 +228,7 @@ class MDLEngineServicer(mdl_engine_pb2_grpc.MDLEngineServicer):
         return await self._database.run_within_transaction(handler)
 
     async def _update_status(self, mdl_id: str, status: str) -> None:
-        async def handler(session):
+        async def handler(session) -> None:
             repo = MobileDrivingLicenseRepository(session)
             await repo.update_status(mdl_id, status)
 
@@ -292,7 +292,7 @@ class MDLEngineServicer(mdl_engine_pb2_grpc.MDLEngineServicer):
             await context.abort(grpc.StatusCode.INTERNAL, str(exc))
             return mdl_engine_pb2.CreateMDLResponse(status="ERROR", error_message=str(exc))
 
-        async def handler(session):
+        async def handler(session) -> None:
             repo = MobileDrivingLicenseRepository(session)
             await repo.create(
                 mdl_id=mdl_id,
@@ -321,7 +321,7 @@ class MDLEngineServicer(mdl_engine_pb2_grpc.MDLEngineServicer):
             mdl_id=mdl_id, status="PENDING_SIGNATURE", error_message=""
         )
 
-    async def GetMDL(  # noqa: N802
+    async def GetMDL(
         self,
         request: Any,  # type: ignore[misc] # mdl_engine_pb2.GetMDLRequest
         context: GrpcServicerContext,  # grpc.ServicerContext
@@ -340,7 +340,7 @@ class MDLEngineServicer(mdl_engine_pb2_grpc.MDLEngineServicer):
         details = record.details or {}
         return self._build_mdl_response(record, details)
 
-    async def SignMDL(  # noqa: N802
+    async def SignMDL(
         self,
         request: Any,  # type: ignore[misc] # mdl_engine_pb2.SignMDLRequest
         context: GrpcServicerContext,  # grpc.ServicerContext
@@ -369,7 +369,7 @@ class MDLEngineServicer(mdl_engine_pb2_grpc.MDLEngineServicer):
                 )
             )
         except grpc.RpcError as rpc_err:
-            self.logger.error("Signer RPC error: %s", rpc_err.details())
+            self.logger.exception("Signer RPC error: %s", rpc_err.details())
             await context.abort(rpc_err.code(), rpc_err.details())
             return mdl_engine_pb2.SignMDLResponse(success=False, error_message=rpc_err.details())
 
@@ -385,7 +385,7 @@ class MDLEngineServicer(mdl_engine_pb2_grpc.MDLEngineServicer):
             "signer_id": response.signature_info.signer_id,
         }
 
-        async def handler(session):
+        async def handler(session) -> None:
             repo = MobileDrivingLicenseRepository(session)
             await repo.update_signature(record.mdl_id, signature_bytes, signature_info)
             await repo.update_status(record.mdl_id, "ISSUED")
@@ -414,7 +414,7 @@ class MDLEngineServicer(mdl_engine_pb2_grpc.MDLEngineServicer):
             ),
         )
 
-    async def GenerateMDLQRCode(  # noqa: N802
+    async def GenerateMDLQRCode(
         self,
         request: Any,  # type: ignore[misc] # mdl_engine_pb2.GenerateMDLQRCodeRequest
         context: GrpcServicerContext,  # grpc.ServicerContext
@@ -458,7 +458,7 @@ class MDLEngineServicer(mdl_engine_pb2_grpc.MDLEngineServicer):
         image.save(buffer, format="PNG")
         return mdl_engine_pb2.GenerateQRCodeResponse(qr_code=buffer.getvalue())
 
-    async def TransferMDLToDevice(self, request: Any, context: Any) -> Any:  # noqa: N802
+    async def TransferMDLToDevice(self, request: Any, context: Any) -> Any:
         if not request.mdl_id:
             await context.abort(grpc.StatusCode.INVALID_ARGUMENT, "mdl_id is required")
             return mdl_engine_pb2.TransferMDLResponse(
@@ -477,7 +477,7 @@ class MDLEngineServicer(mdl_engine_pb2_grpc.MDLEngineServicer):
         )
         return mdl_engine_pb2.TransferMDLResponse(success=True, transfer_id=transfer_id)
 
-    async def VerifyMDL(self, request: Any, context: Any) -> Any:  # noqa: N802
+    async def VerifyMDL(self, request: Any, context: Any) -> Any:
         details: dict[str, Any]
         record = None
         if request.mdl_id:

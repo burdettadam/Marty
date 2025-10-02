@@ -3,7 +3,7 @@ Improved configuration for E2E tests that handles service dependencies properly.
 
 This configuration provides multiple testing modes:
 1. Mock mode - No backend services required (fastest)
-2. Integration mode - All services running (most realistic)  
+2. Integration mode - All services running (most realistic)
 3. Smoke mode - Basic UI tests only
 """
 
@@ -13,7 +13,6 @@ import threading
 import time
 from collections.abc import Iterator
 from contextlib import closing
-from typing import Dict
 
 import pytest
 import requests
@@ -30,14 +29,15 @@ def is_service_running(port: int) -> bool:
     sock.settimeout(1)
     try:
         result = sock.connect_ex(("127.0.0.1", port))
-        return result == 0
     except Exception:
         return False
+    else:
+        return result == 0
     finally:
         sock.close()
 
 
-def get_service_status() -> Dict[str, bool]:
+def get_service_status() -> dict[str, bool]:
     """Get the status of all backend services."""
     services = {
         "trust_anchor": 8080,
@@ -55,7 +55,7 @@ def get_service_status() -> Dict[str, bool]:
 
 
 @pytest.fixture(scope="session")
-def service_status() -> Dict[str, bool]:
+def service_status() -> dict[str, bool]:
     """Provide service status for test configuration."""
     return get_service_status()
 
@@ -79,7 +79,7 @@ def test_mode() -> str:
 
 
 @pytest.fixture(scope="session")
-def ui_settings(test_mode: str, service_status: Dict[str, bool]) -> UiSettings:
+def ui_settings(test_mode: str, service_status: dict[str, bool]) -> UiSettings:
     """Provide test settings based on detected test mode."""
     base_config = {
         "title": "Test Marty UI",
@@ -153,7 +153,8 @@ def ui_server(ui_settings: UiSettings, test_mode: str) -> Iterator[str]:
         except requests.exceptions.RequestException:
             time.sleep(0.2)
     else:
-        raise RuntimeError(f"UI server failed to start within {timeout} seconds")
+        msg = f"UI server failed to start within {timeout} seconds"
+        raise RuntimeError(msg)
 
     base_url = f"http://{host}:{port}"
 

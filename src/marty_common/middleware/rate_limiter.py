@@ -4,6 +4,7 @@ Rate limiting middleware for Marty services.
 Provides rate limiting functionality to protect services from excessive requests
 and ensure fair resource allocation across clients.
 """
+from __future__ import annotations
 
 import hashlib
 import logging
@@ -12,7 +13,7 @@ import time
 from abc import ABC, abstractmethod
 from collections import deque
 from dataclasses import dataclass, field
-from typing import Any, Optional
+from typing import Any
 
 logger = logging.getLogger(__name__)
 
@@ -36,8 +37,8 @@ class RateLimitStatus:
     allowed: bool
     remaining_requests: int
     reset_time: float
-    retry_after: Optional[float] = None
-    rule_applied: Optional[str] = None
+    retry_after: float | None = None
+    rule_applied: str | None = None
 
 
 @dataclass
@@ -58,7 +59,7 @@ class RateLimitBackend(ABC):
     """Abstract backend for rate limiting storage."""
 
     @abstractmethod
-    def get_client_data(self, client_id: str) -> Optional[ClientBucket]:
+    def get_client_data(self, client_id: str) -> ClientBucket | None:
         """Get client bucket data."""
 
     @abstractmethod
@@ -77,7 +78,7 @@ class MemoryRateLimitBackend(RateLimitBackend):
         self._clients: dict[str, ClientBucket] = {}
         self._lock = threading.RLock()
 
-    def get_client_data(self, client_id: str) -> Optional[ClientBucket]:
+    def get_client_data(self, client_id: str) -> ClientBucket | None:
         """Retrieve client bucket data for the given client ID."""
         with self._lock:
             return self._clients.get(client_id)
@@ -109,7 +110,7 @@ class RedisRateLimitBackend(RateLimitBackend):
     def _get_key(self, client_id: str) -> str:
         return f"{self.key_prefix}{client_id}"
 
-    def get_client_data(self, client_id: str) -> Optional[ClientBucket]:
+    def get_client_data(self, client_id: str) -> ClientBucket | None:
         try:
             data = self.redis.hgetall(self._get_key(client_id))
             if not data:
@@ -121,8 +122,8 @@ class RedisRateLimitBackend(RateLimitBackend):
                 total_requests=int(data.get("total_requests", 0)),
                 requests_in_window=deque(),  # Simplified for Redis
             )
-        except Exception as e:
-            logger.exception(f"Failed to get client data from Redis: {e}")
+        except Exception:
+            logger.exception("Failed to get client data from Redis")
             return None
 
     def set_client_data(self, client_id: str, bucket: ClientBucket) -> None:
@@ -135,8 +136,8 @@ class RedisRateLimitBackend(RateLimitBackend):
             }
             self.redis.hset(key, mapping=data)
             self.redis.expire(key, 3600)  # 1 hour TTL
-        except Exception as e:
-            logger.exception(f"Failed to set client data in Redis: {e}")
+        except Exception:
+            logger.exception("Failed to set client data in Redis")
 
     def cleanup_expired(self, before_timestamp: float) -> None:
         # Redis TTL handles cleanup automatically
@@ -146,7 +147,7 @@ class RedisRateLimitBackend(RateLimitBackend):
 class RateLimiter:
     """Main rate limiter implementation."""
 
-    def __init__(self, backend: Optional[RateLimitBackend] = None) -> None:
+    def __init__(self, backend: RateLimitBackend | None = None) -> None:
         self.backend = backend or MemoryRateLimitBackend()
         self.rules: dict[str, RateLimitRule] = {}
         self.default_rule = RateLimitRule(
@@ -192,7 +193,7 @@ class RateLimiter:
 
     def _check_window_limits(
         self, bucket: ClientBucket, rule: RateLimitRule, now: float
-    ) -> tuple[bool, Optional[float]]:
+    ) -> tuple[bool, float | None]:
         """Check minute and hour window limits."""
         # Clean old requests from window
         minute_ago = now - 60

@@ -1,12 +1,13 @@
 """
 OpenXPKI Service - Integration layer for OpenXPKI Certificate Management
 """
+from __future__ import annotations
 
 import json
 import logging
 import os
 from datetime import datetime, timedelta
-from typing import Any, Optional
+from typing import Any
 
 import requests
 import urllib3
@@ -92,14 +93,14 @@ class OpenXPKIService:
             else:
                 logger.error(f"Authentication request failed with status {response.status_code}")
 
-            return False
-
         except Exception as e:
             logger.exception(f"Error during authentication: {e!s}")
             return False
+        else:
+            return False
 
     def _api_request(
-        self, endpoint: str, method: str = "GET", data: Optional[dict[str, Any]] = None
+        self, endpoint: str, method: str = "GET", data: dict[str, Any] | None = None
     ) -> tuple[bool, Any]:
         """
         Make an authenticated request to the OpenXPKI API
@@ -150,11 +151,12 @@ class OpenXPKIService:
                 self.session_token = None
                 return self._api_request(endpoint, method, data)
             logger.error(f"API request failed with status {response.status_code}")
-            return False, {"error": f"HTTP {response.status_code}"}
 
         except Exception as e:
             logger.exception(f"Error during API request: {e!s}")
             return False, {"error": str(e)}
+        else:
+            return False, {"error": f"HTTP {response.status_code}"}
 
     def get_server_status(self) -> dict[str, Any]:
         """
@@ -505,8 +507,8 @@ class OpenXPKIService:
                     }
                 )
 
-            return {"expiring_certificates": expiring_certs}
-
         except Exception as e:
             logger.exception(f"Error checking expiring certificates: {e!s}")
             return {"expiring_certificates": [], "error": str(e)}
+        else:
+            return {"expiring_certificates": expiring_certs}

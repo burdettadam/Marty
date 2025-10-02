@@ -42,7 +42,7 @@ class TrustAnchor(trust_anchor_pb2_grpc.TrustAnchorServicer):
         self._database = dependencies.database
         self.logger.info("Trust Anchor service initialized using database-backed trust store")
 
-    async def VerifyTrust(  # noqa: N802
+    async def VerifyTrust(
         self,
         request: Any,  # protobuf TrustRequest
         context: Any,  # grpc ServicerContext

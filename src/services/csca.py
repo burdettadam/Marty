@@ -57,7 +57,7 @@ class CscaService(csca_service_pb2_grpc.CscaServiceServicer):
     # ---------------------------------------------------------------------
     # gRPC API
     # ---------------------------------------------------------------------
-    async def GetCscaData(  # noqa: N802 - proto naming
+    async def GetCscaData(
         self,
         request: ProtoMessage,  # csca_service_pb2.GetCscaDataRequest
         context: GrpcServicerContext,  # grpc.ServicerContext
@@ -83,7 +83,7 @@ class CscaService(csca_service_pb2_grpc.CscaServiceServicer):
 
         return csca_service_pb2.CscaResponse(data=record["pem"])
 
-    async def CreateCertificate(  # noqa: N802
+    async def CreateCertificate(
         self,
         request: ProtoMessage,  # csca_service_pb2.CreateCertificateRequest
         context: GrpcServicerContext,  # grpc.ServicerContext
@@ -133,7 +133,7 @@ class CscaService(csca_service_pb2_grpc.CscaServiceServicer):
         certificate_text = certificate_pem.decode("utf-8")
         persisted_details = {**details, "storage_key": storage_key}
 
-        async def handler(session):
+        async def handler(session) -> None:
             await self._persist_certificate(
                 certificate_id=certificate_id,
                 certificate_type="CSCA",
@@ -173,7 +173,7 @@ class CscaService(csca_service_pb2_grpc.CscaServiceServicer):
             status="ISSUED",
         )
 
-    async def RenewCertificate(  # noqa: N802
+    async def RenewCertificate(
         self,
         request: ProtoMessage,  # csca_service_pb2.RenewCertificateRequest
         context: GrpcServicerContext,  # grpc.ServicerContext
@@ -276,7 +276,7 @@ class CscaService(csca_service_pb2_grpc.CscaServiceServicer):
             status="RENEWED",
         )
 
-    async def RevokeCertificate(  # noqa: N802
+    async def RevokeCertificate(
         self,
         request: ProtoMessage,  # csca_service_pb2.RevokeCertificateRequest
         context: GrpcServicerContext,  # grpc.ServicerContext
@@ -328,7 +328,7 @@ class CscaService(csca_service_pb2_grpc.CscaServiceServicer):
             status="REVOKED",
         )
 
-    async def GetCertificateStatus(  # noqa: N802
+    async def GetCertificateStatus(
         self,
         request: ProtoMessage,  # csca_service_pb2.GetCertificateStatusRequest
         context: GrpcServicerContext,  # grpc.ServicerContext
@@ -350,7 +350,7 @@ class CscaService(csca_service_pb2_grpc.CscaServiceServicer):
             metadata=json.dumps(record.get("details", {})),
         )
 
-    async def ListCertificates(  # noqa: N802
+    async def ListCertificates(
         self,
         request: ProtoMessage,  # csca_service_pb2.ListCertificatesRequest
         context: GrpcServicerContext,  # grpc.ServicerContext
@@ -370,7 +370,7 @@ class CscaService(csca_service_pb2_grpc.CscaServiceServicer):
             )
         return csca_service_pb2.ListCertificatesResponse(certificates=summaries)
 
-    async def CheckExpiringCertificates(  # noqa: N802
+    async def CheckExpiringCertificates(
         self,
         request: ProtoMessage,  # csca_service_pb2.CheckExpiringCertificatesRequest
         context: GrpcServicerContext,  # grpc.ServicerContext
@@ -448,7 +448,7 @@ class CscaService(csca_service_pb2_grpc.CscaServiceServicer):
         session=None,
         update_cache: bool = True,
     ) -> None:
-        async def handler(db_session):
+        async def handler(db_session) -> None:
             repo = CertificateRepository(db_session)
             await repo.upsert(
                 certificate_id,
@@ -483,7 +483,7 @@ class CscaService(csca_service_pb2_grpc.CscaServiceServicer):
     ) -> datetime:
         revoked_at = revoked_at or datetime.now(timezone.utc)
 
-        async def handler(db_session):
+        async def handler(db_session) -> None:
             repo = CertificateRepository(db_session)
             await repo.mark_revoked(certificate_id, reason, revoked_at)
 
@@ -535,8 +535,7 @@ class CscaService(csca_service_pb2_grpc.CscaServiceServicer):
     async def _list_certificates(self) -> list[dict[str, Any]]:
         async with self._database.session_scope() as session:
             repo = CertificateRepository(session)
-            records = await repo.list_all()
-            return records
+            return await repo.list_all()
 
     @staticmethod
     def _generate_private_key(

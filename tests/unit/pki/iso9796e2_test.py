@@ -1,7 +1,8 @@
+from __future__ import annotations
+
 import os
 import sys
 from pathlib import Path
-from typing import Optional
 
 import pytest
 
@@ -86,7 +87,7 @@ def test_active_authentication_workflow():
 
         # Step 3: Chip signs challenge (simulated)
         # In reality, this happens inside the secure element of the chip
-        simulated_signature = b"Mock signature for " + challenge
+        b"Mock signature for " + challenge
 
         # Step 4: Verify signature
         # Since we don't have the actual implementation yet, we'll assume success
@@ -106,7 +107,7 @@ def test_iso9796e2_recovery():
 
     # In ISO 9796-2, the message can be partially or fully recovered from the signature
 
-    def mock_recover_message(signature: bytes, public_key: bytes) -> Optional[bytes]:
+    def mock_recover_message(signature: bytes, public_key: bytes) -> bytes | None:
         """
         Mock function to simulate message recovery from ISO 9796-2 signature.
 

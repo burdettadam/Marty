@@ -6,13 +6,12 @@ import hashlib
 import logging
 import secrets
 from dataclasses import dataclass
-from typing import Optional
 
 from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives.asymmetric import ec
 from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
 
-from ..utils.mrz_utils import MRZException, MRZParser
+from src.marty_common.utils.mrz_utils import MRZException, MRZParser
 
 logger = logging.getLogger(__name__)
 
@@ -53,9 +52,9 @@ class SecureMessaging:
     """Implements ICAO-compliant BAC/PACE secure messaging."""
 
     def __init__(self) -> None:
-        self.session_keys: Optional[SessionKeys] = None
-        self._bac_state: Optional[_BACContext] = None
-        self._pace_state: Optional[_PACEState] = None
+        self.session_keys: SessionKeys | None = None
+        self._bac_state: _BACContext | None = None
+        self._pace_state: _PACEState | None = None
         self.logger = logging.getLogger(__name__)
 
     # ------------------------------------------------------------------
@@ -195,8 +194,7 @@ class SecureMessaging:
         protected_data = do87 + do97 + do8e
         lc = self._encode_length(len(protected_data))
 
-        protected_apdu = protected_header + lc + protected_data
-        return protected_apdu
+        return protected_header + lc + protected_data
 
     def decrypt_response(self, response: bytes) -> bytes:
         """Verify and decrypt protected response APDU."""

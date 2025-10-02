@@ -6,6 +6,7 @@ This service automates the rotation of certificates based on configured security
 It works with the Certificate Lifecycle Monitor to identify certificates needing renewal
 and automatically processes them according to the defined rotation policy.
 """
+from __future__ import annotations
 
 import json
 import logging
@@ -13,7 +14,7 @@ import os
 import threading
 import time
 from datetime import datetime, timezone
-from typing import Any, Optional
+from typing import Any
 
 import grpc
 
@@ -34,9 +35,9 @@ class CertificateRotationService:
 
     def __init__(
         self,
-        csca_endpoint: Optional[str] = None,
-        config_file: Optional[str] = None,
-        history_file: Optional[str] = None,
+        csca_endpoint: str | None = None,
+        config_file: str | None = None,
+        history_file: str | None = None,
         lifecycle_monitor: CertificateLifecycleMonitor = None,
     ) -> None:
         """
@@ -127,8 +128,8 @@ class CertificateRotationService:
                     self.logger.info(f"Loaded configuration from {config_file}")
             else:
                 self.logger.warning(f"Configuration file {config_file} not found, using defaults")
-        except Exception as e:
-            self.logger.exception(f"Error loading configuration: {e}")
+        except Exception:
+            self.logger.exception("Error loading configuration")
 
     def _load_rotation_history(self) -> dict[str, Any]:
         """
@@ -143,8 +144,8 @@ class CertificateRotationService:
                 with open(self.history_file) as f:
                     history = json.load(f)
                     self.logger.info(f"Loaded rotation history from {self.history_file}")
-        except Exception as e:
-            self.logger.exception(f"Error loading rotation history: {e}")
+        except Exception:
+            self.logger.exception("Error loading rotation history")
 
         return history
 
@@ -157,8 +158,8 @@ class CertificateRotationService:
             with open(self.history_file, "w") as f:
                 json.dump(self.rotation_history, f, indent=2)
                 self.logger.debug(f"Saved rotation history to {self.history_file}")
-        except Exception as e:
-            self.logger.exception(f"Error saving rotation history: {e}")
+        except Exception:
+            self.logger.exception("Error saving rotation history")
 
     def record_rotation(self, old_cert_id: str, new_cert_id: str) -> None:
         """
@@ -236,11 +237,11 @@ class CertificateRotationService:
 
                 return certificates_for_rotation
 
-        except Exception as e:
-            self.logger.exception(f"Error finding certificates for rotation: {e}")
+        except Exception:
+            self.logger.exception("Error finding certificates for rotation")
             return []
 
-    def rotate_certificate(self, cert_info: dict[str, Any]) -> Optional[str]:
+    def rotate_certificate(self, cert_info: dict[str, Any]) -> str | None:
         """
         Rotate a single certificate based on its information.
 
@@ -293,8 +294,8 @@ class CertificateRotationService:
                 )
                 return None
 
-        except Exception as e:
-            self.logger.exception(f"Error during certificate rotation: {e}")
+        except Exception:
+            self.logger.exception("Error during certificate rotation")
             return None
 
     def perform_certificate_rotation(self) -> dict[str, Any]:
@@ -361,8 +362,8 @@ class CertificateRotationService:
                 if rotated_count == 0 and failed_count == 0:
                     self.logger.info("No certificates need rotation at this time")
 
-            except Exception as e:
-                self.logger.exception(f"Error in rotation loop: {e}")
+            except Exception:
+                self.logger.exception("Error in rotation loop")
 
             # Sleep for the configured interval
             check_interval_hours = self.config.get("check_interval", 24)

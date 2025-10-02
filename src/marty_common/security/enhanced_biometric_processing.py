@@ -29,7 +29,7 @@ import struct
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta
 from enum import Enum, IntEnum
-from typing import Any, Optional
+from typing import Any
 
 import numpy as np
 from PIL import Image
@@ -116,16 +116,18 @@ class BiometricHeader:
     biometric_type: BiometricType
     biometric_subtype: int
     creation_date: datetime
-    validity_period: Optional[timedelta] = None
+    validity_period: timedelta | None = None
     creator: str = "Marty_Biometric_Processor"
     format_version: str = "1.0"
 
     def __post_init__(self):
         """Validate header fields"""
         if self.format_owner <= 0:
-            raise BiometricTemplateError("Invalid format owner")
+            msg = "Invalid format owner"
+            raise BiometricTemplateError(msg)
         if self.format_type <= 0:
-            raise BiometricTemplateError("Invalid format type")
+            msg = "Invalid format type"
+            raise BiometricTemplateError(msg)
 
 
 @dataclass
@@ -142,7 +144,8 @@ class BiometricQualityScore:
     def __post_init__(self):
         """Validate quality score"""
         if not 0 <= self.overall_score <= 100:
-            raise BiometricQualityError("Quality score must be between 0 and 100")
+            msg = "Quality score must be between 0 and 100"
+            raise BiometricQualityError(msg)
 
 
 @dataclass
@@ -155,9 +158,9 @@ class FaceTemplate:
     width: int
     height: int
     color_space: str = "RGB"
-    compression_ratio: Optional[float] = None
+    compression_ratio: float | None = None
     facial_features: dict[str, Any] = field(default_factory=dict)
-    quality_score: Optional[BiometricQualityScore] = None
+    quality_score: BiometricQualityScore | None = None
 
     def get_image(self) -> Image.Image:
         """Extract PIL Image from template data"""
@@ -171,7 +174,8 @@ class FaceTemplate:
                     f"Image dimensions mismatch: expected {self.width}x{self.height}, got {image.size}"
                 )
         except Exception as e:
-            raise BiometricTemplateError(f"Failed to extract image: {e}")
+            msg = f"Failed to extract image: {e}"
+            raise BiometricTemplateError(msg)
         else:
             return image
 
@@ -257,7 +261,8 @@ class FaceTemplate:
 
             self.quality_score = quality_score
         except Exception as e:
-            raise BiometricQualityError(f"Failed to calculate face quality: {e}")
+            msg = f"Failed to calculate face quality: {e}"
+            raise BiometricQualityError(msg)
         else:
             return quality_score
 
@@ -276,7 +281,7 @@ class FingerprintTemplate:
     minutiae_points: list[dict[str, Any]] = field(default_factory=list)
     ridge_endings: int = 0
     ridge_bifurcations: int = 0
-    quality_score: Optional[BiometricQualityScore] = None
+    quality_score: BiometricQualityScore | None = None
 
     def extract_minutiae(self) -> list[dict[str, Any]]:
         """Extract minutiae points from fingerprint template"""
@@ -289,7 +294,8 @@ class FingerprintTemplate:
                 logger.warning(f"Minutiae extraction not implemented for {self.format}")
                 result = []
         except Exception as e:
-            raise BiometricTemplateError(f"Failed to extract minutiae: {e}")
+            msg = f"Failed to extract minutiae: {e}"
+            raise BiometricTemplateError(msg)
         else:
             return result
 
@@ -325,10 +331,10 @@ class FingerprintTemplate:
         try:
             # Parse ISO template header (simplified)
             offset = 0
-            format_id = struct.unpack(">I", self.template_data[offset : offset + 4])[0]
+            struct.unpack(">I", self.template_data[offset : offset + 4])[0]
             offset += 4
 
-            spec_version = struct.unpack(">I", self.template_data[offset : offset + 4])[0]
+            struct.unpack(">I", self.template_data[offset : offset + 4])[0]
             offset += 4
 
             # Skip to minutiae data
@@ -362,7 +368,7 @@ class FingerprintTemplate:
 
             self.minutiae_points = minutiae
         except Exception as e:
-            logger.error(f"ISO minutiae extraction error: {e}")
+            logger.exception(f"ISO minutiae extraction error: {e}")
             return []
         else:
             return minutiae
@@ -435,7 +441,8 @@ class FingerprintTemplate:
 
             self.quality_score = quality_score
         except Exception as e:
-            raise BiometricQualityError(f"Failed to calculate fingerprint quality: {e}")
+            msg = f"Failed to calculate fingerprint quality: {e}"
+            raise BiometricQualityError(msg)
         else:
             return quality_score
 
@@ -454,7 +461,7 @@ class IrisTemplate:
     iris_center_y: int = 0
     iris_radius: int = 0
     pupil_radius: int = 0
-    quality_score: Optional[BiometricQualityScore] = None
+    quality_score: BiometricQualityScore | None = None
 
     def extract_iris_features(self) -> dict[str, Any]:
         """Extract iris biometric features"""
@@ -472,7 +479,8 @@ class IrisTemplate:
                 "capture_device": self.capture_device_id,
             }
         except Exception as e:
-            raise BiometricTemplateError(f"Failed to extract iris features: {e}")
+            msg = f"Failed to extract iris features: {e}"
+            raise BiometricTemplateError(msg)
         else:
             return features
 
@@ -544,16 +552,17 @@ class IrisTemplate:
             )
 
             self.quality_score = quality_score
-            return quality_score
-
         except Exception as e:
-            raise BiometricQualityError(f"Failed to calculate iris quality: {e}")
+            msg = f"Failed to calculate iris quality: {e}"
+            raise BiometricQualityError(msg)
+        else:
+            return quality_score
 
 
 class PassportBiometricProcessor:
     """Enhanced biometric processor for passport data groups"""
 
-    def __init__(self, enable_quality_assessment: bool = True, security_validation: bool = True):
+    def __init__(self, enable_quality_assessment: bool = True, security_validation: bool = True) -> None:
         """
         Initialize biometric processor
 
@@ -581,7 +590,8 @@ class PassportBiometricProcessor:
 
             # Parse DG2 structure (simplified)
             if len(dg2_data) < 20:
-                raise BiometricTemplateError("Invalid DG2 data length")
+                msg = "Invalid DG2 data length"
+                raise BiometricTemplateError(msg)
 
             # Extract CBEFF header (simplified)
             header = self._parse_cbeff_header(dg2_data[:20], BiometricType.FACE)
@@ -620,11 +630,12 @@ class PassportBiometricProcessor:
                 f"Face template processed successfully: {width}x{height} {image_format.value}",
             )
 
-            return face_template
-
         except Exception as e:
             self._log_processing("DG2", f"Processing failed: {e}", level="error")
-            raise BiometricTemplateError(f"Failed to process DG2 face data: {e}")
+            msg = f"Failed to process DG2 face data: {e}"
+            raise BiometricTemplateError(msg)
+        else:
+            return face_template
 
     def process_dg3_fingerprint(self, dg3_data: bytes) -> list[FingerprintTemplate]:
         """
@@ -697,11 +708,12 @@ class PassportBiometricProcessor:
             self.processed_templates[f"DG3_{datetime.utcnow().isoformat()}"] = templates
             self._log_processing("DG3", f"Processed {len(templates)} fingerprint template(s)")
 
-            return templates
-
         except Exception as e:
             self._log_processing("DG3", f"Processing failed: {e}", level="error")
-            raise BiometricTemplateError(f"Failed to process DG3 fingerprint data: {e}")
+            msg = f"Failed to process DG3 fingerprint data: {e}"
+            raise BiometricTemplateError(msg)
+        else:
+            return templates
 
     def process_dg4_iris(self, dg4_data: bytes) -> list[IrisTemplate]:
         """
@@ -769,11 +781,12 @@ class PassportBiometricProcessor:
             self.processed_templates[f"DG4_{datetime.utcnow().isoformat()}"] = templates
             self._log_processing("DG4", f"Processed {len(templates)} iris template(s)")
 
-            return templates
-
         except Exception as e:
             self._log_processing("DG4", f"Processing failed: {e}", level="error")
-            raise BiometricTemplateError(f"Failed to process DG4 iris data: {e}")
+            msg = f"Failed to process DG4 iris data: {e}"
+            raise BiometricTemplateError(msg)
+        else:
+            return templates
 
     def process_dg5_portrait(self, dg5_data: bytes) -> FaceTemplate:
         """
@@ -823,17 +836,19 @@ class PassportBiometricProcessor:
                 "DG5", f"Portrait processed: {width}x{height} {image_format.value}"
             )
 
-            return portrait_template
-
         except Exception as e:
             self._log_processing("DG5", f"Processing failed: {e}", level="error")
-            raise BiometricTemplateError(f"Failed to process DG5 portrait data: {e}")
+            msg = f"Failed to process DG5 portrait data: {e}"
+            raise BiometricTemplateError(msg)
+        else:
+            return portrait_template
 
     def _parse_cbeff_header(self, header_data: bytes, bio_type: BiometricType) -> BiometricHeader:
         """Parse CBEFF biometric header"""
         try:
             if len(header_data) < 20:
-                raise BiometricTemplateError("Invalid CBEFF header length")
+                msg = "Invalid CBEFF header length"
+                raise BiometricTemplateError(msg)
 
             format_owner = struct.unpack(">H", header_data[0:2])[0]
             format_type = struct.unpack(">H", header_data[2:4])[0]
@@ -848,7 +863,8 @@ class PassportBiometricProcessor:
             )
 
         except Exception as e:
-            raise BiometricTemplateError(f"Failed to parse CBEFF header: {e}")
+            msg = f"Failed to parse CBEFF header: {e}"
+            raise BiometricTemplateError(msg)
 
     def _detect_image_format(self, image_data: bytes) -> FaceImageFormat:
         """Detect image format from header bytes"""

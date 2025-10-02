@@ -1,12 +1,12 @@
 """
 Service for handling Document Signer Certificate (DSC) List operations
 """
+from __future__ import annotations
 
 import logging
 import os
 import uuid
 from datetime import datetime
-from typing import Optional
 
 import aiosqlite
 from app.core.config import settings
@@ -26,11 +26,11 @@ logger = logging.getLogger(__name__)
 class DSCListService:
     """Service for managing DSC Lists"""
 
-    def __init__(self, db_connection: Optional[aiosqlite.Connection] = None) -> None:
+    def __init__(self, db_connection: aiosqlite.Connection | None = None) -> None:
         """Initialize with optional database connection"""
         self.db_connection = db_connection
 
-    async def get_dsc_list(self, country: Optional[str] = None) -> DSCListResponse:
+    async def get_dsc_list(self, country: str | None = None) -> DSCListResponse:
         """
         Retrieve the DSC List, optionally filtered by country.
         """
@@ -69,7 +69,7 @@ class DSCListService:
             certificates=certificates,
         )
 
-    async def get_dsc_list_binary(self, country: Optional[str] = None) -> bytes:
+    async def get_dsc_list_binary(self, country: str | None = None) -> bytes:
         """
         Get the ASN.1 encoded DSC list data, optionally filtered by country.
 
@@ -140,7 +140,7 @@ class DSCListService:
                 certificate_count=0,
             )
 
-    async def _get_dsc_certificates(self, country: Optional[str] = None) -> list[Certificate]:
+    async def _get_dsc_certificates(self, country: str | None = None) -> list[Certificate]:
         """
         Helper method to get DSC certificates.
         This is a fallback when the database is empty.

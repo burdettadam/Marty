@@ -1,9 +1,9 @@
 """
 API endpoints for ICAO PKD Master List operations
 """
+from __future__ import annotations
 
 import io
-from typing import Optional
 
 from app.api.dependencies import get_masterlist_service
 from app.models.pkd_models import MasterListResponse, MasterListUploadResponse
@@ -16,7 +16,7 @@ router = APIRouter()
 
 @router.get("/", response_model=MasterListResponse)
 async def get_master_list(
-    country: Optional[str] = None, service: MasterListService = Depends(get_masterlist_service)
+    country: str | None = None, service: MasterListService = Depends(get_masterlist_service)
 ):
     """
     Get the Master List in JSON format, optionally filtered by country.
@@ -28,7 +28,7 @@ async def get_master_list(
 
 @router.get("/download", response_class=StreamingResponse)
 async def download_master_list(
-    country: Optional[str] = None, service: MasterListService = Depends(get_masterlist_service)
+    country: str | None = None, service: MasterListService = Depends(get_masterlist_service)
 ):
     """
     Download the Master List in ASN.1 binary format, optionally filtered by country.

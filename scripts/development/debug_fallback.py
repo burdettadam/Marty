@@ -2,6 +2,7 @@
 """Debug fallback passport loading."""
 
 from pathlib import Path
+
 from tests.fixtures.data_loader import TestDataLoader
 
 # Create a loader with nonexistent directory

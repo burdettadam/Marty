@@ -13,7 +13,7 @@ import uuid
 from dataclasses import asdict, dataclass, field
 from datetime import datetime, timedelta, timezone
 from enum import Enum
-from typing import Any, Optional
+from typing import Any
 
 from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives.asymmetric import ec
@@ -21,7 +21,6 @@ from cryptography.hazmat.primitives.asymmetric.ec import (
     EllipticCurvePrivateKey,
     EllipticCurvePublicKey,
 )
-from sqlalchemy import and_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 logger = logging.getLogger(__name__)
@@ -65,12 +64,12 @@ class VDSNCKeyMetadata:
         default_factory=lambda: datetime.now(timezone.utc) + timedelta(days=730)
     )
     created_at: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
-    activated_at: Optional[datetime] = None
-    deprecated_at: Optional[datetime] = None
-    revoked_at: Optional[datetime] = None
-    revocation_reason: Optional[str] = None
-    hsm_key_id: Optional[str] = None  # HSM reference if using HSM
-    parent_kid: Optional[str] = None  # Previous key in rotation chain
+    activated_at: datetime | None = None
+    deprecated_at: datetime | None = None
+    revoked_at: datetime | None = None
+    revocation_reason: str | None = None
+    hsm_key_id: str | None = None  # HSM reference if using HSM
+    parent_kid: str | None = None  # Previous key in rotation chain
     tags: dict[str, str] = field(default_factory=dict)
 
     def is_valid_now(self) -> bool:
@@ -201,7 +200,7 @@ class VDSNCKeyManager:
     """Manage VDS-NC signer keys lifecycle."""
 
     def __init__(
-        self, session: AsyncSession, rotation_config: Optional[RotationConfig] = None
+        self, session: AsyncSession, rotation_config: RotationConfig | None = None
     ) -> None:
         """Initialize key manager.
 
@@ -219,8 +218,8 @@ class VDSNCKeyManager:
         role: KeyRole,
         validity_days: int = 730,
         auto_activate: bool = False,
-        hsm_key_id: Optional[str] = None,
-        tags: Optional[dict[str, str]] = None,
+        hsm_key_id: str | None = None,
+        tags: dict[str, str] | None = None,
     ) -> tuple[str, VDSNCKeyMetadata]:
         """Create new VDS-NC signer key.
 
@@ -303,7 +302,7 @@ class VDSNCKeyManager:
         self,
         issuer_country: str,
         role: KeyRole,
-        overlap_days: Optional[int] = None,
+        overlap_days: int | None = None,
         new_validity_days: int = 730,
     ) -> tuple[str, str, datetime]:
         """Rotate VDS-NC signer key.
@@ -325,7 +324,8 @@ class VDSNCKeyManager:
         )
 
         if not old_keys:
-            raise ValueError(f"No active key found for {issuer_country}/{role.value}")
+            msg = f"No active key found for {issuer_country}/{role.value}"
+            raise ValueError(msg)
 
         old_metadata = old_keys[0]
         old_kid = old_metadata.kid
@@ -353,7 +353,7 @@ class VDSNCKeyManager:
 
         return old_kid, new_kid, deprecation_date
 
-    async def deprecate_key(self, kid: str, reason: Optional[str] = None) -> bool:
+    async def deprecate_key(self, kid: str, reason: str | None = None) -> bool:
         """Deprecate a key (no longer use for signing).
 
         Args:
@@ -402,7 +402,7 @@ class VDSNCKeyManager:
 
         return True
 
-    async def get_key_metadata(self, kid: str) -> Optional[VDSNCKeyMetadata]:
+    async def get_key_metadata(self, kid: str) -> VDSNCKeyMetadata | None:
         """Get key metadata.
 
         Args:
@@ -417,9 +417,9 @@ class VDSNCKeyManager:
 
     async def list_keys(
         self,
-        issuer_country: Optional[str] = None,
-        role: Optional[KeyRole] = None,
-        status: Optional[KeyStatus] = None,
+        issuer_country: str | None = None,
+        role: KeyRole | None = None,
+        status: KeyStatus | None = None,
         include_expired: bool = False,
     ) -> list[VDSNCKeyMetadata]:
         """List VDS-NC keys matching criteria.
@@ -477,13 +477,12 @@ class VDSNCKeyManager:
         """
         all_keys = await self.list_keys(status=KeyStatus.ACTIVE)
 
-        needs_rotation = [
+        return [
             (metadata.issuer_country, metadata.role.value, metadata)
             for metadata in all_keys
             if metadata.needs_rotation(self.rotation_config.warning_days)
         ]
 
-        return needs_rotation
 
     async def _get_next_generation(self, issuer_country: str, role: KeyRole) -> int:
         """Get next generation number for key rotation."""
@@ -507,17 +506,14 @@ class VDSNCKeyManager:
         """Store key pair and metadata."""
         # Implementation depends on storage backend (database, key vault, HSM)
         # This is a placeholder
-        pass
 
     async def _store_metadata(self, metadata: VDSNCKeyMetadata) -> None:
         """Store key metadata."""
         # Implementation depends on storage backend
-        pass
 
     async def _update_metadata(self, metadata: VDSNCKeyMetadata) -> None:
         """Update key metadata."""
         # Implementation depends on storage backend
-        pass
 
 
 class VDSNCKeyDistributor:
@@ -532,7 +528,7 @@ class VDSNCKeyDistributor:
         self.key_manager = key_manager
 
     async def get_jwks(
-        self, issuer_country: Optional[str] = None, role: Optional[KeyRole] = None
+        self, issuer_country: str | None = None, role: KeyRole | None = None
     ) -> dict[str, Any]:
         """Get JSON Web Key Set (JWKS) for distribution.
 
@@ -577,7 +573,7 @@ class VDSNCKeyDistributor:
             },
         }
 
-    async def get_key_by_kid(self, kid: str) -> Optional[dict[str, Any]]:
+    async def get_key_by_kid(self, kid: str) -> dict[str, Any] | None:
         """Get single key by KID.
 
         Args:
@@ -596,7 +592,7 @@ class VDSNCKeyDistributor:
 
         return metadata.to_jwk(public_key)
 
-    async def _load_public_key(self, kid: str) -> Optional[EllipticCurvePublicKey]:
+    async def _load_public_key(self, kid: str) -> EllipticCurvePublicKey | None:
         """Load public key from storage."""
         # Implementation depends on storage backend
         return None
@@ -645,10 +641,9 @@ if __name__ == "__main__":
     # Example standalone usage (requires async context)
     import asyncio
 
-    async def main():
+    async def main() -> None:
         """Example main function."""
         # This would need actual database session
         # await example_key_lifecycle(session)
-        pass
 
     asyncio.run(main())

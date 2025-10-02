@@ -6,7 +6,6 @@ import concurrent.futures
 import logging
 
 import grpc
-
 import src.trust_anchor_pb2_grpc as trust_anchor_grpc
 from src.trust_anchor_pb2 import (
     CertificateInfo,

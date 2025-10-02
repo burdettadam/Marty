@@ -1,12 +1,12 @@
 """
 Service for handling Certificate Revocation List (CRL) operations
 """
+from __future__ import annotations
 
 import logging
 import os
 import uuid
 from datetime import datetime, timedelta
-from typing import Optional
 
 import aiosqlite
 from app.core.config import settings
@@ -20,11 +20,11 @@ logger = logging.getLogger(__name__)
 class CRLService:
     """Service for managing Certificate Revocation Lists"""
 
-    def __init__(self, db_connection: Optional[aiosqlite.Connection] = None) -> None:
+    def __init__(self, db_connection: aiosqlite.Connection | None = None) -> None:
         """Initialize with optional database connection"""
         self.db_connection = db_connection
 
-    async def get_crl(self, country: Optional[str] = None) -> CrlResponse:
+    async def get_crl(self, country: str | None = None) -> CrlResponse:
         """
         Retrieve CRL data, optionally filtered by country.
         """
@@ -74,7 +74,7 @@ class CRLService:
             revoked_certificates=revoked_certs,
         )
 
-    async def get_crl_binary(self, country: Optional[str] = None) -> bytes:
+    async def get_crl_binary(self, country: str | None = None) -> bytes:
         """
         Get the ASN.1 encoded CRL data, optionally filtered by country.
         """
@@ -147,7 +147,7 @@ class CRLService:
             )
 
     async def _get_revoked_certificates(
-        self, country: Optional[str] = None
+        self, country: str | None = None
     ) -> list[RevokedCertificate]:
         """
         Helper method to get revoked certificates.

@@ -4,6 +4,7 @@ MDoc Engine service implementation.
 This module provides the gRPC service for managing Mobile Documents (MDocs),
 including creation, signing, and verification of digital documents.
 """
+from __future__ import annotations
 
 import json
 import uuid
@@ -36,7 +37,7 @@ class MDocEngineServicer(mdoc_engine_pb2_grpc.MDocEngineServicer):  # type: igno
     that can be stored on mobile devices and verified remotely.
     """
 
-    def __init__(self, channels: Optional[dict[str, Any]] = None) -> None:
+    def __init__(self, channels: dict[str, Any] | None = None) -> None:
         """
         Initialize the MDoc Engine service.
 

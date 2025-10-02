@@ -4,11 +4,12 @@ Certificate models for X.509 PKI infrastructure.
 Models complying with RFC 5280 for X.509 certificates used in the
 ICAO PKI for ePassports, including CSCA and Document Signer certificates.
 """
+from __future__ import annotations
 
 from dataclasses import dataclass, field
 from datetime import datetime
 from enum import Enum
-from typing import Any, Optional
+from typing import Any
 from uuid import UUID, uuid4
 
 
@@ -62,11 +63,11 @@ class X509Name:
 
     country: str
     organization: str
-    organizational_unit: Optional[str] = None
-    common_name: Optional[str] = None
-    state_or_province: Optional[str] = None
-    locality: Optional[str] = None
-    email: Optional[str] = None
+    organizational_unit: str | None = None
+    common_name: str | None = None
+    state_or_province: str | None = None
+    locality: str | None = None
+    email: str | None = None
 
     def to_dict(self) -> dict[str, str]:
         """Convert to dictionary."""
@@ -117,7 +118,7 @@ class X509Name:
         return ", ".join(parts)
 
     @classmethod
-    def from_dict(cls, data: dict[str, str]) -> "X509Name":
+    def from_dict(cls, data: dict[str, str]) -> X509Name:
         """Create X509Name from dictionary."""
         return cls(
             country=data.get("C", ""),
@@ -130,7 +131,7 @@ class X509Name:
         )
 
     @classmethod
-    def from_string(cls, name_string: str) -> "X509Name":
+    def from_string(cls, name_string: str) -> X509Name:
         """Parse X509Name from string."""
         components = {}
         for part in name_string.split(","):
@@ -197,7 +198,7 @@ class Certificate:
     certificate_type: CertificateType
     key_usage: list[KeyUsage] = field(default_factory=list)
     extensions: list[X509Extension] = field(default_factory=list)
-    raw_data: Optional[str] = None  # Base64 encoded certificate data (DER/PEM)
+    raw_data: str | None = None  # Base64 encoded certificate data (DER/PEM)
     id: UUID = field(default_factory=uuid4)
 
     def to_dict(self) -> dict[str, Any]:
@@ -219,7 +220,7 @@ class Certificate:
         }
 
     @classmethod
-    def from_dict(cls, data: dict[str, Any]) -> "Certificate":
+    def from_dict(cls, data: dict[str, Any]) -> Certificate:
         """Create Certificate from dictionary."""
         cert = cls(
             id=UUID(data["id"]) if "id" in data else uuid4(),
@@ -250,7 +251,7 @@ class Certificate:
 
         return cert
 
-    def is_valid(self, current_time: Optional[datetime] = None) -> bool:
+    def is_valid(self, current_time: datetime | None = None) -> bool:
         """Check if certificate is currently valid."""
         if current_time is None:
             current_time = datetime.now()
@@ -284,9 +285,9 @@ class CertificateRevocationList:
     this_update: datetime
     next_update: datetime
     revoked_certificates: list[dict[str, Any]] = field(default_factory=list)
-    signature_algorithm: Optional[SignatureAlgorithm] = None
-    signature: Optional[str] = None  # Base64 encoded signature
-    raw_data: Optional[str] = None  # Base64 encoded CRL data
+    signature_algorithm: SignatureAlgorithm | None = None
+    signature: str | None = None  # Base64 encoded signature
+    raw_data: str | None = None  # Base64 encoded CRL data
     id: UUID = field(default_factory=uuid4)
 
     def to_dict(self) -> dict[str, Any]:
@@ -311,7 +312,7 @@ class CertificateRevocationList:
         return result
 
     @classmethod
-    def from_dict(cls, data: dict[str, Any]) -> "CertificateRevocationList":
+    def from_dict(cls, data: dict[str, Any]) -> CertificateRevocationList:
         """Create CertificateRevocationList from dictionary."""
         crl = cls(
             id=UUID(data["id"]) if "id" in data else uuid4(),
@@ -334,7 +335,7 @@ class CertificateRevocationList:
         """Check if a certificate with the given serial number is revoked."""
         return any(cert.get("serialNumber") == serial_number for cert in self.revoked_certificates)
 
-    def is_valid(self, current_time: Optional[datetime] = None) -> bool:
+    def is_valid(self, current_time: datetime | None = None) -> bool:
         """Check if CRL is currently valid."""
         if current_time is None:
             current_time = datetime.now()
@@ -354,7 +355,7 @@ class CSCAMasterListEntry:
         return {"country": self.country, "certificate": self.certificate.to_dict()}
 
     @classmethod
-    def from_dict(cls, data: dict[str, Any]) -> "CSCAMasterListEntry":
+    def from_dict(cls, data: dict[str, Any]) -> CSCAMasterListEntry:
         """Create CSCAMasterListEntry from dictionary."""
         return cls(country=data["country"], certificate=Certificate.from_dict(data["certificate"]))
 
@@ -368,7 +369,7 @@ class CSCAMasterList:
     issued_date: datetime
     next_update: datetime
     entries: list[CSCAMasterListEntry] = field(default_factory=list)
-    signature: Optional[str] = None
+    signature: str | None = None
     id: UUID = field(default_factory=uuid4)
 
     def to_dict(self) -> dict[str, Any]:
@@ -388,7 +389,7 @@ class CSCAMasterList:
         return result
 
     @classmethod
-    def from_dict(cls, data: dict[str, Any]) -> "CSCAMasterList":
+    def from_dict(cls, data: dict[str, Any]) -> CSCAMasterList:
         """Create CSCAMasterList from dictionary."""
         master_list = cls(
             id=UUID(data["id"]) if "id" in data else uuid4(),
@@ -414,7 +415,7 @@ class CSCAMasterList:
             if entry.country.upper() == country_code.upper()
         ]
 
-    def is_valid(self, current_time: Optional[datetime] = None) -> bool:
+    def is_valid(self, current_time: datetime | None = None) -> bool:
         """Check if master list is currently valid."""
         if current_time is None:
             current_time = datetime.now()

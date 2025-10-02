@@ -1,12 +1,12 @@
 """
 Notification utilities for sending alerts
 """
+from __future__ import annotations
 
 import logging
 import smtplib
 from datetime import datetime
 from email.message import EmailMessage
-from typing import Optional
 
 import aiohttp
 from app.core.config import settings
@@ -25,7 +25,7 @@ class Notifier:
         self.config = settings.NOTIFICATIONS if hasattr(settings, "NOTIFICATIONS") else {}
 
     async def send_notification(
-        self, subject: str, message: str, channel: Optional[str] = None
+        self, subject: str, message: str, channel: str | None = None
     ) -> None:
         """
         Send a notification using the configured channels
@@ -156,7 +156,7 @@ class Notifier:
         await self.send_notification(notification_subject, notification_message)
 
     async def send_revocation_notification(
-        self, cert_id: str, subject: str, reason: Optional[str] = None
+        self, cert_id: str, subject: str, reason: str | None = None
     ) -> None:
         """
         Send a certificate revocation notification

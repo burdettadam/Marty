@@ -5,6 +5,7 @@ Mock test for CSCA certificate lifecycle management.
 This script tests certificate lifecycle management without relying on proto files.
 It creates a mock implementation of both the service and the proto messages.
 """
+from __future__ import annotations
 
 import json
 import logging
@@ -12,7 +13,6 @@ import os
 import uuid
 from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
-from typing import Dict, List, Optional
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -25,7 +25,7 @@ class MockCreateCertificateRequest:
     validity_days: int = 365
     key_algorithm: str = "RSA"
     key_size: int = 2048
-    extensions: Dict[str, str] = None
+    extensions: dict[str, str] = None
 
 
 @dataclass
@@ -68,7 +68,7 @@ class MockCertificateStatusResponse:
     status: str = ""
     not_before: str = ""
     not_after: str = ""
-    revocation_reason: Optional[str] = None
+    revocation_reason: str | None = None
     subject: str = ""
     issuer: str = ""
 
@@ -86,12 +86,12 @@ class MockCertificateSummary:
     status: str = ""
     not_before: str = ""
     not_after: str = ""
-    revocation_reason: Optional[str] = None
+    revocation_reason: str | None = None
 
 
 @dataclass
 class MockListCertificatesResponse:
-    certificates: List[MockCertificateSummary] = None
+    certificates: list[MockCertificateSummary] = None
 
     def __post_init__(self):
         if self.certificates is None:

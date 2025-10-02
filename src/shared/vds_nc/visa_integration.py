@@ -12,7 +12,7 @@ from typing import Any
 
 from pydantic import BaseModel, Field
 
-from src.shared.models.visa import PersonalData, VisaDocumentData, VDSNCData
+from src.shared.models.visa import PersonalData, VDSNCData, VisaDocumentData
 from src.shared.vds_nc import (
     BarcodeFormat,
     DocumentType,

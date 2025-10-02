@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import logging
-from typing import Any, Type, TypeVar
+from typing import Any, TypeVar
 
 from pydantic import BaseModel, ValidationError
 
@@ -40,7 +40,7 @@ class RequestValidationError(Exception):
         return f"{location}: {message}"
 
 
-def validate_request(schema: Type[SchemaT], raw: Any) -> SchemaT:
+def validate_request(schema: type[SchemaT], raw: Any) -> SchemaT:
     """Validate a protobuf message using the supplied Pydantic schema."""
 
     try:

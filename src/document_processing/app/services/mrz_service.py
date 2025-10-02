@@ -9,7 +9,7 @@ import logging
 import time
 from datetime import datetime
 from io import BytesIO
-from typing import Any
+from typing import Any, NoReturn
 from uuid import uuid4
 
 from app.core.config import settings
@@ -115,12 +115,12 @@ except (ImportError, ModuleNotFoundError):  # Fallback only for import-related f
             )
 
         @staticmethod
-        def parse_td2_mrz(mrz: str):  # Not implemented in fallback
+        def parse_td2_mrz(mrz: str) -> NoReturn:  # Not implemented in fallback
             msg = "TD2 parsing not supported in fallback parser"
             raise MRZException(msg)
 
         @staticmethod
-        def parse_td1_mrz(mrz: str):  # Not implemented in fallback
+        def parse_td1_mrz(mrz: str) -> NoReturn:  # Not implemented in fallback
             msg = "TD1 parsing not supported in fallback parser"
             raise MRZException(msg)
 
@@ -154,10 +154,11 @@ class ImageProcessor:
             # Decode base64
             image_data = base64.b64decode(base64_data)
             image = Image.open(BytesIO(image_data))
-            return image
         except Exception as e:
             msg = f"Failed to decode image: {e}"
             raise ValueError(msg)
+        else:
+            return image
 
     @staticmethod
     def extract_text_from_image(image: Image.Image) -> list[str]:
@@ -170,17 +171,16 @@ class ImageProcessor:
         logger.info("Extracting text from image (mock implementation)")
 
         # This is a mock - real implementation would use OCR
-        mock_mrz_lines = [
+        return [
             "P<USADOE<<JOHN<MICHAEL<<<<<<<<<<<<<<<<",
             "1234567890USA8504031M3504027<<<<<<<<<<<<6",
         ]
-        return mock_mrz_lines
 
 
 class MRZProcessingService:
     """Service for processing MRZ data"""
 
-    def __init__(self):
+    def __init__(self) -> None:
         self.image_processor = ImageProcessor()
 
     def process_request(self, request: ProcessRequest) -> ProcessResponse:
@@ -229,11 +229,11 @@ class MRZProcessingService:
                 metadata={"processed_images": len(request.images)},
             )
 
-            return response
-
-        except Exception as e:
-            logger.error(f"Error processing request: {e}")
+        except Exception:
+            logger.exception("Error processing request")
             raise
+        else:
+            return response
 
     def _create_transaction_info(self) -> TransactionInfo:
         """Create transaction information"""
@@ -286,10 +286,8 @@ class MRZProcessingService:
                 mrzResult=mrz_result,
             )
 
-            return container
-
-        except Exception as e:
-            logger.error(f"Error processing image {index}: {e}")
+        except Exception:
+            logger.exception(f"Error processing image {index}")
             # Return error container
             status = Status(
                 overallStatus=CheckResult.NEGATIVE,
@@ -298,6 +296,8 @@ class MRZProcessingService:
                 rfid=CheckResult.NOT_PERFORMED,
                 stopList=CheckResult.NOT_PERFORMED,
             )
+        else:
+            return container
 
             return Container(
                 type=ContainerType.MRZ_CONTAINER,

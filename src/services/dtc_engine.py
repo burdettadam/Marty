@@ -77,7 +77,7 @@ class DTCEngineServicer(dtc_engine_pb2_grpc.DTCEngineServicer):
             payload_key, json.dumps(dtc_payload).encode("utf-8"), "application/json"
         )
 
-        async def handler(session):
+        async def handler(session) -> None:
             repo = DigitalTravelCredentialRepository(session)
             await repo.create(
                 dtc_id=dtc_id,
@@ -177,7 +177,7 @@ class DTCEngineServicer(dtc_engine_pb2_grpc.DTCEngineServicer):
         }
         signature_bytes = sign_response.signature_info.signature
 
-        async def handler(session):
+        async def handler(session) -> bool:
             repo = DigitalTravelCredentialRepository(session)
             stored = await repo.get(request.dtc_id)
             if stored is None:
@@ -217,10 +217,10 @@ class DTCEngineServicer(dtc_engine_pb2_grpc.DTCEngineServicer):
             ),
         )
 
-    async def RevokeDTC(self, request, context):  # noqa: N802
+    async def RevokeDTC(self, request, context):
         reason = request.reason or "unspecified"
 
-        async def handler(session):
+        async def handler(session) -> None:
             repo = DigitalTravelCredentialRepository(session)
             await repo.mark_revoked(request.dtc_id, reason)
             await self._publish_event(
@@ -252,7 +252,7 @@ class DTCEngineServicer(dtc_engine_pb2_grpc.DTCEngineServicer):
         qr_img.save(buffer, format="PNG")
         return dtc_engine_pb2.DTCQRCodeResponse(success=True, qr_code_png=buffer.getvalue())
 
-    async def TransferDTCToDevice(self, request, context):  # noqa: N802
+    async def TransferDTCToDevice(self, request, context):
         record = await self._load_record(request.dtc_id)
         if record is None:
             return dtc_engine_pb2.TransferDTCResponse(
@@ -393,8 +393,8 @@ class DTCEngineServicer(dtc_engine_pb2_grpc.DTCEngineServicer):
             else "; ".join(check.details for check in verification_checks if not check.passed),
         )
 
-    async def LinkDTCToPassport(self, request, context):  # noqa: N802
-        async def handler(session):
+    async def LinkDTCToPassport(self, request, context):
+        async def handler(session) -> bool:
             repo = DigitalTravelCredentialRepository(session)
             stored = await repo.get(request.dtc_id)
             if stored is None:
@@ -465,7 +465,7 @@ class DTCEngineServicer(dtc_engine_pb2_grpc.DTCEngineServicer):
     ) -> None:
         serialized = json.dumps(payload).encode("utf-8")
 
-        async def handler(db_session):
+        async def handler(db_session) -> None:
             outbox = OutboxRepository(db_session)
             await outbox.enqueue(
                 topic=topic,

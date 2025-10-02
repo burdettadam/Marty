@@ -10,9 +10,9 @@ import base64
 import json
 import logging
 import re
-from datetime import date, datetime, timezone
+from datetime import date, datetime
 from enum import Enum
-from typing import Any, Optional, TypeVar, Union
+from typing import Any, TypeVar
 from uuid import UUID, uuid4
 
 # Import Pydantic for improved data validation
@@ -97,7 +97,7 @@ class MRZData(BaseModel):
     date_of_birth: str = Field(..., description="YYMMDD format")
     gender: Gender
     date_of_expiry: str = Field(..., description="YYMMDD format")
-    personal_number: Optional[str] = None
+    personal_number: str | None = None
 
     model_config = {
         "validate_assignment": True,
@@ -218,8 +218,8 @@ class PassportData(BaseModel):
     date_of_birth: date
     gender: Gender
     date_of_expiry: date
-    personal_number: Optional[str] = None
-    photo: Optional[Union[str, bytes]] = None  # Base64 encoded or raw JPEG photo
+    personal_number: str | None = None
+    photo: str | bytes | None = None  # Base64 encoded or raw JPEG photo
 
     model_config = {
         "validate_assignment": True,
@@ -259,7 +259,7 @@ class PassportData(BaseModel):
         return v
 
     @property
-    def photo_bytes(self) -> Optional[bytes]:
+    def photo_bytes(self) -> bytes | None:
         """Get photo as bytes."""
         if self.photo is None:
             return None
@@ -268,7 +268,7 @@ class PassportData(BaseModel):
         return base64.b64decode(self.photo)
 
     @property
-    def photo_base64(self) -> Optional[str]:
+    def photo_base64(self) -> str | None:
         """Get photo as base64 encoded string."""
         if self.photo is None:
             return None
@@ -380,9 +380,9 @@ class Passport(BaseModel):
 
     id: UUID = Field(default_factory=uuid4)
     passport_data: PassportData
-    mrz: Optional[str] = None
-    security_object: Optional[str] = None  # Document Security Object
-    chip_content: Optional[Union[str, bytes]] = None  # Binary chip data as bytes or base64
+    mrz: str | None = None
+    security_object: str | None = None  # Document Security Object
+    chip_content: str | bytes | None = None  # Binary chip data as bytes or base64
     data_groups: dict[str, DataGroup] = Field(default_factory=dict)
 
     model_config = {
@@ -405,7 +405,7 @@ class Passport(BaseModel):
         return v
 
     @property
-    def chip_content_bytes(self) -> Optional[bytes]:
+    def chip_content_bytes(self) -> bytes | None:
         """Get chip content as bytes."""
         if self.chip_content is None:
             return None
@@ -414,7 +414,7 @@ class Passport(BaseModel):
         return base64.b64decode(self.chip_content)
 
     @property
-    def chip_content_base64(self) -> Optional[str]:
+    def chip_content_base64(self) -> str | None:
         """Get chip content as base64 encoded string."""
         if self.chip_content is None:
             return None
@@ -483,7 +483,7 @@ class Passport(BaseModel):
 
             # First try to use our SOD parser for enhanced validation
             try:
-                from ..crypto.sod_parser import SODProcessor
+                from src.marty_common.crypto.sod_parser import SODProcessor
 
                 processor = SODProcessor()
                 sod = processor.parse_sod_data(self.security_object)
@@ -511,7 +511,9 @@ class Passport(BaseModel):
 
             # Try to use the certificate validation service
             try:
-                from ..services.certificate_validation import validate_sod_certificate
+                from src.marty_common.services.certificate_validation import (
+                    validate_sod_certificate,
+                )
 
                 return validate_sod_certificate(self.security_object)
             except ImportError:
@@ -549,7 +551,7 @@ class Passport(BaseModel):
                 return False
 
             # Import the new data group hash verification service
-            from ..crypto.data_group_hasher import verify_passport_data_groups
+            from src.marty_common.crypto.data_group_hasher import verify_passport_data_groups
 
             # Convert security_object to appropriate format
             if isinstance(self.security_object, str):
@@ -585,10 +587,7 @@ class Passport(BaseModel):
             logger.warning("Data group hash verification service not available, using fallback")
             # Fallback to basic validation
             required_dgs = ["DG1"]  # At minimum, DG1 (MRZ) should be present
-            for dg_type in required_dgs:
-                if dg_type not in self.data_groups:
-                    return False
-            return True
+            return all(dg_type in self.data_groups for dg_type in required_dgs)
         except Exception:
             logger.exception("Data group integrity verification failed")
             return False
@@ -726,7 +725,7 @@ class VerificationResult(BaseModel):
 
 class CMCSecurityModel(str, Enum):
     """Security models supported for CMC documents."""
-    
+
     CHIP_LDS = "CHIP_LDS"  # Chip with minimal LDS (DG1, DG2)
     VDS_NC = "VDS_NC"  # Visible Digital Seal (Non-Constrained)
 
@@ -743,7 +742,7 @@ class CMCTD1MRZData(BaseModel):
     date_of_birth: str = Field(..., description="YYMMDD format")
     gender: Gender
     date_of_expiry: str = Field(..., description="YYMMDD format")
-    optional_data: Optional[str] = Field(None, description="Optional data field")
+    optional_data: str | None = Field(None, description="Optional data field")
 
     model_config = {
         "validate_assignment": True,
@@ -782,7 +781,7 @@ class CMCTD1MRZData(BaseModel):
         return snake_to_camel_dict(data)
 
     @classmethod
-    def from_dict(cls, data: dict) -> "CMCTD1MRZData":
+    def from_dict(cls, data: dict) -> CMCTD1MRZData:
         """Create an instance from a dictionary with camelCase keys."""
         snake_case_data = camel_to_snake_dict(data)
         return cls(**snake_case_data)
@@ -800,15 +799,15 @@ class CMCData(BaseModel):
     date_of_birth: date = Field(..., description="Date of birth")
     gender: Gender = Field(..., description="Sex designation")
     date_of_expiry: date = Field(..., description="Date of expiry")
-    
+
     # Optional CMC-specific fields
-    employer: Optional[str] = Field(None, description="Employing airline/organization")
-    crew_id: Optional[str] = Field(None, description="Crew member identification number")
-    
+    employer: str | None = Field(None, description="Employing airline/organization")
+    crew_id: str | None = Field(None, description="Crew member identification number")
+
     # Security and validation fields
     security_model: CMCSecurityModel = Field(CMCSecurityModel.CHIP_LDS, description="Security model used")
     background_check_verified: bool = Field(False, description="Annex 9 background check completion")
-    face_image: Optional[Union[str, bytes]] = None  # Face image if chip present (DG2)
+    face_image: str | bytes | None = None  # Face image if chip present (DG2)
 
     model_config = {
         "validate_assignment": True,
@@ -846,7 +845,7 @@ class CMCData(BaseModel):
         return v
 
     @property
-    def face_image_bytes(self) -> Optional[bytes]:
+    def face_image_bytes(self) -> bytes | None:
         """Get face image as bytes."""
         if self.face_image is None:
             return None
@@ -855,7 +854,7 @@ class CMCData(BaseModel):
         return base64.b64decode(self.face_image)
 
     @property
-    def face_image_base64(self) -> Optional[str]:
+    def face_image_base64(self) -> str | None:
         """Get face image as base64 encoded string."""
         if self.face_image is None:
             return None
@@ -881,7 +880,7 @@ class CMCData(BaseModel):
     def to_dict(self):
         """Convert to dictionary with camelCase keys."""
         data = self.model_dump()
-        
+
         # Handle face image conversion to base64 if it's bytes
         if "face_image" in data and isinstance(data["face_image"], bytes):
             data["face_image"] = base64.b64encode(data["face_image"]).decode("utf-8")
@@ -895,10 +894,10 @@ class CMCData(BaseModel):
         return snake_to_camel_dict(data)
 
     @classmethod
-    def from_dict(cls, data: dict) -> "CMCData":
+    def from_dict(cls, data: dict) -> CMCData:
         """Create an instance from a dictionary with camelCase keys."""
         snake_case_data = camel_to_snake_dict(data)
-        
+
         # Convert date strings to date objects
         if "date_of_birth" in snake_case_data and isinstance(snake_case_data["date_of_birth"], str):
             snake_case_data["date_of_birth"] = datetime.fromisoformat(
@@ -910,7 +909,7 @@ class CMCData(BaseModel):
             snake_case_data["date_of_expiry"] = datetime.fromisoformat(
                 snake_case_data["date_of_expiry"]
             ).date()
-            
+
         return cls(**snake_case_data)
 
 
@@ -923,7 +922,7 @@ class VDSNCBarcode(BaseModel):
     signature_algorithm: str = Field("ES256", description="Signature algorithm")
     certificate_reference: str = Field(..., description="Certificate reference")
     signature_creation_date: str = Field(..., description="Signature creation date (YYMMDD)")
-    signature_creation_time: Optional[str] = Field(None, description="Signature creation time (HHMMSS)")
+    signature_creation_time: str | None = Field(None, description="Signature creation time (HHMMSS)")
     cmc_data: dict = Field(..., description="CMC dataset payload")
     signature: str = Field(..., description="Digital signature")
 
@@ -969,7 +968,7 @@ class VDSNCBarcode(BaseModel):
         # using the provided public key
         try:
             from src.marty_common.crypto import verify_signature
-            
+
             canonical_data = self._get_canonical_data()
             return verify_signature(
                 canonical_data.encode(),
@@ -998,14 +997,14 @@ class CMCCertificate(BaseModel):
 
     id: UUID = Field(default_factory=uuid4)
     cmc_data: CMCData
-    td1_mrz: Optional[str] = None  # TD-1 format MRZ string
-    security_object: Optional[str] = None  # Document Security Object (for chip model)
-    vds_nc_barcode: Optional[VDSNCBarcode] = None  # VDS-NC barcode (for non-chip model)
-    chip_content: Optional[Union[str, bytes]] = None  # Binary chip data
+    td1_mrz: str | None = None  # TD-1 format MRZ string
+    security_object: str | None = None  # Document Security Object (for chip model)
+    vds_nc_barcode: VDSNCBarcode | None = None  # VDS-NC barcode (for non-chip model)
+    chip_content: str | bytes | None = None  # Binary chip data
     data_groups: dict[str, DataGroup] = Field(default_factory=dict)  # DG1, DG2 for chip model
-    
+
     # Annex 9 compliance fields
-    electronic_record_id: Optional[str] = Field(None, description="Electronic record identifier")
+    electronic_record_id: str | None = Field(None, description="Electronic record identifier")
     issuer_record_keeping: bool = Field(False, description="Issuer maintains electronic record")
     visa_free_entry_eligible: bool = Field(False, description="Eligible for visa-free crew entry")
 
@@ -1028,7 +1027,7 @@ class CMCCertificate(BaseModel):
         return v
 
     @property
-    def chip_content_bytes(self) -> Optional[bytes]:
+    def chip_content_bytes(self) -> bytes | None:
         """Get chip content as bytes."""
         if self.chip_content is None:
             return None
@@ -1037,7 +1036,7 @@ class CMCCertificate(BaseModel):
         return base64.b64decode(self.chip_content)
 
     @property
-    def chip_content_base64(self) -> Optional[str]:
+    def chip_content_base64(self) -> str | None:
         """Get chip content as base64 encoded string."""
         if self.chip_content is None:
             return None
@@ -1073,14 +1072,13 @@ class CMCCertificate(BaseModel):
             # Step 2: Security model specific verification
             if self.uses_chip_security:
                 return self._verify_chip_security()
-            elif self.uses_vds_nc_security:
+            if self.uses_vds_nc_security:
                 return self._verify_vds_nc_security()
-            else:
-                logger.warning(f"Unknown security model: {self.cmc_data.security_model}")
-                return False
+            logger.warning(f"Unknown security model: {self.cmc_data.security_model}")
+            return False
 
-        except Exception as e:
-            logger.exception(f"CMC verification failed: {e}")
+        except Exception:
+            logger.exception("CMC verification failed")
             return False
 
     def _verify_chip_security(self) -> bool:
@@ -1091,7 +1089,7 @@ class CMCCertificate(BaseModel):
 
         # Verify SOD signature (simplified)
         # In real implementation, this would verify against CSCA
-        
+
         # Verify DG1 (MRZ) matches visual MRZ
         dg1 = self.data_groups.get("DG1")
         if dg1 and str(dg1.data) != self.td1_mrz:
@@ -1114,12 +1112,12 @@ class CMCCertificate(BaseModel):
 
         # Compare VDS-NC payload to printed fields
         vds_data = self.vds_nc_barcode.cmc_data
-        
+
         # Verify key fields match
         if vds_data.get("document_number") != self.cmc_data.document_number:
             logger.warning("VDS-NC document number mismatch")
             return False
-            
+
         if vds_data.get("surname") != self.cmc_data.surname:
             logger.warning("VDS-NC surname mismatch")
             return False
@@ -1153,18 +1151,18 @@ class CMCCertificate(BaseModel):
         return result
 
     @classmethod
-    def from_dict(cls, data: dict) -> "CMCCertificate":
+    def from_dict(cls, data: dict) -> CMCCertificate:
         """Create an instance from a dictionary."""
         # Convert camelCase keys to snake_case
         snake_case_data = camel_to_snake_dict(data)
-        
+
         # Handle nested objects
         if "cmc_data" in snake_case_data:
             snake_case_data["cmc_data"] = CMCData.from_dict(snake_case_data["cmc_data"])
-            
-        if "vds_nc_barcode" in snake_case_data and snake_case_data["vds_nc_barcode"]:
+
+        if snake_case_data.get("vds_nc_barcode"):
             snake_case_data["vds_nc_barcode"] = VDSNCBarcode(**camel_to_snake_dict(snake_case_data["vds_nc_barcode"]))
-            
+
         if "data_groups" in snake_case_data:
             data_groups = {}
             for k, v in snake_case_data["data_groups"].items():

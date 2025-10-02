@@ -69,7 +69,8 @@ class RenewCertificateRequestSchema(BaseModel):
     def _validate_certificate_id(cls, value: str) -> str:
         value = (value or "").strip()
         if not value:
-            raise ValueError("certificate_id is required")
+            msg = "certificate_id is required"
+            raise ValueError(msg)
         return value
 
 
@@ -86,7 +87,8 @@ class RevokeCertificateRequestSchema(BaseModel):
     def _validate_certificate_id(cls, value: str) -> str:
         value = (value or "").strip()
         if not value:
-            raise ValueError("certificate_id is required")
+            msg = "certificate_id is required"
+            raise ValueError(msg)
         return value
 
     @field_validator("reason")
@@ -105,7 +107,8 @@ class RevokeCertificateRequestSchema(BaseModel):
             "AA_COMPROMISE",
         }
         if value.upper() not in allowed_reasons:
-            raise ValueError(f"reason must be one of: {', '.join(allowed_reasons)}")
+            msg = f"reason must be one of: {', '.join(allowed_reasons)}"
+            raise ValueError(msg)
         return value.upper()
 
 
@@ -121,7 +124,8 @@ class CertificateStatusRequestSchema(BaseModel):
     def _validate_certificate_id(cls, value: str) -> str:
         value = (value or "").strip()
         if not value:
-            raise ValueError("certificate_id is required")
+            msg = "certificate_id is required"
+            raise ValueError(msg)
         return value
 
 
@@ -140,7 +144,8 @@ class ListCertificatesRequestSchema(BaseModel):
             return value
         allowed_statuses = {"VALID", "EXPIRED", "REVOKED"}
         if value.upper() not in allowed_statuses:
-            raise ValueError(f"status_filter must be one of: {', '.join(allowed_statuses)}")
+            msg = f"status_filter must be one of: {', '.join(allowed_statuses)}"
+            raise ValueError(msg)
         return value.upper()
 
 
@@ -155,5 +160,6 @@ class CheckExpiringCertificatesRequestSchema(BaseModel):
     @classmethod
     def _validate_days_threshold(cls, value: int) -> int:
         if value < 1 or value > 365:
-            raise ValueError("days_threshold must be between 1 and 365 days")
+            msg = "days_threshold must be between 1 and 365 days"
+            raise ValueError(msg)
         return value

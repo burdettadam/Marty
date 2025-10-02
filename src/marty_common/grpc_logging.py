@@ -23,10 +23,7 @@ except ImportError:
         )
     except ImportError:
         # Try relative import
-        from ..proto import (
-            common_services_pb2,  # type: ignore
-            common_services_pb2_grpc,  # type: ignore
-        )
+        from src.proto import common_services_pb2, common_services_pb2_grpc
 
 # Maximum number of log entries to queue per client.
 # If a client falls behind, older messages might be dropped or it might block.
@@ -191,7 +188,7 @@ class LoggingStreamerServicer(common_services_pb2_grpc.LoggingStreamerServicer):
                         break
                     continue  # Continue waiting for logs
                 except Exception as e:  # Catch any other exception from queue.get or yield
-                    logging.exception(f"Error during log streaming for client {peer}: {e}")
+                    logging.exception(f"Error during log streaming for client {peer}")
                     await context.abort(grpc.StatusCode.INTERNAL, f"Error during streaming: {e}")
                     break
         except Exception as e:

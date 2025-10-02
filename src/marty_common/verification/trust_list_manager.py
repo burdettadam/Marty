@@ -11,7 +11,7 @@ This module provides trust list management for verifiers, including:
 from __future__ import annotations
 
 import asyncio
-import hashlib
+import contextlib
 import json
 import logging
 from dataclasses import dataclass, field
@@ -25,11 +25,6 @@ from cryptography import x509
 from cryptography.hazmat.primitives import hashes, serialization
 from cryptography.hazmat.primitives.asymmetric import ec
 from cryptography.hazmat.primitives.asymmetric.ec import EllipticCurvePublicKey
-from cryptography.hazmat.primitives.asymmetric.utils import (
-    decode_dss_signature,
-    encode_dss_signature,
-)
-from cryptography.x509 import ocsp
 
 logger = logging.getLogger(__name__)
 
@@ -241,11 +236,12 @@ class TrustListCache:
             logger.info(
                 f"Loaded trust list from cache (age: {trust_list.get_stats()['age_hours']:.1f} hours)"
             )
-            return trust_list
 
         except Exception as e:
             logger.exception(f"Failed to load trust list from cache: {e}")
             return None
+        else:
+            return trust_list
 
 
 class PKDClient:
@@ -358,8 +354,8 @@ class PKDClient:
 
         # Create public key
         from cryptography.hazmat.primitives.asymmetric.ec import (
-            EllipticCurvePublicNumbers,
             SECP256R1,
+            EllipticCurvePublicNumbers,
         )
 
         public_numbers = EllipticCurvePublicNumbers(x, y, SECP256R1())
@@ -439,11 +435,12 @@ class TrustListManager:
             logger.info(
                 f"Trust list refreshed: {new_trust_list.get_stats()}"
             )
-            return True
 
         except Exception as e:
             logger.exception(f"Failed to refresh trust list: {e}")
             return False
+        else:
+            return True
 
     def start_periodic_refresh(self) -> None:
         """Start periodic trust list refresh task."""
@@ -472,10 +469,8 @@ class TrustListManager:
         """Stop periodic refresh task."""
         if self._refresh_task:
             self._refresh_task.cancel()
-            try:
+            with contextlib.suppress(asyncio.CancelledError):
                 await self._refresh_task
-            except asyncio.CancelledError:
-                pass
 
     async def get_vds_nc_key(self, kid: str) -> VDSNCPublicKey | None:
         """Get VDS-NC key by KID.

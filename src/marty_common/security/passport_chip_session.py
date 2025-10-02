@@ -15,7 +15,7 @@ from __future__ import annotations
 
 import logging
 from dataclasses import dataclass
-from typing import Optional, Protocol
+from typing import Protocol
 
 from src.marty_common.rfid.apdu_commands import APDUCommand, APDUResponse, PassportAPDU
 from src.marty_common.rfid.secure_messaging import BACKeys, SecureMessaging, SessionKeys
@@ -52,8 +52,8 @@ class PassportChipSession:
     def __init__(
         self,
         transport: PassportChipTransport,
-        secure_messaging: Optional[SecureMessaging] = None,
-        aa_protocol: Optional[ActiveAuthenticationProtocol] = None,
+        secure_messaging: SecureMessaging | None = None,
+        aa_protocol: ActiveAuthenticationProtocol | None = None,
     ) -> None:
         self._transport = transport
         self._secure_messaging = secure_messaging or SecureMessaging()
@@ -104,7 +104,8 @@ class PassportChipSession:
         challenge_resp = self._transmit_apdu(APDUCommand.get_challenge(8))
         chip_challenge = challenge_resp.data
         if len(chip_challenge) != 8:
-            raise ValueError("Unexpected BAC challenge length")
+            msg = "Unexpected BAC challenge length"
+            raise ValueError(msg)
 
         # Step 2 – mutual authentication request (RND.IFD || RND.IC || K.IFD)
         auth_payload = self._secure_messaging.perform_basic_access_control(bac_keys, chip_challenge)
@@ -123,7 +124,8 @@ class PassportChipSession:
         challenge_resp = self._transmit_apdu(APDUCommand.get_challenge(16))
         encrypted_nonce = challenge_resp.data
         if len(encrypted_nonce) < 16:
-            raise ValueError("PACE nonce response too short")
+            msg = "PACE nonce response too short"
+            raise ValueError(msg)
 
         # Step 2 – reader generates ephemeral public key
         reader_public = self._secure_messaging.setup_pace_protocol(password, encrypted_nonce)
@@ -173,7 +175,7 @@ class PassportChipSession:
     def perform_active_authentication(
         self,
         dg15_data: bytes,
-        challenge: Optional[ActiveAuthenticationChallenge] = None,
+        challenge: ActiveAuthenticationChallenge | None = None,
     ) -> ActiveAuthenticationOutcome:
         """Run Active Authentication using DG15 public key material."""
         challenge = challenge or self._aa_protocol.generate_challenge()
@@ -216,7 +218,8 @@ class PassportChipSession:
     @staticmethod
     def _build_pace_authenticate_payload(public_key: bytes, tag: int) -> bytes:
         if not public_key:
-            raise ValueError("PACE public key must not be empty")
+            msg = "PACE public key must not be empty"
+            raise ValueError(msg)
 
         value = bytes([tag]) + PassportChipSession._encode_length(len(public_key)) + public_key
         # Wrap in dynamic authentication template tag 0x7C
@@ -225,10 +228,12 @@ class PassportChipSession:
     @staticmethod
     def _extract_pace_element(payload: bytes, expected_tag: int) -> bytes:
         if not payload:
-            raise ValueError("PACE response empty")
+            msg = "PACE response empty"
+            raise ValueError(msg)
 
         if payload[0] != 0x7C:
-            raise ValueError("PACE response missing dynamic authentication template")
+            msg = "PACE response missing dynamic authentication template"
+            raise ValueError(msg)
 
         _, offset = PassportChipSession._read_length(payload, 1)
         cursor = 1 + offset
@@ -241,7 +246,8 @@ class PassportChipSession:
             cursor += length
             if tag == expected_tag:
                 return value
-        raise ValueError("Expected PACE element not found in response")
+        msg = "Expected PACE element not found in response"
+        raise ValueError(msg)
 
     @staticmethod
     def _encode_length(length: int) -> bytes:
@@ -251,7 +257,8 @@ class PassportChipSession:
             return b"\x81" + bytes([length])
         if length <= 0xFFFF:
             return b"\x82" + length.to_bytes(2, "big")
-        raise ValueError("PACE payload too large")
+        msg = "PACE payload too large"
+        raise ValueError(msg)
 
     @staticmethod
     def _read_length(buffer: bytes, offset: int) -> tuple[int, int]:
@@ -260,7 +267,8 @@ class PassportChipSession:
             return first, 1
         num_octets = first & 0x7F
         if num_octets == 0:
-            raise ValueError("Indefinite length not supported")
+            msg = "Indefinite length not supported"
+            raise ValueError(msg)
         value = int.from_bytes(buffer[offset + 1 : offset + 1 + num_octets], "big")
         return value, 1 + num_octets
 

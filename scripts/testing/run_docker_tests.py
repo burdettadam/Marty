@@ -34,7 +34,7 @@ project_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(_
 sys.path.append(project_root)
 
 
-def compile_protos():
+def compile_protos() -> bool:
     """Compile proto files if needed."""
     try:
         logger.info("Compiling proto files...")
@@ -45,10 +45,11 @@ def compile_protos():
             logger.error("Failed to compile proto files")
             return False
         logger.info("Proto files compiled successfully")
-        return True
-    except Exception as e:
-        logger.exception(f"Error compiling proto files: {e}")
+    except Exception:
+        logger.exception("Error compiling proto files")
         return False
+    else:
+        return True
 
 
 def check_docker_available():
@@ -71,7 +72,6 @@ def check_docker_available():
             logger.info(
                 f"Docker Compose is available (docker compose format): {compose_result.stdout.strip()}"
             )
-            return True, "compose"
         except (subprocess.SubprocessError, FileNotFoundError):
             # Fall back to legacy docker-compose command
             try:
@@ -81,13 +81,16 @@ def check_docker_available():
                 logger.info(
                     f"Docker Compose is available (legacy format): {compose_result.stdout.strip()}"
                 )
-                return True, "docker-compose"
             except (subprocess.SubprocessError, FileNotFoundError):
                 logger.exception("Docker Compose command not found in either format")
                 return False, None
+            else:
+                return True, "docker-compose"
+        else:
+            return True, "compose"
 
-    except subprocess.SubprocessError as e:
-        logger.exception(f"Docker check failed: {e}")
+    except subprocess.SubprocessError:
+        logger.exception("Docker check failed")
         return False, None
     except FileNotFoundError:
         logger.exception(
@@ -96,7 +99,7 @@ def check_docker_available():
         return False, None
 
 
-def copy_proto_files_to_containers():
+def copy_proto_files_to_containers() -> bool:
     """Copy compiled proto files to the service containers."""
     try:
         logger.info("Setting up proto files for Docker containers...")
@@ -129,17 +132,17 @@ def copy_proto_files_to_containers():
                 logger.info("Updating __init__.py with missing imports")
                 with open(init_path, "w") as f:
                     f.write("# Auto-generated grpc module imports\n")
-                    for imp in expected_imports:
-                        f.write(f"{imp}\n")
+                    f.writelines(f"{imp}\n" for imp in expected_imports)
                 logger.info("Updated __init__.py with all proto imports")
 
-        return True
-    except Exception as e:
-        logger.exception(f"Failed to prepare proto files for Docker: {e}")
+    except Exception:
+        logger.exception("Failed to prepare proto files for Docker")
         return False
+    else:
+        return True
 
 
-def wait_for_services_ready(compose_cmd, max_retries=12, wait_time=5):
+def wait_for_services_ready(compose_cmd, max_retries=12, wait_time=5) -> bool:
     """Wait for services to be ready and check their status."""
     for attempt in range(1, max_retries + 1):
         logger.info(f"Checking service status (attempt {attempt}/{max_retries})...")
@@ -179,8 +182,8 @@ def wait_for_services_ready(compose_cmd, max_retries=12, wait_time=5):
                 logger.info("All services appear to be up and running")
                 return True
 
-        except Exception as e:
-            logger.exception(f"Error checking service status: {e}")
+        except Exception:
+            logger.exception("Error checking service status")
 
         if attempt < max_retries:
             logger.info(f"Waiting {wait_time} seconds before next check...")
@@ -195,8 +198,8 @@ def wait_for_services_ready(compose_cmd, max_retries=12, wait_time=5):
             result = subprocess.run(logs_cmd, capture_output=True, text=True, check=False)
             for line in result.stdout.splitlines()[-20:]:  # Last 20 lines
                 logger.info(f"  {line}")
-    except Exception as e:
-        logger.exception(f"Failed to collect container logs: {e}")
+    except Exception:
+        logger.exception("Failed to collect container logs")
 
     return False
 
@@ -246,18 +249,19 @@ def setup_docker_services(compose_cmd_format):
             return False, compose_cmd
 
         logger.info("All Docker services are up and running")
-        return True, compose_cmd
 
     except subprocess.SubprocessError as e:
-        logger.exception(f"Failed to start Docker Compose services: {e}")
+        logger.exception("Failed to start Docker Compose services")
         if hasattr(e, "stdout") and e.stdout:
             logger.exception(f"stdout: {e.stdout}")
         if hasattr(e, "stderr") and e.stderr:
             logger.exception(f"stderr: {e.stderr}")
         return False, compose_cmd
+    else:
+        return True, compose_cmd
 
 
-def main():
+def main() -> None:
     """Main entry point for the Docker test runner."""
     parser = argparse.ArgumentParser(description="Run Docker-based integration tests")
     parser.add_argument(
@@ -298,7 +302,7 @@ def main():
             import integration.test_docker_integration
 
             @classmethod
-            def modified_teardown(cls):
+            def modified_teardown(cls) -> None:
                 logger.info("Skipping Docker service cleanup due to --no-cleanup flag")
 
             integration.test_docker_integration.DockerIntegrationTest.tearDownClass = (

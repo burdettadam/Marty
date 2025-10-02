@@ -4,14 +4,13 @@ from __future__ import annotations
 
 import logging
 from pathlib import Path
-from typing import Optional
 
 import grpc
 
 LOGGER = logging.getLogger(__name__)
 
 
-def build_client_credentials(tls_options: dict[str, object]) -> Optional[grpc.ChannelCredentials]:
+def build_client_credentials(tls_options: dict[str, object]) -> grpc.ChannelCredentials | None:
     """Create channel credentials for mTLS client connections."""
 
     ca_bytes = _read_file_if_exists(tls_options.get("client_ca"))
@@ -65,7 +64,7 @@ def configure_server_security(
     return True
 
 
-def _read_file_if_exists(path_value: object) -> Optional[bytes]:
+def _read_file_if_exists(path_value: object) -> bytes | None:
     if not path_value:
         return None
     path = Path(str(path_value))

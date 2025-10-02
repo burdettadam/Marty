@@ -46,7 +46,7 @@ def wait_for_service(url: str, timeout: int = 30) -> bool:
     return False
 
 
-@pytest.fixture(scope="function")
+@pytest.fixture
 def ui_server():
     """Start the UI server for testing."""
     if wait_for_service(config.BASE_URL, timeout=5):
@@ -190,7 +190,7 @@ def ensure_directories():
 
 
 @pytest.hookimpl(tryfirst=True, hookwrapper=True)
-def pytest_runtest_makereport(item, call):  # noqa: ARG001
+def pytest_runtest_makereport(item, call):
     """Hook to capture screenshots on test failure."""
     outcome = yield
     rep = outcome.get_result()
@@ -208,7 +208,7 @@ def pytest_runtest_makereport(item, call):  # noqa: ARG001
                 # Schedule screenshot capture (will be done async)
                 page.screenshot(path=str(screenshot_path))
                 rep.screenshot_path = str(screenshot_path)
-            except Exception:  # noqa: BLE001
+            except Exception:
                 print(f"Failed to capture screenshot for {test_name}")
 
     return rep

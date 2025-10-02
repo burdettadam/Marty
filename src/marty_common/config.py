@@ -5,9 +5,11 @@ This module provides functionality to load and parse configuration files
 based on environment (development, testing, production).
 """
 
+from __future__ import annotations
+
 import os
 from pathlib import Path
-from typing import Any, Optional
+from typing import Any
 
 import yaml
 
@@ -31,7 +33,7 @@ class Config:
     implemented; new fields can be added as needed.
     """
 
-    def __init__(self, environment: Optional[str] = None) -> None:
+    def __init__(self, environment: str | None = None) -> None:
         self._environment = (environment or get_environment()).lower()
         self._config = load_config(self._environment)
 
@@ -76,7 +78,7 @@ def get_environment() -> str:
     return os.environ.get("MARTY_ENV", "development").lower()
 
 
-def get_config_path(environment: Optional[str] = None) -> Path:
+def get_config_path(environment: str | None = None) -> Path:
     """
     Get the path to the configuration file for the specified environment.
 
@@ -100,7 +102,7 @@ def get_config_path(environment: Optional[str] = None) -> Path:
     return config_path
 
 
-def load_config(environment: Optional[str] = None) -> dict[str, Any]:
+def load_config(environment: str | None = None) -> dict[str, Any]:
     """
     Load configuration from the appropriate YAML file based on environment.
 
@@ -164,7 +166,7 @@ def _expand_env_vars(config: dict[str, Any]) -> dict[str, Any]:
     return result
 
 
-def get_service_config(service_name: str, environment: Optional[str] = None) -> dict[str, Any]:
+def get_service_config(service_name: str, environment: str | None = None) -> dict[str, Any]:
     """
     Get configuration specific to a service.
 

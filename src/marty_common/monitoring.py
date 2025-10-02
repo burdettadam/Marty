@@ -214,8 +214,8 @@ class MetricsCollector:
             self.set_gauge("process.cpu.percent", process.cpu_percent())
             self.set_gauge("process.num.threads", process.num_threads())
 
-        except Exception as e:
-            logging.exception(f"Error collecting system metrics: {e}")
+        except Exception:
+            logging.exception("Error collecting system metrics")
 
 
 class HealthMonitor:
@@ -258,25 +258,28 @@ class HealthMonitor:
         """Check if memory usage is acceptable."""
         try:
             memory = psutil.virtual_memory()
-            return memory.percent < 90  # Less than 90% memory usage
         except Exception:
             return False
+        else:
+            return memory.percent < 90  # Less than 90% memory usage
 
     def _check_disk_usage(self) -> bool:
         """Check if disk usage is acceptable."""
         try:
             disk = psutil.disk_usage("/")
-            return disk.percent < 85  # Less than 85% disk usage
         except Exception:
             return False
+        else:
+            return disk.percent < 85  # Less than 85% disk usage
 
     def _check_cpu_usage(self) -> bool:
         """Check if CPU usage is acceptable."""
         try:
             cpu_percent = psutil.cpu_percent(interval=1)
-            return cpu_percent < 95  # Less than 95% CPU usage
         except Exception:
             return False
+        else:
+            return cpu_percent < 95  # Less than 95% CPU usage
 
     def add_health_check(
         self,
@@ -325,13 +328,13 @@ class HealthMonitor:
             check.last_result = result
             check.last_error = error
 
-            return result
-
         except Exception as e:
             check.last_check = datetime.now(timezone.utc)
             check.last_result = False
             check.last_error = str(e)
             return False
+        else:
+            return result
 
     def run_all_health_checks(self) -> dict[str, bool]:
         """Run all health checks and return results."""
@@ -518,16 +521,16 @@ class AlertManager:
                             for callback in self.alert_callbacks:
                                 try:
                                     callback(alert)
-                                except Exception as e:
-                                    logging.exception(f"Error in alert callback: {e}")
+                                except Exception:
+                                    logging.exception("Error in alert callback")
 
                     elif not should_trigger and alert.is_active:
                         # Resolve alert
                         alert.is_active = False
                         alert.resolved_at = now
 
-                except Exception as e:
-                    logging.exception(f"Error checking alert '{alert.name}': {e}")
+                except Exception:
+                    logging.exception(f"Error checking alert '{alert.name}'")
 
         return triggered_alerts
 
@@ -602,8 +605,8 @@ class ServiceMonitor:
             try:
                 self.metrics_collector.collect_system_metrics()
                 self._stop_event.wait(self.metrics_collection_interval)
-            except Exception as e:
-                logging.exception(f"Error in metrics collection loop: {e}")
+            except Exception:
+                logging.exception("Error in metrics collection loop")
                 self._stop_event.wait(5)  # Wait a bit before retrying
 
     def _health_check_loop(self) -> None:
@@ -612,8 +615,8 @@ class ServiceMonitor:
             try:
                 self.health_monitor.run_all_health_checks()
                 self._stop_event.wait(self.health_check_interval)
-            except Exception as e:
-                logging.exception(f"Error in health check loop: {e}")
+            except Exception:
+                logging.exception("Error in health check loop")
                 self._stop_event.wait(5)  # Wait a bit before retrying
 
     def _alert_check_loop(self) -> None:
@@ -622,8 +625,8 @@ class ServiceMonitor:
             try:
                 self.alert_manager.check_alerts()
                 self._stop_event.wait(self.alert_check_interval)
-            except Exception as e:
-                logging.exception(f"Error in alert check loop: {e}")
+            except Exception:
+                logging.exception("Error in alert check loop")
                 self._stop_event.wait(5)  # Wait a bit before retrying
 
     def get_monitoring_status(self) -> dict[str, Any]:
@@ -676,14 +679,14 @@ class MetricsInterceptor(grpc.ServerInterceptor):
                     "grpc.requests.success.total", {"method": method_name}
                 )
 
-                return response
-
             except Exception as e:
                 # Record error
                 self.metrics_collector.increment_counter(
                     "grpc.errors.total", {"method": method_name, "error_type": type(e).__name__}
                 )
                 raise
+            else:
+                return response
 
             finally:
                 # Record duration

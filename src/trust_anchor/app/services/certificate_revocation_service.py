@@ -82,12 +82,13 @@ class CertificateRevocationService:
                         return json.loads(content)
 
             logger.debug(f"No cache file found at {self.cache_file} or file is empty")
-            return {}
         except json.JSONDecodeError as e:
             logger.exception(f"Error decoding cache JSON: {e!s}")
             return {}
         except Exception as e:
             logger.exception(f"Error loading cache: {e!s}")
+            return {}
+        else:
             return {}
 
     def _save_cache(self, cache: dict[str, dict[str, Any]]) -> None:

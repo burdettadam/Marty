@@ -17,7 +17,6 @@ def check_docker_available():
             logger.info(
                 f"Docker Compose is available (docker compose format): {compose_result.stdout.strip()}"
             )
-            return True, "compose"
         except (subprocess.SubprocessError, FileNotFoundError):
             # Fall back to legacy docker-compose command
             try:
@@ -27,16 +26,19 @@ def check_docker_available():
                 logger.info(
                     f"Docker Compose is available (legacy format): {compose_result.stdout.strip()}"
                 )
-                return True, "docker-compose"
             except (subprocess.SubprocessError, FileNotFoundError):
-                logger.error("Docker Compose command not found in either format")
+                logger.exception("Docker Compose command not found in either format")
                 return False, None
+            else:
+                return True, "docker-compose"
+        else:
+            return True, "compose"
 
     except subprocess.SubprocessError as e:
-        logger.error(f"Docker check failed: {e}")
+        logger.exception(f"Docker check failed: {e}")
         return False, None
     except FileNotFoundError:
-        logger.error(
+        logger.exception(
             "Docker command not found. Please ensure Docker is installed and in your PATH."
         )
         return False, None
@@ -92,10 +94,11 @@ def compile_protos():
             logger.error("Failed to compile proto files")
             return False
         logger.info("Proto files compiled successfully")
-        return True
     except Exception as e:
-        logger.error(f"Error compiling proto files: {e}")
+        logger.exception(f"Error compiling proto files: {e}")
         return False
+    else:
+        return True
 
 
 def run_docker_tests(args):
@@ -184,10 +187,9 @@ def main():
         sys.exit(1)
 
     # Compile proto files if needed
-    if not args.skip_proto_compile:
-        if not compile_protos():
-            logger.error("Failed to compile proto files, exiting.")
-            sys.exit(1)
+    if not args.skip_proto_compile and not compile_protos():
+        logger.error("Failed to compile proto files, exiting.")
+        sys.exit(1)
 
     # Run the tests
     success = run_docker_tests(args)

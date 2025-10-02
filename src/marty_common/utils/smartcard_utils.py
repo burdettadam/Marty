@@ -4,9 +4,10 @@ Smart card utilities for Marty services.
 This module provides utilities for working with smart cards and RFID chips
 commonly used in e-passports, leveraging the pyscard library.
 """
+from __future__ import annotations
 
 import logging
-from typing import Any, Optional
+from typing import Any
 
 from smartcard.CardConnectionObserver import CardConnectionObserver
 from smartcard.CardRequest import CardRequest
@@ -96,10 +97,11 @@ class SmartCardReader:
             self.connection = card_service.connection
             self.connection.addObserver(self.observer)
             self.connection.connect()
-            return True
         except Exception as e:
             logger.exception(f"Error waiting for card: {e}")
             return False
+        else:
+            return True
 
     def disconnect(self) -> None:
         """Disconnect from the card."""
@@ -126,10 +128,11 @@ class SmartCardReader:
 
         try:
             data, sw1, sw2 = self.connection.transmit(command)
-            return data, sw1, sw2
         except Exception as e:
             logger.exception(f"Error sending APDU: {e}")
             raise
+        else:
+            return data, sw1, sw2
 
     def select_file(self, file_id: list[int], select_type: int = 0x02) -> tuple[bool, bytes]:
         """
@@ -166,10 +169,11 @@ class SmartCardReader:
         command = [*SELECT_AID, len(aid), *aid]
         try:
             data, sw1, sw2 = self.send_apdu(command)
-            return sw1 == 0x90 and sw2 == 0x00
         except Exception as e:
             logger.exception(f"Error selecting application: {e}")
             return False
+        else:
+            return sw1 == 0x90 and sw2 == 0x00
 
     def read_binary(self, offset: int = 0, length: int = 0xFF) -> tuple[bool, bytes]:
         """
@@ -250,7 +254,7 @@ class EPassportReader(SmartCardReader):
         super().__init__(reader_index, timeout)
         self.data_groups = {}
         self.secure_messaging = SecureMessaging()
-        self.session_keys: Optional[SessionKeys] = None
+        self.session_keys: SessionKeys | None = None
 
     def connect_to_passport(self) -> bool:
         """
@@ -309,8 +313,7 @@ class EPassportReader(SmartCardReader):
     def start_pace(self, password: str, nonce: bytes) -> bytes:
         """Initialise PACE and return the reader public key to send to the chip."""
 
-        reader_public = self.secure_messaging.setup_pace_protocol(password=password, nonce=nonce)
-        return reader_public
+        return self.secure_messaging.setup_pace_protocol(password=password, nonce=nonce)
 
     def complete_pace(self, chip_public_key: bytes) -> SessionKeys:
         """Finalize the PACE protocol once the chip's public key is available."""

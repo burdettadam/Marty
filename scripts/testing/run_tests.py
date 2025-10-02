@@ -24,7 +24,7 @@ logger = logging.getLogger(__name__)
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 
-def compile_protos():
+def compile_protos() -> bool:
     """Compile proto files if needed."""
     try:
         logger.info("Compiling proto files...")
@@ -35,10 +35,11 @@ def compile_protos():
             logger.error("Failed to compile proto files")
             return False
         logger.info("Proto files compiled successfully")
-        return True
-    except Exception as e:
-        logger.exception(f"Error compiling proto files: {e}")
+    except Exception:
+        logger.exception("Error compiling proto files")
         return False
+    else:
+        return True
 
 
 def run_unit_tests():
@@ -71,7 +72,7 @@ def run_integration_tests():
     return result.wasSuccessful()
 
 
-def main():
+def main() -> None:
     """Main entry point for the test runner."""
     parser = argparse.ArgumentParser(description="Run tests for the project")
     parser.add_argument("--unit-only", action="store_true", help="Run only unit tests")

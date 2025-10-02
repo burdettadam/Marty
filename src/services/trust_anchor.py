@@ -39,7 +39,7 @@ class TrustAnchor(trust_anchor_pb2_grpc.TrustAnchorServicer):
         self._database: DatabaseManager = dependencies.database
         self.logger.info("Trust Anchor service initialized using database-backed trust store")
 
-    async def VerifyTrust(  # noqa: N802
+    async def VerifyTrust(
         self,
         request: TrustRequest,
         context: GrpcServicerContext,
@@ -95,7 +95,8 @@ class TrustAnchor(trust_anchor_pb2_grpc.TrustAnchorServicer):
         try:
             _ = await self._database.run_within_transaction(handler)
             self.logger.info("Trust store updated for %s (trusted=%s)", entity, trusted)
-            return True
         except Exception:
             self.logger.exception("Error updating trust store for %s", entity)
             return None
+        else:
+            return True

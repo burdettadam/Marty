@@ -6,7 +6,7 @@ import asyncio
 import logging
 import uuid
 from datetime import datetime
-from typing import Any, Optional
+from typing import Any
 
 from app.core.config import settings
 from app.db.database import DatabaseManager
@@ -25,7 +25,7 @@ logger = logging.getLogger(__name__)
 class SyncService:
     """Service for coordinating PKD mirror synchronisation runs."""
 
-    def __init__(self, pkd_mirror: Optional[PKDMirrorService] = None) -> None:
+    def __init__(self, pkd_mirror: PKDMirrorService | None = None) -> None:
         pkd_url = settings.EXTERNAL_PKD_URL or "https://pkddownloadsg.icao.int"
         self.pkd_mirror = pkd_mirror or PKDMirrorService(pkd_url=pkd_url)
         self._sync_jobs: dict[str, PkdSyncStatusResponse] = {}
@@ -61,9 +61,7 @@ class SyncService:
             )
             return PkdSyncResponse(id=sync_id, status=SyncStatus.FAILED, start_time=now)
 
-        component_statuses: dict[str, ComponentSyncStatus] = {
-            component: ComponentSyncStatus.PENDING for component in normalized
-        }
+        component_statuses: dict[str, ComponentSyncStatus] = dict.fromkeys(normalized, ComponentSyncStatus.PENDING)
         for invalid_component in invalid:
             component_statuses[invalid_component.lower()] = ComponentSyncStatus.FAILED
 
@@ -88,7 +86,7 @@ class SyncService:
         asyncio.create_task(self._perform_sync(sync_id, request, normalized, invalid))
         return PkdSyncResponse(id=sync_id, status=SyncStatus.INITIATED, start_time=now)
 
-    async def get_sync_status(self, sync_id: Optional[str] = None) -> PkdSyncStatusResponse:
+    async def get_sync_status(self, sync_id: str | None = None) -> PkdSyncStatusResponse:
         """Return the status for a specific or the most recent sync job."""
 
         if self._sync_jobs:
@@ -98,7 +96,7 @@ class SyncService:
             if job:
                 return job
 
-        job_data: Optional[dict[str, Any]]
+        job_data: dict[str, Any] | None
         if sync_id is None:
             job_data = await DatabaseManager.get_latest_sync_job()
         else:
@@ -184,7 +182,7 @@ class SyncService:
             },
         )
 
-    def _normalise_components(self, components: Optional[list[str]]) -> tuple[list[str], list[str]]:
+    def _normalise_components(self, components: list[str] | None) -> tuple[list[str], list[str]]:
         """Map request components to canonical identifiers."""
 
         requested = components or ["csca", "dsc", "crl"]
@@ -216,9 +214,7 @@ class SyncService:
         else:
             default_component_status = ComponentSyncStatus.PENDING
 
-        components = {
-            component: default_component_status for component in job.get("components", [])
-        }
+        components = dict.fromkeys(job.get("components", []), default_component_status)
 
         return PkdSyncStatusResponse(
             id=job["id"],

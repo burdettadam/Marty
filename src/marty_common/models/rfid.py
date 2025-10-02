@@ -9,11 +9,12 @@ Models for ISO/IEC 14443 Proximity Card Protocol used for RFID communication wit
 
 These models comply with ISO/IEC 14443 standard for contactless smart cards.
 """
+from __future__ import annotations
 
 import base64
 from dataclasses import dataclass
 from enum import Enum, IntEnum
-from typing import Any, Optional
+from typing import Any
 
 
 class ISO14443Type(str, Enum):
@@ -66,7 +67,7 @@ class ISO7816StatusCode(IntEnum):
 class APDU:
     """Abstract base class for Application Protocol Data Units (APDUs)."""
 
-    raw_bytes: Optional[bytearray] = None
+    raw_bytes: bytearray | None = None
 
     def to_bytes(self) -> bytearray:
         """Convert to byte array."""
@@ -83,8 +84,8 @@ class CommandAPDU(APDU):
     ins: int  # Instruction byte
     p1: int  # Parameter 1
     p2: int  # Parameter 2
-    data: Optional[bytearray] = None  # Command data
-    le: Optional[int] = None  # Expected response length
+    data: bytearray | None = None  # Command data
+    le: int | None = None  # Expected response length
 
     def __post_init__(self):
         """Compute raw_bytes from fields if not provided."""
@@ -122,7 +123,7 @@ class CommandAPDU(APDU):
         return result
 
     @classmethod
-    def from_dict(cls, data: dict[str, Any]) -> "CommandAPDU":
+    def from_dict(cls, data: dict[str, Any]) -> CommandAPDU:
         """Create CommandAPDU from dictionary."""
         command = cls(
             cla=data["cla"], ins=data["ins"], p1=data["p1"], p2=data["p2"], le=data.get("le")
@@ -137,7 +138,7 @@ class CommandAPDU(APDU):
         return command
 
     @classmethod
-    def select_file(cls, file_id: bytes) -> "CommandAPDU":
+    def select_file(cls, file_id: bytes) -> CommandAPDU:
         """Create a SELECT FILE command APDU."""
         return cls(
             cla=0x00,
@@ -148,7 +149,7 @@ class CommandAPDU(APDU):
         )
 
     @classmethod
-    def read_binary(cls, offset: int, length: int) -> "CommandAPDU":
+    def read_binary(cls, offset: int, length: int) -> CommandAPDU:
         """Create a READ BINARY command APDU."""
         return cls(
             cla=0x00,
@@ -159,7 +160,7 @@ class CommandAPDU(APDU):
         )
 
     @classmethod
-    def get_challenge(cls, length: int) -> "CommandAPDU":
+    def get_challenge(cls, length: int) -> CommandAPDU:
         """Create a GET CHALLENGE command APDU."""
         return cls(cla=0x00, ins=ISO7816InstructionCode.GET_CHALLENGE, p1=0x00, p2=0x00, le=length)
 
@@ -168,7 +169,7 @@ class CommandAPDU(APDU):
 class ResponseAPDU(APDU):
     """Response APDU according to ISO/IEC 7816-4."""
 
-    data: Optional[bytearray] = None  # Response data
+    data: bytearray | None = None  # Response data
     sw1: int = 0x90  # Status Word 1
     sw2: int = 0x00  # Status Word 2
 
@@ -201,7 +202,7 @@ class ResponseAPDU(APDU):
         return result
 
     @classmethod
-    def from_dict(cls, data: dict[str, Any]) -> "ResponseAPDU":
+    def from_dict(cls, data: dict[str, Any]) -> ResponseAPDU:
         """Create ResponseAPDU from dictionary."""
         response = cls(sw1=data["sw1"], sw2=data["sw2"])
 
@@ -214,7 +215,7 @@ class ResponseAPDU(APDU):
         return response
 
     @classmethod
-    def from_bytes(cls, data: bytearray) -> "ResponseAPDU":
+    def from_bytes(cls, data: bytearray) -> ResponseAPDU:
         """Create ResponseAPDU from raw bytes."""
         return cls(raw_bytes=data)
 
@@ -225,10 +226,10 @@ class ISO14443Parameters:
 
     card_type: ISO14443Type
     speed: ISO14443Speed
-    atqa: Optional[bytearray] = None  # Answer to Request Type A
-    atqb: Optional[bytearray] = None  # Answer to Request Type B
-    uid: Optional[bytearray] = None  # Unique Identifier
-    ats: Optional[bytearray] = None  # Answer to Select
+    atqa: bytearray | None = None  # Answer to Request Type A
+    atqb: bytearray | None = None  # Answer to Request Type B
+    uid: bytearray | None = None  # Unique Identifier
+    ats: bytearray | None = None  # Answer to Select
 
     def to_dict(self) -> dict[str, Any]:
         """Convert to dictionary."""
@@ -249,7 +250,7 @@ class ISO14443Parameters:
         return result
 
     @classmethod
-    def from_dict(cls, data: dict[str, Any]) -> "ISO14443Parameters":
+    def from_dict(cls, data: dict[str, Any]) -> ISO14443Parameters:
         """Create ISO14443Parameters from dictionary."""
         params = cls(card_type=ISO14443Type(data["cardType"]), speed=ISO14443Speed(data["speed"]))
 
@@ -285,7 +286,7 @@ class SecureMessagingContext:
         }
 
     @classmethod
-    def from_dict(cls, data: dict[str, Any]) -> "SecureMessagingContext":
+    def from_dict(cls, data: dict[str, Any]) -> SecureMessagingContext:
         """Create SecureMessagingContext from dictionary."""
         return cls(
             encryption_key=bytearray(base64.b64decode(data["encryptionKey"])),
@@ -323,7 +324,7 @@ class RFIDSessionInfo:
 
     reader_id: str
     connection_params: ISO14443Parameters
-    secure_messaging: Optional[SecureMessagingContext] = None
+    secure_messaging: SecureMessagingContext | None = None
     is_active: bool = True
     secure_channel_established: bool = False
 
@@ -342,7 +343,7 @@ class RFIDSessionInfo:
         return result
 
     @classmethod
-    def from_dict(cls, data: dict[str, Any]) -> "RFIDSessionInfo":
+    def from_dict(cls, data: dict[str, Any]) -> RFIDSessionInfo:
         """Create RFIDSessionInfo from dictionary."""
         session = cls(
             reader_id=data["readerId"],

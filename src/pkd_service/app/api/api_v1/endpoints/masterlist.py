@@ -1,9 +1,9 @@
 """
 CSCA Master List API endpoints
 """
+from __future__ import annotations
 
 import io
-from typing import Optional
 
 from app.api.deps import get_masterlist_service, verify_api_key
 from app.models.pkd_models import MasterListResponse, MasterListUploadResponse
@@ -16,7 +16,7 @@ router = APIRouter()
 
 @router.get("/", response_model=MasterListResponse)
 async def get_master_list(
-    country: Optional[str] = Query(None, description="Filter master list by country code"),
+    country: str | None = Query(None, description="Filter master list by country code"),
     service: MasterListService = Depends(get_masterlist_service),
     _: bool = Depends(verify_api_key),
 ):
@@ -33,7 +33,7 @@ async def get_master_list(
 
 @router.get("/download", response_class=StreamingResponse)
 async def download_master_list(
-    country: Optional[str] = Query(None, description="Filter master list by country code"),
+    country: str | None = Query(None, description="Filter master list by country code"),
     service: MasterListService = Depends(get_masterlist_service),
     _: bool = Depends(verify_api_key),
 ):
@@ -70,11 +70,12 @@ async def get_country_master_list(
             raise HTTPException(
                 status_code=404, detail=f"No certificates found for country: {country}"
             )
-        return master_list
     except HTTPException:
         raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to retrieve master list: {e!s}")
+    else:
+        return master_list
 
 
 @router.post("/", response_model=MasterListUploadResponse, status_code=201)

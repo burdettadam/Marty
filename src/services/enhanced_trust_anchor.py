@@ -13,8 +13,7 @@ from datetime import datetime, timezone
 from typing import Any
 
 import grpc
-from cryptography import x509
-from cryptography.hazmat.primitives import hashes, serialization
+from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.primitives.asymmetric import ec
 from cryptography.hazmat.primitives.asymmetric.ec import EllipticCurvePublicKey
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -69,8 +68,8 @@ class EnhancedTrustAnchor(trust_anchor_pb2_grpc.TrustAnchorServicer):
             # Default to not trusted
             return trust_anchor_pb2.TrustResponse(is_trusted=False)
 
-        except Exception as e:
-            self.logger.exception(f"Error verifying trust: {e}")
+        except Exception:
+            self.logger.exception("Error verifying trust")
             context.set_code(grpc.StatusCode.INTERNAL)
             context.set_details(f"Trust verification failed: {e}")
             return trust_anchor_pb2.TrustResponse(is_trusted=False)
@@ -144,8 +143,8 @@ class EnhancedTrustAnchor(trust_anchor_pb2_grpc.TrustAnchorServicer):
                     key_info=self._build_key_info(key_metadata),
                 )
 
-        except Exception as e:
-            self.logger.exception(f"Error verifying VDS-NC signature: {e}")
+        except Exception:
+            self.logger.exception("Error verifying VDS-NC signature")
             context.set_code(grpc.StatusCode.INTERNAL)
             context.set_details(f"VDS-NC verification failed: {e}")
             return trust_anchor_pb2.VDSNCVerificationResponse(
@@ -183,7 +182,7 @@ class EnhancedTrustAnchor(trust_anchor_pb2_grpc.TrustAnchorServicer):
                 public_key = await self._load_vds_nc_public_key(key_metadata.kid)
                 if public_key:
                     jwk = key_metadata.to_jwk(public_key)
-                    
+
                     vds_nc_keys.append(
                         trust_anchor_pb2.VDSNCKey(
                             kid=key_metadata.kid,
@@ -240,7 +239,7 @@ class EnhancedTrustAnchor(trust_anchor_pb2_grpc.TrustAnchorServicer):
                 )
 
             # Create key metadata
-            from datetime import datetime, timezone, timedelta
+            from datetime import datetime, timedelta, timezone
 
             not_before = datetime.fromisoformat(request.not_before) if request.not_before else datetime.now(timezone.utc)
             not_after = datetime.fromisoformat(request.not_after) if request.not_after else datetime.now(timezone.utc) + timedelta(days=730)
@@ -261,11 +260,10 @@ class EnhancedTrustAnchor(trust_anchor_pb2_grpc.TrustAnchorServicer):
                     success=True,
                     kid=kid,
                 )
-            else:
-                return trust_anchor_pb2.RegisterVDSNCKeyResponse(
-                    success=False,
-                    errors=["Failed to register key"],
-                )
+            return trust_anchor_pb2.RegisterVDSNCKeyResponse(
+                success=False,
+                errors=["Failed to register key"],
+            )
 
         except Exception as e:
             self.logger.exception(f"Error registering VDS-NC key: {e}")
@@ -296,11 +294,10 @@ class EnhancedTrustAnchor(trust_anchor_pb2_grpc.TrustAnchorServicer):
                     success=True,
                     revocation_timestamp=datetime.now(timezone.utc).isoformat(),
                 )
-            else:
-                return trust_anchor_pb2.RevokeVDSNCKeyResponse(
-                    success=False,
-                    errors=[f"Failed to revoke key {kid}"],
-                )
+            return trust_anchor_pb2.RevokeVDSNCKeyResponse(
+                success=False,
+                errors=[f"Failed to revoke key {kid}"],
+            )
 
         except Exception as e:
             self.logger.exception(f"Error revoking VDS-NC key: {e}")
@@ -350,7 +347,7 @@ class EnhancedTrustAnchor(trust_anchor_pb2_grpc.TrustAnchorServicer):
                     public_key = await self._load_vds_nc_public_key(key_metadata.kid)
                     if public_key:
                         jwk = key_metadata.to_jwk(public_key)
-                        
+
                         vds_nc_keys.append(
                             trust_anchor_pb2.VDSNCKey(
                                 kid=key_metadata.kid,
@@ -458,17 +455,17 @@ class EnhancedTrustAnchor(trust_anchor_pb2_grpc.TrustAnchorServicer):
         try:
             # Get VDS-NC key statistics
             vds_nc_keys = await self.vds_nc_key_manager.list_keys()
-            vds_nc_count = len(vds_nc_keys)
-            
+            len(vds_nc_keys)
+
             # Check for expiring VDS-NC keys
             expiring_vds_nc = len([
-                k for k in vds_nc_keys 
+                k for k in vds_nc_keys
                 if k.needs_rotation(warning_days=30)
             ])
 
             stats = trust_anchor_pb2.ServiceStats(
                 total_certificates=0,  # Would include CSCA/DSC counts
-                trusted_countries=len(set(k.issuer_country for k in vds_nc_keys)),
+                trusted_countries=len({k.issuer_country for k in vds_nc_keys}),
                 last_sync_time=datetime.now(timezone.utc).isoformat(),
                 expiring_soon=expiring_vds_nc,
             )
@@ -526,7 +523,8 @@ class EnhancedTrustAnchor(trust_anchor_pb2_grpc.TrustAnchorServicer):
         import base64
 
         if jwk["kty"] != "EC" or jwk["crv"] != "P-256":
-            raise ValueError(f"Unsupported key type: {jwk['kty']}/{jwk.get('crv')}")
+            msg = f"Unsupported key type: {jwk['kty']}/{jwk.get('crv')}"
+            raise ValueError(msg)
 
         # Decode coordinates
         x_bytes = base64.urlsafe_b64decode(jwk["x"] + "==")
@@ -538,8 +536,8 @@ class EnhancedTrustAnchor(trust_anchor_pb2_grpc.TrustAnchorServicer):
 
         # Create public key
         from cryptography.hazmat.primitives.asymmetric.ec import (
-            EllipticCurvePublicNumbers,
             SECP256R1,
+            EllipticCurvePublicNumbers,
         )
 
         public_numbers = EllipticCurvePublicNumbers(x, y, SECP256R1())

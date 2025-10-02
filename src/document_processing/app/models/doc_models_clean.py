@@ -6,7 +6,7 @@ All consuming code should import from this module instead of `document_models`.
 from __future__ import annotations
 
 from enum import Enum
-from typing import Any, Optional
+from typing import Any
 
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -45,14 +45,14 @@ class Light(int, Enum):
 class ErrorResponse(BaseModel):
     code: str
     message: str
-    details: Optional[dict[str, Any]] = None
+    details: dict[str, Any] | None = None
 
 
 class HealthResponse(BaseModel):
     status: str = "ready"
     version: str
     uptimeSec: int
-    license: Optional[dict[str, Any]] = None
+    license: dict[str, Any] | None = None
 
 
 class LicenseInfo(BaseModel):
@@ -66,24 +66,24 @@ class TransactionInfo(BaseModel):
     requestId: str = Field(..., alias="TransactionID")
     createdAt: str = Field(..., alias="DateTime")
     coreVersion: str
-    computerName: Optional[str] = Field(None, alias="ComputerName")
-    userName: Optional[str] = Field(None, alias="UserName")
+    computerName: str | None = Field(None, alias="ComputerName")
+    userName: str | None = Field(None, alias="UserName")
 
 
 class ImageQualityThresholds(BaseModel):
-    minFocus: Optional[int] = Field(None, ge=0, le=100)
-    maxGlare: Optional[int] = Field(None, ge=0, le=100)
-    minDpi: Optional[int] = Field(None, ge=72)
-    maxAngle: Optional[int] = Field(None, ge=0, le=90)
-    brightnessThreshold: Optional[int] = None
-    dpiThreshold: Optional[int] = None
-    angleThreshold: Optional[int] = None
-    focusCheck: Optional[bool] = None
-    glaresCheck: Optional[bool] = None
-    colornessCheck: Optional[bool] = None
-    moireCheck: Optional[bool] = None
-    documentPositionIndent: Optional[int] = None
-    expectedPass: Optional[list[str]] = None
+    minFocus: int | None = Field(None, ge=0, le=100)
+    maxGlare: int | None = Field(None, ge=0, le=100)
+    minDpi: int | None = Field(None, ge=72)
+    maxAngle: int | None = Field(None, ge=0, le=90)
+    brightnessThreshold: int | None = None
+    dpiThreshold: int | None = None
+    angleThreshold: int | None = None
+    focusCheck: bool | None = None
+    glaresCheck: bool | None = None
+    colornessCheck: bool | None = None
+    moireCheck: bool | None = None
+    documentPositionIndent: int | None = None
+    expectedPass: list[str] | None = None
 
 
 class ImageQualityReport(BaseModel):
@@ -92,71 +92,71 @@ class ImageQualityReport(BaseModel):
     dpi: int
     angle: int
     passed: bool
-    failedReasons: Optional[list[str]] = None
+    failedReasons: list[str] | None = None
 
 
 class ProcessParam(BaseModel):
     scenario: str
-    resultTypeOutput: Optional[list[str]] = None
-    mrzFormatsFilter: Optional[list[str]] = None
-    strictImageQuality: Optional[bool] = False
-    imageQa: Optional[ImageQualityThresholds] = None
-    forceReadMrzBeforeLocate: Optional[bool] = False
-    dateFormat: Optional[str] = "MM/dd/yyyy"
-    log: Optional[bool] = True
-    logLevel: Optional[str] = "FatalError"
-    generateNumericCodes: Optional[bool] = True
-    generateAlpha2Codes: Optional[bool] = True
+    resultTypeOutput: list[str] | None = None
+    mrzFormatsFilter: list[str] | None = None
+    strictImageQuality: bool | None = False
+    imageQa: ImageQualityThresholds | None = None
+    forceReadMrzBeforeLocate: bool | None = False
+    dateFormat: str | None = "MM/dd/yyyy"
+    log: bool | None = True
+    logLevel: str | None = "FatalError"
+    generateNumericCodes: bool | None = True
+    generateAlpha2Codes: bool | None = True
 
 
 class ProcessRequestImage(BaseModel):
     model_config = ConfigDict(populate_by_name=True)
-    ImageData: Optional[str] = None
-    ImageUri: Optional[str] = None
-    pageIdx: Optional[int] = Field(None, alias="page_idx")
-    light: Optional[Light] = Light.VISIBLE
+    ImageData: str | None = None
+    ImageUri: str | None = None
+    pageIdx: int | None = Field(None, alias="page_idx")
+    light: Light | None = Light.VISIBLE
 
 
 class ProcessRequest(BaseModel):
     model_config = ConfigDict(populate_by_name=True)
     processParam: ProcessParam
     images: list[ProcessRequestImage] = Field(..., alias="List", min_length=1)
-    tag: Optional[str] = None
+    tag: str | None = None
 
     # Backwards compatibility accessor
     @property
-    def List(self) -> list[ProcessRequestImage]:  # noqa: N802 (preserve external contract)
+    def List(self) -> list[ProcessRequestImage]:
         return self.images
 
 
 class MRZField(BaseModel):
     name: str
     value: str
-    confidence: Optional[float] = None
-    line: Optional[int] = None
-    start: Optional[int] = None
-    length: Optional[int] = None
-    checksumValid: Optional[bool] = None
-    warnings: Optional[list[str]] = None
+    confidence: float | None = None
+    line: int | None = None
+    start: int | None = None
+    length: int | None = None
+    checksumValid: bool | None = None
+    warnings: list[str] | None = None
 
 
 class MRZResult(BaseModel):
-    docType: Optional[str] = None
-    issuingState: Optional[str] = None
-    nationality: Optional[str] = None
-    documentNumber: Optional[str] = None
-    documentNumberChecksumValid: Optional[bool] = None
-    optionalData: Optional[str] = None
-    givenNames: Optional[str] = None
-    surname: Optional[str] = None
-    dateOfBirth: Optional[str] = None
-    dateOfBirthChecksumValid: Optional[bool] = None
-    sex: Optional[str] = None
-    dateOfExpiry: Optional[str] = None
-    dateOfExpiryChecksumValid: Optional[bool] = None
-    mrzLines: Optional[list[str]] = None
-    overallValid: Optional[bool] = None
-    fields: Optional[list[MRZField]] = None
+    docType: str | None = None
+    issuingState: str | None = None
+    nationality: str | None = None
+    documentNumber: str | None = None
+    documentNumberChecksumValid: bool | None = None
+    optionalData: str | None = None
+    givenNames: str | None = None
+    surname: str | None = None
+    dateOfBirth: str | None = None
+    dateOfBirthChecksumValid: bool | None = None
+    sex: str | None = None
+    dateOfExpiry: str | None = None
+    dateOfExpiryChecksumValid: bool | None = None
+    mrzLines: list[str] | None = None
+    overallValid: bool | None = None
+    fields: list[MRZField] | None = None
 
 
 class Status(BaseModel):
@@ -170,16 +170,16 @@ class Status(BaseModel):
 class Container(BaseModel):
     model_config = ConfigDict(populate_by_name=True)
     type: ContainerType
-    buf_length: Optional[int] = None
-    light: Optional[int] = None
-    list_idx: Optional[int] = None
-    page_idx: Optional[int] = None
-    result_type: Optional[int] = None
+    buf_length: int | None = None
+    light: int | None = None
+    list_idx: int | None = None
+    page_idx: int | None = None
+    result_type: int | None = None
     # Use snake_case internally but keep legacy 'Status' alias for compatibility
-    status: Optional[Status] = Field(None, alias="Status")
-    mrzResult: Optional[MRZResult] = None
-    imageQuality: Optional[ImageQualityReport] = None
-    logs: Optional[list[str]] = None
+    status: Status | None = Field(None, alias="Status")
+    mrzResult: MRZResult | None = None
+    imageQuality: ImageQualityReport | None = None
+    logs: list[str] | None = None
 
 
 class ContainerList(BaseModel):
@@ -189,16 +189,16 @@ class ContainerList(BaseModel):
 
 class ProcessResponse(BaseModel):
     model_config = ConfigDict(populate_by_name=True)
-    transactionInfo: Optional[TransactionInfo] = Field(None, alias="TransactionInfo")
+    transactionInfo: TransactionInfo | None = Field(None, alias="TransactionInfo")
     elapsedTime: int
-    containerList: Optional[ContainerList] = Field(None, alias="ContainerList")
+    containerList: ContainerList | None = Field(None, alias="ContainerList")
     ChipPage: RfidLocation = RfidLocation.NO_CHIP
     CoreLibResultCode: int = 0
     ProcessingFinished: ProcessingStatus = ProcessingStatus.FINISHED
-    log: Optional[str] = None
-    passBackObject: Optional[dict[str, Any]] = None
+    log: str | None = None
+    passBackObject: dict[str, Any] | None = None
     morePagesAvailable: int = 0
-    metadata: Optional[dict[str, Any]] = None
+    metadata: dict[str, Any] | None = None
 
 
 ImageQualityThresholds.model_rebuild()

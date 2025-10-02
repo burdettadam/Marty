@@ -51,7 +51,8 @@ def ui_server(ui_settings: UiSettings) -> Iterator[str]:
         time.sleep(0.1)
 
     if start_event and not start_event.is_set():
-        raise RuntimeError("UI server failed to start within timeout")
+        msg = "UI server failed to start within timeout"
+        raise RuntimeError(msg)
 
     base_url = f"http://{host}:{port}"
 

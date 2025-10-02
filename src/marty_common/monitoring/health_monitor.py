@@ -4,6 +4,7 @@ Comprehensive health monitoring system for Marty services.
 Provides health checks, metrics collection, alerting, and monitoring
 dashboard capabilities for all Marty microservices.
 """
+from __future__ import annotations
 
 import json
 import logging
@@ -15,7 +16,7 @@ from collections import defaultdict, deque
 from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import Any, Callable, Optional
+from typing import Any, Callable
 
 logger = logging.getLogger(__name__)
 
@@ -248,7 +249,7 @@ class MetricsCollector:
             self._metrics[metric_key].append(metric)
 
     def get_metric_history(
-        self, name: str, labels: Optional[dict[str, str]] = None, since: Optional[float] = None
+        self, name: str, labels: dict[str, str] | None = None, since: float | None = None
     ) -> list[Metric]:
         """Get metric history."""
         with self._lock:
@@ -262,14 +263,14 @@ class MetricsCollector:
             return metrics
 
     def get_current_value(
-        self, name: str, labels: Optional[dict[str, str]] = None
-    ) -> Optional[float]:
+        self, name: str, labels: dict[str, str] | None = None
+    ) -> float | None:
         """Get the most recent value for a metric."""
         history = self.get_metric_history(name, labels)
         return history[-1].value if history else None
 
     def get_statistics(
-        self, name: str, labels: Optional[dict[str, str]] = None, since: Optional[float] = None
+        self, name: str, labels: dict[str, str] | None = None, since: float | None = None
     ) -> dict[str, float]:
         """Get statistical summary of a metric."""
         history = self.get_metric_history(name, labels, since)
@@ -313,8 +314,8 @@ class AlertManager:
             for handler in self._alert_handlers:
                 try:
                     handler(alert)
-                except Exception as e:
-                    logger.exception(f"Alert handler failed: {e}")
+                except Exception:
+                    logger.exception("Alert handler failed")
 
     def acknowledge_alert(self, alert_id: str) -> bool:
         """Acknowledge an alert."""
@@ -352,7 +353,7 @@ class HealthMonitor:
         self.alert_manager = AlertManager()
         self._running = False
         self._check_interval = 30.0  # seconds
-        self._monitor_thread: Optional[threading.Thread] = None
+        self._monitor_thread: threading.Thread | None = None
         self._executor = ThreadPoolExecutor(max_workers=10)
 
     def add_health_check(self, health_check: HealthCheck) -> None:
@@ -383,8 +384,8 @@ class HealthMonitor:
                 self._collect_system_metrics()
                 self._check_alert_conditions()
                 time.sleep(self._check_interval)
-            except Exception as e:
-                logger.exception(f"Error in monitoring loop: {e}")
+            except Exception:
+                logger.exception("Error in monitoring loop")
                 time.sleep(5.0)  # Brief pause before retry
 
     def _run_health_checks(self) -> None:
@@ -413,8 +414,8 @@ class HealthMonitor:
                         labels={"check_name": result.name, "status": result.status.value},
                     )
                 )
-            except Exception as e:
-                logger.exception(f"Health check failed: {e}")
+            except Exception:
+                logger.exception("Health check failed")
 
     def _run_single_check(self, check: HealthCheck) -> HealthCheckResult:
         """Run a single health check with timeout."""
@@ -470,8 +471,8 @@ class HealthMonitor:
                 )
             )
 
-        except Exception as e:
-            logger.exception(f"Failed to collect system metrics: {e}")
+        except Exception:
+            logger.exception("Failed to collect system metrics")
 
     def _check_alert_conditions(self) -> None:
         """Check for alert conditions."""

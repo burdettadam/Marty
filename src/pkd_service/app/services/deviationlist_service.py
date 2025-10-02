@@ -1,12 +1,12 @@
 """
 Service for handling Deviation List operations
 """
+from __future__ import annotations
 
 import logging
 import os
 import uuid
 from datetime import datetime, timedelta
-from typing import Optional
 
 import aiosqlite
 from app.core.config import settings
@@ -26,11 +26,11 @@ logger = logging.getLogger(__name__)
 class DeviationListService:
     """Service for managing Deviation Lists"""
 
-    def __init__(self, db_connection: Optional[aiosqlite.Connection] = None) -> None:
+    def __init__(self, db_connection: aiosqlite.Connection | None = None) -> None:
         """Initialize with optional database connection"""
         self.db_connection = db_connection
 
-    async def get_deviation_list(self, country: Optional[str] = None) -> DeviationListResponse:
+    async def get_deviation_list(self, country: str | None = None) -> DeviationListResponse:
         """
         Retrieve Deviation List data, optionally filtered by country.
         """
@@ -67,7 +67,7 @@ class DeviationListService:
             deviations=deviations,
         )
 
-    async def get_deviation_list_binary(self, country: Optional[str] = None) -> bytes:
+    async def get_deviation_list_binary(self, country: str | None = None) -> bytes:
         """
         Get the ASN.1 encoded deviation list data, optionally filtered by country.
         """
@@ -135,7 +135,7 @@ class DeviationListService:
                 deviation_count=0,
             )
 
-    async def _get_deviations(self, country: Optional[str] = None) -> list[DeviationEntry]:
+    async def _get_deviations(self, country: str | None = None) -> list[DeviationEntry]:
         """
         Helper method to get deviations.
         This is a fallback when the database is empty.

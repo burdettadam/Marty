@@ -11,7 +11,6 @@ import logging
 import os
 import warnings
 from pathlib import Path
-from typing import Optional, Union
 
 # Suppress oscrypto warnings for macOS compatibility
 warnings.filterwarnings("ignore", message=".*OSStatus.*")
@@ -32,7 +31,7 @@ class MacOSCompatibleCertValidator:
     when the oscrypto library encounters OSStatus errors on macOS.
     """
 
-    def __init__(self, certificate_directory: Optional[Path] = None):
+    def __init__(self, certificate_directory: Path | None = None) -> None:
         """Initialize the validator with optional certificate directory."""
         self.certificate_directory = certificate_directory or Path("data/csca")
         self._setup_environment()
@@ -48,7 +47,7 @@ class MacOSCompatibleCertValidator:
             self.certificate_directory.mkdir(parents=True, exist_ok=True)
 
     def validate_certificate_chain(
-        self, certificate_data: bytes, trust_roots: Optional[list[bytes]] = None
+        self, certificate_data: bytes, trust_roots: list[bytes] | None = None
     ) -> bool:
         """
         Validate a certificate chain with macOS compatibility.
@@ -71,7 +70,7 @@ class MacOSCompatibleCertValidator:
             return False
 
     def _validate_with_certvalidator(
-        self, certificate_data: bytes, trust_roots: Optional[list[bytes]] = None
+        self, certificate_data: bytes, trust_roots: list[bytes] | None = None
     ) -> bool:
         """Try validation using the certvalidator library."""
         try:
@@ -105,7 +104,6 @@ class MacOSCompatibleCertValidator:
 
             # Validate the first available path
             validate_path(context, paths[0])
-            return True
 
         except ImportError:
             logger.warning("certvalidator not available for certificate validation")
@@ -116,6 +114,8 @@ class MacOSCompatibleCertValidator:
         except Exception:
             logger.warning("Certificate validation failed with certvalidator")
             return False
+        else:
+            return True
 
     def _validate_with_fallback(self, certificate_data: bytes) -> bool:
         """
@@ -147,13 +147,14 @@ class MacOSCompatibleCertValidator:
 
             # Basic structure validation passed
             logger.info("Certificate passed basic validation (fallback mode)")
-            return True
 
         except Exception:
             logger.exception("Fallback certificate validation failed")
             return False
+        else:
+            return True
 
-    def validate_sod_certificate(self, sod_data: Union[str, bytes]) -> bool:
+    def validate_sod_certificate(self, sod_data: str | bytes) -> bool:
         """
         Validate an SOD certificate with compatibility fixes.
 
@@ -174,13 +175,13 @@ class MacOSCompatibleCertValidator:
                 # Try to validate the embedded certificate
                 return self.validate_certificate_chain(sod_data)
 
-            return False
-
         except Exception:
             logger.exception("SOD certificate validation failed")
             return False
+        else:
+            return False
 
-    def load_trust_roots(self, directory: Optional[Path] = None) -> list[bytes]:
+    def load_trust_roots(self, directory: Path | None = None) -> list[bytes]:
         """
         Load trust root certificates from directory.
 
@@ -209,7 +210,7 @@ class MacOSCompatibleCertValidator:
 
 
 # Global instance for easy access
-_global_validator: Optional[MacOSCompatibleCertValidator] = None
+_global_validator: MacOSCompatibleCertValidator | None = None
 
 
 def get_certificate_validator() -> MacOSCompatibleCertValidator:
@@ -221,7 +222,7 @@ def get_certificate_validator() -> MacOSCompatibleCertValidator:
 
 
 def validate_certificate(
-    certificate_data: bytes, trust_roots: Optional[list[bytes]] = None
+    certificate_data: bytes, trust_roots: list[bytes] | None = None
 ) -> bool:
     """
     Convenience function to validate a certificate.
@@ -237,7 +238,7 @@ def validate_certificate(
     return validator.validate_certificate_chain(certificate_data, trust_roots)
 
 
-def validate_sod_certificate(sod_data: Union[str, bytes]) -> bool:
+def validate_sod_certificate(sod_data: str | bytes) -> bool:
     """
     Convenience function to validate an SOD certificate.
 

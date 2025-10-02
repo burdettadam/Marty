@@ -1,8 +1,7 @@
 """
 PKD Synchronization API endpoints
 """
-
-from typing import Optional
+from __future__ import annotations
 
 from app.api.deps import get_sync_service, verify_api_key
 from app.models.pkd_models import PkdSyncRequest, PkdSyncResponse, PkdSyncStatusResponse
@@ -31,7 +30,7 @@ async def sync_pkd(
 
 @router.get("/status", response_model=PkdSyncStatusResponse)
 async def get_sync_status(
-    sync_id: Optional[str] = Query(None, description="ID of the synchronization job to check"),
+    sync_id: str | None = Query(None, description="ID of the synchronization job to check"),
     service: SyncService = Depends(get_sync_service),
     _: bool = Depends(verify_api_key),
 ):

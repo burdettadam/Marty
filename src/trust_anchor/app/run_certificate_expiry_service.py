@@ -71,8 +71,8 @@ def main() -> int:
 
     except KeyboardInterrupt:
         logger.info("Service stopped by user")
-    except Exception as e:
-        logger.exception(f"Error running Certificate Expiry Notification Service: {e!s}")
+    except Exception:
+        logger.exception("Error running Certificate Expiry Notification Service")
         return 1
 
     return 0

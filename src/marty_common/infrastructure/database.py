@@ -5,7 +5,7 @@ from __future__ import annotations
 from collections.abc import AsyncIterator, Awaitable
 from contextlib import asynccontextmanager
 from dataclasses import dataclass
-from typing import Any, Callable, Optional, TypeVar
+from typing import Any, Callable, TypeVar
 
 from sqlalchemy.ext.asyncio import (
     AsyncEngine,
@@ -55,8 +55,8 @@ class DatabaseManager:
 
     def __init__(self, config: DatabaseConfig) -> None:
         self._config = config
-        self._engine: Optional[AsyncEngine] = None
-        self._session_factory: Optional[async_sessionmaker[AsyncSession]] = None
+        self._engine: AsyncEngine | None = None
+        self._session_factory: async_sessionmaker[AsyncSession] | None = None
 
     def create_engine(self) -> AsyncEngine:
         if self._engine is None:

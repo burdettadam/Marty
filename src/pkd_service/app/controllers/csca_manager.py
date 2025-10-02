@@ -1,13 +1,14 @@
 """
 Controller for managing CSCA and Master List operations
 """
+from __future__ import annotations
 
 import asyncio
 import contextlib
 import logging
 import os
 from datetime import datetime
-from typing import Any, Optional
+from typing import Any
 
 from app.core.config import settings
 from app.models.pkd_models import (
@@ -95,7 +96,7 @@ class CscaManager:
         self.tasks.clear()
         logger.info("CSCA Manager services stopped")
 
-    async def get_master_list(self, country: Optional[str] = None) -> MasterListResponse:
+    async def get_master_list(self, country: str | None = None) -> MasterListResponse:
         """
         Get the CSCA Master List, optionally filtered by country
 
@@ -143,7 +144,7 @@ class CscaManager:
             # Fall back to local master list service
             return await self.master_list_service.get_master_list(country)
 
-    async def get_master_list_binary(self, country: Optional[str] = None) -> bytes:
+    async def get_master_list_binary(self, country: str | None = None) -> bytes:
         """
         Get the ASN.1 encoded master list, optionally filtered by country
 
@@ -180,14 +181,14 @@ class CscaManager:
             # Rebuild trust store
             await self.openxpki_service.build_trust_store()
 
-            return response
-
         except Exception as e:
             logger.exception(f"Error uploading master list to OpenXPKI: {e}")
             # Fall back to local master list service
             return await self.master_list_service.upload_master_list(master_list_data)
+        else:
+            return response
 
-    async def trigger_sync(self, source_id: Optional[str] = None) -> dict[str, Any]:
+    async def trigger_sync(self, source_id: str | None = None) -> dict[str, Any]:
         """
         Trigger synchronization with trusted sources
 
@@ -364,11 +365,12 @@ class CscaManager:
                     logger.exception(f"Error exporting certificate {cert.get('id')}: {e}")
 
             logger.info(f"Synchronized {count} certificates from OpenXPKI")
-            return count
 
         except Exception as e:
             logger.exception(f"Error synchronizing from OpenXPKI: {e}")
             return 0
+        else:
+            return count
 
     def _ensure_directories_exist(self) -> None:
         """Ensure all required directories exist"""

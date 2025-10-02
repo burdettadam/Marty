@@ -10,12 +10,13 @@ structures used in e-passport security:
 
 These models comply with W3C XML Digital Signature and RFC 5652 CMS standards.
 """
+from __future__ import annotations
 
 import base64
 from dataclasses import dataclass, field
 from datetime import datetime
 from enum import Enum
-from typing import Any, Optional, Union
+from typing import Any
 
 
 class DigestAlgorithm(str, Enum):
@@ -65,8 +66,8 @@ class Reference:
     digest_method: DigestAlgorithm
     digest_value: str  # Base64 encoded digest value
     transforms: list[TransformAlgorithm] = field(default_factory=list)
-    id: Optional[str] = None
-    type: Optional[str] = None
+    id: str | None = None
+    type: str | None = None
 
     def to_dict(self) -> dict[str, Any]:
         """Convert to dictionary."""
@@ -88,7 +89,7 @@ class Reference:
         return result
 
     @classmethod
-    def from_dict(cls, data: dict[str, Any]) -> "Reference":
+    def from_dict(cls, data: dict[str, Any]) -> Reference:
         """Create Reference from dictionary."""
         reference = cls(
             uri=data["uri"],
@@ -110,11 +111,11 @@ class Reference:
 class KeyInfo:
     """Key information in XML Digital Signature."""
 
-    id: Optional[str] = None
-    x509_data: Optional[dict[str, Any]] = None  # X.509 certificate data
-    key_name: Optional[str] = None
-    key_value: Optional[dict[str, Any]] = None  # Public key parameters
-    retrieval_method: Optional[str] = None  # URI to retrieve key
+    id: str | None = None
+    x509_data: dict[str, Any] | None = None  # X.509 certificate data
+    key_name: str | None = None
+    key_value: dict[str, Any] | None = None  # Public key parameters
+    retrieval_method: str | None = None  # URI to retrieve key
 
     def to_dict(self) -> dict[str, Any]:
         """Convert to dictionary."""
@@ -138,7 +139,7 @@ class KeyInfo:
         return result
 
     @classmethod
-    def from_dict(cls, data: dict[str, Any]) -> "KeyInfo":
+    def from_dict(cls, data: dict[str, Any]) -> KeyInfo:
         """Create KeyInfo from dictionary."""
         return cls(
             id=data.get("id"),
@@ -162,7 +163,7 @@ class SignedInfo:
     canonicalization_method: CanonicalizationMethod
     signature_method: SignatureAlgorithm
     references: list[Reference]
-    id: Optional[str] = None
+    id: str | None = None
 
     def to_dict(self) -> dict[str, Any]:
         """Convert to dictionary."""
@@ -178,7 +179,7 @@ class SignedInfo:
         return result
 
     @classmethod
-    def from_dict(cls, data: dict[str, Any]) -> "SignedInfo":
+    def from_dict(cls, data: dict[str, Any]) -> SignedInfo:
         """Create SignedInfo from dictionary."""
         return cls(
             canonicalization_method=CanonicalizationMethod(data["canonicalizationMethod"]),
@@ -194,9 +195,9 @@ class XMLDSigSignature:
 
     signed_info: SignedInfo
     signature_value: str  # Base64 encoded signature
-    key_info: Optional[KeyInfo] = None
-    id: Optional[str] = None
-    object_data: Optional[list[dict[str, Any]]] = None  # Additional objects
+    key_info: KeyInfo | None = None
+    id: str | None = None
+    object_data: list[dict[str, Any]] | None = None  # Additional objects
 
     def to_dict(self) -> dict[str, Any]:
         """Convert to dictionary."""
@@ -214,7 +215,7 @@ class XMLDSigSignature:
         return result
 
     @classmethod
-    def from_dict(cls, data: dict[str, Any]) -> "XMLDSigSignature":
+    def from_dict(cls, data: dict[str, Any]) -> XMLDSigSignature:
         """Create XMLDSigSignature from dictionary."""
         signature = cls(
             signed_info=SignedInfo.from_dict(data["signedInfo"]),
@@ -251,7 +252,7 @@ class IssuerAndSerialNumber:
         return {"issuerName": self.issuer_name, "serialNumber": self.serial_number}
 
     @classmethod
-    def from_dict(cls, data: dict[str, Any]) -> "IssuerAndSerialNumber":
+    def from_dict(cls, data: dict[str, Any]) -> IssuerAndSerialNumber:
         """Create IssuerAndSerialNumber from dictionary."""
         return cls(issuer_name=data["issuerName"], serial_number=data["serialNumber"])
 
@@ -260,8 +261,8 @@ class IssuerAndSerialNumber:
 class SignerIdentifier:
     """Signer identifier for CMS structures."""
 
-    issuer_and_serial: Optional[IssuerAndSerialNumber] = None
-    subject_key_identifier: Optional[str] = None
+    issuer_and_serial: IssuerAndSerialNumber | None = None
+    subject_key_identifier: str | None = None
 
     def to_dict(self) -> dict[str, Any]:
         """Convert to dictionary."""
@@ -276,7 +277,7 @@ class SignerIdentifier:
         return result
 
     @classmethod
-    def from_dict(cls, data: dict[str, Any]) -> "SignerIdentifier":
+    def from_dict(cls, data: dict[str, Any]) -> SignerIdentifier:
         """Create SignerIdentifier from dictionary."""
         signer_id = cls()
 
@@ -294,7 +295,7 @@ class AlgorithmIdentifier:
     """Algorithm identifier for CMS structures."""
 
     algorithm: str  # OID for the algorithm
-    parameters: Optional[Any] = None
+    parameters: Any | None = None
 
     def to_dict(self) -> dict[str, Any]:
         """Convert to dictionary."""
@@ -306,7 +307,7 @@ class AlgorithmIdentifier:
         return result
 
     @classmethod
-    def from_dict(cls, data: dict[str, Any]) -> "AlgorithmIdentifier":
+    def from_dict(cls, data: dict[str, Any]) -> AlgorithmIdentifier:
         """Create AlgorithmIdentifier from dictionary."""
         return cls(algorithm=data["algorithm"], parameters=data.get("parameters"))
 
@@ -320,8 +321,8 @@ class SignerInfo:
     digest_algorithm: AlgorithmIdentifier
     signature_algorithm: AlgorithmIdentifier
     signature: str  # Base64 encoded signature
-    signed_attrs: Optional[list[dict[str, Any]]] = None
-    unsigned_attrs: Optional[list[dict[str, Any]]] = None
+    signed_attrs: list[dict[str, Any]] | None = None
+    unsigned_attrs: list[dict[str, Any]] | None = None
 
     def to_dict(self) -> dict[str, Any]:
         """Convert to dictionary."""
@@ -342,7 +343,7 @@ class SignerInfo:
         return result
 
     @classmethod
-    def from_dict(cls, data: dict[str, Any]) -> "SignerInfo":
+    def from_dict(cls, data: dict[str, Any]) -> SignerInfo:
         """Create SignerInfo from dictionary."""
         return cls(
             version=data["version"],
@@ -360,7 +361,7 @@ class EncapsulatedContent:
     """Encapsulated content in CMS structures."""
 
     content_type: str  # OID for content type
-    content: Optional[Union[str, bytes]] = None
+    content: str | bytes | None = None
 
     def to_dict(self) -> dict[str, Any]:
         """Convert to dictionary."""
@@ -374,7 +375,7 @@ class EncapsulatedContent:
         return result
 
     @classmethod
-    def from_dict(cls, data: dict[str, Any]) -> "EncapsulatedContent":
+    def from_dict(cls, data: dict[str, Any]) -> EncapsulatedContent:
         """Create EncapsulatedContent from dictionary."""
         content = data.get("content")
 
@@ -397,8 +398,8 @@ class CMSSignedData:
     digest_algorithms: list[AlgorithmIdentifier]
     encap_content_info: EncapsulatedContent
     signer_infos: list[SignerInfo]
-    certificates: Optional[list[str]] = None  # Base64 encoded X.509 certificates
-    crls: Optional[list[str]] = None  # Base64 encoded CRLs
+    certificates: list[str] | None = None  # Base64 encoded X.509 certificates
+    crls: list[str] | None = None  # Base64 encoded CRLs
 
     def to_dict(self) -> dict[str, Any]:
         """Convert to dictionary."""
@@ -418,7 +419,7 @@ class CMSSignedData:
         return result
 
     @classmethod
-    def from_dict(cls, data: dict[str, Any]) -> "CMSSignedData":
+    def from_dict(cls, data: dict[str, Any]) -> CMSSignedData:
         """Create CMSSignedData from dictionary."""
         return cls(
             version=data["version"],
@@ -443,7 +444,7 @@ class CMSSignedData:
         return json.dumps(self.to_dict()).encode("utf-8")
 
     @classmethod
-    def from_der(cls, der_data: bytes) -> "CMSSignedData":
+    def from_der(cls, der_data: bytes) -> CMSSignedData:
         """
         Create CMSSignedData from DER encoded data (stub implementation).
 
@@ -460,8 +461,8 @@ class SignatureValidationResult:
     """Result of signature validation."""
 
     valid: bool
-    signing_time: Optional[datetime] = None
-    signer_certificate: Optional[str] = None
+    signing_time: datetime | None = None
+    signer_certificate: str | None = None
     errors: list[str] = field(default_factory=list)
     warnings: list[str] = field(default_factory=list)
 
@@ -484,7 +485,7 @@ class SignatureValidationResult:
         return result
 
     @classmethod
-    def from_dict(cls, data: dict[str, Any]) -> "SignatureValidationResult":
+    def from_dict(cls, data: dict[str, Any]) -> SignatureValidationResult:
         """Create SignatureValidationResult from dictionary."""
         result = cls(valid=data["valid"])
 

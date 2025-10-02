@@ -1,10 +1,10 @@
 """
 ASN.1 utilities for PKD service
 """
+from __future__ import annotations
 
 import logging
 from datetime import datetime, timezone
-from typing import Optional
 from uuid import uuid4
 
 import asn1crypto.cms
@@ -26,7 +26,7 @@ class ASN1Encoder:
     """
 
     @staticmethod
-    def extract_country_code(subject) -> Optional[str]:
+    def extract_country_code(subject) -> str | None:
         """
         Extract and validate country code from certificate subject.
 
@@ -369,11 +369,10 @@ class ASN1Decoder:
                         reason_code=reason_code,
                     )
                     revoked_certs.append(revoked_cert)
-
-            return issuer, this_update, next_update, revoked_certs
-
         except Exception as e:
             logger.exception(f"Failed to decode CRL: {e}")
             # Return placeholder data
             now = datetime.now(tz=timezone.utc)
             return "CN=Mock Issuer", now, now, []
+        else:
+            return issuer, this_update, next_update, revoked_certs

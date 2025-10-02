@@ -1,9 +1,10 @@
 """
 Configuration settings for the PKD service
 """
+from __future__ import annotations
 
 import os
-from typing import Any, Optional
+from typing import Any
 
 from pydantic import BaseSettings, validator
 
@@ -35,12 +36,12 @@ class Settings(BaseSettings):
     CORS_ORIGINS: list[str] = ["*"]
 
     # Database configuration
-    DATABASE_URL: Optional[str] = os.getenv("PKD_DATABASE_URL")
+    DATABASE_URL: str | None = os.getenv("PKD_DATABASE_URL")
 
     # PKD synchronization configuration
-    EXTERNAL_PKD_URL: Optional[str] = os.getenv("EXTERNAL_PKD_URL")
-    EXTERNAL_PKD_USERNAME: Optional[str] = os.getenv("EXTERNAL_PKD_USERNAME")
-    EXTERNAL_PKD_PASSWORD: Optional[str] = os.getenv("EXTERNAL_PKD_PASSWORD")
+    EXTERNAL_PKD_URL: str | None = os.getenv("EXTERNAL_PKD_URL")
+    EXTERNAL_PKD_USERNAME: str | None = os.getenv("EXTERNAL_PKD_USERNAME")
+    EXTERNAL_PKD_PASSWORD: str | None = os.getenv("EXTERNAL_PKD_PASSWORD")
     SYNC_INTERVAL_HOURS: int = int(os.getenv("PKD_SYNC_INTERVAL_HOURS", "24"))
 
     # Certificate monitoring configuration

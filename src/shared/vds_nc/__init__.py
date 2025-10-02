@@ -24,13 +24,13 @@ from .models import (
 from .processor import VDSNCProcessor
 from .types import (
     BarcodeFormat,
+    CanonicalizeError,
     DocumentType,
     ErrorCorrectionLevel,
     SignatureAlgorithm,
-    VDSNCVersion,
-    VDSNCError,
-    CanonicalizeError,
     SignatureError,
+    VDSNCError,
+    VDSNCVersion,
     VerificationError,
 )
 from .visa_integration import (
@@ -42,26 +42,26 @@ from .visa_integration import (
 )
 
 __all__ = [
-    "VDSNCProcessor",
-    "VDSNCBarcodeSelector", 
+    "BarcodeFormat",
+    "CanonicalizeError",
+    "DocumentType",
+    "EnhancedVDSNCData",
+    "ErrorCorrectionLevel",
+    "SignatureAlgorithm",
+    "SignatureError",
+    "VDSNCBarcodeSelector",
     "VDSNCCanonicalizer",
     "VDSNCDocument",
+    "VDSNCError",
     "VDSNCHeader",
     "VDSNCPayload",
+    "VDSNCProcessor",
     "VDSNCSignatureInfo",
     "VDSNCVerificationResult",
-    "DocumentType",
-    "SignatureAlgorithm",
-    "BarcodeFormat",
-    "ErrorCorrectionLevel",
     "VDSNCVersion",
-    "VDSNCError",
-    "CanonicalizeError",
-    "SignatureError", 
     "VerificationError",
     # Visa integration
     "VisaVDSNCProcessor",
-    "EnhancedVDSNCData",
     "convert_personal_data_to_vds_nc",
     "convert_visa_data_to_vds_nc",
     "upgrade_legacy_vds_nc_data",

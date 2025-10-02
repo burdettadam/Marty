@@ -28,7 +28,7 @@ GRPC_UNAVAILABLE = "gRPC modules not available"
 class ServiceClientError(Exception):
     """Base exception for service client errors"""
 
-    def __init__(self, service_name: str, details: str | None = None):
+    def __init__(self, service_name: str, details: str | None = None) -> None:
         self.service_name = service_name
         self.details = details
         message = f"{service_name} service error"
@@ -72,7 +72,7 @@ class DocumentSignerClient(ABC):
 class GrpcPassportEngineClient(PassportEngineClient):
     """gRPC-based passport engine client"""
 
-    def __init__(self, host: str = "localhost", port: int = 8084):
+    def __init__(self, host: str = "localhost", port: int = 8084) -> None:
         self.host = host
         self.port = port
         self.address = f"{host}:{port}"
@@ -159,7 +159,7 @@ class GrpcDocumentSignerClient(DocumentSignerClient):
         try:
             from src.proto import document_signer_pb2, document_signer_pb2_grpc
 
-            with grpc.insecure_channel(self.address) as channel:
+            with grpc.insecure_channel(self.address):
                 # This would call appropriate document signer endpoints
                 # Implementation depends on available document signer methods
                 logger.info("Document signature validation via document-signer not yet implemented")

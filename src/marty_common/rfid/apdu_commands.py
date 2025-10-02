@@ -3,12 +3,12 @@
 Implements ISO 7816-4 APDU commands for smart card communication.
 Supports both short and extended APDU formats.
 """
+from __future__ import annotations
 
 import logging
 import struct
 from dataclasses import dataclass
 from enum import Enum
-from typing import List, Optional, Union
 
 logger = logging.getLogger(__name__)
 
@@ -43,19 +43,23 @@ class APDUCommand:
     ins: int  # Instruction byte
     p1: int  # Parameter 1
     p2: int  # Parameter 2
-    data: Optional[bytes] = None  # Command data
-    le: Optional[int] = None  # Expected response length
+    data: bytes | None = None  # Command data
+    le: int | None = None  # Expected response length
 
     def __post_init__(self):
         """Validate APDU command parameters."""
         if not (0 <= self.cla <= 0xFF):
-            raise ValueError(f"Invalid CLA: {self.cla}")
+            msg = f"Invalid CLA: {self.cla}"
+            raise ValueError(msg)
         if not (0 <= self.ins <= 0xFF):
-            raise ValueError(f"Invalid INS: {self.ins}")
+            msg = f"Invalid INS: {self.ins}"
+            raise ValueError(msg)
         if not (0 <= self.p1 <= 0xFF):
-            raise ValueError(f"Invalid P1: {self.p1}")
+            msg = f"Invalid P1: {self.p1}"
+            raise ValueError(msg)
         if not (0 <= self.p2 <= 0xFF):
-            raise ValueError(f"Invalid P2: {self.p2}")
+            msg = f"Invalid P2: {self.p2}"
+            raise ValueError(msg)
 
     def to_bytes(self) -> bytes:
         """Convert APDU command to byte array."""
@@ -85,7 +89,7 @@ class APDUCommand:
         return command
 
     @classmethod
-    def select_file(cls, file_id: Union[bytes, int], select_type: int = 0x00) -> "APDUCommand":
+    def select_file(cls, file_id: bytes | int, select_type: int = 0x00) -> APDUCommand:
         """Create SELECT FILE command."""
         if isinstance(file_id, int):
             file_id = struct.pack(">H", file_id)
@@ -94,19 +98,19 @@ class APDUCommand:
         )
 
     @classmethod
-    def read_binary(cls, offset: int, length: int) -> "APDUCommand":
+    def read_binary(cls, offset: int, length: int) -> APDUCommand:
         """Create READ BINARY command."""
         p1 = (offset >> 8) & 0xFF
         p2 = offset & 0xFF
         return cls(cla=0x00, ins=APDUInstruction.READ_BINARY.value, p1=p1, p2=p2, le=length)
 
     @classmethod
-    def get_challenge(cls, length: int = 8) -> "APDUCommand":
+    def get_challenge(cls, length: int = 8) -> APDUCommand:
         """Create GET CHALLENGE command for authentication."""
         return cls(cla=0x00, ins=APDUInstruction.GET_CHALLENGE.value, p1=0x00, p2=0x00, le=length)
 
     @classmethod
-    def mutual_authenticate(cls, payload: bytes) -> "APDUCommand":
+    def mutual_authenticate(cls, payload: bytes) -> APDUCommand:
         """Create MUTUAL AUTHENTICATE (External Authenticate) command."""
         return cls(
             cla=0x00,
@@ -117,7 +121,7 @@ class APDUCommand:
         )
 
     @classmethod
-    def general_authenticate(cls, payload: bytes, p1: int = 0x00, p2: int = 0x00) -> "APDUCommand":
+    def general_authenticate(cls, payload: bytes, p1: int = 0x00, p2: int = 0x00) -> APDUCommand:
         """Create GENERAL AUTHENTICATE command used by PACE (ISO 7816-4)."""
 
         return cls(
@@ -150,7 +154,7 @@ class APDUResponse:
     @property
     def is_warning(self) -> bool:
         """Check if response indicates warning."""
-        return self.sw1 == 0x62 or self.sw1 == 0x63
+        return self.sw1 in (98, 99)
 
     @property
     def is_error(self) -> bool:
@@ -201,10 +205,11 @@ class APDUResponse:
         return f"Unknown status: 0x{self.sw:04X}"
 
     @classmethod
-    def from_bytes(cls, response: bytes) -> "APDUResponse":
+    def from_bytes(cls, response: bytes) -> APDUResponse:
         """Create APDUResponse from byte array."""
         if len(response) < 2:
-            raise ValueError("Response too short")
+            msg = "Response too short"
+            raise ValueError(msg)
 
         data = response[:-2]
         sw1 = response[-2]
@@ -216,7 +221,7 @@ class APDUResponse:
 class APDUProcessor:
     """High-level APDU command processor."""
 
-    def __init__(self):
+    def __init__(self) -> None:
         self.logger = logging.getLogger(__name__)
 
     def build_select_application(self, aid: bytes) -> APDUCommand:
@@ -233,7 +238,7 @@ class APDUProcessor:
         """Build SELECT EF (Elementary File) command."""
         return APDUCommand.select_file(ef_id, select_type=0x02)
 
-    def build_read_ef(self, length: int, offset: int = 0) -> List[APDUCommand]:
+    def build_read_ef(self, length: int, offset: int = 0) -> list[APDUCommand]:
         """Build commands to read Elementary File data."""
         commands = []
         bytes_read = 0
@@ -292,7 +297,8 @@ class PassportAPDU:
         }
 
         if dg_number not in ef_map:
-            raise ValueError(f"Unsupported data group: {dg_number}")
+            msg = f"Unsupported data group: {dg_number}"
+            raise ValueError(msg)
 
         ef_id = ef_map[dg_number]
         return APDUCommand.select_file(ef_id, select_type=0x02)

@@ -3,13 +3,12 @@
 from __future__ import annotations
 
 from datetime import datetime, timezone
-from enum import Enum as PyEnum
-from typing import Any, Optional
+from typing import Any
 
-from sqlalchemy import Boolean, DateTime, Enum, Index, Integer, String, Text, text
+from sqlalchemy import Boolean, DateTime, Enum, Index, Integer, String, Text
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.orm import Mapped, mapped_column, relationship
+from sqlalchemy.orm import Mapped, mapped_column
 from sqlalchemy.sql import func
 
 from marty_common.crypto.vds_nc_keys import KeyRole, KeyStatus
@@ -37,30 +36,30 @@ class VDSNCKeyModel(Base):
 
     # Rotation information
     rotation_generation: Mapped[int] = mapped_column(Integer, nullable=False, default=1)
-    superseded_by: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
-    supersedes: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
+    superseded_by: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    supersedes: Mapped[str | None] = mapped_column(String(255), nullable=True)
 
     # Key material (stored as JWK)
     public_key_jwk: Mapped[dict[str, Any]] = mapped_column(JSONB, nullable=False)
-    private_key_encrypted: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    private_key_encrypted: Mapped[str | None] = mapped_column(Text, nullable=True)
 
     # Metadata and tracking
     custom_metadata: Mapped[dict[str, Any]] = mapped_column(JSONB, nullable=False, default=dict)
     created_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), 
-        nullable=False, 
+        DateTime(timezone=True),
+        nullable=False,
         server_default=func.now()
     )
     updated_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), 
-        nullable=False, 
+        DateTime(timezone=True),
+        nullable=False,
         server_default=func.now(),
         onupdate=func.now()
     )
 
     # Revocation information
-    revoked_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
-    revocation_reason: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    revoked_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    revocation_reason: Mapped[str | None] = mapped_column(Text, nullable=True)
 
     # Trust and distribution
     is_trusted: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
@@ -93,7 +92,7 @@ class VDSNCKeyModel(Base):
         """Check if key needs rotation soon."""
         if self.status != KeyStatus.ACTIVE:
             return False
-        
+
         from datetime import timedelta
         warning_time = datetime.now(timezone.utc) + timedelta(days=warning_days)
         return self.not_after <= warning_time
@@ -106,10 +105,10 @@ class CSCAKeyModel(Base):
 
     # Primary key
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
-    
+
     # Certificate identifier
     subject_key_identifier: Mapped[str] = mapped_column(String(255), nullable=False, unique=True)
-    authority_key_identifier: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
+    authority_key_identifier: Mapped[str | None] = mapped_column(String(255), nullable=True)
 
     # Issuer information
     issuer_country: Mapped[str] = mapped_column(String(3), nullable=False)  # ISO 3166-1 alpha-3
@@ -119,7 +118,7 @@ class CSCAKeyModel(Base):
     # Certificate data
     certificate_pem: Mapped[str] = mapped_column(Text, nullable=False)
     serial_number: Mapped[str] = mapped_column(String(255), nullable=False)
-    
+
     # Validity period
     not_before: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
     not_after: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
@@ -131,20 +130,20 @@ class CSCAKeyModel(Base):
 
     # Tracking
     created_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), 
-        nullable=False, 
+        DateTime(timezone=True),
+        nullable=False,
         server_default=func.now()
     )
     updated_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), 
-        nullable=False, 
+        DateTime(timezone=True),
+        nullable=False,
         server_default=func.now(),
         onupdate=func.now()
     )
 
     # Revocation
-    revoked_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
-    revocation_reason: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    revoked_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    revocation_reason: Mapped[str | None] = mapped_column(Text, nullable=True)
 
     # Indexes
     __table_args__ = (
@@ -163,7 +162,7 @@ class DSCKeyModel(Base):
 
     # Primary key
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
-    
+
     # Certificate identifier
     subject_key_identifier: Mapped[str] = mapped_column(String(255), nullable=False, unique=True)
     authority_key_identifier: Mapped[str] = mapped_column(String(255), nullable=False)
@@ -176,7 +175,7 @@ class DSCKeyModel(Base):
     # Certificate data
     certificate_pem: Mapped[str] = mapped_column(Text, nullable=False)
     serial_number: Mapped[str] = mapped_column(String(255), nullable=False)
-    
+
     # Validity period
     not_before: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
     not_after: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
@@ -190,24 +189,24 @@ class DSCKeyModel(Base):
     # Chain validation
     csca_ski: Mapped[str] = mapped_column(String(255), nullable=False)  # References CSCA
     chain_validated: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
-    last_validation: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
+    last_validation: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
 
     # Tracking
     created_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), 
-        nullable=False, 
+        DateTime(timezone=True),
+        nullable=False,
         server_default=func.now()
     )
     updated_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), 
-        nullable=False, 
+        DateTime(timezone=True),
+        nullable=False,
         server_default=func.now(),
         onupdate=func.now()
     )
 
     # Revocation
-    revoked_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
-    revocation_reason: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    revoked_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    revocation_reason: Mapped[str | None] = mapped_column(Text, nullable=True)
 
     # Indexes
     __table_args__ = (
@@ -229,10 +228,10 @@ class TrustStoreSnapshot(Base):
 
     # Primary key
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
-    
+
     # Snapshot metadata
     snapshot_id: Mapped[str] = mapped_column(String(255), nullable=False, unique=True)
-    country_code: Mapped[Optional[str]] = mapped_column(String(3), nullable=True)  # None for global
+    country_code: Mapped[str | None] = mapped_column(String(3), nullable=True)  # None for global
     format_version: Mapped[str] = mapped_column(String(10), nullable=False, default="1.0")
 
     # Content counts
@@ -246,16 +245,16 @@ class TrustStoreSnapshot(Base):
 
     # Metadata
     created_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), 
-        nullable=False, 
+        DateTime(timezone=True),
+        nullable=False,
         server_default=func.now()
     )
-    expires_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
+    expires_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     is_current: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
 
     # Distribution tracking
     download_count: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
-    last_downloaded: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
+    last_downloaded: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
 
     # Indexes
     __table_args__ = (
@@ -273,7 +272,7 @@ class KeyRotationLog(Base):
 
     # Primary key
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
-    
+
     # Key information
     key_type: Mapped[str] = mapped_column(String(20), nullable=False)  # "vds_nc", "csca", "dsc"
     key_id: Mapped[str] = mapped_column(String(255), nullable=False)
@@ -281,24 +280,24 @@ class KeyRotationLog(Base):
 
     # Rotation details
     action: Mapped[str] = mapped_column(String(20), nullable=False)  # "created", "rotated", "revoked"
-    old_key_id: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
-    new_key_id: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
-    
+    old_key_id: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    new_key_id: Mapped[str | None] = mapped_column(String(255), nullable=True)
+
     # Timing
-    scheduled_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
+    scheduled_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     executed_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), 
-        nullable=False, 
+        DateTime(timezone=True),
+        nullable=False,
         server_default=func.now()
     )
-    
+
     # Status and metadata
     status: Mapped[str] = mapped_column(String(20), nullable=False, default="completed")
     reason: Mapped[str] = mapped_column(Text, nullable=False)
     metadata: Mapped[dict[str, Any]] = mapped_column(JSONB, nullable=False, default=dict)
-    
+
     # Error tracking
-    error_message: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    error_message: Mapped[str | None] = mapped_column(Text, nullable=True)
     retry_count: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
 
     # Indexes
@@ -318,7 +317,7 @@ class TrustAnchor(Base):
 
     # Primary key
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
-    
+
     # Entity identification
     entity_id: Mapped[str] = mapped_column(String(255), nullable=False, unique=True)
     entity_type: Mapped[str] = mapped_column(String(50), nullable=False)  # "country", "organization", etc.
@@ -327,21 +326,21 @@ class TrustAnchor(Base):
     # Trust status
     is_trusted: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
     trust_level: Mapped[str] = mapped_column(String(20), nullable=False, default="none")
-    
+
     # Configuration
     allowed_document_types: Mapped[list[str]] = mapped_column(JSONB, nullable=False, default=list)
     security_policies: Mapped[dict[str, Any]] = mapped_column(JSONB, nullable=False, default=dict)
-    
+
     # Metadata
     custom_metadata: Mapped[dict[str, Any]] = mapped_column(JSONB, nullable=False, default=dict)
     created_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), 
-        nullable=False, 
+        DateTime(timezone=True),
+        nullable=False,
         server_default=func.now()
     )
     updated_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), 
-        nullable=False, 
+        DateTime(timezone=True),
+        nullable=False,
         server_default=func.now(),
         onupdate=func.now()
     )
@@ -360,7 +359,7 @@ def create_migration_script() -> str:
     return '''"""Add VDS-NC key management and enhanced trust store
 
 Revision ID: add_vds_nc_support
-Revises: 
+Revises:
 Create Date: 2024-12-19 16:00:00.000000
 
 """
@@ -377,11 +376,11 @@ depends_on = None
 
 def upgrade():
     """Create VDS-NC and trust management tables."""
-    
+
     # Create enum types
     op.execute("CREATE TYPE keyrole AS ENUM ('document_signer', 'visa_issuer', 'health_authority', 'other')")
     op.execute("CREATE TYPE keystatus AS ENUM ('active', 'deprecated', 'revoked', 'pending')")
-    
+
     # VDS-NC keys table
     op.create_table('vds_nc_keys',
         sa.Column('kid', sa.String(255), primary_key=True),
@@ -404,7 +403,7 @@ def upgrade():
         sa.Column('is_trusted', sa.Boolean, nullable=False, default=True),
         sa.Column('distribution_enabled', sa.Boolean, nullable=False, default=True),
     )
-    
+
     # Create indexes for VDS-NC keys
     op.create_index('idx_vds_nc_keys_country', 'vds_nc_keys', ['issuer_country'])
     op.create_index('idx_vds_nc_keys_role', 'vds_nc_keys', ['role'])

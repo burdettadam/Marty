@@ -9,12 +9,13 @@ Models for various authentication protocols used in e-passport access:
 
 These protocols are specified in ICAO Doc 9303 and BSI TR-03110.
 """
+from __future__ import annotations
 
 import base64
 from dataclasses import dataclass, field
 from datetime import datetime
 from enum import Enum
-from typing import Any, Optional
+from typing import Any
 from uuid import uuid4
 
 
@@ -59,7 +60,7 @@ class AccessKey:
         return {"keyId": self.key_id, "keyType": self.key_type, "keyData": self.key_data}
 
     @classmethod
-    def from_dict(cls, data: dict[str, Any]) -> "AccessKey":
+    def from_dict(cls, data: dict[str, Any]) -> AccessKey:
         """Create AccessKey from dictionary."""
         return cls(key_id=data["keyId"], key_type=data["keyType"], key_data=data["keyData"])
 
@@ -85,7 +86,7 @@ class BACKey(AccessKey):
         return result
 
     @classmethod
-    def from_dict(cls, data: dict[str, Any]) -> "BACKey":
+    def from_dict(cls, data: dict[str, Any]) -> BACKey:
         """Create BACKey from dictionary."""
         return cls(
             key_id=data["keyId"],
@@ -99,7 +100,7 @@ class BACKey(AccessKey):
     @classmethod
     def from_mrz_info(
         cls, document_number: str, date_of_birth: str, date_of_expiry: str
-    ) -> "BACKey":
+    ) -> BACKey:
         """Create BAC key from MRZ information."""
         # In a real implementation, this would derive the actual BAC key
         # using the algorithm specified in ICAO Doc 9303
@@ -139,7 +140,7 @@ class PACEInfo:
         }
 
     @classmethod
-    def from_dict(cls, data: dict[str, Any]) -> "PACEInfo":
+    def from_dict(cls, data: dict[str, Any]) -> PACEInfo:
         """Create PACEInfo from dictionary."""
         return cls(
             protocol_id=data["protocolId"],
@@ -154,7 +155,7 @@ class ChipAuthenticationInfo:
     """Chip Authentication parameters."""
 
     protocol_id: str  # OID for the protocol
-    key_id: Optional[int] = None
+    key_id: int | None = None
     version: int = 1
 
     def to_dict(self) -> dict[str, Any]:
@@ -167,7 +168,7 @@ class ChipAuthenticationInfo:
         return result
 
     @classmethod
-    def from_dict(cls, data: dict[str, Any]) -> "ChipAuthenticationInfo":
+    def from_dict(cls, data: dict[str, Any]) -> ChipAuthenticationInfo:
         """Create ChipAuthenticationInfo from dictionary."""
         return cls(
             protocol_id=data["protocolId"], key_id=data.get("keyId"), version=data.get("version", 1)
@@ -186,7 +187,7 @@ class TerminalAuthenticationInfo:
         return {"protocolId": self.protocol_id, "version": self.version}
 
     @classmethod
-    def from_dict(cls, data: dict[str, Any]) -> "TerminalAuthenticationInfo":
+    def from_dict(cls, data: dict[str, Any]) -> TerminalAuthenticationInfo:
         """Create TerminalAuthenticationInfo from dictionary."""
         return cls(protocol_id=data["protocolId"], version=data.get("version", 1))
 
@@ -206,7 +207,7 @@ class ActiveAuthenticationInfo:
         }
 
     @classmethod
-    def from_dict(cls, data: dict[str, Any]) -> "ActiveAuthenticationInfo":
+    def from_dict(cls, data: dict[str, Any]) -> ActiveAuthenticationInfo:
         """Create ActiveAuthenticationInfo from dictionary."""
         return cls(
             protocol_id=data["protocolId"],
@@ -218,11 +219,11 @@ class ActiveAuthenticationInfo:
 class SecurityInfo:
     """Security information for ePassport authentication."""
 
-    bac_info: Optional[bool] = None
-    pace_info: Optional[PACEInfo] = None
-    chip_auth_info: Optional[ChipAuthenticationInfo] = None
-    terminal_auth_info: Optional[TerminalAuthenticationInfo] = None
-    active_auth_info: Optional[ActiveAuthenticationInfo] = None
+    bac_info: bool | None = None
+    pace_info: PACEInfo | None = None
+    chip_auth_info: ChipAuthenticationInfo | None = None
+    terminal_auth_info: TerminalAuthenticationInfo | None = None
+    active_auth_info: ActiveAuthenticationInfo | None = None
 
     def to_dict(self) -> dict[str, Any]:
         """Convert to dictionary."""
@@ -246,7 +247,7 @@ class SecurityInfo:
         return result
 
     @classmethod
-    def from_dict(cls, data: dict[str, Any]) -> "SecurityInfo":
+    def from_dict(cls, data: dict[str, Any]) -> SecurityInfo:
         """Create SecurityInfo from dictionary."""
         security_info = cls(bac_info=data.get("bacInfo"))
 
@@ -276,8 +277,8 @@ class AuthenticationResult:
     protocol: AuthenticationProtocol
     success: bool
     timestamp: datetime = field(default_factory=datetime.now)
-    session_keys: Optional[dict[str, str]] = None  # Base64 encoded session keys
-    error_message: Optional[str] = None
+    session_keys: dict[str, str] | None = None  # Base64 encoded session keys
+    error_message: str | None = None
 
     def to_dict(self) -> dict[str, Any]:
         """Convert to dictionary."""
@@ -296,7 +297,7 @@ class AuthenticationResult:
         return result
 
     @classmethod
-    def from_dict(cls, data: dict[str, Any]) -> "AuthenticationResult":
+    def from_dict(cls, data: dict[str, Any]) -> AuthenticationResult:
         """Create AuthenticationResult from dictionary."""
         return cls(
             protocol=AuthenticationProtocol(data["protocol"]),
@@ -313,9 +314,9 @@ class AuthenticationChallenge:
 
     protocol: AuthenticationProtocol
     challenge_id: str = field(default_factory=lambda: str(uuid4()))
-    challenge_data: Optional[str] = None  # Base64 encoded challenge
+    challenge_data: str | None = None  # Base64 encoded challenge
     timestamp: datetime = field(default_factory=datetime.now)
-    expiry: Optional[datetime] = None
+    expiry: datetime | None = None
 
     def to_dict(self) -> dict[str, Any]:
         """Convert to dictionary."""
@@ -334,7 +335,7 @@ class AuthenticationChallenge:
         return result
 
     @classmethod
-    def from_dict(cls, data: dict[str, Any]) -> "AuthenticationChallenge":
+    def from_dict(cls, data: dict[str, Any]) -> AuthenticationChallenge:
         """Create AuthenticationChallenge from dictionary."""
         challenge = cls(
             protocol=AuthenticationProtocol(data["protocol"]),
@@ -348,7 +349,7 @@ class AuthenticationChallenge:
 
         return challenge
 
-    def is_expired(self, current_time: Optional[datetime] = None) -> bool:
+    def is_expired(self, current_time: datetime | None = None) -> bool:
         """Check if challenge is expired."""
         if not self.expiry:
             return False
@@ -376,7 +377,7 @@ class AuthenticationResponse:
         }
 
     @classmethod
-    def from_dict(cls, data: dict[str, Any]) -> "AuthenticationResponse":
+    def from_dict(cls, data: dict[str, Any]) -> AuthenticationResponse:
         """Create AuthenticationResponse from dictionary."""
         return cls(
             challenge_id=data["challengeId"],

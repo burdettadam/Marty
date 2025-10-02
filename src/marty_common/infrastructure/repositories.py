@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import hashlib
 from datetime import datetime, timezone
-from typing import Any, Optional
+from typing import Any
 
 from sqlalchemy import select, update
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -27,13 +27,13 @@ class TrustEntityRepository:
     def __init__(self, session: AsyncSession) -> None:
         self._session = session
 
-    async def get(self, entity_id: str) -> Optional[TrustEntity]:
+    async def get(self, entity_id: str) -> TrustEntity | None:
         stmt = select(TrustEntity).where(TrustEntity.entity_id == entity_id)
         result = await self._session.execute(stmt)
         return result.scalars().first()
 
     async def upsert(
-        self, entity_id: str, trusted: bool, attributes: Optional[dict[str, Any]] = None
+        self, entity_id: str, trusted: bool, attributes: dict[str, Any] | None = None
     ) -> TrustEntity:
         record = await self.get(entity_id)
         if record is None:
@@ -87,7 +87,7 @@ class CertificateRepository:
             record.updated_at = datetime.now(timezone.utc)
         return record
 
-    async def get(self, cert_id: str) -> Optional[CertificateRecord]:
+    async def get(self, cert_id: str) -> CertificateRecord | None:
         stmt = select(CertificateRecord).where(CertificateRecord.certificate_id == cert_id)
         result = await self._session.execute(stmt)
         return result.scalars().first()
@@ -148,7 +148,7 @@ class DigitalTravelCredentialRepository:
         self._session.add(record)
         return record
 
-    async def get(self, dtc_id: str) -> Optional[DigitalTravelCredentialRecord]:
+    async def get(self, dtc_id: str) -> DigitalTravelCredentialRecord | None:
         stmt = select(DigitalTravelCredentialRecord).where(
             DigitalTravelCredentialRecord.dtc_id == dtc_id
         )
@@ -199,7 +199,7 @@ class PassportRepository:
         record.updated_at = datetime.now(timezone.utc)
         return record
 
-    async def get(self, passport_number: str) -> Optional[PassportRecord]:
+    async def get(self, passport_number: str) -> PassportRecord | None:
         stmt = select(PassportRecord).where(PassportRecord.passport_number == passport_number)
         result = await self._session.execute(stmt)
         return result.scalars().first()
@@ -258,12 +258,12 @@ class MobileDrivingLicenseRepository:
         self._session.add(record)
         return record
 
-    async def get(self, mdl_id: str) -> Optional[MobileDrivingLicenseRecord]:
+    async def get(self, mdl_id: str) -> MobileDrivingLicenseRecord | None:
         stmt = select(MobileDrivingLicenseRecord).where(MobileDrivingLicenseRecord.mdl_id == mdl_id)
         result = await self._session.execute(stmt)
         return result.scalars().first()
 
-    async def get_by_license(self, license_number: str) -> Optional[MobileDrivingLicenseRecord]:
+    async def get_by_license(self, license_number: str) -> MobileDrivingLicenseRecord | None:
         stmt = select(MobileDrivingLicenseRecord).where(
             MobileDrivingLicenseRecord.license_number == license_number
         )
@@ -447,7 +447,7 @@ class SdJwtCredentialRepository:
         self._session.add(record)
         return record
 
-    async def get(self, credential_id: str) -> Optional[SdJwtCredentialRecord]:
+    async def get(self, credential_id: str) -> SdJwtCredentialRecord | None:
         stmt = select(SdJwtCredentialRecord).where(
             SdJwtCredentialRecord.credential_id == credential_id
         )
@@ -510,14 +510,14 @@ class OidcSessionRepository:
         self._session.add(record)
         return record
 
-    async def get_by_offer_id(self, offer_id: str) -> Optional[Oidc4VciSessionRecord]:
+    async def get_by_offer_id(self, offer_id: str) -> Oidc4VciSessionRecord | None:
         stmt = select(Oidc4VciSessionRecord).where(Oidc4VciSessionRecord.offer_id == offer_id)
         result = await self._session.execute(stmt)
         return result.scalars().first()
 
     async def get_by_pre_authorized_code(
         self, pre_authorized_code: str
-    ) -> Optional[Oidc4VciSessionRecord]:
+    ) -> Oidc4VciSessionRecord | None:
         digest = _token_digest(pre_authorized_code)
         stmt = select(Oidc4VciSessionRecord).where(
             Oidc4VciSessionRecord.pre_authorized_code_hash == digest
@@ -548,7 +548,7 @@ class OidcSessionRepository:
                 flag_modified(session_record, "extra_metadata")
         session_record.updated_at = datetime.now(timezone.utc)
 
-    async def get_by_access_token(self, access_token: str) -> Optional[Oidc4VciSessionRecord]:
+    async def get_by_access_token(self, access_token: str) -> Oidc4VciSessionRecord | None:
         digest = _token_digest(access_token)
         stmt = select(Oidc4VciSessionRecord).where(
             Oidc4VciSessionRecord.access_token_hash == digest
