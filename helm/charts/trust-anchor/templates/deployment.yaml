@@ -26,6 +26,10 @@ spec:
               containerPort: {{ .Values.service.healthPort }}
               protocol: TCP
           env:
+            - name: MARTY_ENV
+              value: "testing" # Use testing config inside container
+            - name: MARTY_DATABASE_URL
+              value: "postgresql+asyncpg://marty:marty@postgres.marty.svc.cluster.local:5432/marty"
             - name: DATABASE_HOST
               value: {{ .Values.config.database.host | quote }}
             - name: DATABASE_PORT

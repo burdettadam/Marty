@@ -128,6 +128,7 @@ test_*.py
 *_test_*.py
 !tests/unit/infrastructure/test_outbox.py
 !tests/unit/services/test_credential_ledger.py
+!tests/test_secure_crypto.py
 fix_imports.py
 
 # Playwright artifacts

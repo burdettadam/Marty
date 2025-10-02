@@ -30,6 +30,9 @@ COPY proto/ /app/proto/
 # Copy the source code
 COPY src/ /app/src/
 
+# Copy configuration files (needed at runtime by marty_common.config)
+COPY config/ /app/config/
+
 # Make directories Python packages
 RUN touch /app/proto/__init__.py
 RUN touch /app/src/__init__.py

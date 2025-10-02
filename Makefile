@@ -150,6 +150,12 @@ UV := uv
 DOCKER := docker
 DOCKER_COMPOSE := docker compose -f docker/docker-compose.yml
 
+# List of all deployable services (used for image build/tag/load loops)
+SERVICES ?= trust-anchor csca-service document-signer inspection-system passport-engine mdl-engine mdoc-engine dtc-engine credential-ledger pkd-service ui-app
+
+# Minimal set of services required for core passport/mvp UI flows
+MINIMAL_SERVICES ?= trust-anchor csca-service document-signer passport-engine ui-app
+
 # Default target
 all: help
 
@@ -678,12 +684,13 @@ k8s-deploy: compile-protos
 	@echo "🏗️  Building Docker images first..."
 	@$(MAKE) docker-build
 	@echo "🏷️  Tagging images for Kubernetes..."
-	@for service in trust-anchor csca-service document-signer inspection-system passport-engine mdl-engine mdoc-engine dtc-engine credential-ledger pkd-service ui-app; do \
+	@echo "Using service set: $(SERVICES)"; \
+	for service in $(SERVICES); do \
 		echo "Tagging docker-$$service:latest -> marty/$$service:latest"; \
 		docker tag docker-$$service:latest marty/$$service:latest; \
 	done
 	@echo "📦 Loading images into Kind cluster..."
-	@for service in trust-anchor csca-service document-signer inspection-system passport-engine mdl-engine mdoc-engine dtc-engine credential-ledger pkd-service ui-app; do \
+	@for service in $(SERVICES); do \
 		echo "Loading marty/$$service:latest..."; \
 		kind load docker-image marty/$$service:latest --name $(K8S_CLUSTER_NAME) || true; \
 	done
@@ -710,6 +717,51 @@ k8s-deploy: compile-protos
 		fi \
 	done
 	@echo "✅ All services deployed to Kubernetes!"
+	@echo "🌐 Access the application:"
+	@echo "  kubectl port-forward svc/ui-app 8090:8090 -n $(K8S_NAMESPACE)"
+
+# Deploy only minimal subset of services (space-saving / faster loop)
+.PHONY: k8s-deploy-minimal
+k8s-deploy-minimal: compile-protos
+	@echo "🚀 Deploying minimal Marty service set to Kubernetes ($(MINIMAL_SERVICES))..."
+	@$(MAKE) docker-build
+	@echo "🏷️  Tagging minimal images..."
+	@for service in $(MINIMAL_SERVICES); do \
+		echo "Tagging docker-$$service:latest -> marty/$$service:latest"; \
+		docker tag docker-$$service:latest marty/$$service:latest; \
+	done
+	@echo "📦 Loading minimal images into Kind cluster..."
+	@for service in $(MINIMAL_SERVICES); do \
+		echo "Loading marty/$$service:latest..."; \
+		kind load docker-image marty/$$service:latest --name $(K8S_CLUSTER_NAME) || true; \
+	done
+	@echo "📋 Ensuring namespace exists..."
+	@kubectl create namespace $(K8S_NAMESPACE) --dry-run=client -o yaml | kubectl apply -f -
+	@echo "📋 Deploying infrastructure components (Postgres)..."
+	@helm upgrade --install postgres bitnami/postgresql \
+		--namespace $(K8S_NAMESPACE) \
+		--set auth.username=martyuser \
+		--set auth.password=martypassword \
+		--set auth.database=martydb \
+		--set primary.persistence.size=1Gi \
+		--wait --timeout=300s
+	@echo "🔄 Deploying minimal Marty services..."
+	@for chart in helm/charts/*; do \
+		if [ -d "$$chart" ] && [ -f "$$chart/Chart.yaml" ]; then \
+			service=$$(basename $$chart); \
+			case " $(MINIMAL_SERVICES) " in *" $$service "*) \
+				echo "Deploying $$service (minimal)..."; \
+				helm upgrade --install $$service $$chart \
+					--namespace $(K8S_NAMESPACE) \
+					--set image.tag=latest \
+					--set image.pullPolicy=Never \
+					--wait --timeout=300s || true; \
+			;; \
+			*) echo "Skipping $$service (not in minimal set)";; \
+			esac; \
+		fi; \
+	done
+	@echo "✅ Minimal services deployed!"
 	@echo "🌐 Access the application:"
 	@echo "  kubectl port-forward svc/ui-app 8090:8090 -n $(K8S_NAMESPACE)"
 
