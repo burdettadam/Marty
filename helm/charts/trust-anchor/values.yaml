@@ -34,3 +34,15 @@ resources:
   requests:
     cpu: 500m
     memory: 512Mi
+
+nodeSelector: {}
+
+tolerations: []
+
+affinity: {}
+
+# OpenXPKI integration for trust-anchor service
+# Inherits from parent chart values but can be overridden
+openxpki:
+  enabled: true  # Trust anchor service requires OpenXPKI
+  # Other values inherited from parent chart unless overridden here

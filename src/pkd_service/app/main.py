@@ -2,20 +2,16 @@
 Main FastAPI application for PKD service
 """
 
-import logging
-
 from app.api.api_v1.api import api_router
 from app.api.csca import router as csca_router
 from app.core.config import settings
 from app.db.database import init_db
 from fastapi import FastAPI
+from marty_common.logging_config import setup_logging, get_logger
 
-# Configure logging
-logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
-)
-logger = logging.getLogger(__name__)
+# Configure logging using shared utility
+setup_logging(service_name="pkd-service")
+logger = get_logger(__name__)
 
 app = FastAPI(
     title="ICAO PKD API",

@@ -40,3 +40,9 @@ nodeSelector: {}
 tolerations: []
 
 affinity: {}
+
+# OpenXPKI integration for PKD service
+# Inherits from parent chart values but can be overridden
+openxpki:
+  enabled: true  # PKD service requires OpenXPKI
+  # Other values inherited from parent chart unless overridden here

@@ -47,6 +47,37 @@ spec:
               value: {{ .Values.config.redis.host | quote }}
             - name: REDIS_PORT
               value: {{ .Values.config.redis.port | quote }}
+            {{- if .Values.openxpki.enabled }}
+            - name: OPENXPKI_BASE_URL
+              value: {{ .Values.openxpki.baseUrl | quote }}
+            - name: OPENXPKI_REALM
+              value: {{ .Values.openxpki.realm | quote }}
+            - name: OPENXPKI_VERIFY_SSL
+              value: {{ .Values.openxpki.verifySSL | quote }}
+            - name: OPENXPKI_LOCAL_STORE
+              value: {{ .Values.openxpki.localStorePath | quote }}
+            {{- if .Values.openxpki.credentials.useSecretFiles }}
+            # Using secret files pattern (for Docker secrets, Vault Agent, etc.)
+            - name: OPENXPKI_USERNAME_FILE
+              value: {{ .Values.openxpki.credentials.usernameFile | quote }}
+            - name: OPENXPKI_PASSWORD_FILE
+              value: {{ .Values.openxpki.credentials.passwordFile | quote }}
+            {{- else if .Values.openxpki.credentials.existingSecret }}
+            # Using Kubernetes Secret reference
+            - name: OPENXPKI_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.openxpki.credentials.existingSecret }}
+                  key: username
+            - name: OPENXPKI_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.openxpki.credentials.existingSecret }}
+                  key: password
+            {{- else }}
+            {{- fail "OpenXPKI credentials must be configured when openxpki.enabled=true. Set either openxpki.credentials.existingSecret or openxpki.credentials.useSecretFiles=true" }}
+            {{- end }}
+            {{- end }}
           livenessProbe:
             httpGet:
               path: /health/live

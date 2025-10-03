@@ -5,12 +5,14 @@ It initializes the gRPC server and handles MDL creation, signing, and verificati
 """
 
 import logging
-import os
 import sys
 import time
+from pathlib import Path
 
 # Ensure we can import from the parent directory
-sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
+sys.path.append(str(Path(__file__).resolve().parents[3]))
+
+# Import shared utilities\nfrom marty_common.config import ConfigurationManager
 
 # Import the MDL Engine service implementation
 from src.services.mdl_engine import serve
@@ -19,7 +21,8 @@ from src.services.mdl_engine import serve
 from src.shared.database import Base, engine
 
 # Configure logging globally for the main script
-log_level = os.environ.get("LOG_LEVEL", "INFO").upper()
+config_manager = ConfigurationManager()
+log_level = config_manager.get_env_list("LOG_LEVEL", default=["INFO"])[0].upper()
 log_format = "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
 logging.basicConfig(level=getattr(logging, log_level, logging.INFO), format=log_format)
 logger = logging.getLogger(__name__)
@@ -41,20 +44,22 @@ def main() -> None:
     # Initialize database
     try:
         create_db_and_tables()
-    except Exception as e:
-        logger.exception("Error initializing database for MDL Engine: %s", str(e))
+    except Exception:
+        logger.exception("Error initializing database for MDL Engine")
         sys.exit(1)
 
     # Wait for dependencies if specified via environment variables
-    if os.environ.get("WAIT_FOR_DEPENDENCIES", "false").lower() == "true":
+    wait_for_deps = config_manager.get_env_bool("WAIT_FOR_DEPENDENCIES", False)
+    if wait_for_deps:
         logger.info("Waiting for dependencies to be available...")
-        time.sleep(int(os.environ.get("DEPENDENCY_WAIT_TIME", "5")))
+        wait_time = config_manager.get_env_int("DEPENDENCY_WAIT_TIME", 5)
+        time.sleep(wait_time)
 
     try:
         # Start the gRPC server
         serve()
-    except Exception as e:
-        logger.exception("Error starting MDL Engine service: %s", str(e))
+    except Exception:
+        logger.exception("Error starting MDL Engine service")
         sys.exit(1)
 
 

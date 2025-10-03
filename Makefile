@@ -245,7 +245,7 @@ setup-openxpki:
 	@./scripts/development/setup_openxpki.sh
 	@echo "OpenXPKI setup completed!"
 	@echo "Access the OpenXPKI web interface at: https://localhost:8443/openxpki/"
-	@echo "Default credentials: pkiadmin / secret"
+	@echo "Development credentials loaded from docker/openxpki.env and data/openxpki/secrets/*.txt (DO NOT USE IN PROD)"
 
 .PHONY: setup clean test lint format proto compile-protos clean-protos build run docker-build docker-run test-unit test-integration test-e2e test-e2e-k8s test-e2e-k8s-existing test-e2e-k8s-smoke test-e2e-k8s-monitoring test-e2e-clean test-e2e-docker-legacy test-integration-docker-legacy test-cert-validator test-e2e-ui playwright-install generate-test-data help run-ui run-service-ui run-services-dev check-services stop-services dev-environment demo-environment dev-minimal dev-full dev-status dev-logs dev-clean dev-restart wait-for-services show-endpoints test-performance test-coverage test-security test-setup setup-openxpki test-doc-processing test-doc-processing-unit test-doc-processing-integration test-doc-processing-e2e test-doc-processing-docker test-doc-processing-api test-doc-processing-health doc-processing-start doc-processing-stop doc-processing-status doc-processing-logs doc-processing-clean
 

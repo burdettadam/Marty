@@ -5,15 +5,17 @@ It initializes the gRPC server and handles mDoc creation, signing, and verificat
 """
 
 import logging
-import os
 import sys
 import time
-from concurrent import futures
-
-import grpc
+from pathlib import Path
+from typing import Callable
 
 # Ensure we can import from the parent directory
-sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
+sys.path.append(str(Path(__file__).resolve().parents[3]))
+
+# Import shared utilities
+from marty_common.services import BaseGrpcService
+from marty_common.config import ConfigurationManager
 
 # Import the mDoc Engine service implementation and protobuf generated files
 from src.proto import mdoc_engine_pb2_grpc  # Correct import for gRPC add_servicer_to_server
@@ -25,7 +27,8 @@ from src.services.mdoc_engine import (
 from src.shared.database import Base, engine
 
 # Configure logging globally for the main script
-log_level = os.environ.get("LOG_LEVEL", "INFO").upper()
+config_manager = ConfigurationManager()
+log_level = config_manager.get_env_list("LOG_LEVEL", default=["INFO"])[0].upper()
 log_format = "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
 logging.basicConfig(level=getattr(logging, log_level, logging.INFO), format=log_format)
 logger = logging.getLogger(__name__)
@@ -38,22 +41,33 @@ def create_db_and_tables() -> None:
     logger.info("Database tables created successfully.")
 
 
-def serve_grpc() -> (
-    None
-):  # Renamed from 'serve' to avoid conflict if original 'serve' was different
-    """
-    Start the gRPC server for the mDoc Engine service.
-    """
-    server = grpc.server(futures.ThreadPoolExecutor(max_workers=10))
-    # The MDocEngineServicer class is defined in src.services.mdoc_engine
-    mdoc_engine_pb2_grpc.add_MDocEngineServicer_to_server(MDocEngineServicer(), server)
+class MDocGrpcService(BaseGrpcService):
+    """MDoc Engine gRPC service using BaseGrpcService."""
 
-    port = os.getenv("GRPC_PORT", "8086")  # Using the port from docker-compose
-    server.add_insecure_port(f"[::]:{port}")
+    def create_servicer(self) -> MDocEngineServicer:
+        """Create the MDoc Engine servicer instance."""
+        return MDocEngineServicer()
 
-    logger.info(f"mDoc Engine Service started on port {port}...")
-    server.start()
-    server.wait_for_termination()
+    def get_add_servicer_function(self) -> Callable:
+        """Get the function to add the servicer to the server."""
+        return mdoc_engine_pb2_grpc.add_MDocEngineServicer_to_server
+
+
+def serve_grpc() -> None:
+    """
+    Start the gRPC server for the mDoc Engine service using BaseGrpcService.
+    """
+    port = config_manager.get_env_int("GRPC_PORT", 8086)  # Using the port from docker-compose
+
+    # Create the service
+    service = MDocGrpcService(
+        service_name="mdoc-engine",
+        default_port=port,
+        max_workers=10
+    )
+
+    # Start the server
+    service.start_server()
 
 
 # Note: The MDocEngineService class itself is defined in src/services/mdoc_engine.py
@@ -65,18 +79,19 @@ if __name__ == "__main__":
     # Initialize database
     try:
         create_db_and_tables()
-    except Exception as e:
-        logger.exception("Error initializing database for mDoc Engine: %s", str(e))
+    except Exception:
+        logger.exception("Error initializing database for mDoc Engine")
         sys.exit(1)
 
     # Wait for dependencies (similar to mdl_engine)
-    if os.getenv("WAIT_FOR_DEPENDENCIES", "false").lower() == "true":
-        wait_time = int(os.getenv("DEPENDENCY_WAIT_TIME", "5"))
+    wait_for_deps = config_manager.get_env_bool("WAIT_FOR_DEPENDENCIES", False)
+    if wait_for_deps:
+        wait_time = config_manager.get_env_int("DEPENDENCY_WAIT_TIME", 5)
         logger.info(f"Waiting for dependencies for {wait_time} seconds...")
         time.sleep(wait_time)
 
     try:
         serve_grpc()
-    except Exception as e:
-        logger.exception("Error starting mDoc Engine service: %s", str(e))
+    except Exception:
+        logger.exception("Error starting mDoc Engine service")
         sys.exit(1)

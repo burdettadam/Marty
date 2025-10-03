@@ -9,8 +9,11 @@ This service provides functionality for:
 - Importing and querying CSCA master lists
 """
 
+import logging
 import sys
+from datetime import datetime
 from pathlib import Path
+from typing import Callable
 
 # Add project root to path for imports
 # This needs to be done before attempting to import from 'src'
@@ -18,12 +21,9 @@ _project_root = Path(__file__).resolve().parents[3]
 if str(_project_root) not in sys.path:
     sys.path.insert(0, str(_project_root))
 
-import logging
-import os
-from concurrent import futures
-from datetime import datetime
-
-import grpc  # Third-party
+# Import shared utilities
+from marty_common.services import BaseGrpcService
+from marty_common.config import ConfigurationManager
 
 # Local application/library specific imports
 # Import gRPC generated modules
@@ -44,12 +44,11 @@ from src.proto.trust_anchor_pb2_grpc import TrustAnchorServicer, add_TrustAnchor
 # Import our services
 from src.trust_anchor.app.services.certificate_expiry_service import CertificateExpiryService
 from src.trust_anchor.app.services.openxpki_service import OpenXPKIService
+from marty_common.logging_config import setup_logging, get_logger
 
-# Configure logging
-logging.basicConfig(
-    level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
-)
-logger = logging.getLogger(__name__)
+# Configure logging using shared utility
+setup_logging(service_name="trust-anchor")
+logger = get_logger(__name__)
 
 
 class TrustAnchorService(TrustAnchorServicer):
@@ -64,15 +63,18 @@ class TrustAnchorService(TrustAnchorServicer):
         """Initialize the Trust Anchor service."""
         logger.info("Initializing Trust Anchor Service")
 
+        # Initialize configuration
+        self.config_manager = ConfigurationManager()
+
         # Initialize OpenXPKI service
         self.openxpki_service = OpenXPKIService()
 
         # Initialize Certificate Expiry Service
         self.certificate_expiry_service = CertificateExpiryService(
             openxpki_service=self.openxpki_service,
-            check_interval_days=int(os.environ.get("CERT_CHECK_INTERVAL_DAYS", "1")),
+            check_interval_days=self.config_manager.get_env_int("CERT_CHECK_INTERVAL_DAYS", 1),
             notification_days=self._get_notification_days(),
-            history_file=os.environ.get("CERT_HISTORY_FILE"),
+            history_file=self.config_manager.get_env_path("CERT_HISTORY_FILE"),
         )
 
         # Additional service initialization can go here
@@ -84,9 +86,11 @@ class TrustAnchorService(TrustAnchorServicer):
         Returns:
             List of days before expiry to send notifications
         """
-        notification_days_str = os.environ.get("CERT_NOTIFICATION_DAYS", "30,15,7,5,3,1")
+        notification_days_str = self.config_manager.get_env_list(
+            "CERT_NOTIFICATION_DAYS", default=["30", "15", "7", "5", "3", "1"]
+        )
         try:
-            return [int(days) for days in notification_days_str.split(",")]
+            return [int(days) for days in notification_days_str]
         except (ValueError, TypeError):
             logger.warning("Invalid CERT_NOTIFICATION_DAYS format, using defaults")
             return [30, 15, 7, 5, 3, 1]
@@ -313,29 +317,41 @@ class TrustAnchorService(TrustAnchorServicer):
         )
 
 
+class TrustAnchorGrpcService(BaseGrpcService):
+    """Trust Anchor gRPC service using BaseGrpcService."""
+
+    def create_servicer(self) -> TrustAnchorService:
+        """Create the TrustAnchor servicer instance."""
+        return TrustAnchorService()
+
+    def get_add_servicer_function(self) -> Callable:
+        """Get the function to add the servicer to the server."""
+        return add_TrustAnchorServicer_to_server
+
+
 def start_server(server_port=50051, max_workers=10) -> None:
     """
-    Run the gRPC server.
+    Run the gRPC server using BaseGrpcService.
 
     Args:
         server_port: The port to listen on
         max_workers: Maximum number of worker threads
     """
-    server = grpc.server(futures.ThreadPoolExecutor(max_workers=max_workers))
-    add_TrustAnchorServicer_to_server(TrustAnchorService(), server)
-    server.add_insecure_port(f"[::]:{server_port}")
-    server.start()
-    logger.info("Trust Anchor service started on port %s", server_port)
+    # Create the service
+    service = TrustAnchorGrpcService(
+        service_name="trust-anchor",
+        default_port=server_port,
+        max_workers=max_workers
+    )
 
-    try:
-        server.wait_for_termination()
-    except KeyboardInterrupt:
-        logger.info("Server shutting down...")
+    # Start the server
+    service.start_server()
 
 
 if __name__ == "__main__":
-    # Get port from environment
-    port_env = int(os.environ.get("GRPC_PORT", "50051"))
+    # Get port from environment using ConfigurationManager
+    config_manager = ConfigurationManager()
+    port_env = config_manager.get_env_int("GRPC_PORT", 50051)
 
     # Start the server
     start_server(server_port=port_env)

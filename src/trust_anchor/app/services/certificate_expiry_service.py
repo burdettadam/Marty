@@ -10,10 +10,14 @@ This service is responsible for:
 
 import json
 import logging
-import os
 import time
 from datetime import datetime
+from pathlib import Path
 from typing import Any
+
+# Import shared utilities
+from marty_common.certificate import CertificateProcessor
+from marty_common.config import ConfigurationManager
 
 # Configure logging
 logging.basicConfig(
@@ -45,15 +49,22 @@ class CertificateExpiryService:
         self.openxpki_service = openxpki_service
         self.check_interval_days = check_interval_days
         self.notification_days = notification_days or [30, 15, 7, 3, 1]
-        self.history_file = history_file or os.path.join(
-            os.environ.get("DATA_DIR", "data"), "trust", "cert_notification_history.json"
-        )
+        
+        # Initialize shared utilities
+        self.config_manager = ConfigurationManager()
+        self.cert_processor = CertificateProcessor()
+        
+        # Use ConfigurationManager for path resolution
+        data_dir = self.config_manager.get_env_path("DATA_DIR") or Path("data")
+        default_history_path = data_dir / "trust" / "cert_notification_history.json"
+        self.history_file = Path(history_file or default_history_path)
 
         # Ensure history file directory exists
-        os.makedirs(os.path.dirname(self.history_file), exist_ok=True)
+        self.history_file.parent.mkdir(parents=True, exist_ok=True)
 
         logger.info(
-            f"Initialized Certificate Expiry Service with check interval of {check_interval_days} days"
+            f"Initialized Certificate Expiry Service with check interval of "
+            f"{check_interval_days} days"
         )
         logger.info(f"Notifications will be sent at {self.notification_days} days before expiry")
 
@@ -105,20 +116,19 @@ class CertificateExpiryService:
             Dictionary mapping certificate serial numbers to notification history
         """
         try:
-            if os.path.exists(self.history_file):
-                with open(self.history_file) as f:
-                    content = f.read()
-                    if content:
-                        return json.loads(content)
+            if self.history_file.exists():
+                content = self.history_file.read_text()
+                if content:
+                    return json.loads(content)
 
             logger.info(
                 f"No notification history file found at {self.history_file} or file is empty"
             )
-        except json.JSONDecodeError as e:
-            logger.exception(f"Error decoding notification history JSON: {e!s}")
+        except json.JSONDecodeError:
+            logger.exception("Error decoding notification history JSON")
             return {}
-        except Exception as e:
-            logger.exception(f"Error loading notification history: {e!s}")
+        except Exception:
+            logger.exception("Error loading notification history")
             return {}
         else:
             return {}
@@ -131,11 +141,10 @@ class CertificateExpiryService:
             history: Dictionary mapping certificate serial numbers to notification history
         """
         try:
-            with open(self.history_file, "w") as f:
-                json.dump(history, f, indent=2)
-                logger.debug(f"Notification history saved to {self.history_file}")
-        except Exception as e:
-            logger.exception(f"Error saving notification history: {e!s}")
+            self.history_file.write_text(json.dumps(history, indent=2))
+            logger.debug(f"Notification history saved to {self.history_file}")
+        except Exception:
+            logger.exception("Error saving notification history")
 
     def check_certificates_need_notification(
         self, certificates: list[dict[str, Any]]
@@ -160,6 +169,11 @@ class CertificateExpiryService:
             days_remaining = cert.get("days_remaining")
 
             # Check if this certificate has a notification history
+            # Type check for serial_number
+            if serial_number is None:
+                logger.warning("Certificate with missing serial number found")
+                continue
+                
             cert_history = history.get(serial_number, {"notify_days": []})
 
             # If days_remaining matches one of our notification thresholds

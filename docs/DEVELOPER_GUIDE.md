@@ -416,16 +416,43 @@ config/
 Set environment: `export MARTY_ENV=development`
 
 ### OpenXPKI Integration Setup
+
+⚠️ **Important**: OpenXPKI services require explicit credential configuration. No defaults are provided for security.
+
+**Quick Setup for Development**:
 ```bash
-# Start OpenXPKI container
+# 1. Setup environment configuration
+cp docker/openxpki.env.example docker/openxpki.env
+# Edit docker/openxpki.env and set OPENXPKI_USERNAME/PASSWORD
+
+# 2. Start OpenXPKI container with credentials
 docker-compose -f docker/docker-compose.openxpki.yml up -d
 
-# Initialize OpenXPKI configuration
-./scripts/setup_openxpki.sh
+# 3. Initialize OpenXPKI configuration and create development secrets
+./scripts/development/setup_openxpki.sh
 
-# Verify OpenXPKI is running
-curl http://localhost:8443/openxpki/
+# 4. Verify OpenXPKI is running
+curl -k https://localhost:8443/openxpki/
 ```
+
+**Credential Configuration Options**:
+1. **Environment Variables** (development):
+   ```bash
+   export OPENXPKI_USERNAME="pkiadmin"
+   export OPENXPKI_PASSWORD="your_secure_password"
+   ```
+
+2. **Secret Files** (production):
+   ```bash
+   echo "admin_user" > /run/secrets/openxpki_username
+   echo "secure_password" > /run/secrets/openxpki_password
+   export OPENXPKI_USERNAME_FILE="/run/secrets/openxpki_username"
+   export OPENXPKI_PASSWORD_FILE="/run/secrets/openxpki_password"
+   ```
+
+**Validation**: Services will fail to start with `ValueError` if credentials are not provided.
+
+See `docs/SECRETS_MANAGEMENT.md` for production deployment patterns.
 
 ## Integration Examples
 

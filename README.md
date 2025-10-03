@@ -176,13 +176,13 @@ This will:
 3. Configure the system for CSCA & Master List Management
 4. Display connection information
 
-**Access OpenXPKI**:
+**Access OpenXPKI (Development)**:
 - Web UI: https://localhost:8443/openxpki/
 - API Endpoint: https://localhost:8443/api/v2
-- Username: `pkiadmin`
-- Password: `secret`
+- Username: `pkiadmin` (override with `OPENXPKI_ADMIN_USER`)
+- Password: stored in `data/openxpki/secrets/admin_password.txt` (not committed)
 
-> ⚠️ **Educational Note**: Default credentials are for learning purposes only. Production systems require proper authentication configuration.
+> ⚠️ **Security Note**: Development defaults are for local use only. In production you MUST supply strong credentials via a secret manager (Kubernetes Secret, Docker secret, HashiCorp Vault, AWS Secrets Manager, etc.) and set `OPENXPKI_USERNAME` / `OPENXPKI_PASSWORD` or the corresponding secret file paths. See `docs/SECRETS_MANAGEMENT.md`.
 
 ### OpenXPKI Integration
 

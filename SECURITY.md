@@ -198,3 +198,14 @@ This security policy is subject to change. For the most current version, please 
 
 **Last Updated**: December 2024  
 **Next Review**: March 2025
+
+## Secrets Management
+
+Refer to `docs/SECRETS_MANAGEMENT.md` for the authoritative guidance on handling credentials.
+
+Key points:
+- No hard-coded production credentials (searches for `pkiadmin / secret` must not appear outside docs/examples)
+- Use environment variable indirection or `_FILE` pattern
+- Prefer Docker / Kubernetes secrets in non-prod, Vault or cloud secret managers in prod
+- Rotate all secrets regularly; document procedures
+- Plan migration to HSM/KMS for cryptographic key operations

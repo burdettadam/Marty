@@ -53,3 +53,24 @@ nodeSelector: {}
 tolerations: []
 
 affinity: {}
+
+# OpenXPKI integration (for services that require it)
+# IMPORTANT: Credentials are REQUIRED when enabled. No defaults provided for security.
+openxpki:
+  enabled: false
+  baseUrl: "https://openxpki.example.com/api/v2"
+  realm: "marty"
+  verifySSL: false
+  # Credentials configuration (REQUIRED when enabled)
+  credentials:
+    # Option 1: Reference existing secret containing credentials
+    # Expected keys: username, password
+    existingSecret: ""
+    # Option 2: Use secret files (for Docker secrets, Vault Agent, etc.)
+    # Set to true to use *_FILE environment pattern
+    useSecretFiles: false
+    # Paths to secret files (when useSecretFiles: true)
+    usernameFile: "/run/secrets/openxpki_username"
+    passwordFile: "/run/secrets/openxpki_password"
+  # Local trust store sync path (mounted volume / emptyDir in future enhancement)
+  localStorePath: "/data/trust/openxpki_sync"

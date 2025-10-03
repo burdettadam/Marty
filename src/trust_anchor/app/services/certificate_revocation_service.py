@@ -11,9 +11,13 @@ This service is responsible for:
 import hashlib
 import json
 import logging
-import os
 from datetime import datetime, timedelta
+from pathlib import Path
 from typing import Any
+
+# Import shared utilities
+from marty_common.certificate import CertificateProcessor
+from marty_common.config import ConfigurationManager
 
 # Configure logging
 logging.basicConfig(
@@ -42,14 +46,18 @@ class CertificateRevocationService:
         """
         self.openxpki_service = openxpki_service
         self.cache_ttl_hours = cache_ttl_hours
-        self.cache_file = cache_file or os.path.join(
-            os.environ.get("DATA_DIR", "data"), "trust", "revocation_cache.json"
-        )
+        
+        # Initialize shared utilities
+        self.config_manager = ConfigurationManager()
+        self.cert_processor = CertificateProcessor()
+        
+        # Use ConfigurationManager for path resolution
+        data_dir = self.config_manager.get_env_path("DATA_DIR") or Path("data")
+        default_cache_path = data_dir / "trust" / "revocation_cache.json"
+        self.cache_file = Path(cache_file or default_cache_path)
 
-        # Ensure cache directory exists if there is a directory path
-        cache_dir = os.path.dirname(self.cache_file)
-        if cache_dir:  # Only create directory if there is a directory path
-            os.makedirs(cache_dir, exist_ok=True)
+        # Ensure cache directory exists
+        self.cache_file.parent.mkdir(parents=True, exist_ok=True)
 
         logger.info(
             f"Initialized Certificate Revocation Service with cache TTL of {cache_ttl_hours} hours"
@@ -75,9 +83,10 @@ class CertificateRevocationService:
             dict: Mapping of certificate fingerprints to cached results
         """
         try:
-            if os.path.exists(self.cache_file):
-                with open(self.cache_file) as f:
-                    content = f.read()
+            if self.cache_file.exists():
+                content = self.cache_file.read_text()
+                if content:
+                    return json.loads(content)
                     if content:
                         return json.loads(content)
 
