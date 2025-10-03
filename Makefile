@@ -44,7 +44,7 @@ clean-protos:
 	rm -rf src/proto/*_pb2.py src/proto/*_pb2_grpc.py src/proto/*_pb2.pyi src/proto/*_pb2_grpc.pyi
 
 # Code Quality Targets
-.PHONY: format lint type-check complexity security quality-check pre-commit-install pre-commit-run
+.PHONY: format lint type-check complexity security security-quick security-deps security-code security-secrets security-containers security-compliance quality-check pre-commit-install pre-commit-run
 
 format:
 	@echo "Running code formatters..."
@@ -83,12 +83,116 @@ complexity:
 	radon mi src/ -s
 
 security:
-	@echo "Running security checks..."
-	bandit -r src/ -f json -o bandit-report.json
-	safety check --json --output safety-report.json
+	@echo "Running comprehensive security checks..."
+	./scripts/security_scan.sh full
 
-quality-check: format lint type-check complexity security
+security-quick:
+	@echo "Running quick security checks..."
+	$(UV) run bandit -r src/ -f json -o reports/security/code/bandit_report.json || true
+	$(UV) run safety check --json --output reports/security/dependency/safety_report.json || true
+
+security-deps:
+	@echo "Running dependency vulnerability scan..."
+	./scripts/security_scan.sh deps
+
+security-code:
+	@echo "Running code security analysis..."
+	./scripts/security_scan.sh code
+
+security-secrets:
+	@echo "Running secrets detection..."
+	./scripts/security_scan.sh secrets
+
+security-containers:
+	@echo "Running container security scan..."
+	./scripts/security_scan.sh containers
+
+security-compliance:
+	@echo "Running compliance checks..."
+	./scripts/security_scan.sh compliance
+
+quality-check: format lint type-check complexity security-quick
 	@echo "All code quality checks completed!"
+
+# Documentation Targets
+.PHONY: docs docs-build docs-serve docs-clean
+
+docs: docs-build
+	@echo "API documentation generated successfully!"
+	@echo "📖 Open docs/api/index.html to view the documentation"
+
+docs-build:
+	@echo "🚀 Generating API documentation for Marty Platform..."
+	./scripts/generate_docs.sh
+
+docs-serve: docs-build
+	@echo "🌐 Serving API documentation on http://localhost:8000"
+	@echo "Press Ctrl+C to stop the server"
+	cd docs/api && python -m http.server 8000
+
+docs-clean:
+	@echo "🧹 Cleaning generated documentation..."
+	rm -rf docs/api/
+
+# Performance Testing Targets
+.PHONY: perf-test perf-test-load perf-test-stress perf-test-all perf-test-quick perf-reports-clean
+
+perf-test: perf-test-quick
+	@echo "Performance testing completed!"
+
+perf-test-quick:
+	@echo "🚀 Running quick performance tests on all services..."
+	./scripts/run_perf_test.sh pkd_service load 5 30
+	./scripts/run_perf_test.sh document_processing load 5 30
+	./scripts/run_perf_test.sh ui_app load 5 30
+
+perf-test-load:
+	@echo "🚀 Running load tests..."
+	./scripts/run_perf_test.sh $(SERVICE) load $(USERS) $(DURATION)
+
+perf-test-stress:
+	@echo "🔥 Running stress tests..."
+	$(UV) run python scripts/performance_test.py stress $(SERVICE) --max-users $(MAX_USERS) --ramp-up $(RAMP_UP)
+
+perf-test-all:
+	@echo "🚀 Running comprehensive performance tests..."
+	@for service in pkd_service document_processing ui_app; do \
+		echo "Testing $$service with load test..."; \
+		./scripts/run_perf_test.sh $$service load 10 60; \
+		echo "Testing $$service with stress test..."; \
+		$(UV) run python scripts/performance_test.py stress $$service --max-users 50 --ramp-up 180; \
+	done
+
+perf-reports-clean:
+	@echo "🧹 Cleaning performance test reports..."
+	rm -rf reports/performance/
+
+# Centralized Logging Targets
+.PHONY: logging-setup logging-start logging-stop logging-status logging-logs logging-clean
+logging-setup: ## Set up centralized logging infrastructure
+	@echo "🔧 Setting up centralized logging..."
+	./scripts/setup_logging.sh
+
+logging-start: ## Start logging infrastructure
+	@echo "🚀 Starting logging infrastructure..."
+	docker-compose -f docker/docker-compose.logging.yml up -d
+
+logging-stop: ## Stop logging infrastructure
+	@echo "🛑 Stopping logging infrastructure..."
+	docker-compose -f docker/docker-compose.logging.yml down
+
+logging-status: ## Check logging infrastructure status
+	@echo "📊 Logging infrastructure status:"
+	docker-compose -f docker/docker-compose.logging.yml ps
+
+logging-logs: ## View logging infrastructure logs
+	@echo "📝 Viewing logging infrastructure logs..."
+	docker-compose -f docker/docker-compose.logging.yml logs -f
+
+logging-clean: ## Clean logging data and stop services
+	@echo "🧹 Cleaning logging infrastructure..."
+	docker-compose -f docker/docker-compose.logging.yml down -v
+	docker volume prune -f
 
 mypy-services:
 	@echo "Running mypy type checking on services..."
@@ -536,7 +640,13 @@ KIND_VERSION ?= v0.20.0
 HELM_VERSION ?= v3.13.0
 SKAFFOLD_VERSION ?= v2.7.0
 
-.PHONY: k8s-check-tools k8s-setup k8s-destroy k8s-status k8s-deploy k8s-undeploy k8s-restart k8s-logs k8s-port-forward k8s-monitoring k8s-dev
+# Port forwarding configuration
+GRAFANA_PORT ?= 3000
+PROMETHEUS_PORT ?= 9090
+ALERTMANAGER_PORT ?= 9093
+PUSHGATEWAY_PORT ?= 9091
+
+.PHONY: k8s-check-tools k8s-setup k8s-destroy k8s-status k8s-deploy k8s-undeploy k8s-restart k8s-logs k8s-port-forward k8s-port-forward-stop k8s-port-forward-status k8s-get-passwords k8s-monitoring k8s-dev k8s-dev-full
 
 # Check if required Kubernetes tools are installed
 k8s-check-tools:
@@ -786,18 +896,33 @@ k8s-logs:
 # Set up port forwarding for development
 k8s-port-forward:
 	@echo "🌐 Setting up port forwarding for development..."
+	@echo "Stopping any existing port forwards..."
+	@pkill -f "kubectl port-forward" || true
+	@sleep 2
 	@echo "Starting port forwards in background..."
-	@kubectl port-forward svc/ui-app 8090:8090 -n $(K8S_NAMESPACE) &
-	@kubectl port-forward svc/csca-service 8081:8081 -n $(K8S_NAMESPACE) &
-	@kubectl port-forward svc/document-signer 8082:8082 -n $(K8S_NAMESPACE) &
-	@kubectl port-forward svc/inspection-system 8083:8083 -n $(K8S_NAMESPACE) &
-	@kubectl port-forward svc/passport-engine 8084:8084 -n $(K8S_NAMESPACE) &
-	@kubectl port-forward svc/mdl-engine 8085:8085 -n $(K8S_NAMESPACE) &
-	@kubectl port-forward svc/mdoc-engine 8086:8086 -n $(K8S_NAMESPACE) &
-	@kubectl port-forward svc/dtc-engine 8087:8087 -n $(K8S_NAMESPACE) &
-	@kubectl port-forward svc/pkd-service 8088:8088 -n $(K8S_NAMESPACE) &
-	@echo "✅ Port forwarding active. Use 'pkill -f port-forward' to stop."
-	@echo "🌐 Access URLs:"
+	@echo "📊 Setting up monitoring services..."
+	@kubectl port-forward svc/grafana $(GRAFANA_PORT):80 -n marty-system > /dev/null 2>&1 &
+	@kubectl port-forward svc/prometheus-server $(PROMETHEUS_PORT):80 -n marty-system > /dev/null 2>&1 &
+	@kubectl port-forward svc/prometheus-alertmanager $(ALERTMANAGER_PORT):9093 -n marty-system > /dev/null 2>&1 &
+	@kubectl port-forward svc/prometheus-prometheus-pushgateway $(PUSHGATEWAY_PORT):9091 -n marty-system > /dev/null 2>&1 &
+	@echo "🚀 Setting up application services..."
+	@kubectl port-forward svc/ui-app 8090:8090 -n $(K8S_NAMESPACE) > /dev/null 2>&1 & 2>/dev/null || true
+	@kubectl port-forward svc/csca-service 8081:8081 -n $(K8S_NAMESPACE) > /dev/null 2>&1 & 2>/dev/null || true
+	@kubectl port-forward svc/document-signer 8082:8082 -n $(K8S_NAMESPACE) > /dev/null 2>&1 & 2>/dev/null || true
+	@kubectl port-forward svc/inspection-system 8083:8083 -n $(K8S_NAMESPACE) > /dev/null 2>&1 & 2>/dev/null || true
+	@kubectl port-forward svc/passport-engine 8084:8084 -n $(K8S_NAMESPACE) > /dev/null 2>&1 & 2>/dev/null || true
+	@kubectl port-forward svc/mdl-engine 8085:8085 -n $(K8S_NAMESPACE) > /dev/null 2>&1 & 2>/dev/null || true
+	@kubectl port-forward svc/mdoc-engine 8086:8086 -n $(K8S_NAMESPACE) > /dev/null 2>&1 & 2>/dev/null || true
+	@kubectl port-forward svc/dtc-engine 8087:8087 -n $(K8S_NAMESPACE) > /dev/null 2>&1 & 2>/dev/null || true
+	@kubectl port-forward svc/pkd-service 8088:8088 -n $(K8S_NAMESPACE) > /dev/null 2>&1 & 2>/dev/null || true
+	@sleep 3
+	@echo "✅ Port forwarding active. Use 'make k8s-port-forward-stop' to stop."
+	@echo "📊 Monitoring URLs:"
+	@echo "  Grafana:            http://localhost:$(GRAFANA_PORT)"
+	@echo "  Prometheus:         http://localhost:$(PROMETHEUS_PORT)"
+	@echo "  AlertManager:       http://localhost:$(ALERTMANAGER_PORT)"
+	@echo "  Pushgateway:        http://localhost:$(PUSHGATEWAY_PORT)"
+	@echo "🌐 Application URLs:"
 	@echo "  UI App:             http://localhost:8090"
 	@echo "  CSCA Service:       http://localhost:8081"
 	@echo "  Document Signer:    http://localhost:8082"
@@ -807,6 +932,59 @@ k8s-port-forward:
 	@echo "  mDoc Engine:        http://localhost:8086"
 	@echo "  DTC Engine:         http://localhost:8087"
 	@echo "  PKD Service:        http://localhost:8088"
+	@echo "💡 Tip: Access credentials with 'make k8s-get-passwords'"
+
+.PHONY: k8s-port-forward-stop
+k8s-port-forward-stop: ## Stop all Kubernetes port forwarding
+	@echo "🛑 Stopping all port forwarding..."
+	@pkill -f "kubectl port-forward" || echo "No port forwarding processes found"
+	@echo "✅ Port forwarding stopped"
+
+.PHONY: k8s-port-forward-status
+k8s-port-forward-status: ## Check status of port forwarding
+	@echo "📊 Checking port forwarding status..."
+	@echo "Active kubectl port-forward processes:"
+	@ps aux | grep "kubectl port-forward" | grep -v grep || echo "No active port forwarding found"
+	@echo ""
+	@echo "Port usage check:"
+	@netstat -an | grep -E ':(3000|9090|9091|9093|8081|8082|8083|8084|8085|8086|8087|8088|8090)' | grep LISTEN || echo "No listeners found on monitored ports"
+
+.PHONY: k8s-get-passwords
+k8s-get-passwords: ## Get Grafana admin password and other credentials
+	@echo "🔑 Retrieving credentials..."
+	@echo ""
+	@echo "📊 Grafana Admin Password:"
+	@kubectl get secret --namespace marty-system grafana -o jsonpath="{.data.admin-password}" | base64 --decode || echo "Grafana password not found"
+	@echo ""
+	@echo ""
+	@echo "🔍 Other available secrets:"
+	@kubectl get secrets --all-namespaces | grep -v Opaque | head -10
+
+.PHONY: k8s-dev-full
+k8s-dev-full: k8s-setup k8s-deploy k8s-monitoring k8s-port-forward ## Complete development environment setup
+	@echo "🎉 Full development environment ready!"
+	@echo ""
+	@echo "📊 Monitoring Stack:"
+	@echo "  Grafana:            http://localhost:$(GRAFANA_PORT) (admin/[see k8s-get-passwords])"
+	@echo "  Prometheus:         http://localhost:$(PROMETHEUS_PORT)"
+	@echo "  AlertManager:       http://localhost:$(ALERTMANAGER_PORT)"
+	@echo ""
+	@echo "🌐 Application URLs:"
+	@echo "  UI App:             http://localhost:8090"
+	@echo "  CSCA Service:       http://localhost:8081"
+	@echo "  Document Signer:    http://localhost:8082"
+	@echo "  Inspection System:  http://localhost:8083"
+	@echo "  Passport Engine:    http://localhost:8084"
+	@echo "  MDL Engine:         http://localhost:8085"
+	@echo "  mDoc Engine:        http://localhost:8086"
+	@echo "  DTC Engine:         http://localhost:8087"
+	@echo "  PKD Service:        http://localhost:8088"
+	@echo ""
+	@echo "💡 Useful commands:"
+	@echo "  make k8s-get-passwords    # Get access credentials"
+	@echo "  make k8s-port-forward-status  # Check port forwarding"
+	@echo "  make k8s-port-forward-stop    # Stop port forwarding"
+	@echo "  make k8s-logs            # View service logs"
 
 # Deploy monitoring stack (Prometheus/Grafana)
 k8s-monitoring:
@@ -863,9 +1041,9 @@ k8s-create-skaffold-config:
 # DEVELOPMENT ENVIRONMENT COMMANDS
 # =============================================================================
 
-# Complete development environment setup for manual testing
+# Complete development environment setup for manual testing (Docker-based)
 dev-environment: dev-clean build
-	@echo "🚀 Setting up complete development environment..."
+	@echo "🚀 Setting up complete Docker development environment..."
 	@$(MAKE) --no-print-directory dev-full
 	@echo "⏳ Waiting for all services to be ready..."
 	@$(MAKE) --no-print-directory wait-for-services

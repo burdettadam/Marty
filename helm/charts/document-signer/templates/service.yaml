@@ -4,6 +4,10 @@ metadata:
   name: {{ include "marty-service.fullname" . }}
   labels:
     {{- include "marty-service.labels" . | nindent 4 }}
+  annotations:
+    prometheus.io/scrape: "true"
+    prometheus.io/port: "{{ .Values.service.metricsPort }}"
+    prometheus.io/path: "/metrics"
 spec:
   type: {{ .Values.service.type }}
   ports:
@@ -15,5 +19,9 @@ spec:
       targetPort: {{ .Values.service.healthPort }}
       protocol: TCP
       name: health
+    - port: {{ .Values.service.metricsPort }}
+      targetPort: {{ .Values.service.metricsPort }}
+      protocol: TCP
+      name: metrics
   selector:
     {{- include "marty-service.selectorLabels" . | nindent 4 }}

@@ -13,6 +13,10 @@ spec:
     metadata:
       labels:
         {{- include "marty-service.selectorLabels" . | nindent 8 }}
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "{{ .Values.service.metricsPort }}"
+        prometheus.io/path: "/metrics"
     spec:
       containers:
         - name: {{ .Chart.Name }}
@@ -24,6 +28,9 @@ spec:
               protocol: TCP
             - name: health
               containerPort: {{ .Values.service.healthPort }}
+              protocol: TCP
+            - name: metrics
+              containerPort: {{ .Values.service.metricsPort }}
               protocol: TCP
           env:
             - name: DATABASE_HOST

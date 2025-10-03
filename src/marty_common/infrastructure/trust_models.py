@@ -294,7 +294,7 @@ class KeyRotationLog(Base):
     # Status and metadata
     status: Mapped[str] = mapped_column(String(20), nullable=False, default="completed")
     reason: Mapped[str] = mapped_column(Text, nullable=False)
-    metadata: Mapped[dict[str, Any]] = mapped_column(JSONB, nullable=False, default=dict)
+    rotation_metadata: Mapped[dict[str, Any]] = mapped_column(JSONB, nullable=False, default=dict)
 
     # Error tracking
     error_message: Mapped[str | None] = mapped_column(Text, nullable=True)

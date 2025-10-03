@@ -1,0 +1,254 @@
+# Security Policy Configuration for Marty Platform
+# This file defines security policies and enforcement rules
+
+security:
+  # Authentication and Authorization
+  authentication:
+    # JWT token configuration
+    jwt:
+      algorithm: "RS256"
+      expiration_time: 3600  # 1 hour
+      refresh_expiration: 86400  # 24 hours
+      issuer: "marty-platform"
+      audience: "marty-services"
+    
+    # Multi-factor authentication
+    mfa:
+      enabled: true
+      methods: ["totp", "sms", "email"]
+      grace_period: 300  # 5 minutes
+    
+    # Password policy
+    password_policy:
+      min_length: 12
+      require_uppercase: true
+      require_lowercase: true
+      require_numbers: true
+      require_special_chars: true
+      max_age_days: 90
+      history_count: 5
+      lockout_attempts: 5
+      lockout_duration: 900  # 15 minutes
+
+  # Access Control
+  authorization:
+    # Role-based access control
+    rbac:
+      enabled: true
+      default_role: "user"
+      admin_roles: ["admin", "super_admin"]
+      service_roles: ["service_account"]
+    
+    # API rate limiting
+    rate_limiting:
+      enabled: true
+      default_limit: 1000  # requests per hour
+      burst_limit: 100     # requests per minute
+      admin_multiplier: 10
+      service_multiplier: 5
+    
+    # IP allowlist/blocklist
+    ip_filtering:
+      enabled: false
+      allowlist: []
+      blocklist: []
+      enable_geo_blocking: false
+
+  # Data Protection
+  data_protection:
+    # Encryption settings
+    encryption:
+      algorithm: "AES-256-GCM"
+      key_rotation_days: 30
+      backup_encryption: true
+      transit_encryption: true
+    
+    # Data classification
+    classification:
+      levels: ["public", "internal", "confidential", "restricted"]
+      default_level: "internal"
+      retention_policies:
+        public: 0        # No retention limit
+        internal: 2555   # 7 years
+        confidential: 2555
+        restricted: 2555
+    
+    # Personal data handling (GDPR compliance)
+    privacy:
+      data_minimization: true
+      consent_required: true
+      right_to_erasure: true
+      data_portability: true
+      breach_notification_hours: 72
+
+  # Network Security
+  network:
+    # TLS configuration
+    tls:
+      min_version: "1.2"
+      preferred_version: "1.3"
+      cipher_suites:
+        - "TLS_AES_256_GCM_SHA384"
+        - "TLS_CHACHA20_POLY1305_SHA256"
+        - "TLS_AES_128_GCM_SHA256"
+      
+    # CORS policy
+    cors:
+      enabled: true
+      allowed_origins: []  # Configure based on environment
+      allowed_methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"]
+      allowed_headers: ["Content-Type", "Authorization", "X-Requested-With"]
+      expose_headers: ["X-Total-Count", "X-Rate-Limit-Remaining"]
+      allow_credentials: true
+      max_age: 86400
+    
+    # Security headers
+    security_headers:
+      enabled: true
+      headers:
+        Content-Security-Policy: "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'"
+        Strict-Transport-Security: "max-age=31536000; includeSubDomains"
+        X-Frame-Options: "DENY"
+        X-Content-Type-Options: "nosniff"
+        X-XSS-Protection: "1; mode=block"
+        Referrer-Policy: "strict-origin-when-cross-origin"
+        Permissions-Policy: "geolocation=(), microphone=(), camera=()"
+
+  # Monitoring and Logging
+  monitoring:
+    # Security event logging
+    security_logging:
+      enabled: true
+      log_level: "INFO"
+      log_format: "structured"
+      retention_days: 90
+      
+    # Events to log
+    logged_events:
+      - "authentication_attempt"
+      - "authentication_failure"
+      - "authorization_failure"
+      - "privilege_escalation"
+      - "data_access"
+      - "configuration_change"
+      - "system_error"
+      - "suspicious_activity"
+    
+    # Alert thresholds
+    alerting:
+      failed_login_threshold: 5
+      failed_login_window: 300  # 5 minutes
+      privilege_escalation_alert: true
+      suspicious_ip_alert: true
+      data_breach_alert: true
+
+  # Vulnerability Management
+  vulnerability_management:
+    # Scanning configuration
+    scanning:
+      enabled: true
+      frequency: "daily"
+      scan_types: ["dependency", "code", "container", "infrastructure"]
+      severity_threshold: "medium"
+      
+    # Auto-remediation
+    auto_remediation:
+      enabled: false  # Requires manual approval
+      max_severity: "low"
+      exclude_packages: []
+      
+    # Reporting
+    reporting:
+      enabled: true
+      recipients: ["security@marty-platform.com"]
+      frequency: "weekly"
+      include_trends: true
+
+  # Compliance
+  compliance:
+    # Standards and frameworks
+    frameworks:
+      - "OWASP Top 10"
+      - "NIST Cybersecurity Framework"
+      - "ISO 27001"
+      - "SOC 2 Type II"
+    
+    # Compliance checks
+    checks:
+      automated: true
+      frequency: "daily"
+      reporting: true
+      
+    # Audit trail
+    audit:
+      enabled: true
+      retention_days: 2555  # 7 years
+      immutable: true
+      encryption: true
+
+  # Incident Response
+  incident_response:
+    # Response procedures
+    procedures:
+      detection_time: 15    # minutes
+      response_time: 60     # minutes
+      resolution_time: 240  # minutes
+      
+    # Contact information
+    contacts:
+      security_team: "security@marty-platform.com"
+      legal_team: "legal@marty-platform.com"
+      compliance_team: "compliance@marty-platform.com"
+      
+    # Escalation matrix
+    escalation:
+      low: ["security_analyst"]
+      medium: ["security_analyst", "security_manager"]
+      high: ["security_analyst", "security_manager", "ciso"]
+      critical: ["security_analyst", "security_manager", "ciso", "ceo"]
+
+# Environment-specific overrides
+development:
+  security:
+    authentication:
+      jwt:
+        expiration_time: 7200  # 2 hours for development
+    authorization:
+      rate_limiting:
+        default_limit: 10000  # Higher limits for testing
+    data_protection:
+      encryption:
+        key_rotation_days: 90  # Less frequent rotation in dev
+    monitoring:
+      security_logging:
+        log_level: "DEBUG"
+
+testing:
+  security:
+    authentication:
+      mfa:
+        enabled: false  # Disabled for automated testing
+    authorization:
+      rate_limiting:
+        enabled: false  # Disabled for load testing
+    vulnerability_management:
+      scanning:
+        frequency: "on_demand"  # Manual triggering in test
+
+production:
+  security:
+    authentication:
+      mfa:
+        enabled: true
+        methods: ["totp", "hardware_key"]
+    authorization:
+      ip_filtering:
+        enabled: true
+        enable_geo_blocking: true
+    vulnerability_management:
+      auto_remediation:
+        enabled: true
+        max_severity: "low"
+    monitoring:
+      alerting:
+        failed_login_threshold: 3  # Stricter in production

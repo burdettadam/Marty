@@ -1,22 +1,146 @@
-# Marty Platform Monitoring
+# Marty Monitoring Stack
 
-This directory contains monitoring configuration for the Marty microservices platform using Prometheus, Grafana, and Alertmanager.
+This directory contains the complete monitoring infrastructure for the Marty digital identity platform, including Prometheus, Grafana, and Alertmanager configured specifically for microservices observability.
+
+## Overview
+
+The monitoring stack provides:
+
+- **Prometheus**: Metrics collection and storage with custom alerting rules
+- **Grafana**: Visualization dashboards for business and technical metrics
+- **Alertmanager**: Alert routing and notification management
+- **Health Checks**: Advanced dependency monitoring for all services
 
 ## Components
 
-- **Prometheus**: Metrics collection and alerting
-- **Grafana**: Visualization and dashboards
-- **Alertmanager**: Alert routing and notification
+### 1. Prometheus Configuration
+
+**Location**: `prometheus/`
+
+- **alert_rules.yml**: Comprehensive alerting for service health, business metrics, SLA violations, and infrastructure
+- **recording_rules.yml**: SLI/SLO tracking with pre-calculated metrics for performance
+
+**Key Features**:
+- Multi-tier alerting (Critical, Warning, Info)
+- Business-specific metrics for digital identity operations
+- SLA compliance monitoring with error budgets
+- Automatic service discovery via Kubernetes annotations
+
+### 2. Grafana Dashboards
+
+**Location**: `grafana/dashboards/`
+
+- **marty-overview.json**: High-level platform overview with key business metrics
+- **marty-service-detail.json**: Detailed service monitoring with performance metrics
+- **marty-sla.json**: SLA tracking and compliance monitoring
+
+**Dashboard Features**:
+- Real-time metrics visualization
+- Service health status indicators
+- Business operation tracking (document verification, certificate validation)
+- Performance percentiles and error rates
+- Resource utilization monitoring
+
+### 3. Helm Chart
+
+**Location**: `helm/`
+
+Complete Kubernetes deployment with:
+- Environment-specific configurations
+- Persistent storage for metrics and dashboards
+- RBAC and security contexts
+- Ingress configurations for external access
+- Resource management and scaling
 
 ## Quick Start
 
+### Prerequisites
+
+- Kubernetes cluster (1.20+)
+- Helm 3.x
+- kubectl configured for your cluster
+
 ### Deploy Monitoring Stack
 
+1. **Basic Development Deployment**:
+   ```bash
+   ./deploy-monitoring.sh
+   ```
+
+2. **Production Deployment**:
+   ```bash
+   ./deploy-monitoring.sh --environment production \
+     --namespace marty-monitoring-prod
+   ```
+
+3. **Custom Configuration**:
+   ```bash
+   GRAFANA_ADMIN_PASSWORD="secure-password" \
+   GRAFANA_INGRESS_ENABLED=true \
+   DOMAIN="marty.example.com" \
+   ./deploy-monitoring.sh --environment staging
+   ```
+
+### Access Services
+
+After deployment, access the monitoring services:
+
 ```bash
-# Add Helm repositories
-helm repo add prometheus-community https://prometheus-community.github.io/helm-charts
-helm repo add grafana https://grafana.github.io/helm-charts
-helm repo update
+# Prometheus
+kubectl port-forward svc/marty-monitoring-prometheus 9090:9090 -n marty-monitoring
+
+# Grafana
+kubectl port-forward svc/marty-monitoring-grafana 3000:3000 -n marty-monitoring
+
+# Alertmanager
+kubectl port-forward svc/marty-monitoring-alertmanager 9093:9093 -n marty-monitoring
+```
+
+## Configuration
+
+### Service Annotation for Monitoring
+
+To enable monitoring for your Marty services, add these annotations:
+
+```yaml
+apiVersion: v1
+kind: Service
+metadata:
+  annotations:
+    prometheus.io/scrape: "true"
+    prometheus.io/port: "8080"
+    prometheus.io/path: "/metrics"
+spec:
+  # ... service configuration
+```
+
+## Health Checks
+
+Advanced health checking system with:
+
+- **Database Connectivity**: PostgreSQL connection monitoring
+- **gRPC Services**: Service mesh health verification
+- **HTTP Endpoints**: REST API availability checking
+- **System Resources**: CPU, memory, disk space monitoring
+- **External Dependencies**: Trust stores, PKD synchronization
+
+### Custom Health Checks
+
+Services can register custom health check functions:
+
+```python
+from marty_common.health_checks import create_database_health_check
+from marty_common.metrics_server import MetricsServer
+
+# Create health check functions
+db_check = create_database_health_check("postgresql://...")
+api_check = create_http_health_check("https://external-api.com/health")
+
+# Register with metrics server
+metrics_server = MetricsServer()
+metrics_server.health_checker.add_dependency("database", db_check)
+metrics_server.health_checker.add_dependency("external_api", api_check)
+```
 
 # Install monitoring stack
 helm install marty-monitoring ./helm/charts/monitoring

@@ -1,6 +1,9 @@
 # Pre-commit hooks for code quality and consistency
+default_language_version:
+  python: python3.10
+
 repos:
-  # Local hooks
+  # Local hooks for Marty-specific checks
   - repo: local
     hooks:
       - id: compile-protos
@@ -10,6 +13,20 @@ repos:
         files: \.proto$
         pass_filenames: false
         description: "Compiles .proto files to Python modules"
+      
+      - id: test-import-check
+        name: Test Import Validation
+        entry: bash -c 'cd src && python -c "import services.trust_anchor; print(\"✓ Import validation passed\")"'
+        language: system
+        files: ^src/services/.*\.py$
+        pass_filenames: false
+        
+      - id: logging-validation
+        name: Logging Configuration Validation
+        entry: bash -c 'cd src && python -c "from marty_common.logging.structured_logging import setup_logging_for_service; setup_logging_for_service(\"test\"); print(\"✓ Logging validation passed\")"'
+        language: system
+        files: ^src/marty_common/logging/.*\.py$
+        pass_filenames: false
 
   # Built-in hooks
   - repo: https://github.com/pre-commit/pre-commit-hooks
@@ -37,6 +54,42 @@ repos:
       - id: mixed-line-ending
         args: ['--fix=lf']
         types: [text]
+      - id: debug-statements
+        types: [python]
+      - id: fix-byte-order-marker
+        types: [text]
+
+  # Shell script linting
+  - repo: https://github.com/shellcheck-py/shellcheck-py
+    rev: v0.10.0.1
+    hooks:
+      - id: shellcheck
+        name: Shell Script Linting
+        args: [--severity=warning]
+
+  # Dockerfile linting
+  - repo: https://github.com/hadolint/hadolint
+    rev: v2.12.0
+    hooks:
+      - id: hadolint
+        name: Dockerfile Linting
+
+  # Secrets detection
+  - repo: https://github.com/Yelp/detect-secrets
+    rev: v1.5.0
+    hooks:
+      - id: detect-secrets
+        name: Detect Secrets
+        args: [--baseline, .secrets.baseline]
+        exclude: package.lock.json
+
+  # Markdown linting
+  - repo: https://github.com/igorshubovych/markdownlint-cli
+    rev: v0.41.0
+    hooks:
+      - id: markdownlint
+        name: Markdown Linting
+        args: [--fix]
 
   # Python code formatting with black
   - repo: https://github.com/psf/black
@@ -67,7 +120,7 @@ repos:
 
   # Linting with ruff (faster alternative to flake8)
   - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.6.8
+    rev: v0.6.9
     hooks:
       - id: ruff
         args: [--fix, --exit-non-zero-on-fix]
@@ -85,6 +138,20 @@ repos:
               ^src/proto/.*_pb2_grpc\.py$
           )
 
+  # Python syntax upgrading
+  - repo: https://github.com/asottile/pyupgrade
+    rev: v3.17.0
+    hooks:
+      - id: pyupgrade
+        name: Upgrade Python Syntax
+        args: [--py310-plus]
+        types: [python]
+        exclude: |
+          (?x)(
+              ^src/proto/.*_pb2\.py$|
+              ^src/proto/.*_pb2_grpc\.py$
+          )
+
   # Type checking with mypy
   - repo: https://github.com/pre-commit/mirrors-mypy
     rev: v1.11.2
@@ -95,19 +162,22 @@ repos:
           types-PyYAML,
           sqlalchemy,
           pydantic,
+          grpcio-stubs,
+          structlog,
         ]
         args: [
           --config-file=pyproject.toml,
           --show-error-codes,
           --pretty,
+          --color-output,
         ]
         types: [python]
+        files: ^src/(services|marty_common)/.*\.py$
         exclude: |
           (?x)(
               ^src/proto/.*_pb2\.py$|
               ^src/proto/.*_pb2_grpc\.py$|
               ^tests/
-          )
           )
 
   # Security scanning with bandit
@@ -158,6 +228,25 @@ repos:
     rev: v1.3.2
     hooks:
       - id: python-safety-dependencies-check
+        name: Safety Dependency Check
+        files: pyproject.toml
+
+  # Git commit message formatting
+  - repo: https://github.com/commitizen-tools/commitizen
+    rev: v3.29.0
+    hooks:
+      - id: commitizen
+        name: Commitizen Check
+        stages: [commit-msg]
+
+  # Documentation coverage
+  - repo: https://github.com/econchick/interrogate
+    rev: 1.7.0
+    hooks:
+      - id: interrogate
+        name: Documentation Coverage Check
+        args: [--quiet, --fail-under=50]
+        files: ^src/(services|marty_common)/.*\.py$
 
 # Configuration for pre-commit ci
 ci:
@@ -169,5 +258,5 @@ ci:
   autoupdate_branch: ''
   autoupdate_commit_msg: '[pre-commit.ci] pre-commit autoupdate'
   autoupdate_schedule: weekly
-  skip: [mypy, xenon, python-safety-dependencies-check]  # Skip slow hooks in CI
+  skip: [mypy, xenon, python-safety-dependencies-check, commitizen, interrogate]  # Skip slow hooks in CI
   submodules: false

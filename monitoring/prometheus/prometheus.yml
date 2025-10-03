@@ -12,52 +12,86 @@ alerting:
           - alertmanager:9093
 
 scrape_configs:
-  # Marty microservices
-  - job_name: 'csca-service'
+  # Marty microservices - use Kubernetes service discovery with annotations
+  - job_name: 'marty-microservices'
+    kubernetes_sd_configs:
+      - role: service
+        namespaces:
+          names: ['marty']
+    relabel_configs:
+      # Only scrape services with prometheus.io/scrape: "true" annotation
+      - source_labels: [__meta_kubernetes_service_annotation_prometheus_io_scrape]
+        action: keep
+        regex: true
+      # Use the service name as the job label
+      - source_labels: [__meta_kubernetes_service_name]
+        target_label: job
+        replacement: '${1}'
+      # Use the prometheus.io/path annotation for the metrics path
+      - source_labels: [__meta_kubernetes_service_annotation_prometheus_io_path]
+        action: replace
+        target_label: __metrics_path__
+        regex: (.+)
+      # Use the prometheus.io/port annotation for the port
+      - source_labels: [__address__, __meta_kubernetes_service_annotation_prometheus_io_port]
+        action: replace
+        target_label: __address__
+        regex: ([^:]+)(?::\d+)?;(\d+)
+        replacement: $1:$2
+      # Add service and namespace labels
+      - source_labels: [__meta_kubernetes_namespace]
+        target_label: kubernetes_namespace
+      - source_labels: [__meta_kubernetes_service_name]
+        target_label: kubernetes_service_name
+    scrape_interval: 15s
+    metrics_path: /metrics
+
+  # Legacy static configs for services without annotations (kept for backwards compatibility)
+  - job_name: 'csca-service-static'
     static_configs:
-      - targets: ['csca-service.marty.svc.cluster.local:8081']
+      - targets: ['csca-service.marty.svc.cluster.local:9081']
     metrics_path: '/metrics'
     scrape_interval: 10s
 
-  - job_name: 'document-signer'
+  - job_name: 'document-signer-static'
     static_configs:
-      - targets: ['document-signer.marty.svc.cluster.local:8082']
+      - targets: ['document-signer.marty.svc.cluster.local:9082']
     metrics_path: '/metrics'
     scrape_interval: 10s
 
-  - job_name: 'inspection-system'
+  - job_name: 'inspection-system-static'
     static_configs:
-      - targets: ['inspection-system.marty.svc.cluster.local:8083']
+      - targets: ['inspection-system.marty.svc.cluster.local:9083']
     metrics_path: '/metrics'
     scrape_interval: 10s
 
-  - job_name: 'mdl-engine'
+  - job_name: 'mdl-engine-static'
     static_configs:
-      - targets: ['mdl-engine.marty.svc.cluster.local:8085']
+      - targets: ['mdl-engine.marty.svc.cluster.local:9085']
     metrics_path: '/metrics'
     scrape_interval: 10s
 
-  - job_name: 'mdoc-engine'
+  - job_name: 'mdoc-engine-static'
     static_configs:
-      - targets: ['mdoc-engine.marty.svc.cluster.local:8086']
+      - targets: ['mdoc-engine.marty.svc.cluster.local:9086']
     metrics_path: '/metrics'
     scrape_interval: 10s
 
-  - job_name: 'passport-engine'
+  - job_name: 'passport-engine-static'
     static_configs:
-      - targets: ['passport-engine.marty.svc.cluster.local:8084']
+      - targets: ['passport-engine.marty.svc.cluster.local:9084']
     metrics_path: '/metrics'
     scrape_interval: 10s
 
-  - job_name: 'pkd-service'
+  - job_name: 'pkd-service-static'
     static_configs:
-      - targets: ['pkd-service.marty.svc.cluster.local:9090']
+      - targets: ['pkd-service.marty.svc.cluster.local:10090']
     metrics_path: '/metrics'
     scrape_interval: 10s
 
-  - job_name: 'trust-anchor'
+  - job_name: 'trust-anchor-static'
     static_configs:
-      - targets: ['trust-anchor.marty.svc.cluster.local:9080']
+      - targets: ['trust-anchor.marty.svc.cluster.local:10080']
     metrics_path: '/metrics'
     scrape_interval: 10s
 

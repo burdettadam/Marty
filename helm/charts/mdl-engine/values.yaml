@@ -11,6 +11,7 @@ service:
   port: 8085
   targetPort: 8085
   healthPort: 8086
+  metricsPort: 9085
 
 config:
   database:

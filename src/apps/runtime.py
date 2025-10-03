@@ -16,6 +16,7 @@ from grpc_health.v1.health import HealthServicer
 from marty_common.config import Config as MartyConfig
 from marty_common.grpc_interceptors import AsyncExceptionToStatusInterceptor
 from marty_common.grpc_logging import LoggingStreamerServicer
+from marty_common.grpc_metrics import create_async_metrics_interceptor
 from marty_common.grpc_tls import build_client_credentials, configure_server_security
 from marty_common.infrastructure import (
     DatabaseManager,
@@ -26,6 +27,7 @@ from marty_common.infrastructure import (
     build_key_vault_client,
 )
 from marty_common.logging_config import setup_logging
+from marty_common.metrics_server import start_metrics_server
 from services.certificate_lifecycle_monitor import CertificateLifecycleMonitor
 from src.proto import common_services_pb2_grpc
 
@@ -411,11 +413,31 @@ async def serve_service_async(
     runtime_config = runtime_config or MartyConfig()
     tls_options = runtime_config.grpc_tls()
 
+    # Start metrics server
+    metrics_port = config["grpc_port"] + 1000  # e.g., if gRPC is 8081, metrics is 9081
+    logger.info("Starting metrics server for %s on port %s", service.name, metrics_port)
+
+    metrics_server = await start_metrics_server(
+        service_name=service.name,
+        version="1.0.0",
+        host="0.0.0.0",
+        port=metrics_port,
+    )
+
     channels = create_service_channels(config, tls_options)
     # Resilience interceptor (circuit breaker, failure injection) can be toggled via env
-    from marty_common.resilience import ResilienceServerInterceptor  # local import to avoid circular
-    enable_resilience = os.environ.get("MARTY_RESILIENCE_ENABLED", "true").lower() in {"1", "true", "yes"}
+    # Local import to avoid circular dependencies
+    from marty_common.resilience import ResilienceServerInterceptor
+    
+    enable_resilience = os.environ.get("MARTY_RESILIENCE_ENABLED", "true").lower() in {
+        "1", "true", "yes"
+    }
     interceptors: list[grpc_aio.ServerInterceptor] = [AsyncExceptionToStatusInterceptor()]
+
+    # Add metrics interceptor
+    metrics_interceptor = create_async_metrics_interceptor(service.name)
+    interceptors.append(metrics_interceptor)
+    
     if enable_resilience:
         interceptors.append(ResilienceServerInterceptor())
     server = grpc_aio.server(interceptors=interceptors)
@@ -432,6 +454,10 @@ async def serve_service_async(
 
     registrar(server, channels, health, dependencies)
 
+    # Set up basic health checks
+    metrics_server.health.add_check("grpc_server", True)
+    metrics_server.health.add_check("database", True)  # Will be updated by service implementations
+
     cert_monitor: CertificateLifecycleMonitor | None = None
     if should_enable_cert_monitor(service.name):
         cert_monitor = init_certificate_lifecycle_monitor(config)
@@ -445,9 +471,10 @@ async def serve_service_async(
         await server.start()
         server_started = True
         logger.info("%s gRPC server started on %s", service.name, server_address)
+        logger.info("%s metrics server available at http://0.0.0.0:%s", service.name, metrics_port)
 
         if cert_monitor:
-            cert_monitor.start()
+            await cert_monitor.start()
             logger.info("Certificate Lifecycle Monitor started")
 
         await server.wait_for_termination()
@@ -455,8 +482,12 @@ async def serve_service_async(
         logger.info("Shutdown signal received; terminating %s", service.name)
     finally:
         if cert_monitor:
-            cert_monitor.stop()
+            await cert_monitor.stop()
             logger.info("Certificate Lifecycle Monitor stopped")
+
+        # Stop metrics server
+        await metrics_server.stop()
+        logger.info("Metrics server stopped")
 
         if server_started:
             await server.stop(grace=0)

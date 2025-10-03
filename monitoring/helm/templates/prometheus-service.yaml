@@ -1,0 +1,17 @@
+{{- if .Values.prometheus.enabled }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "marty-monitoring.fullname" . }}-prometheus
+  labels:
+    {{- include "marty-monitoring.prometheus.labels" . | nindent 4 }}
+spec:
+  type: {{ .Values.prometheus.server.service.type }}
+  ports:
+    - port: {{ .Values.prometheus.server.service.port }}
+      targetPort: {{ .Values.prometheus.server.service.targetPort }}
+      protocol: TCP
+      name: http
+  selector:
+    {{- include "marty-monitoring.prometheus.selectorLabels" . | nindent 4 }}
+{{- end }}
