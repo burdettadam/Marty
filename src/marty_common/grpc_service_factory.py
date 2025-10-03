@@ -4,12 +4,15 @@ gRPC Service Factory for Marty services.
 This module provides a comprehensive factory pattern for creating, configuring,
 and running gRPC services with consistent patterns across all Marty services.
 It builds on the existing BaseGrpcService and base configuration infrastructure
-to provide even more DRY patterns for service creation.
+to provide even more DRY patterns for service creation, including automatic
+service discovery and registration.
 """
 
 from __future__ import annotations
 
 import asyncio
+import importlib
+import inspect
 import logging
 import os
 import signal
@@ -165,6 +168,116 @@ class GRPCServiceFactory:
             health_service_name="common_services.LoggingStreamer",
             priority=10,
         )
+        
+        return self
+    
+    def auto_register_service(
+        self, 
+        service_module_path: str, 
+        service_name: str | None = None
+    ) -> GRPCServiceFactory:
+        """Automatically register a service using naming conventions.
+        
+        This method discovers and registers services using standard naming patterns:
+        - Servicer class: {ServiceName}Servicer
+        - Registration function: add_{ServiceName}Servicer_to_server
+        - Proto module: {service_name}_pb2_grpc
+        
+        Args:
+            service_module_path: Python module path (e.g., 'src.services.mdoc_engine')
+            service_name: Service name (auto-detected from module if not provided)
+            
+        Returns:
+            Self for method chaining
+            
+        Example:
+            factory.auto_register_service('src.services.mdoc_engine')
+            # Automatically finds MDocEngineServicer and add_MDocEngineServicer_to_server
+        """
+        try:
+            # Auto-detect service name from module path if not provided
+            if service_name is None:
+                service_name = service_module_path.split('.')[-1]
+            
+            # Convert service name to class naming convention
+            class_name = ''.join(word.capitalize() for word in service_name.split('_'))
+            servicer_class_name = f"{class_name}Servicer"
+            registration_func_name = f"add_{class_name}Servicer_to_server"
+            
+            # Import the service module
+            service_module = importlib.import_module(service_module_path)
+            
+            # Find the servicer class
+            servicer_class = getattr(service_module, servicer_class_name)
+            
+            # Find the registration function from proto module
+            proto_module_name = f"src.proto.{service_name}_pb2_grpc"
+            try:
+                proto_module = importlib.import_module(proto_module_name)
+                registration_func = getattr(proto_module, registration_func_name)
+            except (ImportError, AttributeError):
+                # Fallback: look for registration function in service module
+                registration_func = getattr(service_module, registration_func_name)
+            
+            # Inspect servicer constructor to determine factory pattern
+            sig = inspect.signature(servicer_class.__init__)
+            params = list(sig.parameters.keys())[1:]  # Skip 'self'
+            
+            def servicer_factory(**kwargs: Any) -> Any:
+                # Filter kwargs to match constructor parameters
+                filtered_kwargs = {k: v for k, v in kwargs.items() if k in params}
+                return servicer_class(**filtered_kwargs)
+            
+            # Register the service
+            self.register_service(
+                name=service_name,
+                servicer_factory=servicer_factory,
+                registration_func=registration_func,
+                health_service_name=f"{service_name}.{class_name}",
+                priority=50,  # Standard priority for auto-registered services
+            )
+            
+            self.logger.info(f"Auto-registered service: {service_name} ({servicer_class_name})")
+            
+        except Exception as e:
+            self.logger.error(
+                f"Failed to auto-register service {service_module_path}: {e}",
+                exc_info=True
+            )
+            # Don't raise - allow manual registration as fallback
+        
+        return self
+    
+    def auto_register_from_config(
+        self, 
+        services_config: dict[str, str] | None = None
+    ) -> GRPCServiceFactory:
+        """Auto-register multiple services from configuration.
+        
+        Args:
+            services_config: Dict mapping service names to module paths
+                            If None, attempts to auto-detect based on service name
+                            
+        Returns:
+            Self for method chaining
+            
+        Example:
+            factory.auto_register_from_config({
+                'mdoc_engine': 'src.services.mdoc_engine',
+                'mdl_engine': 'src.services.mdl_engine'
+            })
+        """
+        if services_config is None:
+            # Try to auto-detect based on config service name
+            service_name = getattr(self.config, 'service_name', '').replace('-', '_')
+            if service_name:
+                services_config = {service_name: f'src.services.{service_name}'}
+            else:
+                self.logger.warning("No services config provided and cannot auto-detect")
+                return self
+        
+        for service_name, module_path in services_config.items():
+            self.auto_register_service(module_path, service_name)
         
         return self
     
@@ -461,3 +574,66 @@ def grpc_service(
         return cls
     
     return decorator
+
+
+def create_auto_service_factory(
+    service_name: str,
+    service_module_path: str | None = None,
+    **config_kwargs: Any
+) -> GRPCServiceFactory:
+    """Create a gRPC service factory with automatic service registration.
+    
+    This convenience function creates a factory and automatically registers
+    the service based on naming conventions, eliminating manual registration.
+    
+    Args:
+        service_name: Name of the service
+        service_module_path: Module path for service (auto-detected if None)
+        **config_kwargs: Configuration parameters
+        
+    Returns:
+        Configured GRPCServiceFactory ready to serve
+        
+    Example:
+        # Auto-detects MDocEngineServicer and registration function
+        factory = create_auto_service_factory("mdoc-engine")
+        factory.serve()  # Ready to go!
+    """
+    # Create the base factory
+    factory = create_grpc_service_factory(service_name, **config_kwargs)
+    
+    # Register standard services (health checks, etc.)
+    factory.register_standard_services()
+    
+    # Auto-register the main service
+    if service_module_path is None:
+        # Auto-detect module path from service name
+        service_module_name = service_name.replace("-", "_")
+        service_module_path = f"src.services.{service_module_name}"
+    
+    factory.auto_register_service(service_module_path, service_name.replace("-", "_"))
+    
+    return factory
+
+
+def serve_auto_service(
+    service_name: str,
+    service_module_path: str | None = None,
+    **config_kwargs: Any
+) -> None:
+    """Ultra-convenience function to serve a service with zero boilerplate.
+    
+    This function creates a factory, auto-registers the service, and starts
+    serving with a single function call - the ultimate DRY pattern.
+    
+    Args:
+        service_name: Name of the service
+        service_module_path: Module path for service (auto-detected if None)
+        **config_kwargs: Configuration parameters
+        
+    Example:
+        # Single line to start a gRPC service!
+        serve_auto_service("mdoc-engine")
+    """
+    factory = create_auto_service_factory(service_name, service_module_path, **config_kwargs)
+    factory.serve()

@@ -1,43 +1,51 @@
 """
 {{service_description}}
 
-This is a hybrid service generated from the Marty DRY service template.
-It provides both FastAPI (HTTP/REST) and gRPC interfaces using DRY patterns:
-- HybridServiceConfig for unified configuration
-- Concurrent server management
+This is a hybrid service generated from the Marty Ultra-DRY service template.
+It provides both FastAPI (HTTP/REST) and gRPC interfaces using Ultra-DRY patterns:
+- Service Configuration Factory for unified configuration
+- Ultra-DRY auto-service discovery for gRPC
+- Concurrent server management with minimal code
 - Shared business logic between protocols
-- Base Docker configuration
-- DRY testing patterns
+- Standardized testing patterns ready
 """
 
 import asyncio
 import uvicorn
 from fastapi import FastAPI
 
-from marty_common.grpc_service_factory import create_grpc_service_factory
-from src.proto.{{service_package}}_pb2_grpc import add_{{service_class}}Servicer_to_server
+from marty_common.grpc_service_factory import serve_auto_service
+from marty_common.service_config_factory import get_service_config, get_config_manager
+from marty_common.logging_config import get_logger
 from src.{{service_package}}.app.api.routes import router
-from src.{{service_package}}.app.core.config import create_{{service_package}}_config
 from src.{{service_package}}.app.core.middleware import setup_middleware
 from src.{{service_package}}.app.core.error_handlers import setup_error_handlers
-from src.{{service_package}}.app.services.grpc_service import {{service_class}}GrpcService
-from src.{{service_package}}.app.services.{{service_package}}_service import {{service_class}}Service
+
+# Get configuration and logger using DRY factory
+config_manager = get_config_manager("{{service_name}}")
+logger = get_logger(__name__)
 
 
 def create_fastapi_app() -> FastAPI:
     """
-    Create FastAPI application with DRY patterns.
+    Create FastAPI application with Ultra-DRY patterns.
     
     Returns:
         Configured FastAPI application
     """
-    config = create_{{service_package}}_config()
+    # Get service configuration using DRY factory
+    service_config = get_service_config("{{service_name}}", "hybrid")
     
-    # Initialize FastAPI with configuration
-    app = FastAPI(**config.get_fastapi_config())
+    # Initialize FastAPI with DRY configuration
+    app = FastAPI(
+        title=service_config.get("service_description", "{{service_description}}"),
+        version="1.0.0",
+        debug=service_config.get("debug", False),
+        docs_url="/docs" if service_config.get("docs_enabled", True) else None,
+    )
     
     # Setup DRY patterns
-    setup_middleware(app, config)
+    setup_middleware(app, service_config)
     setup_error_handlers(app)
     
     # Include API routes
@@ -46,20 +54,19 @@ def create_fastapi_app() -> FastAPI:
     return app
 
 
-async def run_fastapi_server(config) -> None:
-    """Run the FastAPI server."""
+async def run_fastapi_server() -> None:
+    """Run the FastAPI server with Ultra-DRY configuration."""
+    service_config = get_service_config("{{service_name}}", "hybrid")
+    
     app = create_fastapi_app()
     
-    # Setup logging using DRY patterns
-    config.setup_logging()
-    
-    # Create uvicorn config
+    # Create uvicorn config using DRY service configuration
     uvicorn_config = uvicorn.Config(
         app,
-        host=config.host,
-        port=config.http_port,
-        log_level=config.log_level.lower(),
-        reload=config.debug,
+        host=service_config.get("api_host", "127.0.0.1"),
+        port=service_config.get("api_port", 8000),
+        log_level=service_config.get("log_level", "info").lower(),
+        reload=service_config.get("debug", False),
     )
     
     # Run server
@@ -67,44 +74,35 @@ async def run_fastapi_server(config) -> None:
     await server.serve()
 
 
-async def run_grpc_server(config) -> None:
-    """Run the gRPC server."""
-    # Create gRPC factory with hybrid configuration
-    factory = create_grpc_service_factory(
-        service_name=config.service_name,
-        config_type="hybrid",
-        grpc_port=config.grpc_port,
-        grpc_max_workers=config.grpc_max_workers,
-        reflection_enabled=config.reflection_enabled,
-        debug=config.debug,
-    )
+async def run_grpc_server() -> None:
+    """Run the gRPC server using Ultra-DRY auto-service pattern."""
+    logger.info("Starting {{service_name}} gRPC server using Ultra-DRY pattern")
     
-    # Register the gRPC service
-    factory.register_service(
-        name="{{service_package}}_grpc_service",
-        servicer_factory=lambda **_: {{service_class}}GrpcService(),
-        registration_func=add_{{service_class}}Servicer_to_server,
-        health_service_name="{{service_package}}.{{service_class}}",
+    # Ultra-DRY gRPC service startup with auto-discovery
+    await asyncio.create_task(
+        serve_auto_service(
+            service_name="{{service_name}}",
+            service_module="src.{{service_package}}.app.services.{{service_package}}_grpc_service",
+            config_manager=config_manager,
+            async_mode=True
+        )
     )
-    
-    # Start the gRPC server (non-blocking for concurrent execution)
-    await asyncio.create_task(factory.serve())
 
 
 async def main() -> None:
     """
-    Run both FastAPI and gRPC servers concurrently.
+    Run both FastAPI and gRPC servers concurrently using Ultra-DRY patterns.
     
     This provides both HTTP/REST and gRPC interfaces for the service,
-    sharing the same business logic and configuration.
+    sharing the same business logic and Ultra-DRY configuration.
     """
-    config = create_{{service_package}}_config()
+    service_config = get_service_config("{{service_name}}", "hybrid")
     
-    if config.concurrent_servers:
+    if service_config.get("concurrent_servers", True):
         # Run both servers concurrently
         await asyncio.gather(
-            run_fastapi_server(config),
-            run_grpc_server(config),
+            run_fastapi_server(),
+            run_grpc_server(),
         )
     else:
         # Run servers sequentially (for debugging)

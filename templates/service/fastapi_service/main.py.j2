@@ -1,42 +1,54 @@
 """
 {{service_description}}
 
-This is a FastAPI service generated from the Marty DRY service template.
+This is a FastAPI service generated from the Marty Ultra-DRY service template.
 It automatically uses all established DRY patterns:
-- FastAPIServiceConfig for configuration
-- Shared middleware and error handling
-- Base Docker configuration  
-- DRY testing patterns
+- Service Configuration Factory for centralized config
+- Standardized FastAPI setup patterns
+- Auto-configuration from environment
+- Ultra-DRY testing patterns ready
 """
 
 import uvicorn
 from fastapi import FastAPI
 
+from marty_common.service_config_factory import get_service_config, get_config_manager
+from marty_common.logging_config import get_logger
 from src.{{service_package}}.app.api.routes import router
-from src.{{service_package}}.app.core.config import create_{{service_package}}_config
 from src.{{service_package}}.app.core.middleware import setup_middleware
 from src.{{service_package}}.app.core.error_handlers import setup_error_handlers
+
+# Get configuration and logger using DRY factory
+config_manager = get_config_manager("{{service_name}}")
+logger = get_logger(__name__)
 
 
 def create_app() -> FastAPI:
     """
-    Create FastAPI application with DRY patterns.
+    Create FastAPI application with Ultra-DRY patterns.
     
     This automatically sets up:
-    - Configuration from FastAPIServiceConfig
+    - Configuration from Service Configuration Factory
     - Standard middleware (CORS, logging, etc.)
     - Error handling patterns
     - OpenAPI documentation
     - Health check endpoints
+    - Auto-configured from service defaults
     """
-    # Create configuration using DRY patterns
-    config = create_{{service_package}}_config()
+    # Get service configuration using DRY factory
+    service_config = get_service_config("{{service_name}}", "fastapi")
     
-    # Initialize FastAPI with configuration
-    app = FastAPI(**config.get_fastapi_config())
+    # Initialize FastAPI with DRY configuration
+    app = FastAPI(
+        title=service_config.get("service_description", "{{service_description}}"),
+        version="1.0.0",
+        debug=service_config.get("debug", False),
+        docs_url="/docs" if service_config.get("docs_enabled", True) else None,
+        redoc_url="/redoc" if service_config.get("docs_enabled", True) else None,
+    )
     
     # Setup DRY patterns
-    setup_middleware(app, config)
+    setup_middleware(app, service_config)
     setup_error_handlers(app)
     
     # Include API routes

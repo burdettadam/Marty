@@ -1,50 +1,59 @@
 """
 {{service_description}}
 
-This is a gRPC service generated from the Marty DRY service template.
+This is a gRPC service generated from the Marty Ultra-DRY service template.
 It automatically uses all established DRY patterns:
-- GRPCServiceConfig for configuration
-- gRPC Service Factory for server management
-- Base Docker configuration
-- DRY testing patterns
+- Auto-Service Discovery (90% code reduction)
+- Service Configuration Factory (centralized config)
+- Ultra-DRY serve_auto_service pattern
+- Standardized test patterns ready
 """
 
-from marty_common.grpc_service_factory import create_grpc_service_factory
-from src.proto.{{service_package}}_pb2_grpc import add_{{service_class}}Servicer_to_server
-from src.{{service_package}}.app.services.{{service_package}}_service import {{service_class}}Service
+import sys
+from pathlib import Path
+
+# Ensure we can import from the parent directory
+sys.path.append(str(Path(__file__).resolve().parents[3]))
+
+# Import ultra-DRY service utilities
+from marty_common.grpc_service_factory import serve_auto_service
+from marty_common.service_config_factory import get_config_manager
+from marty_common.logging_config import get_logger
+from marty_common.database import create_service_database_tables
+
+# Import database utility (if using database)
+{% if use_database %}
+from src.shared.database import Base, engine
+{% endif %}
+
+# Get configuration and logger using DRY factory
+config_manager = get_config_manager("{{service_name}}")
+logger = get_logger(__name__)
 
 
 def main() -> None:
     """
-    Run {{service_name}} gRPC service using the DRY Service Factory pattern.
+    Run {{service_name}} gRPC service using Ultra-DRY Auto-Service pattern.
     
-    This replaces ~50 lines of boilerplate with 8 lines while providing:
-    - Automatic health checks and reflection
-    - Built-in logging streamer
-    - Signal handling and graceful shutdown
-    - TLS support ready
-    - Consistent configuration patterns
+    Ultra-DRY Implementation:
+    - Reduced from ~50 lines to ~10 lines (80% reduction)
+    - Auto-discovery of servicer classes and registration functions
+    - Automatic service configuration and database setup
+    - Zero boilerplate service registration
     """
-    # Create factory with DRY configuration
-    factory = create_grpc_service_factory(
+    logger.info("Starting {{service_name}} service using Ultra-DRY pattern")
+    
+    {% if use_database %}
+    # Create database tables if needed
+    create_service_database_tables(Base, engine)
+    
+    {% endif %}
+    # Ultra-DRY service startup with auto-discovery
+    serve_auto_service(
         service_name="{{service_name}}",
-        config_type="grpc",
-        grpc_port={{grpc_port}},
-        grpc_max_workers=10,
-        reflection_enabled=True,
-        debug=True,
+        service_module="src.{{service_package}}.app.services.{{service_package}}_service",
+        config_manager=config_manager
     )
-    
-    # Register the {{service_name}} service
-    factory.register_service(
-        name="{{service_package}}_service",
-        servicer_factory=lambda **_: {{service_class}}Service(),
-        registration_func=add_{{service_class}}Servicer_to_server,
-        health_service_name="{{service_package}}.{{service_class}}",
-    )
-    
-    # Start the server with all DRY patterns
-    factory.serve()
 
 
 if __name__ == "__main__":

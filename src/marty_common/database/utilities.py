@@ -407,3 +407,38 @@ def create_repository(
     """
     db_ops = create_database_operations(database)
     return repository_class(db_ops)
+
+
+def create_service_database_tables(
+    service_name: str, 
+    base_metadata: Any, 
+    engine: Any
+) -> None:
+    """
+    Standard database table creation for services.
+    
+    This consolidates the duplicate database setup pattern used across
+    multiple services, reducing code duplication from ~6 lines to 1 line.
+    
+    Args:
+        service_name: Name of the service for logging
+        base_metadata: SQLAlchemy Base.metadata object
+        engine: SQLAlchemy engine instance
+        
+    Example:
+        from marty_common.database.utilities import create_service_database_tables
+        from src.shared.database import Base, engine
+        
+        create_service_database_tables("my-service", Base.metadata, engine)
+    """
+    from marty_common.logging_config import get_logger
+    
+    logger = get_logger(f"{service_name}.database")
+    logger.info(f"Creating database tables for {service_name}...")
+    
+    try:
+        base_metadata.create_all(bind=engine)
+        logger.info("Database tables created successfully.")
+    except Exception as e:
+        logger.exception(f"Failed to create database tables for {service_name}")
+        raise

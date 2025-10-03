@@ -23,7 +23,7 @@ if str(_project_root) not in sys.path:
 
 # Import shared utilities
 from marty_common.services import BaseGrpcService
-from marty_common.config import ConfigurationManager
+from marty_common.service_config_factory import get_config_manager
 
 # Local application/library specific imports
 # Import gRPC generated modules
@@ -63,8 +63,8 @@ class TrustAnchorService(TrustAnchorServicer):
         """Initialize the Trust Anchor service."""
         logger.info("Initializing Trust Anchor Service")
 
-        # Initialize configuration
-        self.config_manager = ConfigurationManager()
+        # Initialize configuration using DRY factory
+        self.config_manager = get_config_manager("trust-anchor")
 
         # Initialize OpenXPKI service
         self.openxpki_service = OpenXPKIService()
@@ -350,7 +350,7 @@ def start_server(server_port=50051, max_workers=10) -> None:
 
 if __name__ == "__main__":
     # Get port from environment using ConfigurationManager
-    config_manager = ConfigurationManager()
+    config_manager = get_config_manager("trust-anchor")
     port_env = config_manager.get_env_int("GRPC_PORT", 50051)
 
     # Start the server

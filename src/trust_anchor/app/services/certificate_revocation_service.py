@@ -17,7 +17,7 @@ from typing import Any
 
 # Import shared utilities
 from marty_common.certificate import CertificateProcessor
-from marty_common.config import ConfigurationManager
+from marty_common.service_config_factory import get_config_manager
 
 # Configure logging
 logging.basicConfig(
@@ -48,7 +48,7 @@ class CertificateRevocationService:
         self.cache_ttl_hours = cache_ttl_hours
         
         # Initialize shared utilities
-        self.config_manager = ConfigurationManager()
+        self.config_manager = get_config_manager("trust-anchor")
         self.cert_processor = CertificateProcessor()
         
         # Use ConfigurationManager for path resolution

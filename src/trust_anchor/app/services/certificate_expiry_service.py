@@ -17,7 +17,7 @@ from typing import Any
 
 # Import shared utilities
 from marty_common.certificate import CertificateProcessor
-from marty_common.config import ConfigurationManager
+from marty_common.service_config_factory import get_config_manager
 
 # Configure logging
 logging.basicConfig(
@@ -50,8 +50,8 @@ class CertificateExpiryService:
         self.check_interval_days = check_interval_days
         self.notification_days = notification_days or [30, 15, 7, 3, 1]
         
-        # Initialize shared utilities
-        self.config_manager = ConfigurationManager()
+        # Initialize shared utilities using DRY factory
+        self.config_manager = get_config_manager("trust-anchor")
         self.cert_processor = CertificateProcessor()
         
         # Use ConfigurationManager for path resolution

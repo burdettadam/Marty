@@ -1,21 +1,36 @@
 # Production environment configuration
+# Uses YAML anchors to inherit common patterns and reduce duplication
 
-# Service ports
-ports:
-  csca_service: 8081
-  document_signer: 8082
-  passport_engine: 8084
-  inspection_system: 8083
-  trust_anchor: 8080
-
-# Service hosts
-hosts:
+# Production-specific hosts (service names for container networking)
+prod_hosts: &prod_hosts
   csca_service: csca-service
   document_signer: document-signer
   passport_engine: passport-engine
   inspection_system: inspection-system
   trust_anchor: trust-anchor
+  mdl_engine: mdl-engine
+  mdoc_engine: mdoc-engine
+  dtc_engine: dtc-engine
+  credential_ledger: credential-ledger
+  pkd_service: pkd-service
 
+# Service ports (inherited from base patterns)
+ports: &default_ports
+  csca_service: 8081
+  document_signer: 8082
+  passport_engine: 8084
+  inspection_system: 8083
+  trust_anchor: 8080
+  mdl_engine: 8085
+  mdoc_engine: 8086
+  dtc_engine: 8087
+  credential_ledger: 8088
+  pkd_service: 8089
+
+# Service hosts
+hosts: *prod_hosts
+
+# Common service configuration with production overrides
 services:
   document_signer:
     signing_algorithm: rsa2048
@@ -28,6 +43,43 @@ services:
       certificate_id: document-signer-default-dsc
       offer_ttl_seconds: 600
       token_ttl_seconds: 600
+
+  trust_anchor:
+    certificate_store_path: "/app/data/trust"
+    update_interval_hours: 24
+    validation_timeout_seconds: 30
+
+  inspection_system:
+    max_concurrent_inspections: 20
+    inspection_timeout_seconds: 300
+    enable_biometric_verification: true
+
+# Production logging (standard level)
+logging:
+  level: INFO
+  format: "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+  handlers:
+    - console
+    - file
+
+# Production security (enhanced)
+security:
+  tls_enabled: true
+  require_client_cert: true
+  cert_validation_timeout: 30
+
+# Production database (higher capacity)
+database:
+  pool_size: 20
+  max_overflow: 40
+  pool_timeout: 30
+  pool_recycle: 3600
+
+# Monitoring configuration
+monitoring:
+  metrics_enabled: true
+  health_check_enabled: true
+  prometheus_port: 9090
       credential_ttl_seconds: 604800
       default_credential_type: "eu.europa.ec.eudiw.pid"
       default_audience: "${SD_JWT_DEFAULT_AUDIENCE:-https://verifier.prod.marty}"

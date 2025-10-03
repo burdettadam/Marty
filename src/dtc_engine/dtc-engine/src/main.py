@@ -8,7 +8,7 @@ sys.path.append(str(Path(__file__).resolve().parents[3]))
 
 # Import shared utilities
 from marty_common.services import BaseGrpcService
-from marty_common.config import ConfigurationManager
+from marty_common.service_config_factory import get_config_manager
 
 # Import DTC engine servicer
 from dtc_engine_service import DTCEngineService
@@ -45,8 +45,8 @@ def serve() -> None:
         level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
     )
 
-    # Initialize configuration manager
-    config_manager = ConfigurationManager()
+    # Initialize configuration manager using DRY factory
+    config_manager = get_config_manager("dtc-engine")
     port = config_manager.get_env_int("GRPC_PORT", 8087)
 
     # Load configuration

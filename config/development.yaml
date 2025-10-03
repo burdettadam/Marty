@@ -1,21 +1,36 @@
 # Development environment configuration
+# Uses YAML anchors to inherit common patterns and reduce duplication
 
-# Service ports
-ports:
-  csca_service: 8081
-  document_signer: 8082
-  passport_engine: 8084
-  inspection_system: 8083
-  trust_anchor: 8080
-
-# Service hosts
-hosts:
+# Development-specific hosts
+dev_hosts: &dev_hosts
   csca_service: localhost
   document_signer: localhost
   passport_engine: localhost
   inspection_system: localhost
   trust_anchor: localhost
+  mdl_engine: localhost
+  mdoc_engine: localhost
+  dtc_engine: localhost
+  credential_ledger: localhost
+  pkd_service: localhost
 
+# Service ports (inherited from base patterns)
+ports: &default_ports
+  csca_service: 8081
+  document_signer: 8082
+  passport_engine: 8084
+  inspection_system: 8083
+  trust_anchor: 8080
+  mdl_engine: 8085
+  mdoc_engine: 8086
+  dtc_engine: 8087
+  credential_ledger: 8088
+  pkd_service: 8089
+
+# Service hosts
+hosts: *dev_hosts
+
+# Common service configuration with development overrides
 services:
   document_signer:
     signing_algorithm: rsa2048
@@ -28,6 +43,42 @@ services:
       certificate_id: document-signer-default-dsc
       offer_ttl_seconds: 600
       token_ttl_seconds: 600
+
+  trust_anchor:
+    certificate_store_path: "/app/data/trust"
+    update_interval_hours: 24
+    validation_timeout_seconds: 30
+
+  inspection_system:
+    max_concurrent_inspections: 10
+    inspection_timeout_seconds: 300
+    enable_biometric_verification: true
+
+# Development-specific logging (more verbose)
+logging:
+  level: DEBUG
+  format: "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+  handlers:
+    - console
+
+# Development security (relaxed for easier debugging)
+security:
+  tls_enabled: false
+  require_client_cert: false
+  cert_validation_timeout: 10
+
+# Database configuration
+database:
+  pool_size: 5
+  max_overflow: 10
+  pool_timeout: 30
+  pool_recycle: 3600
+
+# Monitoring configuration
+monitoring:
+  metrics_enabled: true
+  health_check_enabled: true
+  prometheus_port: 9090
       credential_ttl_seconds: 86400
       default_credential_type: "eu.europa.ec.eudiw.pid"
       default_audience: "https://verifier.dev.marty"

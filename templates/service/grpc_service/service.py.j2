@@ -1,7 +1,8 @@
 """
 {{service_class}} gRPC service implementation.
 
-This service implements the {{service_name}} gRPC interface using DRY patterns.
+This service implements the {{service_name}} gRPC interface using Ultra-DRY patterns.
+Auto-discoverable by serve_auto_service using naming conventions.
 """
 
 import logging
@@ -10,6 +11,7 @@ from typing import Any
 import grpc
 
 from marty_common.logging_config import get_logger
+from marty_common.service_config_factory import get_config_manager
 from src.proto.{{service_package}}_pb2 import (
     # Import your protobuf message types here
     # Example:
@@ -28,17 +30,21 @@ class {{service_class}}Service({{service_class}}Servicer):
     Implementation of the {{service_class}} gRPC service.
     
     This service handles {{service_description.lower()}}.
+    Auto-discoverable by serve_auto_service using class name pattern.
     """
     
     def __init__(self) -> None:
         """Initialize the {{service_class}} service."""
         logger.info("Initializing {{service_class}} Service")
         
+        # Initialize configuration using DRY factory
+        self.config_manager = get_config_manager("{{service_name}}")
+        
         # Initialize your service dependencies here
-        # Example:
-        # self.config = create_{{service_package}}_config()
-        # self.database = get_database()
-        # self.cache = get_cache()
+        # Example using DRY config:
+        # self.database_url = self.config_manager.get_env_str("DATABASE_URL")
+        # self.cache_ttl = self.config_manager.get_env_int("CACHE_TTL", 300)
+        # self.debug_mode = self.config_manager.get_env_bool("DEBUG", False)
     
     def GetStatus(self, request: Any, context: grpc.ServicerContext) -> Any:
         """

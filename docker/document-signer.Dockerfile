@@ -1,57 +1,15 @@
 # Dockerfile for document-signer service
-FROM python:3.10-slim
+FROM marty-base:latest
 
-# Install build dependencies for pyscard and xmlsec
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    gcc \
-    cmake \
-    pkg-config \
-    protobuf-compiler \
-    libxml2-dev \
-    xmlsec1 \
-    libxmlsec1-dev \
-    libtool-bin \
-    libssl-dev \
-    libgcrypt20-dev \
-    libpcsclite-dev \
-    && rm -rf /var/lib/apt/lists/*
+# Copy service-specific code
+COPY src/document_signer ./src/document_signer
 
-WORKDIR /app
-
-COPY pyproject.toml uv.lock /app/
-
-# Install UV
-RUN pip install --no-cache-dir --upgrade pip && \
-    pip install --no-cache-dir uv
-
-# Create the proto directory structure
-RUN mkdir -p /app/src/proto
-
-# Copy the proto files
-COPY proto/ /app/proto/
-
-# Copy the source code
-COPY src/ /app/src/
-
-# Make directories Python packages
-RUN touch /app/proto/__init__.py
-RUN touch /app/src/__init__.py
-RUN touch /app/src/proto/__init__.py
-
-# Install dependencies after source code is copied (base profile without biometric extras)
-RUN uv pip install --system -e .
-RUN uv pip install --system grpcio
-RUN uv pip install --system grpcio-health-checking
-
-# Skip protobuf compilation since files are pre-generated
-# The generated proto files are already in src/proto/
-
-# Create data directories
-RUN mkdir -p /app/data
-
-# Command to run when container starts
+# Set service-specific environment variables
 ENV SERVICE_NAME=document-signer
 ENV GRPC_PORT=9082
-ENV PYTHONPATH=/app
 
+# Expose service-specific port
+EXPOSE 9082
+
+# Command to run when container starts
 CMD ["python", "-m", "src.apps.document_signer"]

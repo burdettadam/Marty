@@ -2,17 +2,19 @@
 Pytest configuration and fixtures for PKD service tests
 """
 
+from __future__ import annotations
+
 import asyncio
-import os
 import sys
 from collections.abc import Generator
+from pathlib import Path
 
 import pytest
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
 # Add the app directory to the Python path so we can import the app modules
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
+sys.path.insert(0, str((Path(__file__).parent / "..").resolve()))
 
 from app.main import app as pkd_app
 from app.services.crl_service import CRLService
@@ -33,10 +35,10 @@ def app() -> FastAPI:
 @pytest.fixture
 def client(app: FastAPI) -> Generator:
     """
-    Return a TestClient for interacting with the FastAPI app
+    Return a TestClient for interacting with the FastAPI app using standard pattern
     """
     with TestClient(app) as client:
-        # Set test API key
+        # Set test API key using shared standard
         client.headers.update({"X-API-Key": "test_api_key"})
         yield client
 

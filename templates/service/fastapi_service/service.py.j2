@@ -1,7 +1,7 @@
 """
 {{service_class}} FastAPI service implementation.
 
-This service implements the {{service_name}} HTTP API using DRY patterns.
+This service implements the {{service_name}} HTTP API using Ultra-DRY patterns.
 """
 
 import asyncio
@@ -10,7 +10,7 @@ from datetime import datetime
 from typing import Any, Dict
 
 from marty_common.logging_config import get_logger
-from src.{{service_package}}.app.core.config import {{service_class}}Config
+from marty_common.service_config_factory import get_config_manager
 
 logger = get_logger(__name__)
 
@@ -20,23 +20,23 @@ class {{service_class}}Service:
     Implementation of the {{service_class}} service.
     
     This service handles {{service_description.lower()}}.
+    Uses Ultra-DRY configuration patterns.
     """
     
-    def __init__(self, config: {{service_class}}Config) -> None:
+    def __init__(self) -> None:
         """
-        Initialize the {{service_class}} service.
-        
-        Args:
-            config: Service configuration
+        Initialize the {{service_class}} service using DRY patterns.
         """
         logger.info("Initializing {{service_class}} Service")
-        self.config = config
         
-        # Initialize your service dependencies here
+        # Initialize configuration using DRY factory
+        self.config_manager = get_config_manager("{{service_name}}")
+        
+        # Initialize your service dependencies here using DRY config
         # Example:
-        # self.database = get_database()
-        # self.cache = get_cache()
-        # self.external_client = ExternalAPIClient(config.external_api_url)
+        # self.database_url = self.config_manager.get_env_str("DATABASE_URL")
+        # self.cache_ttl = self.config_manager.get_env_int("CACHE_TTL", 300)
+        # self.api_key = self.config_manager.get_env_str("API_KEY")
     
     async def get_status(self) -> Dict[str, Any]:
         """

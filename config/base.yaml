@@ -1,0 +1,92 @@
+# Base configuration for Marty services
+# This file contains common configuration patterns shared across all environments
+# to reduce duplication and ensure consistency.
+
+# Default service ports (shared across all environments)
+default_ports: &default_ports
+  csca_service: 8081
+  document_signer: 8082
+  passport_engine: 8084
+  inspection_system: 8083
+  trust_anchor: 8080
+  mdl_engine: 8085
+  mdoc_engine: 8086
+  dtc_engine: 8087
+  credential_ledger: 8088
+  pkd_service: 8089
+
+# Common service configuration patterns
+common_service_config: &common_service_config
+  document_signer:
+    signing_algorithm: rsa2048
+    signing_key_id: document-signer-default
+    sd_jwt:
+      signing_algorithm: ES256
+      vault_signing_algorithm: ecdsa-p256
+      certificate_id: document-signer-default-dsc
+      offer_ttl_seconds: 600
+      token_ttl_seconds: 600
+
+  trust_anchor:
+    certificate_store_path: "/app/data/trust"
+    update_interval_hours: 24
+    validation_timeout_seconds: 30
+
+  inspection_system:
+    max_concurrent_inspections: 10
+    inspection_timeout_seconds: 300
+    enable_biometric_verification: true
+
+  passport_engine:
+    mrz_validation_enabled: true
+    photo_validation_enabled: true
+    security_features_check: true
+
+# Common database configuration
+common_database: &common_database
+  pool_size: 10
+  max_overflow: 20
+  pool_timeout: 30
+  pool_recycle: 3600
+
+# Common logging configuration  
+common_logging: &common_logging
+  level: INFO
+  format: "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+  handlers:
+    - console
+    - file
+
+# Common security settings
+common_security: &common_security
+  tls_enabled: false
+  require_client_cert: false
+  cert_validation_timeout: 30
+
+# Common resilience patterns
+common_resilience: &common_resilience
+  circuit_breaker:
+    failure_threshold: 5
+    recovery_timeout: 60
+    half_open_max_calls: 3
+  
+  retry_policy:
+    max_attempts: 3
+    backoff_multiplier: 1.5
+    max_delay_seconds: 30
+
+# Common monitoring configuration
+common_monitoring: &common_monitoring
+  metrics_enabled: true
+  health_check_enabled: true
+  prometheus_port: 9090
+
+# Base configuration template that environments can inherit from
+base_config: &base_config
+  ports: *default_ports
+  services: *common_service_config
+  database: *common_database
+  logging: *common_logging
+  security: *common_security
+  resilience: *common_resilience
+  monitoring: *common_monitoring

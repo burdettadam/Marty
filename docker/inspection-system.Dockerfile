@@ -1,60 +1,18 @@
-# Dockerfile for inspection-system service
-FROM python:3.10-slim
+# Inspection System Service Dockerfile
+FROM marty-base:latest
 
-# Install system dependencies for building Python packages
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    gcc \
-    cmake \
-    pkg-config \
-    libxml2-dev \
-    libxslt1-dev \
-    libxmlsec1-dev \
-    swig \
-    libpcsclite-dev \
-    && rm -rf /var/lib/apt/lists/*
+# Copy service-specific code
+COPY src/inspection_system ./src/inspection_system
 
-WORKDIR /app
+# Health check endpoint (optional, requires service to expose one)
+HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
+    CMD curl -f http://localhost:8080/health || exit 1
 
-COPY pyproject.toml uv.lock /app/
+# Expose default port
+EXPOSE 8080
 
-# Install UV
-RUN pip install --no-cache-dir --upgrade pip && \
-    pip install --no-cache-dir uv
+# Default port for gRPC service
+EXPOSE 9090
 
-# Create the proto directory structure
-RUN mkdir -p /app/src/proto
-
-# Copy the proto files
-COPY proto/ /app/proto/
-
-# Copy the source code
-COPY src/ /app/src/
-
-# Make directories Python packages
-RUN touch /app/proto/__init__.py
-RUN touch /app/src/__init__.py
-RUN touch /app/src/proto/__init__.py
-
-# Install build dependencies and Python dependencies
-RUN apt-get update && apt-get install -y \
-    build-essential \
-    pkg-config \
-    && rm -rf /var/lib/apt/lists/*
-
-# Install Python dependencies using uv (base profile without biometric extras)
-RUN uv pip install --system --no-cache -e .
-RUN uv pip install --system grpcio
-RUN uv pip install --system grpcio-health-checking
-
-# Skip protobuf compilation since files are pre-generated
-# The generated proto files are already in src/proto/
-
-# Create data directories
-RUN mkdir -p /app/data
-
-# Command to run when container starts
-ENV SERVICE_NAME=inspection-system
-ENV GRPC_PORT=9083
-ENV PYTHONPATH=/app
-
-CMD ["python", "-m", "src.apps.inspection_system"]
+# Run the inspection system service
+CMD ["python", "-m", "inspection_system.main"]
