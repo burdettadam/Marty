@@ -44,6 +44,12 @@ dependencies = [
     "pyasn1>=0.6.1",
     "certvalidator>=0.11.1",
     "prometheus_client>=0.19.0",
+    # Enhanced OIDC4VC testing dependencies
+    "jwcrypto>=1.5.0",
+    "authlib>=1.2.0",
+    "sd-jwt>=0.9.0",
+    # OpenID4VP and mDoc/mDL presentation dependencies
+    "cose>=0.9.dev8",
 ]
 
 [project.optional-dependencies]
@@ -83,6 +89,11 @@ markers = [
     "admin: marks tests as admin interface tests",
     "mvp: marks tests that cover the defined MVP feature set",
     "depends: marks tests that depend on other tests",
+    "oidc4vc: marks tests as OIDC4VC protocol tests",
+    "sphereon: marks tests as Sphereon compatibility tests",
+    "openid4vp: marks tests as OpenID4VP presentation protocol tests",
+    "mdoc_presentation: marks tests for mDoc presentation flows",
+    "mdl_presentation: marks tests for mDL presentation flows",
 ]
 asyncio_mode = "auto"
 asyncio_default_fixture_loop_scope = "function"
@@ -461,4 +472,8 @@ dev = [
     "pyyaml>=6.0.3",
     "aiohttp>=3.12.15",
     "prometheus-client>=0.23.1",
+    # Additional OIDC4VC testing dependencies
+    "httpx>=0.25.0",
+    "websockets>=12.0",
+    "responses>=0.24.0",
 ]

@@ -287,6 +287,14 @@ clean:
 # Run all tests with proper orchestration (now K8s-based for E2E)
 test: test-unit test-integration test-e2e test-cert-validator
 
+# Run comprehensive tests including OpenID4VP integration tests
+test-comprehensive: test-unit test-integration test-e2e test-cert-validator test-openid4vp
+	@echo "✅ All comprehensive tests completed including OpenID4VP!"
+
+# Run all OpenID4VP and presentation-related tests
+test-presentations: test-openid4vp test-mdl-mdoc
+	@echo "✅ All presentation tests completed!"
+
 # Run unit tests (no services needed)
 test-unit:
 	@echo "Running unit tests with UV..."
@@ -564,6 +572,48 @@ test-csca:
 test-mdl-mdoc:
 	@echo "Running MDL/MDOC integration tests..."
 	@$(PYTHON) tests/test_orchestrator.py integration tests/integration/test_integration_mdl_mdoc.py
+
+# OpenID4VP Integration Testing Commands
+test-openid4vp: test-openid4vp-setup
+	@echo "Running OpenID4VP integration tests..."
+	@$(UV) run pytest tests/integration/test_mdoc_mdl_openid4vp_integration.py -m openid4vp -v
+
+test-openid4vp-mdoc:
+	@echo "Running mDoc OpenID4VP presentation tests..."
+	@$(UV) run pytest tests/integration/test_mdoc_mdl_openid4vp_integration.py -m mdoc_presentation -v
+
+test-openid4vp-mdl:
+	@echo "Running mDL OpenID4VP presentation tests..."
+	@$(UV) run pytest tests/integration/test_mdoc_mdl_openid4vp_integration.py -m mdl_presentation -v
+
+test-openid4vp-setup:
+	@echo "Setting up OpenID4VP test environment..."
+	@$(UV) run python scripts/setup_openid4vp_tests.py
+
+test-openid4vp-quick:
+	@echo "Running quick OpenID4VP smoke tests..."
+	@$(UV) run pytest tests/integration/test_mdoc_mdl_openid4vp_integration.py::TestMDocOpenID4VPIntegration::test_complete_mdoc_openid4vp_flow -v
+	@$(UV) run pytest tests/integration/test_mdoc_mdl_openid4vp_integration.py::TestMDLOpenID4VPIntegration::test_complete_mdl_openid4vp_flow -v
+
+test-openid4vp-selective-disclosure:
+	@echo "Running selective disclosure tests..."
+	@$(UV) run pytest tests/integration/test_mdoc_mdl_openid4vp_integration.py -k "selective_disclosure" -v
+
+test-openid4vp-age-verification:
+	@echo "Running age verification tests..."
+	@$(UV) run pytest tests/integration/test_mdoc_mdl_openid4vp_integration.py -k "age_verification" -v
+
+test-openid4vp-privacy:
+	@echo "Running privacy-preserving presentation tests..."
+	@$(UV) run pytest tests/integration/test_mdoc_mdl_openid4vp_integration.py -k "privacy" -v
+
+test-openid4vp-real-world:
+	@echo "Running real-world scenario tests..."
+	@$(UV) run pytest tests/integration/test_mdoc_mdl_openid4vp_integration.py -k "venue_access or rental or border" -v
+
+test-openid4vp-collect:
+	@echo "Collecting OpenID4VP tests without running..."
+	@$(UV) run pytest tests/integration/test_mdoc_mdl_openid4vp_integration.py --collect-only -q
 
 # Test with mock services only\ntest-mock:\n\t@echo \"Running tests with mock services...\"\n\t@$(UV) run -m pytest tests/unit tests/integration -k \"not docker\" -v\n\n# Generate protobuf code\nproto:\n\t@echo \"Compiling protobuf files...\"\n\t@$(PYTHON) -m src.compile_protos
 
@@ -1332,6 +1382,8 @@ help:
 	@echo ""
 	@echo "🧪 Testing:"
 	@echo "  test               - Run all tests"
+	@echo "  test-comprehensive - Run all tests including OpenID4VP"
+	@echo "  test-presentations - Run all presentation-related tests"
 	@echo "  test-unit          - Run unit tests"
 	@echo "  test-integration   - Run integration tests"
 	@echo "  test-e2e           - Run E2E tests (Kubernetes-based)"
@@ -1340,6 +1392,18 @@ help:
 	@echo "  test-e2e-k8s-smoke - Run E2E smoke tests with Kubernetes"
 	@echo "  test-e2e-k8s-monitoring - Run E2E tests with monitoring stack"
 	@echo "  test-cert-validator - Run certificate validator tests"
+	@echo ""
+	@echo "🔐 OpenID4VP Integration Testing:"
+	@echo "  test-openid4vp      - Run all OpenID4VP integration tests"
+	@echo "  test-openid4vp-mdoc - Run mDoc OpenID4VP presentation tests"
+	@echo "  test-openid4vp-mdl  - Run mDL OpenID4VP presentation tests"
+	@echo "  test-openid4vp-setup - Setup OpenID4VP test environment"
+	@echo "  test-openid4vp-quick - Run quick OpenID4VP smoke tests"
+	@echo "  test-openid4vp-selective-disclosure - Test selective disclosure"
+	@echo "  test-openid4vp-age-verification - Test age verification flows"
+	@echo "  test-openid4vp-privacy - Test privacy-preserving presentations"
+	@echo "  test-openid4vp-real-world - Test real-world scenarios"
+	@echo "  test-openid4vp-collect - Collect OpenID4VP tests (no execution)"
 	@echo ""
 	@echo "🎯 Kubernetes E2E Testing Commands:"
 	@echo "  test-e2e-k8s       - Run E2E tests with Kubernetes (recommended)"
