@@ -1,0 +1,95 @@
+"""
+{{service_class}} gRPC service implementation.
+
+This service implements the {{service_name}} gRPC interface using DRY patterns.
+"""
+
+import logging
+from typing import Any
+
+import grpc
+
+from marty_common.logging_config import get_logger
+from src.proto.{{service_package}}_pb2 import (
+    # Import your protobuf message types here
+    # Example:
+    # ProcessRequest,
+    # ProcessResponse,
+    # StatusRequest,
+    # StatusResponse,
+)
+from src.proto.{{service_package}}_pb2_grpc import {{service_class}}Servicer
+
+logger = get_logger(__name__)
+
+
+class {{service_class}}Service({{service_class}}Servicer):
+    """
+    Implementation of the {{service_class}} gRPC service.
+    
+    This service handles {{service_description.lower()}}.
+    """
+    
+    def __init__(self) -> None:
+        """Initialize the {{service_class}} service."""
+        logger.info("Initializing {{service_class}} Service")
+        
+        # Initialize your service dependencies here
+        # Example:
+        # self.config = create_{{service_package}}_config()
+        # self.database = get_database()
+        # self.cache = get_cache()
+    
+    def GetStatus(self, request: Any, context: grpc.ServicerContext) -> Any:
+        """
+        Get service status.
+        
+        Args:
+            request: The status request
+            context: gRPC context
+            
+        Returns:
+            Status response with service health information
+        """
+        logger.info("Received status request")
+        
+        # Implement your status check logic here
+        # Return appropriate status response
+        pass
+    
+    # Add your service methods here
+    # Example:
+    # def ProcessDocument(self, request: ProcessRequest, context: grpc.ServicerContext) -> ProcessResponse:
+    #     """Process a document."""
+    #     logger.info(f"Processing document: {request.document_id}")
+    #     
+    #     try:
+    #         # Implement your business logic here
+    #         result = self._process_document(request)
+    #         
+    #         return ProcessResponse(
+    #             success=True,
+    #             result=result,
+    #             message="Document processed successfully"
+    #         )
+    #     except Exception as e:
+    #         logger.error(f"Error processing document: {e}", exc_info=True)
+    #         context.set_code(grpc.StatusCode.INTERNAL)
+    #         context.set_details(f"Processing failed: {str(e)}")
+    #         return ProcessResponse(
+    #             success=False,
+    #             error=str(e)
+    #         )
+    
+    def _process_document(self, request: Any) -> Any:
+        """
+        Private method for document processing logic.
+        
+        Args:
+            request: The processing request
+            
+        Returns:
+            Processing result
+        """
+        # Implement your core business logic here
+        pass

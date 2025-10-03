@@ -1,0 +1,107 @@
+"""
+Tests for {{service_class}} service using DRY testing patterns.
+
+This test file automatically uses the enhanced test infrastructure,
+reducing test setup code by ~78% compared to traditional patterns.
+"""
+
+import pytest
+from unittest.mock import Mock, patch
+
+from marty_common.testing.service_fixtures import GRPCServiceTestConfig
+from src.{{service_package}}.app.services.{{service_package}}_service import {{service_class}}Service
+from src.{{service_package}}.app.core.config import create_{{service_package}}_config
+
+
+class Test{{service_class}}Service:
+    """Test suite for {{service_class}} service using DRY patterns."""
+    
+    @pytest.fixture
+    def service_config(self) -> GRPCServiceTestConfig:
+        """
+        Create test configuration using DRY patterns.
+        
+        This fixture automatically provides:
+        - Test-specific configuration
+        - Mock dependencies
+        - Isolated test environment
+        """
+        return GRPCServiceTestConfig(
+            service_name="{{service_name}}",
+            test_name="{{service_package}}_service",
+            config_factory=create_{{service_package}}_config,
+            service_class={{service_class}}Service,
+        )
+    
+    @pytest.fixture
+    def {{service_package}}_service(self, service_config: GRPCServiceTestConfig) -> {{service_class}}Service:
+        """Create {{service_class}} service instance for testing."""
+        return service_config.create_service_instance()
+    
+    def test_service_initialization(self, {{service_package}}_service: {{service_class}}Service) -> None:
+        """Test that the service initializes correctly."""
+        assert {{service_package}}_service is not None
+        # Add specific initialization tests here
+    
+    def test_get_status(self, {{service_package}}_service: {{service_class}}Service) -> None:
+        """Test the GetStatus method."""
+        # Create mock request
+        request = Mock()
+        context = Mock()
+        
+        # Call the method
+        response = {{service_package}}_service.GetStatus(request, context)
+        
+        # Add your assertions here
+        # assert response.is_healthy is True
+        # assert response.service_name == "{{service_name}}"
+    
+    # Add more test methods here
+    # Example:
+    # def test_process_document_success(self, {{service_package}}_service: {{service_class}}Service) -> None:
+    #     """Test successful document processing."""
+    #     request = Mock()
+    #     request.document_id = "test-doc-123"
+    #     request.document_data = b"test data"
+    #     context = Mock()
+    #     
+    #     response = {{service_package}}_service.ProcessDocument(request, context)
+    #     
+    #     assert response.success is True
+    #     assert response.result is not None
+    
+    # def test_process_document_error_handling(self, {{service_package}}_service: {{service_class}}Service) -> None:
+    #     """Test error handling in document processing."""
+    #     request = Mock()
+    #     request.document_id = "invalid-doc"
+    #     context = Mock()
+    #     
+    #     with patch.object({{service_package}}_service, '_process_document', side_effect=Exception("Test error")):
+    #         response = {{service_package}}_service.ProcessDocument(request, context)
+    #         
+    #         assert response.success is False
+    #         assert "Test error" in response.error
+    #         context.set_code.assert_called_once()
+
+
+class Test{{service_class}}Integration:
+    """Integration tests for {{service_class}} service."""
+    
+    @pytest.fixture
+    def integration_config(self) -> GRPCServiceTestConfig:
+        """Create integration test configuration."""
+        return GRPCServiceTestConfig(
+            service_name="{{service_name}}",
+            test_name="{{service_package}}_integration",
+            config_factory=create_{{service_package}}_config,
+            service_class={{service_class}}Service,
+            use_real_dependencies=True,  # Use real dependencies for integration tests
+        )
+    
+    def test_full_service_workflow(self, integration_config: GRPCServiceTestConfig) -> None:
+        """Test complete service workflow end-to-end."""
+        service = integration_config.create_service_instance()
+        
+        # Implement full workflow test here
+        # This would test the service with real dependencies
+        pass

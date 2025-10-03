@@ -1,0 +1,115 @@
+"""
+{{service_description}}
+
+This is a hybrid service generated from the Marty DRY service template.
+It provides both FastAPI (HTTP/REST) and gRPC interfaces using DRY patterns:
+- HybridServiceConfig for unified configuration
+- Concurrent server management
+- Shared business logic between protocols
+- Base Docker configuration
+- DRY testing patterns
+"""
+
+import asyncio
+import uvicorn
+from fastapi import FastAPI
+
+from marty_common.grpc_service_factory import create_grpc_service_factory
+from src.proto.{{service_package}}_pb2_grpc import add_{{service_class}}Servicer_to_server
+from src.{{service_package}}.app.api.routes import router
+from src.{{service_package}}.app.core.config import create_{{service_package}}_config
+from src.{{service_package}}.app.core.middleware import setup_middleware
+from src.{{service_package}}.app.core.error_handlers import setup_error_handlers
+from src.{{service_package}}.app.services.grpc_service import {{service_class}}GrpcService
+from src.{{service_package}}.app.services.{{service_package}}_service import {{service_class}}Service
+
+
+def create_fastapi_app() -> FastAPI:
+    """
+    Create FastAPI application with DRY patterns.
+    
+    Returns:
+        Configured FastAPI application
+    """
+    config = create_{{service_package}}_config()
+    
+    # Initialize FastAPI with configuration
+    app = FastAPI(**config.get_fastapi_config())
+    
+    # Setup DRY patterns
+    setup_middleware(app, config)
+    setup_error_handlers(app)
+    
+    # Include API routes
+    app.include_router(router, prefix="/api/v1")
+    
+    return app
+
+
+async def run_fastapi_server(config) -> None:
+    """Run the FastAPI server."""
+    app = create_fastapi_app()
+    
+    # Setup logging using DRY patterns
+    config.setup_logging()
+    
+    # Create uvicorn config
+    uvicorn_config = uvicorn.Config(
+        app,
+        host=config.host,
+        port=config.http_port,
+        log_level=config.log_level.lower(),
+        reload=config.debug,
+    )
+    
+    # Run server
+    server = uvicorn.Server(uvicorn_config)
+    await server.serve()
+
+
+async def run_grpc_server(config) -> None:
+    """Run the gRPC server."""
+    # Create gRPC factory with hybrid configuration
+    factory = create_grpc_service_factory(
+        service_name=config.service_name,
+        config_type="hybrid",
+        grpc_port=config.grpc_port,
+        grpc_max_workers=config.grpc_max_workers,
+        reflection_enabled=config.reflection_enabled,
+        debug=config.debug,
+    )
+    
+    # Register the gRPC service
+    factory.register_service(
+        name="{{service_package}}_grpc_service",
+        servicer_factory=lambda **_: {{service_class}}GrpcService(),
+        registration_func=add_{{service_class}}Servicer_to_server,
+        health_service_name="{{service_package}}.{{service_class}}",
+    )
+    
+    # Start the gRPC server (non-blocking for concurrent execution)
+    await asyncio.create_task(factory.serve())
+
+
+async def main() -> None:
+    """
+    Run both FastAPI and gRPC servers concurrently.
+    
+    This provides both HTTP/REST and gRPC interfaces for the service,
+    sharing the same business logic and configuration.
+    """
+    config = create_{{service_package}}_config()
+    
+    if config.concurrent_servers:
+        # Run both servers concurrently
+        await asyncio.gather(
+            run_fastapi_server(config),
+            run_grpc_server(config),
+        )
+    else:
+        # Run servers sequentially (for debugging)
+        await run_fastapi_server(config)
+
+
+if __name__ == "__main__":
+    asyncio.run(main())

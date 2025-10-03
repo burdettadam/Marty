@@ -1,0 +1,63 @@
+"""
+Configuration for {{service_name}} hybrid service using DRY patterns.
+
+This configuration automatically inherits all common patterns from HybridServiceConfig,
+supporting both FastAPI and gRPC with unified configuration.
+"""
+
+from marty_common.base_config import HybridServiceConfig
+
+
+class {{service_class}}Config(HybridServiceConfig):
+    """
+    Configuration for {{service_name}} hybrid service.
+    
+    Inherits from HybridServiceConfig which provides:
+    - Common service configuration (logging, debugging, etc.)
+    - HTTP server configuration (FastAPI settings)
+    - gRPC server configuration (ports, workers, options)
+    - Security configuration (TLS, CORS)
+    - Health check and metrics configuration
+    - Database configuration (if needed)
+    - Concurrent server management options
+    """
+    
+    # Service-specific configuration fields
+    # Add your custom configuration here
+    # Example:
+    # max_concurrent_requests: int = Field(default=100, description="Maximum concurrent requests")
+    # cache_ttl_seconds: int = Field(default=3600, description="Cache TTL in seconds")
+    # processing_timeout: int = Field(default=300, description="Processing timeout in seconds")
+    
+    class Config:
+        """Pydantic configuration."""
+        env_prefix = "{{service_package|upper}}_"
+
+
+# Factory function for easy configuration creation
+def create_{{service_package}}_config(**kwargs) -> {{service_class}}Config:
+    """
+    Create {{service_name}} hybrid configuration with defaults.
+    
+    Args:
+        **kwargs: Configuration overrides
+        
+    Returns:
+        Configured {{service_class}}Config instance
+    """
+    defaults = {
+        "service_name": "{{service_name}}",
+        "title": "{{service_class}} API",
+        "description": "{{service_description}}",
+        "version": "1.0.0",
+        "http_port": {{http_port}},
+        "grpc_port": {{grpc_port}},
+        "concurrent_servers": True,
+        "reflection_enabled": True,
+        "docs_url": "/docs",
+        "redoc_url": "/redoc",
+    }
+    
+    # Merge defaults with provided kwargs
+    config_data = {**defaults, **kwargs}
+    return {{service_class}}Config(**config_data)

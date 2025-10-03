@@ -1,0 +1,51 @@
+"""
+{{service_description}}
+
+This is a gRPC service generated from the Marty DRY service template.
+It automatically uses all established DRY patterns:
+- GRPCServiceConfig for configuration
+- gRPC Service Factory for server management
+- Base Docker configuration
+- DRY testing patterns
+"""
+
+from marty_common.grpc_service_factory import create_grpc_service_factory
+from src.proto.{{service_package}}_pb2_grpc import add_{{service_class}}Servicer_to_server
+from src.{{service_package}}.app.services.{{service_package}}_service import {{service_class}}Service
+
+
+def main() -> None:
+    """
+    Run {{service_name}} gRPC service using the DRY Service Factory pattern.
+    
+    This replaces ~50 lines of boilerplate with 8 lines while providing:
+    - Automatic health checks and reflection
+    - Built-in logging streamer
+    - Signal handling and graceful shutdown
+    - TLS support ready
+    - Consistent configuration patterns
+    """
+    # Create factory with DRY configuration
+    factory = create_grpc_service_factory(
+        service_name="{{service_name}}",
+        config_type="grpc",
+        grpc_port={{grpc_port}},
+        grpc_max_workers=10,
+        reflection_enabled=True,
+        debug=True,
+    )
+    
+    # Register the {{service_name}} service
+    factory.register_service(
+        name="{{service_package}}_service",
+        servicer_factory=lambda **_: {{service_class}}Service(),
+        registration_func=add_{{service_class}}Servicer_to_server,
+        health_service_name="{{service_package}}.{{service_class}}",
+    )
+    
+    # Start the server with all DRY patterns
+    factory.serve()
+
+
+if __name__ == "__main__":
+    main()
