@@ -44,6 +44,9 @@ dependencies = [
     "pyasn1>=0.6.1",
     "certvalidator>=0.11.1",
     "prometheus_client>=0.19.0",
+    "opentelemetry-distro>=0.45b0",
+    "opentelemetry-exporter-otlp-proto-grpc>=1.24.0",
+    "opentelemetry-instrumentation-grpc>=0.45b0",
     # Enhanced OIDC4VC testing dependencies
     "jwcrypto>=1.5.0",
     "authlib>=1.2.0",

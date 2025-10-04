@@ -19,6 +19,7 @@ from typing import Any
 
 import structlog
 from pythonjsonlogger import jsonlogger
+from opentelemetry import trace
 
 
 # Global request context storage
@@ -150,6 +151,13 @@ class MartyStructuredLogger:
                         "session_id": _request_context.get("session_id"),
                         "correlation_id": _request_context.get("correlation_id"),
                     })
+                
+                # Add OpenTelemetry trace context if available
+                current_span = trace.get_current_span()
+                if current_span and current_span.is_recording():
+                    span_context = current_span.get_span_context()
+                    log_record["trace_id"] = format(span_context.trace_id, "032x")
+                    log_record["span_id"] = format(span_context.span_id, "016x")
         
         # Configure root logger
         root_logger = logging.getLogger()

@@ -5,6 +5,14 @@ from __future__ import annotations
 import logging
 import os
 import sys
+fro    console_handler = logging.StreamHandler(sys.stdout)
+    # Always use JSON logging for structured observability
+    formatter = MartyJSONFormatter()
+    console_handler.setFormatter(formatter)
+
+    # Add filters to the handler
+    console_handler.addFilter(ServiceNameFilter(service_name))
+    console_handler.addFilter(TraceContextFilter())emetry import trace
 
 # Custom log format with service name
 DEFAULT_LOG_FORMAT = (
@@ -37,6 +45,55 @@ class ServiceNameFilter(logging.Filter):
         """Add service name to log record."""
         record.service_name = self.service_name
         return True
+
+
+class TraceContextFilter(logging.Filter):
+    """Filter to inject trace context into log records."""
+
+    def filter(self, record: logging.LogRecord) -> bool:
+        """Add trace_id and span_id to log record if available."""
+        current_span = trace.get_current_span()
+        if current_span and current_span.is_recording():
+            span_context = current_span.get_span_context()
+            record.trace_id = format(span_context.trace_id, "032x")
+            record.span_id = format(span_context.span_id, "016x")
+        else:
+            record.trace_id = None
+            record.span_id = None
+        return True
+
+
+class MartyJSONFormatter(logging.Formatter):
+    """JSON formatter for structured logging with trace correlation."""
+
+    def format(self, record: logging.LogRecord) -> str:
+        """Format log record as JSON."""
+        import json
+        from datetime import datetime
+
+        log_entry = {
+            "timestamp": datetime.fromtimestamp(record.created).isoformat(),
+            "level": record.levelname,
+            "service": getattr(record, "service_name", "unknown"),
+            "logger": record.name,
+            "message": record.getMessage(),
+            "module": record.module,
+            "function": record.funcName,
+            "line": record.lineno,
+            "file": record.filename,
+        }
+
+        # Add trace context if available
+        if hasattr(record, "trace_id") and record.trace_id:
+            log_entry["trace_id"] = record.trace_id
+        if hasattr(record, "span_id") and record.span_id:
+            log_entry["span_id"] = record.span_id
+
+        # Add exception info if present
+        if record.exc_info:
+            log_entry["exception"] = self.formatException(record.exc_info)
+
+        return json.dumps(log_entry)
 
 
 def setup_logging(
@@ -73,11 +130,15 @@ def setup_logging(
     root_logger.setLevel(numeric_log_level)
 
     console_handler = logging.StreamHandler(sys.stdout)
-    formatter = logging.Formatter(log_format_str)
+    if log_format_str.lower() == "json":
+        formatter = MartyJSONFormatter()
+    else:
+        formatter = logging.Formatter(log_format_str)
     console_handler.setFormatter(formatter)
 
-    # Add the service name filter to the handler
+    # Add filters to the handler
     console_handler.addFilter(ServiceNameFilter(service_name))
+    console_handler.addFilter(TraceContextFilter())
     root_logger.addHandler(console_handler)
 
     # Suppress overly verbose third-party loggers

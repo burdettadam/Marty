@@ -137,3 +137,26 @@ openxpki:
     passwordFile: "/run/secrets/openxpki_password"
   # Local trust store sync path (mounted volume / emptyDir in future enhancement)
   localStorePath: "/data/trust/openxpki_sync"
+
+# Observability configuration
+observability:
+  # OpenTelemetry tracing
+  tracing:
+    enabled: true
+    otlp:
+      endpoint: "jaeger-collector.default.svc.cluster.local:4317"  # OTLP gRPC endpoint
+      insecure: true  # Set to false for production with TLS
+    jaeger:
+      ui:
+        service:
+          type: ClusterIP
+          port: 16686
+      collector:
+        service:
+          type: ClusterIP
+          port: 14250  # gRPC
+          httpPort: 14268  # HTTP
+      query:
+        service:
+          type: ClusterIP
+          port: 16686

@@ -29,6 +29,7 @@ from marty_common.infrastructure import (
 )
 from marty_common.logging_config import setup_logging
 from marty_common.metrics_server import start_metrics_server
+from marty_common.otel import init_tracing, instrument_grpc
 from services.certificate_lifecycle_monitor import CertificateLifecycleMonitor
 from src.proto.v1 import common_services_pb2_grpc
 
@@ -405,6 +406,12 @@ async def serve_service_async(
 ) -> None:
     """Async entrypoint for a dedicated microservice."""
     setup_logging(service.name)
+
+    # Initialize OpenTelemetry tracing
+    init_tracing(service.name)
+
+    # Instrument gRPC for tracing
+    instrument_grpc()
 
     config = get_service_config(service.name, service.default_port)
     logger.info(
