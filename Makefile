@@ -1232,7 +1232,7 @@ show-endpoints:
 # Generate test data
 generate-test-data:
 	@echo "Generating test data..."
-	@$(PYTHON) scripts/generate_test_data.py
+	@$(UV) run python scripts/generate_synthetic_data.py
 
 mdl_mdoc_integration_tests: proto
 	. $(VENV_ACTIVATE); \

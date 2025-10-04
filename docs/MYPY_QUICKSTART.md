@@ -18,7 +18,7 @@ This repository now has comprehensive mypy type checking with strict mode enable
 
 ### Documentation
 - **docs/TYPING_STANDARDS.md** (13 KB) - Comprehensive typing guide with examples
-- **docs/MYPY_IMPLEMENTATION_SUMMARY.md** (9.9 KB) - Implementation details and metrics
+- **docs/FEATURE_IMPLEMENTATION_SUMMARY.md** - Implementation details and metrics for MyPy and other features
 
 ## 🚀 Quick Start
 
@@ -50,7 +50,7 @@ pre-commit install
 
 1. **docs/TYPING_STANDARDS.md** - Start here for typing conventions and examples
 2. **src/marty_common/protocols.py** - Protocol interfaces to use in your code
-3. **docs/MYPY_IMPLEMENTATION_SUMMARY.md** - Full implementation details
+3. **docs/FEATURE_IMPLEMENTATION_SUMMARY.md** - Full implementation details for MyPy and other features
 
 ## 🎯 Strict Mode Settings
 
@@ -165,7 +165,7 @@ Check function signatures and return types match declarations.
 
 - Read **docs/TYPING_STANDARDS.md** for detailed patterns
 - Review **src/marty_common/protocols.py** for interface contracts
-- Check **docs/MYPY_IMPLEMENTATION_SUMMARY.md** for full details
+- Check **docs/FEATURE_IMPLEMENTATION_SUMMARY.md** for full details on MyPy implementation
 - See [MyPy Documentation](https://mypy.readthedocs.io/)
 
 ---

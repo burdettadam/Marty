@@ -4,7 +4,31 @@
 [![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/downloads/)
 [![License: Educational Use Only](https://img.shields.io/badge/License-Educational%20Use%20Only-red.svg)](#license)
 [![gRPC](https://img.shields.io/badge/gRPC-1.59+-green.svg)](https://grpc.io/)
-[![Docker](https://img.shields.io/badge/Docker-Compose-blue.svg)](https://docs.docker.com/compose/)
+[![Docker](https://img.shields.io/bad## Documentation
+
+🗺️ **[Platform Architecture](docs/architecture.md)** - The complete "Map of Marty" - system architecture, service layers, and reference flows
+
+🏢 **[Business Overview](docs/BUSINESS_OVERVIEW.md)** - Executive summary and ROI analysis for stakeholders
+
+⚡ **[User Guide](docs/USER_GUIDE.md)** - Get started quickly with practical examples
+
+🛠️ **[Developer Guide](docs/DEVELOPER_GUIDE.md)** - Complete technical documentation and development guides
+
+📄 **[API Reference](docs/api/openapi.yaml)** - OpenAPI specification for REST endpoints
+
+### Implementation Guides
+- **[DRY Implementation Guide](docs/DRY_IMPLEMENTATION_GUIDE.md)** - Don't Repeat Yourself patterns and code reduction
+- **[gRPC Service Factory Guide](docs/GRPC_SERVICE_FACTORY_GUIDE.md)** - Ultra-DRY service creation patterns
+- **[Security Implementation](docs/SECURITY.md)** - Production security features and compliance
+- **[Prometheus Monitoring](docs/PROMETHEUS_MONITORING.md)** - Enterprise-grade monitoring and alerting
+- **[Resilience Framework](docs/RESILIENCE.md)** - Circuit breakers, retries, and error handling
+- **[MyPy Type Checking](docs/MYPY_QUICKSTART.md)** - Strong typing implementation guide
+
+### Standards and Protocols
+- **[Cryptographic Boundaries](docs/CRYPTOGRAPHIC_BOUNDARIES_GUIDE.md)** - Crypto security and role separation
+- **[Trust Services Architecture](docs/TRUST_SERVICES_ARCHITECTURE.md)** - PKI and certificate management
+- **[Unified Verification Protocol](docs/UNIFIED_VERIFICATION_PROTOCOL.md)** - Multi-document verification flows
+- **[SPHEREON OIDC4VC Integration](docs/SPHEREON_OIDC4VC_INTEGRATION.md)** - OpenID4VC compatibility testing-Compose-blue.svg)](https://docs.docker.com/compose/)
 
 🎓 **Educational Portfolio Project - ICAO Standards Learning Implementation**
 
@@ -28,6 +52,16 @@ This project was developed to:
 - **Multi-Document Support**: Academic study of eMRTDs, mDLs, mDocs, and Digital Travel Credentials
 - **Modern Development Practices**: Portfolio demonstration using Python 3.10+, gRPC, Docker, PostgreSQL
 - **Standards Research**: Comprehensive documentation and implementation notes
+
+### 🚀 Recent Platform Enhancements
+
+- **Ultra-DRY Architecture**: 60-90% code reduction through service factory patterns and shared components
+- **Enterprise Monitoring**: Prometheus metrics, health checks, and Grafana dashboards for all services
+- **Production Security**: HashiCorp Vault integration, mTLS authentication, RBAC, and audit logging
+- **Strong Typing**: MyPy strict mode with comprehensive type annotations and protocol interfaces
+- **Resilience Framework**: Circuit breakers, retry mechanisms, and failure injection for reliability testing
+- **EUDI Bridge**: European Digital Identity Wallet compatibility and cross-border verification
+- **OpenID4VC Integration**: Full OIDC4VCI/OID4VP support with Sphereon compatibility testing
 
 ## 🏗️ Architecture Overview
 
@@ -98,6 +132,32 @@ This project was developed to:
                           │     OpenXPKI      │
                           │  (External PKI)   │
                           └───────────────────┘
+
+                    ┌────────────────────────────┐
+                    │      BRIDGE SERVICES       │
+                    ├────────────────────────────┤
+                    │ EUDI Bridge │ OIDC4VCI     │
+                    │ OID4VP      │ Sphereon     │
+                    └────────────────────────────┘
+
+                    ┌────────────────────────────┐
+                    │     OBSERVABILITY          │
+                    ├────────────────────────────┤
+                    │ Prometheus  │ Centralized  │
+                    │ Monitoring  │ Logging      │
+                    │ (Metrics)   │ (Audit)      │
+                    └────────────────────────────┘
+```
+                          ┌─────────▼─────────┐
+                          │   PostgreSQL      │
+                          │ (Certificate DB)  │
+                          │   Port 5432       │
+                          └───────────────────┘
+                                    │
+                          ┌─────────▼─────────┐
+                          │     OpenXPKI      │
+                          │  (External PKI)   │
+                          └───────────────────┘
 ```
 
 ## 📁 Project Structure
@@ -130,19 +190,35 @@ Get Marty running in under 5 minutes:
 git clone https://github.com/burdettadam/Marty.git
 cd Marty
 
-# Set up the development environment (installs UV and dependencies)
+# Set up the development environment (installs dependencies)
 make setup
 
 # Start all services with Docker
-make dev-environment
+docker-compose -f docker/docker-compose.yml up --build
 
-# Run the test suite
+# Run the comprehensive test suite
 make test
 ```
 
-**🎯 Verify installation**: Open http://localhost:8090 to access the operator UI, or check service status with `make dev-status`.
+**🎯 Verify installation**: Open http://localhost:8090 to access the operator UI, or check service status.
 
 > **💡 Tip**: Use `make help` to see all available commands and development shortcuts.
+
+### Alternative Setup Options
+
+```bash
+# Set up Kubernetes development environment
+make k8s-setup
+
+# Set up OpenXPKI for certificate management
+make setup-openxpki
+
+# Run specific test categories
+make test-unit                    # Unit tests only
+make test-integration            # Integration tests
+make test-openid4vp             # OpenID4VC presentation tests
+make test-comprehensive         # All tests including E2E
+```
 
 ## Certificate Management with OpenXPKI
 
@@ -209,105 +285,54 @@ The Trust Anchor service includes a Certificate Expiry Notification Service that
 
 ### Quick Start with Make
 
-This project provides a Makefile for common tasks:
+This project provides a comprehensive Makefile for common development tasks:
 
 ```bash
 # Setup development environment
 make setup
 
-# Run all tests
-make test
+# Code quality and formatting
+make format lint type-check security
 
-# Format code
-make format
+# Run tests
+make test                    # Complete test suite
+make test-unit              # Unit tests only
+make test-integration       # Integration tests
+make test-openid4vp         # OpenID4VC tests
 
-# Lint code
-make lint
-
-# Generate test data
-make generate-test-data
-
-# Run the server
-make run
+# Development environment
+make k8s-setup             # Set up Kubernetes
+make setup-openxpki        # Configure PKI integration
 
 # Show all available commands
 make help
 ```
 
-### Python Environment Management with UV
+### Python Environment Management
 
-This project uses [UV](https://github.com/astral-sh/uv) for dependency management. UV is a fast, reliable Python package installer and resolver.
-
-#### Installation
-
-1. Install UV:
-
-```bash
-pip install uv
-```
-
-2. Install project dependencies:
-
-```bash
-uv pip install -e .
-```
-
-3. Create a virtual environment (optional but recommended):
-
-```bash
-uv venv
-source .venv/bin/activate  # On Unix/macOS
-# OR
-.venv\Scripts\activate     # On Windows
-```
-
-#### Adding New Dependencies
-
-To add a new dependency:
-
-```bash
-uv pip install package_name
-```
-
-And then update your pyproject.toml file with the new dependency.
-
-#### Updating the Lock File
-
-To update the lock file after changing dependencies:
-
-```bash
-uv pip sync
-```
+This project uses modern Python package management. Dependencies are managed through `pyproject.toml` with support for multiple package managers.
 
 ### Running with Docker
 
-The project includes Docker configuration for all services. Build and run with:
+The project includes Docker configuration for all services:
 
 ```bash
+# Start all services
 docker-compose -f docker/docker-compose.yml up --build
-```
 
-Each service uses UV for dependency management inside its container.
+# Start specific services
+docker-compose up ui-app passport-engine trust-anchor
+```
 
 ### Operator UI
 
-An operator-friendly UI lives in `src/ui_app`. Run it locally with:
+An operator-friendly UI is available at `src/ui_app` providing:
+- Service health monitoring
+- Certificate management
+- Document issuance workflows
+- Verification testing tools
 
-```bash
-uvicorn ui_app.app:app --reload
-```
-
-Tune the backing service addresses via environment variables:
-
-| Variable | Purpose | Default |
-| --- | --- | --- |
-| `UI_PASSPORT_ENGINE_ADDR` | Passport Engine gRPC target | `localhost:8084` |
-| `UI_INSPECTION_SYSTEM_ADDR` | Inspection System gRPC target | `localhost:8083` |
-| `UI_MDL_ENGINE_ADDR` | MDL Engine gRPC target | `localhost:8085` |
-| `UI_TRUST_ANCHOR_ADDR` | Trust Anchor gRPC target | `localhost:8080` |
-
-Set `UI_ENABLE_MOCK_DATA=true` to explore the UI without running the gRPC
-services.
+Access at http://localhost:8090 when services are running.
 
 ### Configuration
 
@@ -325,218 +350,74 @@ export MARTY_ENV=development
 
 ## Testing
 
+### Comprehensive Test Strategy
 
-### Testing Strategy
-
-See [TESTING.md](./TESTING.md) for a detailed overview of the project's testing strategy, coverage goals, and contribution guidelines.
-
-#### Quick Start
-
-- **All tests:**
-   ```bash
-   make test
-   ```
-- **Unit tests:**
-   ```bash
-   make test-unit
-   ```
-- **Integration tests:**
-   ```bash
-   make test-integration
-   ```
-- **End-to-end tests:**
-   ```bash
-   make test-e2e
-   ```
-- **Certificate validation tests:**
-   ```bash
-   make test-cert-validator
-   ```
-- **Docker integration tests:**
-   ```bash
-   python tests/integration/docker/run_docker_tests.py [options]
-   ```
-
-#### Improvements Roadmap
-
-- Increase coverage for all services (>90%)
-- Expand E2E scenarios (error handling, security, performance)
-- Integrate automated coverage reporting and CI enforcement
-- Improve test data diversity and documentation
-- Expand OpenXPKI integration tests
-
-### Integrated Tests from ZeroPass/pymrtd
-
-The project includes tests adapted from the [ZeroPass/pymrtd](https://github.com/ZeroPass/pymrtd) repository to validate ePassport functionality according to ICAO standards. These tests have been modified to work with Marty's implementation:
-
-1. **Basic Infrastructure Tests**:
-   - `tests/unit/ef/ef_base_test.py` - Tests for ElementaryFile functionality
-   - `tests/unit/ef/dg_base_test.py` - Tests for DataGroup and DataGroupType functionality
-
-2. **MRZ and DG1 Tests**:
-   - `tests/unit/ef/mrz_test.py` - Tests for MRZ data model, formatting, and parsing
-   - `tests/unit/ef/dg1_test.py` - Tests for DG1 content parsing (which contains MRZ data)
-
-3. **Security Tests**:
-   - `tests/unit/ef/sod_test.py` - Tests for SOD (Document Security Object) functionality
-   - `tests/unit/ef/dg14_test.py` - Tests for DG14 (Security Options) handling
-   - `tests/unit/ef/dg15_test.py` - Tests for DG15 (Active Authentication Public Key) functionality
-   - `tests/unit/pki/iso9796e2_test.py` - Tests for ISO 9796-2 signature scheme used in Active Authentication
-
-To run these specific tests:
+The project includes multiple testing layers:
 
 ```bash
-# Run all integrated tests
-pytest tests/unit/ef/ tests/unit/pki/
+# Core test categories
+make test-unit                    # Unit tests for individual components
+make test-integration            # Service integration testing
+make test-e2e                    # End-to-end workflow validation
+make test-cert-validator         # Certificate validation testing
 
-# Run a specific test file
-pytest tests/unit/ef/dg1_test.py
+# Protocol-specific testing
+make test-openid4vp              # OpenID4VC presentation flows
+make test-presentations          # mDL/mDoc presentation testing
 
-# Run a specific test function
-pytest tests/unit/ef/sod_test.py::test_sod_basic
+# Comprehensive testing
+make test                        # All standard tests
+make test-comprehensive          # Includes advanced protocol tests
 ```
 
-The tests use pytest-depends to maintain proper test dependencies and ensure they run in the correct order.
+### Integration Testing
 
-### Integrated Tests from PassportEye
+The project includes comprehensive integration tests adapted from industry-standard libraries:
 
-The project includes tests adapted from the [PassportEye](https://github.com/konstantint/PassportEye) repository to validate Machine Readable Zone (MRZ) extraction, OCR functionality, and PDF image processing capabilities:
+**ICAO Standards Testing** (from ZeroPass/pymrtd):
+- Basic infrastructure: ElementaryFile, DataGroup functionality
+- MRZ and DG1: Machine Readable Zone processing
+- Security: SOD, DG14/DG15, Active Authentication
 
-1. **MRZ Tests**:
-   - `tests/test_mrz.py` - Tests for Machine Readable Zone (MRZ) detection and parsing from passport images
-   - Tests different passport format types (TD2, TD3) and validates extracted data fields
+**OCR and Image Processing** (from PassportEye):
+- MRZ extraction from passport images
+- OCR functionality validation
+- PDF image extraction
 
-2. **OCR Tests**:
-   - `tests/test_ocr.py` - Tests for the Optical Character Recognition functionality
-   - Validates text extraction capabilities using test images with known content
-
-3. **PDF Extraction Tests**:
-   - `tests/test_pdf_extraction.py` - Tests for extracting JPEG images from PDF documents
-   - Validates the extraction of images from various PDF file formats
-
-These tests include test data in the `tests/data/` directory:
-- Sample passport images in different formats (TD2, TD3)
-- Test PDF files with various embedded image formats
-- OCR test images with known content
-
-To run the PassportEye tests:
-
-```bash
-# Run all PassportEye tests
-pytest tests/test_mrz.py tests/test_ocr.py tests/test_pdf_extraction.py
-
-# Run a specific test file
-pytest tests/test_mrz.py
-```
-
-### Integrated Certificate Validation Tests
-
-The project includes tests from the [wbond/certvalidator](https://github.com/wbond/certvalidator) repository to validate X.509 certificates and paths. These tests are essential for ensuring proper certificate validation in the passport issuance and verification process:
-
-1. **Core Validation Tests**:
-   - `tests/cert_validator/test_certificate_validator.py` - Tests for the certificate validator functionality
-   - `tests/cert_validator/test_validate.py` - Main validation tests covering various certificate validation scenarios
-
-2. **Certificate Revocation Tests**:
-   - `tests/cert_validator/test_crl_client.py` - Tests for Certificate Revocation List (CRL) client
-   - `tests/cert_validator/test_ocsp_client.py` - Tests for Online Certificate Status Protocol (OCSP) client
-
-3. **Registry Tests**:
-   - `tests/cert_validator/test_registry.py` - Tests for certificate registry functionality
-
-These tests validate various aspects of X.509 certificates including:
+**Certificate Validation** (from wbond/certvalidator):
+- X.509 certificate validation
 - Path building and validation
-- Signature verification (RSA, DSA, and EC algorithms)
-- Name chaining
-- Validity dates checking
-- Basic constraints validation
-- Extended key usage validation
-- Certificate revocation via CRLs and OCSP
-- Point-in-time validation
+- Certificate revocation (CRL/OCSP)
+- NIST and OpenSSL test suites
 
-To run these certificate validation tests:
+### Performance and Security Testing
 
 ```bash
-# Run all certificate validation tests
-python tests/cert_validator/run_cert_tests.py
+# Performance testing
+make perf-test                   # Quick performance validation
+make perf-test-load             # Load testing
+make perf-test-stress           # Stress testing
 
-# Run a specific set of tests (e.g., only certificate validator tests)
-python tests/cert_validator/run_cert_tests.py certificate_validator
-
-# Run a specific set of tests (e.g., only OCSP client tests)
-python tests/cert_validator/run_cert_tests.py ocsp
+# Security analysis
+make security                   # Comprehensive security scan
+make security-quick             # Quick security check
 ```
 
-The test fixtures include certificates from the NIST Public Key Interoperability Test Suite and OCSP tests from OpenSSL, providing comprehensive validation of certificate handling capabilities.
+## Running Services Locally
 
-### Running Services Locally
-
-To run individual services locally for development use the service-specific make
-targets (they call the dedicated entrypoints under `src.apps`):
+Individual services can be run locally for development:
 
 ```bash
-make run-service-csca-service
-# or
-make run-service-document-signer
+# Example service startup
+python -m src.apps.csca_service
+python -m src.apps.passport_engine
+python -m src.apps.ui_app
 ```
 
-## Documentation
+Services are configured through environment-specific YAML files in `/config/`.
 
-� **[Business Overview](docs/BUSINESS_OVERVIEW.md)** - Executive summary and ROI analysis for stakeholders
+---
 
-⚡ **[Quick Integration Guide](docs/USER_GUIDE.md)** - Get started in minutes with code examples
-
-🛠️ **[Developer Guide](docs/DEVELOPER_GUIDE.md)** - Complete technical documentation and architecture details
-
-📄 **[API Reference](docs/api/openapi.yaml)** - OpenAPI specification for REST endpoints
-
-**Resilience Layer (gRPC Errors / Retries / Circuit Breakers)**: See `RESILIENCE.md` for
-the unified error taxonomy, server interceptor, outbound helper, circuit breaker
-configuration, retry policies, and failure injection controls
-(`MARTY_RESILIENCE_ENABLED`, `MARTY_CIRCUIT_BREAKER_ENABLED`, `MARTY_FAILURE_INJECTION*`).
-
-## API Documentation
-
-REST API documentation is available in OpenAPI format at `docs/api/openapi.yaml`. This documentation complements the gRPC service definitions and provides an easier interface for testing.
-
-## Shared Library
-
-Common code that's used across multiple services is located in the `src/marty_common` package. This includes:
-
-- Cryptographic utilities (`src/marty_common/crypto.py`)
-- Data validation (`src/marty_common/validation.py`)
-- Configuration management (`src/marty_common/config.py`)
-- Shared data models (`src/marty_common/models/`)
-
-## License
-
-**EDUCATIONAL USE ONLY - RESTRICTIVE LICENSE**
-
-This project is licensed under a restrictive educational license:
-
-- ✅ **Permitted**: Educational use, learning, research, portfolio review
-- ✅ **Permitted**: Academic study of ICAO standards implementation
-- ✅ **Permitted**: Code review for educational purposes
-- ❌ **Prohibited**: Commercial use of any kind
-- ❌ **Prohibited**: Production deployment
-- ❌ **Prohibited**: Distribution without explicit permission
-- ❌ **Prohibited**: Use in real document issuance systems
-
-> ⚠️ **IMPORTANT**: This implementation is for educational purposes only. Real-world digital identity document systems require proper certification, security audits, and compliance validation. This project should never be used for actual document issuance or verification in production environments.
-
-## Educational Context
-
-This project serves as:
-- A **portfolio piece** demonstrating software architecture and implementation skills
-- A **learning exercise** for understanding complex international standards (ICAO, ISO)
-- An **educational tool** for exploring cryptographic implementations
-- A **reference implementation** for academic study of digital identity systems
+**🌟 Educational Portfolio Project** - This implementation demonstrates modern approaches to international digital identity standards, microservices architecture, and secure certificate management in a comprehensive, well-documented platform.
 
 For questions about educational use or portfolio review, please contact the repository owner.
-
-## CI/CD Pipeline
-
-The project includes GitHub Actions workflows for continuous integration and deployment:
-
-- `.github/workflows/ci.yml` - Runs tests and linting checks
-- `.github/workflows/cd.yml` - Builds and publishes Docker images for tagged releases

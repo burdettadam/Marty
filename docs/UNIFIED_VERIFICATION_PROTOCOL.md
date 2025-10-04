@@ -87,13 +87,13 @@ The verification protocol implements a **5-layer hierarchical approach** with st
    - Trust anchor resolution
    - Revocation status checking framework
 
-7. **Integration Testing** (`test_comprehensive_verification.py`)
+7. **Integration Testing** (`tests/integration/test_comprehensive_verification.py`)
    - End-to-end protocol demonstration
    - Multi-document type testing with real data
    - Performance and edge case testing
    - Hierarchical result reporting
 
-8. **Standalone Demo** (`standalone_verification_demo.py`)
+8. **Standalone Demo** (`scripts/demos/standalone_verification_demo.py`)
    - Self-contained verification demonstration
    - No external dependencies required
    - Mock implementations for all layers
