@@ -57,11 +57,32 @@ common_logging: &common_logging
     - console
     - file
 
-# Common security settings
+# Common security settings (SECURITY ENFORCED BY DEFAULT)
 common_security: &common_security
-  tls_enabled: false
-  require_client_cert: false
-  cert_validation_timeout: 30
+  grpc_tls:
+    enabled: true
+    mtls: true
+    require_client_auth: true
+    server_cert: "/etc/tls/server/tls.crt"
+    server_key: "/etc/tls/server/tls.key"
+    client_ca: "/etc/tls/ca/ca.crt"
+    client_cert: "/etc/tls/client/tls.crt"
+    client_key: "/etc/tls/client/tls.key"
+  
+  auth:
+    required: true
+    jwt:
+      enabled: true
+      algorithm: "HS256"
+      secret: ""
+    client_cert:
+      enabled: true
+      extract_subject: true
+  
+  authz:
+    enabled: true
+    policy_config: "/etc/config/policy.yaml"
+    default_action: "deny"
 
 # Common resilience patterns
 common_resilience: &common_resilience

@@ -18,6 +18,7 @@ from marty_common.grpc_interceptors import AsyncExceptionToStatusInterceptor
 from marty_common.grpc_logging import LoggingStreamerServicer
 from marty_common.grpc_metrics import create_async_metrics_interceptor
 from marty_common.grpc_tls import build_client_credentials, configure_server_security
+from marty_common.auth_interceptor import create_auth_interceptor
 from marty_common.infrastructure import (
     DatabaseManager,
     EventBusProvider,
@@ -99,22 +100,22 @@ async def build_dependencies_async(
 def create_service_channels(
     config: dict[str, Any], tls_options: dict[str, Any]
 ) -> dict[str, grpc_aio.Channel]:
-    """Create gRPC channels to other services based on discovery config."""
+    """Create gRPC channels to other services based on discovery config.
+    
+    TLS is ALWAYS required for all inter-service communication.
+    """
     channels: dict[str, grpc_aio.Channel] = {}
-    channel_credentials = None
-    if tls_options.get("enabled"):
-        channel_credentials = build_client_credentials(tls_options)
+    
+    # TLS is always required
+    channel_credentials = build_client_credentials(tls_options)
 
     for service_name, address in config["service_discovery"].items():
         if service_name != config["service_name"].replace("-", "_"):
-            logger.info("Creating channel to %s at %s", service_name, address)
+            logger.info("Creating secure channel to %s at %s", service_name, address)
             try:
-                if channel_credentials is not None:
-                    channels[service_name] = grpc_aio.secure_channel(address, channel_credentials)
-                else:
-                    channels[service_name] = grpc_aio.insecure_channel(address)
+                channels[service_name] = grpc_aio.secure_channel(address, channel_credentials)
             except grpc.RpcError:
-                logger.exception("Failed to create channel to %s", service_name)
+                logger.exception("Failed to create secure channel to %s", service_name)
 
     return channels
 
@@ -438,6 +439,11 @@ async def serve_service_async(
     metrics_interceptor = create_async_metrics_interceptor(service.name)
     interceptors.append(metrics_interceptor)
     
+    # Add authentication interceptor (ALWAYS ENABLED)
+    auth_interceptor = create_auth_interceptor()
+    interceptors.append(auth_interceptor)
+    logger.info("Added authentication interceptor (REQUIRED)")
+    
     if enable_resilience:
         interceptors.append(ResilienceServerInterceptor())
     server = grpc_aio.server(interceptors=interceptors)
@@ -463,8 +469,13 @@ async def serve_service_async(
         cert_monitor = init_certificate_lifecycle_monitor(config)
 
     server_address = f"[::]:{config['grpc_port']}"
-    if not configure_server_security(server, server_address, tls_options):
-        server.add_insecure_port(server_address)
+    creds = configure_server_security(tls_options)
+    if creds:
+        server.add_secure_port(server_address, creds)
+        logger.info("%s gRPC server configured with TLS on %s", service.name, server_address)
+    else:
+        logger.error("TLS configuration failed - server cannot start without security")
+        raise RuntimeError("TLS is required but configuration failed")
 
     server_started = False
     try:

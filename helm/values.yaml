@@ -37,6 +37,69 @@ config:
     host: ""
     port: 6379
 
+# gRPC TLS Configuration (ENFORCED BY DEFAULT)
+grpc:
+  tls:
+    # Enable TLS for gRPC connections
+    enabled: true
+    
+    # mTLS configuration
+    mtls: true
+    require_client_auth: true
+    
+    # Server certificate configuration
+    server_cert: "/etc/tls/server/tls.crt"
+    server_key: "/etc/tls/server/tls.key"
+    
+    # Client CA for mTLS (when require_client_auth or mtls is true)
+    client_ca: "/etc/tls/ca/ca.crt"
+    
+    # Client certificate configuration (for outbound connections)
+    client_cert: "/etc/tls/client/tls.crt"
+    client_key: "/etc/tls/client/tls.key"
+    
+    # Secret names for TLS certificates
+    secrets:
+      server:
+        name: "marty-server-tls"
+        cert_key: "tls.crt"
+        key_key: "tls.key"
+      client:
+        name: "marty-client-tls"
+        cert_key: "tls.crt"
+        key_key: "tls.key"
+      ca:
+        name: "marty-ca"
+        cert_key: "ca.crt"
+
+# Security configuration (ENFORCED BY DEFAULT)
+security:
+  # Authentication configuration
+  auth:
+    # Require authentication for all endpoints (except health checks)
+    required: true
+    
+    # JWT configuration
+    jwt:
+      enabled: true
+      algorithm: "HS256"  # HS256, RS256, ES256, etc.
+      secret: ""  # For HS256
+      public_key: ""  # For RS256/ES256 (or path to public key file)
+      secret_name: "marty-jwt-secret"  # Kubernetes secret name
+      secret_key: "jwt-secret"  # Key in the secret
+    
+    # Client certificate authentication
+    client_cert:
+      enabled: true  # ALWAYS enabled for security
+      extract_subject: true  # Extract identity from certificate subject
+  
+  # Authorization configuration  
+  authz:
+    enabled: true
+    policy_config: "/etc/config/policy.yaml"
+    policy_config_map: "marty-policy-config"
+    default_action: "deny"  # ALWAYS deny by default
+
 ingress:
   enabled: false
   className: ""

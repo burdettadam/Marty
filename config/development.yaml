@@ -30,6 +30,26 @@ ports: &default_ports
 # Service hosts
 hosts: *dev_hosts
 
+# Development security settings (more permissive)
+security:
+  grpc_tls:
+    enabled: false  # Disabled for development
+    mtls: false
+    require_client_auth: false
+  
+  auth:
+    required: false  # Optional authentication in development
+    jwt:
+      enabled: false
+      algorithm: "HS256"
+      secret: "dev_jwt_secret_123456789012345678901234"
+    client_cert:
+      enabled: false
+  
+  authz:
+    enabled: false  # Disabled for development
+    default_action: "allow"  # Permissive for development
+
 # Common service configuration with development overrides
 services:
   document_signer:
@@ -60,15 +80,45 @@ logging:
   format: "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
   handlers:
     - console
+  file: logs/dev.log
 
-# Development security (relaxed for easier debugging)
+# Development security (ENFORCED - NO EXCEPTIONS)
 security:
-  tls_enabled: false
-  require_client_cert: false
-  cert_validation_timeout: 10
+  grpc_tls:
+    enabled: true  # ALWAYS enabled for security
+    mtls: true
+    require_client_auth: true
+    server_cert: "/etc/tls/server/tls.crt"
+    server_key: "/etc/tls/server/tls.key"
+    client_ca: "/etc/tls/ca/ca.crt"
+    client_cert: "/etc/tls/client/tls.crt"
+    client_key: "/etc/tls/client/tls.key"
+  
+  auth:
+    required: true  # ALWAYS required
+    jwt:
+      enabled: true
+      algorithm: "HS256"
+      secret: "dev_jwt_secret_123456789012345678901234"
+    client_cert:
+      enabled: true
+  
+  authz:
+    enabled: true  # ALWAYS enabled
+    default_action: "deny"  # ALWAYS deny by default
+  
+  key_directory: 'data/keys'
+  key_rotation_days: 90
+  certificate_validity_days: 365
 
 # Database configuration
 database:
+  url: "${MARTY_DATABASE_URL:-postgresql+asyncpg://dev_user:dev_password@localhost:5432/marty_dev}"
+  host: localhost
+  port: 5432
+  user: dev_user
+  password: dev_password
+  name: marty_dev
   pool_size: 5
   max_overflow: 10
   pool_timeout: 30
@@ -79,45 +129,6 @@ monitoring:
   metrics_enabled: true
   health_check_enabled: true
   prometheus_port: 9090
-      credential_ttl_seconds: 86400
-      default_credential_type: "eu.europa.ec.eudiw.pid"
-      default_audience: "https://verifier.dev.marty"
-      storage_prefix: "sd-jwt"
-  passport_engine:
-    signing_algorithm: rsa2048
-    signing_key_id: document-signer-default
-  dtc_engine:
-    signing_algorithm: rsa2048
-    signing_key_id: document-signer-default
-
-# Logging
-logging:
-  level: DEBUG
-  format: '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
-  file: logs/dev.log
-
-# Database
-database:
-  url: "${MARTY_DATABASE_URL:-postgresql+asyncpg://dev_user:dev_password@localhost:5432/marty_dev}"
-  host: localhost
-  port: 5432
-  user: dev_user
-  password: dev_password
-  name: marty_dev
-
-# Security
-security:
-  key_directory: 'data/keys'
-  key_rotation_days: 90
-  certificate_validity_days: 365
-  grpc_tls:
-    enabled: false
-    server_cert: ""
-    server_key: ""
-    client_ca: ""
-    client_cert: ""
-    client_key: ""
-    require_client_auth: false
 
 # Object storage
 object_storage:

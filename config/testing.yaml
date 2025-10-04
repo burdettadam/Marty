@@ -1,4 +1,30 @@
 # Testing environment configuration for Kubernetes
+# SECURITY ENFORCED - NO EXCEPTIONS
+
+# Security configuration (ENFORCED)
+security:
+  grpc_tls:
+    enabled: true  # ALWAYS enabled
+    mtls: true
+    require_client_auth: true
+    server_cert: "/etc/tls/server/tls.crt"
+    server_key: "/etc/tls/server/tls.key"
+    client_ca: "/etc/tls/ca/ca.crt"
+    client_cert: "/etc/tls/client/tls.crt"
+    client_key: "/etc/tls/client/tls.key"
+  
+  auth:
+    required: true  # ALWAYS required
+    jwt:
+      enabled: true
+      algorithm: "HS256"
+      secret: "test_jwt_secret_for_testing_environment_only"
+    client_cert:
+      enabled: true
+  
+  authz:
+    enabled: true  # ALWAYS enabled
+    default_action: "deny"  # ALWAYS deny
 
 # Kubernetes cluster configuration
 cluster_name: marty-test

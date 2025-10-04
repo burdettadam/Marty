@@ -10,15 +10,23 @@ import grpc
 LOGGER = logging.getLogger(__name__)
 
 
-def build_client_credentials(tls_options: dict[str, object]) -> grpc.ChannelCredentials | None:
-    """Create channel credentials for mTLS client connections."""
+def build_client_credentials(tls_options: dict[str, object]) -> grpc.ChannelCredentials:
+    """Create channel credentials for mTLS client connections.
+    
+    TLS is ALWAYS required for client connections.
+    """
 
     ca_bytes = _read_file_if_exists(tls_options.get("client_ca"))
     cert_bytes = _read_file_if_exists(tls_options.get("client_cert"))
     key_bytes = _read_file_if_exists(tls_options.get("client_key"))
 
-    if not ca_bytes and not cert_bytes and not key_bytes:
-        LOGGER.warning("TLS enabled but no client credentials configured; defaulting to system CA")
+    if not ca_bytes:
+        LOGGER.warning("No client CA configured; using system CA for TLS")
+
+    if not cert_bytes or not key_bytes:
+        LOGGER.warning("Client certificate/key not configured; using TLS without client auth")
+        cert_bytes = None
+        key_bytes = None
 
     return grpc.ssl_channel_credentials(
         root_certificates=ca_bytes,
@@ -27,41 +35,49 @@ def build_client_credentials(tls_options: dict[str, object]) -> grpc.ChannelCred
     )
 
 
-def configure_server_security(
-    server: grpc.Server, server_address: str, tls_options: dict[str, object]
-) -> bool:
-    """Add a secure port to the server if TLS is enabled.
-
-    Returns True when a secure port was configured, False otherwise.
+def configure_server_security(tls_options: dict[str, object]) -> grpc.ServerCredentials:
+    """Create server credentials for TLS/mTLS configuration.
+    
+    TLS is ALWAYS required - no backward compatibility.
+    
+    Returns ServerCredentials for TLS/mTLS configuration.
+    Raises RuntimeError if TLS cannot be configured.
     """
-
-    if not tls_options.get("enabled"):
-        return False
-
     cert_bytes = _read_file_if_exists(tls_options.get("server_cert"))
     key_bytes = _read_file_if_exists(tls_options.get("server_key"))
 
     if not cert_bytes or not key_bytes:
-        LOGGER.warning(
-            "TLS enabled but server certificate/key missing; falling back to insecure channel"
+        raise RuntimeError(
+            "TLS is required but server certificate/key missing. "
+            "Provide valid server_cert and server_key paths."
         )
-        return False
 
-    require_client = bool(tls_options.get("require_client_auth"))
-    ca_bytes = _read_file_if_exists(tls_options.get("client_ca")) if require_client else None
+    # mTLS is enabled by default
+    require_client = bool(tls_options.get("require_client_auth", True))
+    ca_bytes = _read_file_if_exists(tls_options.get("client_ca"))
+    
+    # Support for mTLS toggle
+    mtls_enabled = bool(tls_options.get("mtls", True))
+    if mtls_enabled and ca_bytes:
+        require_client = True
+    elif mtls_enabled and not ca_bytes:
+        raise RuntimeError(
+            "mTLS is enabled but client CA certificate missing. "
+            "Provide valid client_ca path."
+        )
 
     credentials = grpc.ssl_server_credentials(
         [(key_bytes, cert_bytes)],
         root_certificates=ca_bytes,
         require_client_auth=require_client,
     )
-    server.add_secure_port(server_address, credentials)
+    
     LOGGER.info(
-        "gRPC TLS enabled on %s (client auth=%s)",
-        server_address,
+        "gRPC TLS configured (client auth=%s, mTLS=%s)",
         "required" if require_client else "optional",
+        "enabled" if mtls_enabled else "disabled",
     )
-    return True
+    return credentials
 
 
 def _read_file_if_exists(path_value: object) -> bytes | None:

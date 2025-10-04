@@ -1,0 +1,244 @@
+# Policy configuration for Marty services
+# SECURITY ENFORCED - NO BACKWARD COMPATIBILITY
+
+# Default action when no policy matches (ALWAYS DENY)
+default_action: deny
+
+# Role definitions
+roles:
+  admin:
+    allowed_actions:
+      - "*"
+    allowed_resources:
+      - "*"
+    permissions:
+      - resource: "*"
+        action: "*"
+
+  document_signer:
+    allowed_actions:
+      - document:sign
+      - document:verify
+      - certificate:validate
+    allowed_resources:
+      - documents
+      - certificates
+    permissions:
+      - resource: "document_signer/*"
+        action: "*"
+      - resource: "certificates/*"
+        action: "read"
+
+  inspection_officer:
+    allowed_actions:
+      - document:inspect
+      - document:verify
+      - passport:verify
+      - mdl:verify
+    allowed_resources:
+      - documents
+      - passports
+      - mdl
+    permissions:
+      - resource: "inspection_system/*"
+        action: "*"
+      - resource: "documents/*"
+        action: "read"
+
+  trust_manager:
+    allowed_actions:
+      - trust:manage
+      - certificate:issue
+      - certificate:revoke
+    allowed_resources:
+      - trust_store
+      - certificates
+    permissions:
+      - resource: "trust_anchor/*"
+        action: "*"
+      - resource: "csca_service/*"
+        action: "*"
+
+  service_account:
+    allowed_actions:
+      - service:health
+      - service:metrics
+    allowed_resources:
+      - health
+      - metrics
+    permissions:
+      - resource: "*/health"
+        action: "read"
+      - resource: "*/metrics"
+        action: "read"
+
+# Policy definitions
+policies:
+  # Anonymous access policy
+  anonymous:
+    allowed_actions:
+      - service:health
+    allowed_resources:
+      - health
+
+  # Attribute-based access control policies
+  abac:
+    - name: "time_based_access"
+      target:
+        resource: "sensitive/*"
+      rules:
+        - conditions:
+            - type: "time"
+              hours: [9, 10, 11, 12, 13, 14, 15, 16, 17]  # Business hours
+              days: ["monday", "tuesday", "wednesday", "thursday", "friday"]
+      effect: "allow"
+
+    - name: "department_based_access"
+      target:
+        resource: "documents/*"
+        action: "document:sign"
+      rules:
+        - conditions:
+            - type: "attribute"
+              attribute: "department"
+              operator: "in"
+              value: ["immigration", "identity", "security"]
+      effect: "allow"
+
+    - name: "certificate_authority_access"
+      target:
+        resource: "certificates/*"
+        action: "certificate:issue"
+      rules:
+        - conditions:
+            - type: "attribute"
+              attribute: "ca_authorized"
+              operator: "equals"
+              value: true
+            - type: "identity"
+              allowed_identities:
+                - "CN=Marty CA,OU=Certificate Authority,O=Marty"
+      effect: "allow"
+
+  # Resource-specific policies
+  resources:
+    document_signer:
+      allowed_actions:
+        - document:sign
+        - document:verify
+      conditions:
+        - type: "attribute"
+          attribute: "signing_authority"
+          operator: "equals"
+          value: true
+
+    trust_anchor:
+      allowed_actions:
+        - trust:query
+        - certificate:validate
+      conditions:
+        - type: "identity"
+          allowed_identities:
+            - "*@marty.local"  # Internal services
+
+    csca_service:
+      allowed_actions:
+        - certificate:issue
+        - certificate:revoke
+      conditions:
+        - type: "attribute"
+          attribute: "ca_role"
+          operator: "in"
+          value: ["issuing_ca", "root_ca"]
+
+    inspection_system:
+      allowed_actions:
+        - document:inspect
+        - document:verify
+      conditions:
+        - type: "attribute"
+          attribute: "inspection_level"
+          operator: "in"
+          value: ["basic", "enhanced", "forensic"]
+
+# Service-specific authorization rules
+services:
+  document_signer:
+    endpoints:
+      SignDocument:
+        required_permissions:
+          - document:sign
+        required_attributes:
+          - signing_authority: true
+      
+      VerifyDocument:
+        required_permissions:
+          - document:verify
+  
+  trust_anchor:
+    endpoints:
+      GetTrustStore:
+        required_permissions:
+          - trust:read
+      
+      UpdateTrustStore:
+        required_permissions:
+          - trust:manage
+        required_roles:
+          - trust_manager
+          - admin
+
+  csca_service:
+    endpoints:
+      IssueCertificate:
+        required_permissions:
+          - certificate:issue
+        required_attributes:
+          - ca_authorized: true
+      
+      RevokeCertificate:
+        required_permissions:
+          - certificate:revoke
+        required_roles:
+          - trust_manager
+          - admin
+
+  inspection_system:
+    endpoints:
+      InspectDocument:
+        required_permissions:
+          - document:inspect
+      
+      VerifyBiometrics:
+        required_permissions:
+          - biometric:verify
+        required_attributes:
+          - biometric_authority: true
+
+# Environment-specific overrides (SECURITY ENFORCED)
+environments:
+  development:
+    default_action: deny  # NO EXCEPTIONS - Security enforced in dev
+    strict_mode: true
+    audit_all_requests: true
+
+  testing:
+    default_action: deny
+    test_mode: true
+    strict_mode: true
+    
+  production:
+    default_action: deny
+    strict_mode: true
+    audit_all_requests: true
+
+# Audit configuration
+audit:
+  enabled: true
+  log_denied_requests: true
+  log_granted_requests: false  # Only log denials by default
+  sensitive_actions:
+    - document:sign
+    - certificate:issue
+    - certificate:revoke
+    - trust:manage

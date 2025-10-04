@@ -1,4 +1,34 @@
 # Production environment configuration
+# MAXIMUM SECURITY ENFORCED - NO EXCEPTIONS
+
+# Production security (MAXIMUM ENFORCEMENT)
+security:
+  grpc_tls:
+    enabled: true  # ALWAYS enabled in production
+    mtls: true  # ALWAYS enabled for production
+    require_client_auth: true  # ALWAYS required
+    server_cert: "/etc/tls/server/tls.crt"
+    server_key: "/etc/tls/server/tls.key"
+    client_ca: "/etc/tls/ca/ca.crt"
+    client_cert: "/etc/tls/client/tls.crt"
+    client_key: "/etc/tls/client/tls.key"
+  
+  auth:
+    required: true  # ALWAYS required in production
+    jwt:
+      enabled: true
+      algorithm: "RS256"  # Stronger algorithm for production
+      public_key: "/etc/jwt/public.key"
+    client_cert:
+      enabled: true  # ALWAYS enabled
+  
+  authz:
+    enabled: true  # ALWAYS enabled
+    default_action: "deny"  # ALWAYS deny
+    strict_mode: true
+    audit_all_requests: true
+
+# Production environment configuration
 # Uses YAML anchors to inherit common patterns and reduce duplication
 
 # Production-specific hosts (service names for container networking)
