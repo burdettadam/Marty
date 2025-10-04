@@ -1,0 +1,377 @@
+syntax = "proto3";
+
+package trust.v1;
+
+import "google/protobuf/timestamp.proto";
+import "google/protobuf/empty.proto";
+
+// Trust Service provides certificate validation and trust management
+service TrustService {
+  // Get service status and health information
+  rpc GetTrustStatus(GetTrustStatusRequest) returns (TrustStatusResponse);
+  
+  // Get trust anchors (CSCAs) with filtering
+  rpc GetTrustAnchors(GetTrustAnchorsRequest) returns (GetTrustAnchorsResponse);
+  
+  // Get trust snapshot
+  rpc GetTrustSnapshot(GetTrustSnapshotRequest) returns (GetTrustSnapshotResponse);
+  
+  // Validate certificate chain
+  rpc ValidateCertificate(ValidateCertificateRequest) returns (ValidateCertificateResponse);
+  
+  // Check certificate revocation status
+  rpc CheckRevocationStatus(CheckRevocationStatusRequest) returns (CheckRevocationStatusResponse);
+  
+  // Stream PKD data updates
+  rpc StreamPKDUpdates(StreamPKDUpdatesRequest) returns (stream PKDUpdateEvent);
+  
+  // Administrative operations
+  rpc RefreshPKDData(RefreshPKDDataRequest) returns (RefreshPKDDataResponse);
+  rpc GetDataSources(GetDataSourcesRequest) returns (GetDataSourcesResponse);
+}
+
+// Trust status request
+message GetTrustStatusRequest {
+  // Optional country code filter
+  optional string country_code = 1;
+}
+
+// Trust status response
+message TrustStatusResponse {
+  string service_name = 1;
+  string status = 2;
+  google.protobuf.Timestamp timestamp = 3;
+  optional double data_freshness_hours = 4;
+  int32 total_master_lists = 5;
+  int32 total_active_cscas = 6;
+  int32 total_active_dscs = 7;
+  int32 active_sources_count = 8;
+  repeated string countries_covered = 9;
+  repeated ComponentHealth component_health = 10;
+}
+
+// Component health status
+message ComponentHealth {
+  string component = 1;
+  bool is_healthy = 2;
+  optional string error_message = 3;
+  google.protobuf.Timestamp last_check = 4;
+}
+
+// Trust anchors request
+message GetTrustAnchorsRequest {
+  // Filtering options
+  optional string country_code = 1;
+  optional TrustLevel trust_level = 2;
+  optional CertificateStatus status = 3;
+  
+  // Pagination
+  int32 page_size = 4; // Default: 100, Max: 1000
+  string page_token = 5; // For pagination
+}
+
+// Trust anchors response
+message GetTrustAnchorsResponse {
+  repeated TrustAnchor anchors = 1;
+  string next_page_token = 2;
+  int32 total_count = 3;
+}
+
+// Trust anchor (CSCA) information
+message TrustAnchor {
+  string id = 1;
+  string country_code = 2;
+  string subject_dn = 3;
+  string issuer_dn = 4;
+  string serial_number = 5;
+  string certificate_hash = 6;
+  google.protobuf.Timestamp valid_from = 7;
+  google.protobuf.Timestamp valid_to = 8;
+  TrustLevel trust_level = 9;
+  CertificateStatus status = 10;
+  repeated string key_usage = 11;
+  optional string signature_algorithm = 12;
+  optional string public_key_algorithm = 13;
+  google.protobuf.Timestamp created_at = 14;
+  google.protobuf.Timestamp updated_at = 15;
+  optional bytes certificate_data = 16; // Optional raw certificate
+}
+
+// Trust snapshot request
+message GetTrustSnapshotRequest {
+  optional string country_code = 1;
+  bool include_inactive = 2;
+  bool include_certificate_data = 3; // Include raw certificate data
+}
+
+// Trust snapshot response
+message GetTrustSnapshotResponse {
+  string snapshot_id = 1;
+  google.protobuf.Timestamp generated_at = 2;
+  optional string country_filter = 3;
+  bool include_inactive = 4;
+  int32 total_cscas = 5;
+  int32 total_dscs = 6;
+  repeated TrustSnapshotEntry entries = 7;
+  string checksum = 8; // SHA-256 of snapshot data
+  optional bytes signature = 9; // Digital signature of snapshot
+}
+
+// Trust snapshot entry
+message TrustSnapshotEntry {
+  string csca_id = 1;
+  string country_code = 2;
+  string csca_subject_dn = 3;
+  string csca_serial_number = 4;
+  google.protobuf.Timestamp csca_valid_from = 5;
+  google.protobuf.Timestamp csca_valid_to = 6;
+  CertificateStatus csca_status = 7;
+  TrustLevel trust_level = 8;
+  int32 dsc_count = 9;
+  repeated string dsc_ids = 10;
+  optional bytes csca_certificate_data = 11;
+}
+
+// Certificate validation request
+message ValidateCertificateRequest {
+  bytes certificate_data = 1; // DER encoded certificate
+  optional google.protobuf.Timestamp validation_time = 2; // Default: current time
+  bool check_revocation = 3; // Default: true
+  bool include_chain = 4; // Include full certificate chain in response
+  optional string country_hint = 5; // Country code hint for optimization
+}
+
+// Certificate validation response
+message ValidateCertificateResponse {
+  bool is_valid = 1;
+  google.protobuf.Timestamp validation_time = 2;
+  repeated string trust_chain = 3; // Certificate hashes in trust chain
+  RevocationStatus revocation_status = 4;
+  repeated ValidationError validation_errors = 5;
+  repeated ValidationWarning validation_warnings = 6;
+  optional TrustAnchor issuing_csca = 7;
+  optional CertificateInfo certificate_info = 8;
+}
+
+// Certificate information
+message CertificateInfo {
+  string subject_dn = 1;
+  string issuer_dn = 2;
+  string serial_number = 3;
+  google.protobuf.Timestamp valid_from = 4;
+  google.protobuf.Timestamp valid_to = 5;
+  repeated string key_usage = 6;
+  string signature_algorithm = 7;
+  string public_key_algorithm = 8;
+  string certificate_hash = 9;
+  CertificateType certificate_type = 10;
+}
+
+// Validation error
+message ValidationError {
+  string code = 1;
+  string message = 2;
+  optional string field = 3;
+}
+
+// Validation warning
+message ValidationWarning {
+  string code = 1;
+  string message = 2;
+  optional string field = 3;
+}
+
+// Revocation status check request
+message CheckRevocationStatusRequest {
+  string certificate_hash = 1;
+  optional string country_code = 2;
+  optional google.protobuf.Timestamp check_time = 3;
+}
+
+// Revocation status check response
+message CheckRevocationStatusResponse {
+  RevocationStatus status = 1;
+  google.protobuf.Timestamp check_time = 2;
+  optional google.protobuf.Timestamp revocation_date = 3;
+  optional string revocation_reason = 4;
+  optional string crl_source = 5;
+  google.protobuf.Timestamp crl_this_update = 6;
+  optional google.protobuf.Timestamp crl_next_update = 7;
+}
+
+// PKD updates stream request
+message StreamPKDUpdatesRequest {
+  repeated string country_codes = 1; // Filter by country codes
+  repeated SourceType source_types = 2; // Filter by source types
+  bool include_heartbeat = 3; // Include periodic heartbeat messages
+}
+
+// PKD update event
+message PKDUpdateEvent {
+  string event_id = 1;
+  google.protobuf.Timestamp timestamp = 2;
+  PKDEventType event_type = 3;
+  optional string country_code = 4;
+  SourceType source_type = 5;
+  optional MasterListUpdate master_list_update = 6;
+  optional CertificateUpdate certificate_update = 7;
+  optional CRLUpdate crl_update = 8;
+  optional string error_message = 9;
+}
+
+// Master list update
+message MasterListUpdate {
+  string master_list_id = 1;
+  string country_code = 2;
+  int32 version = 3;
+  string content_hash = 4;
+  google.protobuf.Timestamp valid_from = 5;
+  google.protobuf.Timestamp valid_to = 6;
+  int32 certificate_count = 7;
+  SourceType source_type = 8;
+}
+
+// Certificate update
+message CertificateUpdate {
+  string certificate_id = 1;
+  string certificate_hash = 2;
+  string country_code = 3;
+  CertificateType certificate_type = 4;
+  CertificateStatus status = 5;
+  PKDUpdateOperation operation = 6; // add, update, remove
+}
+
+// CRL update
+message CRLUpdate {
+  string crl_id = 1;
+  string country_code = 2;
+  string content_hash = 3;
+  google.protobuf.Timestamp this_update = 4;
+  optional google.protobuf.Timestamp next_update = 5;
+  int32 revoked_certificates_count = 6;
+}
+
+// Refresh PKD data request
+message RefreshPKDDataRequest {
+  repeated string country_codes = 1; // Specific countries to refresh
+  repeated SourceType source_types = 2; // Specific source types
+  bool force_refresh = 3; // Force refresh even if recently updated
+}
+
+// Refresh PKD data response
+message RefreshPKDDataResponse {
+  string job_id = 1;
+  RefreshJobStatus status = 2;
+  google.protobuf.Timestamp started_at = 3;
+  repeated RefreshSourceResult source_results = 4;
+}
+
+// Refresh source result
+message RefreshSourceResult {
+  string source_name = 1;
+  string country_code = 2;
+  SourceType source_type = 3;
+  RefreshStatus status = 4;
+  optional string error_message = 5;
+  int32 certificates_processed = 6;
+  google.protobuf.Timestamp completed_at = 7;
+}
+
+// Get data sources request
+message GetDataSourcesRequest {
+  optional string country_code = 1;
+  optional SourceType source_type = 2;
+  bool active_only = 3; // Default: true
+}
+
+// Get data sources response
+message GetDataSourcesResponse {
+  repeated DataSource sources = 1;
+}
+
+// Data source information
+message DataSource {
+  string id = 1;
+  string name = 2;
+  SourceType source_type = 3;
+  optional string country_code = 4;
+  string url = 5;
+  int32 sync_interval = 6; // seconds
+  optional google.protobuf.Timestamp last_sync = 7;
+  optional google.protobuf.Timestamp last_success = 8;
+  optional string last_error = 9;
+  bool is_active = 10;
+  int32 retry_count = 11;
+  google.protobuf.Timestamp created_at = 12;
+  google.protobuf.Timestamp updated_at = 13;
+}
+
+// Enums
+enum TrustLevel {
+  TRUST_LEVEL_UNSPECIFIED = 0;
+  TRUST_LEVEL_STANDARD = 1;
+  TRUST_LEVEL_HIGH = 2;
+  TRUST_LEVEL_EMERGENCY = 3;
+}
+
+enum CertificateStatus {
+  CERTIFICATE_STATUS_UNSPECIFIED = 0;
+  CERTIFICATE_STATUS_ACTIVE = 1;
+  CERTIFICATE_STATUS_INACTIVE = 2;
+  CERTIFICATE_STATUS_REVOKED = 3;
+}
+
+enum RevocationStatus {
+  REVOCATION_STATUS_UNSPECIFIED = 0;
+  REVOCATION_STATUS_GOOD = 1;
+  REVOCATION_STATUS_REVOKED = 2;
+  REVOCATION_STATUS_UNKNOWN = 3;
+}
+
+enum CertificateType {
+  CERTIFICATE_TYPE_UNSPECIFIED = 0;
+  CERTIFICATE_TYPE_CSCA = 1;
+  CERTIFICATE_TYPE_DSC = 2;
+  CERTIFICATE_TYPE_CRL_SIGNER = 3;
+}
+
+enum SourceType {
+  SOURCE_TYPE_UNSPECIFIED = 0;
+  SOURCE_TYPE_ICAO_PKD = 1;
+  SOURCE_TYPE_NATIONAL_PKI = 2;
+  SOURCE_TYPE_MANUAL = 3;
+}
+
+enum PKDEventType {
+  PKD_EVENT_TYPE_UNSPECIFIED = 0;
+  PKD_EVENT_TYPE_MASTER_LIST_UPDATED = 1;
+  PKD_EVENT_TYPE_CERTIFICATE_ADDED = 2;
+  PKD_EVENT_TYPE_CERTIFICATE_UPDATED = 3;
+  PKD_EVENT_TYPE_CERTIFICATE_REVOKED = 4;
+  PKD_EVENT_TYPE_CRL_UPDATED = 5;
+  PKD_EVENT_TYPE_SOURCE_ERROR = 6;
+  PKD_EVENT_TYPE_HEARTBEAT = 7;
+}
+
+enum PKDUpdateOperation {
+  PKD_UPDATE_OPERATION_UNSPECIFIED = 0;
+  PKD_UPDATE_OPERATION_ADD = 1;
+  PKD_UPDATE_OPERATION_UPDATE = 2;
+  PKD_UPDATE_OPERATION_REMOVE = 3;
+}
+
+enum RefreshJobStatus {
+  REFRESH_JOB_STATUS_UNSPECIFIED = 0;
+  REFRESH_JOB_STATUS_PENDING = 1;
+  REFRESH_JOB_STATUS_RUNNING = 2;
+  REFRESH_JOB_STATUS_COMPLETED = 3;
+  REFRESH_JOB_STATUS_FAILED = 4;
+  REFRESH_JOB_STATUS_CANCELLED = 5;
+}
+
+enum RefreshStatus {
+  REFRESH_STATUS_UNSPECIFIED = 0;
+  REFRESH_STATUS_SUCCESS = 1;
+  REFRESH_STATUS_FAILED = 2;
+  REFRESH_STATUS_SKIPPED = 3;
+}

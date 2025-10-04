@@ -1,0 +1,172 @@
+# Default values for trust-svc
+replicaCount: 2
+
+image:
+  repository: marty/trust-svc
+  pullPolicy: Always
+  tag: "latest"
+
+imagePullSecrets: []
+nameOverride: ""
+fullnameOverride: ""
+
+serviceAccount:
+  create: true
+  annotations: {}
+  name: "trust-svc"
+
+podAnnotations:
+  prometheus.io/scrape: "true"
+  prometheus.io/port: "8081"
+  prometheus.io/path: "/metrics"
+
+podSecurityContext:
+  runAsNonRoot: true
+  runAsUser: 1000
+  runAsGroup: 1000
+  fsGroup: 1000
+
+securityContext:
+  allowPrivilegeEscalation: false
+  readOnlyRootFilesystem: false
+  runAsNonRoot: true
+  runAsUser: 1000
+  capabilities:
+    drop:
+    - ALL
+
+service:
+  type: ClusterIP
+  http:
+    port: 8080
+    targetPort: 8080
+  grpc:
+    port: 9090
+    targetPort: 9090
+  metrics:
+    port: 8081
+    targetPort: 8081
+
+ingress:
+  enabled: false
+  className: ""
+  annotations: {}
+  hosts:
+    - host: trust-svc.local
+      paths:
+        - path: /
+          pathType: Prefix
+  tls: []
+
+resources:
+  limits:
+    cpu: 500m
+    memory: 512Mi
+  requests:
+    cpu: 200m
+    memory: 256Mi
+
+livenessProbe:
+  httpGet:
+    path: /health
+    port: http
+  initialDelaySeconds: 30
+  periodSeconds: 10
+  timeoutSeconds: 5
+  failureThreshold: 3
+
+readinessProbe:
+  httpGet:
+    path: /ready
+    port: http
+  initialDelaySeconds: 5
+  periodSeconds: 5
+  timeoutSeconds: 3
+  failureThreshold: 3
+
+autoscaling:
+  enabled: false
+  minReplicas: 2
+  maxReplicas: 10
+  targetCPUUtilizationPercentage: 70
+  targetMemoryUtilizationPercentage: 80
+
+nodeSelector: {}
+
+tolerations: []
+
+affinity: {}
+
+# Trust Service specific configuration
+config:
+  environment: production
+  debug: false
+  logLevel: INFO
+  
+  # Database configuration
+  database:
+    url: "postgresql+asyncpg://martyuser:martypassword@postgres:5432/martydb"
+    poolSize: 10
+    poolOverflow: 20
+    timeout: 30
+  
+  # PKD/HML sync configuration
+  sync:
+    pkdInterval: 3600
+    hmlInterval: 1800
+    maxRetries: 3
+    retryDelay: 300
+  
+  # Trust settings
+  trust:
+    snapshotRetentionDays: 90
+    maxCertAgeDays: 1095
+  
+  # Metrics configuration
+  metrics:
+    enabled: true
+    port: 8081
+  
+  # Security settings
+  cors:
+    origins: ["*"]
+    methods: ["GET", "POST", "PUT", "DELETE"]
+    headers: ["*"]
+
+# Persistent volumes for data storage
+persistence:
+  enabled: true
+  storageClass: ""
+  accessMode: ReadWriteOnce
+  size: 5Gi
+  annotations: {}
+
+# ConfigMap and Secret configurations
+configMap:
+  create: true
+  data: {}
+
+secret:
+  create: true
+  data: {}
+
+# Service monitor for Prometheus
+serviceMonitor:
+  enabled: false
+  interval: 30s
+  scrapeTimeout: 10s
+  labels: {}
+
+# Pod disruption budget
+podDisruptionBudget:
+  enabled: true
+  minAvailable: 1
+
+# Network policies
+networkPolicy:
+  enabled: false
+  policyTypes:
+    - Ingress
+    - Egress
+  ingress: []
+  egress: []

@@ -1,0 +1,19 @@
+apiVersion: v2
+name: trust-svc
+description: Trust Service Helm chart for PKD/HML ingestion and trust management
+type: application
+version: 1.0.0
+appVersion: "1.0.0"
+home: https://github.com/marty/trust-svc
+sources:
+  - https://github.com/marty/trust-svc
+keywords:
+  - trust
+  - pki
+  - pkd
+  - hml
+  - icao
+  - certificates
+maintainers:
+  - name: Marty Team
+    email: team@marty.com

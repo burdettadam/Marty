@@ -24,7 +24,7 @@ spec:
         component: service
       annotations:
         prometheus.io/scrape: "true"
-        prometheus.io/port: "8080"
+        prometheus.io/port: "8081"
         prometheus.io/path: "/metrics"
     spec:
       serviceAccountName: trust-svc
@@ -41,8 +41,11 @@ spec:
         - name: http
           containerPort: 8080
           protocol: TCP
+        - name: grpc
+          containerPort: 9090
+          protocol: TCP
         - name: metrics
-          containerPort: 8080
+          containerPort: 8081
           protocol: TCP
         env:
         - name: ENV
