@@ -63,6 +63,13 @@ security:
       backup_encryption: true
       transit_encryption: true
     
+    # Cryptographic role separation (see crypto_boundaries.yaml)
+    crypto_boundaries:
+      enabled: true
+      config_file: "security/crypto_boundaries.yaml"
+      strict_enforcement: true
+      evidence_signing_required: true
+    
     # Data classification
     classification:
       levels: ["public", "internal", "confidential", "restricted"]
@@ -80,6 +87,26 @@ security:
       right_to_erasure: true
       data_portability: true
       breach_notification_hours: 72
+
+  # Key Management Security
+  key_management:
+    # HSM/KMS requirements
+    hsm_requirements:
+      production_mandatory: true
+      issuing_authorities_only_hsm: true
+      evidence_signing_hsm_preferred: true
+    
+    # Role-based key isolation
+    role_isolation:
+      csca_dsc_separation: true  # CSCA/DSC keys never mix with others
+      wallet_holder_isolation: true  # Wallet/holder keys completely separate
+      verifier_read_only: true  # Verifiers only get public keys
+    
+    # Audit requirements
+    audit_requirements:
+      all_key_operations: true
+      evidence_signing_mandatory: true
+      tamper_evident_logs: true
 
   # Network Security
   network:
