@@ -28,7 +28,7 @@ from marty_common.infrastructure import (
     ObjectStorageClient,
     OutboxRepository,
 )
-from src.proto import csca_service_pb2, csca_service_pb2_grpc
+from src.proto.v1 import csca_service_pb2, csca_service_pb2_grpc
 
 
 class CscaService(csca_service_pb2_grpc.CscaServiceServicer):

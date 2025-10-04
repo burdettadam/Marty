@@ -42,7 +42,19 @@ compile-protos:
 
 clean-protos:
 	@echo "Cleaning generated proto files..."
-	rm -rf src/proto/*_pb2.py src/proto/*_pb2_grpc.py src/proto/*_pb2.pyi src/proto/*_pb2_grpc.pyi
+	rm -rf src/proto/v1/*_pb2.py src/proto/v1/*_pb2_grpc.py src/proto/v1/*_pb2.pyi src/proto/v1/*_pb2_grpc.pyi
+
+# Protocol Buffer Contract Testing
+.PHONY: test-contracts test-contracts-generate-golden
+
+test-contracts:
+	@echo "Running protocol buffer contract tests..."
+	$(UV) run python -m pytest tests/contracts/ -v --tb=short
+
+test-contracts-generate-golden:
+	@echo "Generating golden files for contract tests..."
+	$(UV) run python -c "import os; os.environ['UPDATE_GOLDEN'] = '1'"
+	$(UV) run python -m pytest tests/contracts/ -v -k "golden" --tb=short
 
 # Code Quality Targets
 .PHONY: format lint type-check complexity security security-quick security-deps security-code security-secrets security-containers security-compliance quality-check pre-commit-install pre-commit-run
@@ -248,7 +260,7 @@ setup-openxpki:
 	@echo "Access the OpenXPKI web interface at: https://localhost:8443/openxpki/"
 	@echo "Development credentials loaded from docker/openxpki.env and data/openxpki/secrets/*.txt (DO NOT USE IN PROD)"
 
-.PHONY: setup clean test lint format proto compile-protos clean-protos build run docker-build docker-run test-unit test-integration test-e2e test-e2e-k8s test-e2e-k8s-existing test-e2e-k8s-smoke test-e2e-k8s-monitoring test-e2e-clean test-e2e-docker-legacy test-integration-docker-legacy test-cert-validator test-e2e-ui playwright-install generate-test-data help run-ui run-service-ui run-services-dev check-services stop-services dev-environment demo-environment dev-minimal dev-full dev-status dev-logs dev-clean dev-restart wait-for-services show-endpoints test-performance test-coverage test-security test-setup setup-openxpki test-doc-processing test-doc-processing-unit test-doc-processing-integration test-doc-processing-e2e test-doc-processing-docker test-doc-processing-api test-doc-processing-health doc-processing-start doc-processing-stop doc-processing-status doc-processing-logs doc-processing-clean test-trust-svc test-trust-svc-unit test-trust-svc-integration test-trust-svc-e2e test-trust-svc-docker test-trust-svc-api test-trust-svc-health trust-svc-start trust-svc-start-docker trust-svc-stop trust-svc-status trust-svc-logs trust-svc-dev-job trust-svc-load-data trust-svc-clean
+.PHONY: setup clean test lint format proto compile-protos clean-protos test-contracts test-contracts-generate-golden build run docker-build docker-run test-unit test-integration test-e2e test-e2e-k8s test-e2e-k8s-existing test-e2e-k8s-smoke test-e2e-k8s-monitoring test-e2e-clean test-e2e-docker-legacy test-integration-docker-legacy test-cert-validator test-e2e-ui playwright-install generate-test-data help run-ui run-service-ui run-services-dev check-services stop-services dev-environment demo-environment dev-minimal dev-full dev-status dev-logs dev-clean dev-restart wait-for-services show-endpoints test-performance test-coverage test-security test-setup setup-openxpki test-doc-processing test-doc-processing-unit test-doc-processing-integration test-doc-processing-e2e test-doc-processing-docker test-doc-processing-api test-doc-processing-health doc-processing-start doc-processing-stop doc-processing-status doc-processing-logs doc-processing-clean test-trust-svc test-trust-svc-unit test-trust-svc-integration test-trust-svc-e2e test-trust-svc-docker test-trust-svc-api test-trust-svc-health trust-svc-start trust-svc-start-docker trust-svc-stop trust-svc-status trust-svc-logs trust-svc-dev-job trust-svc-load-data trust-svc-clean
 
 PYTHON := uv run python
 UV := uv

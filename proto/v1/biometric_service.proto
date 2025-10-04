@@ -1,0 +1,229 @@
+syntax = "proto3";
+
+package marty.biometric.v1;
+
+
+import "common_services.proto";
+
+// Biometric Processing Service
+service BiometricProcessingService {
+    // Template processing
+    rpc ProcessTemplate(ProcessTemplateRequest) returns (ProcessTemplateResponse);
+    rpc ExtractFeatures(ExtractFeaturesRequest) returns (ExtractFeaturesResponse);
+    rpc ValidateQuality(ValidateQualityRequest) returns (ValidateQualityResponse);
+    
+    // Biometric matching
+    rpc MatchBiometrics(MatchBiometricsRequest) returns (MatchBiometricsResponse);
+    rpc VerifyIdentity(VerifyIdentityRequest) returns (VerifyIdentityResponse);
+    
+    // Batch operations
+    rpc BatchProcessTemplates(BatchProcessTemplatesRequest) returns (BatchProcessTemplatesResponse);
+}
+
+// Template processing messages
+message ProcessTemplateRequest {
+    bytes template_data = 1;
+    BiometricType type = 2;
+    BiometricFormat format = 3;
+    ProcessingOptions options = 4;
+}
+
+message ProcessTemplateResponse {
+    BiometricTemplate template = 1;
+    QualityAssessment quality = 2;
+    marty.common.v1.Status status = 3;
+}
+
+message BiometricTemplate {
+    BiometricType type = 1;
+    BiometricFormat format = 2;
+    bytes data = 3;
+    TemplateMetadata metadata = 4;
+    repeated FeatureVector features = 5;
+}
+
+message TemplateMetadata {
+    string creation_date = 1;
+    string creator = 2;
+    int32 format_owner = 3;
+    int32 format_type = 4;
+    string version = 5;
+}
+
+message FeatureVector {
+    string name = 1;
+    repeated float values = 2;
+    float confidence = 3;
+}
+
+enum BiometricType {
+    BIOMETRIC_TYPE_UNKNOWN = 0;
+    BIOMETRIC_TYPE_FACIAL = 1;
+    BIOMETRIC_TYPE_FINGERPRINT = 2;
+    BIOMETRIC_TYPE_IRIS = 3;
+    BIOMETRIC_TYPE_VOICE = 4;
+}
+
+enum BiometricFormat {
+    BIOMETRIC_FORMAT_UNKNOWN = 0;
+    BIOMETRIC_FORMAT_ISO_19794_2 = 1;  // Fingerprint
+    BIOMETRIC_FORMAT_ISO_19794_5 = 2;  // Facial
+    BIOMETRIC_FORMAT_ISO_19794_6 = 3;  // Iris
+    BIOMETRIC_FORMAT_JPEG = 4;
+    BIOMETRIC_FORMAT_PNG = 5;
+    BIOMETRIC_FORMAT_BMP = 6;
+    BIOMETRIC_FORMAT_WSQ = 7;  // Wavelet Scalar Quantization (fingerprint)
+}
+
+message ProcessingOptions {
+    bool enhance_quality = 1;
+    bool extract_features = 2;
+    bool validate_standards = 3;
+    int32 max_processing_time_ms = 4;
+    map<string, string> custom_options = 5;
+}
+
+// Quality assessment messages
+message ValidateQualityRequest {
+    BiometricTemplate template = 1;
+    QualityThresholds thresholds = 2;
+}
+
+message ValidateQualityResponse {
+    QualityAssessment assessment = 1;
+    bool passes_threshold = 2;
+    marty.common.v1.Status status = 3;
+}
+
+message QualityAssessment {
+    float overall_quality = 1;  // 0.0-1.0
+    repeated QualityMetric metrics = 2;
+    repeated string recommendations = 3;
+}
+
+message QualityMetric {
+    string name = 1;
+    float value = 2;
+    float threshold = 3;
+    bool passes = 4;
+    string description = 5;
+}
+
+message QualityThresholds {
+    float minimum_quality = 1;
+    map<string, float> metric_thresholds = 2;
+}
+
+// Feature extraction messages
+message ExtractFeaturesRequest {
+    bytes image_data = 1;
+    BiometricType type = 2;
+    FeatureExtractionOptions options = 3;
+}
+
+message ExtractFeaturesResponse {
+    repeated FeatureVector features = 1;
+    QualityAssessment quality = 2;
+    marty.common.v1.Status status = 3;
+}
+
+message FeatureExtractionOptions {
+    bool normalize_features = 1;
+    int32 max_features = 2;
+    float feature_threshold = 3;
+    string algorithm = 4;
+}
+
+// Matching messages
+message MatchBiometricsRequest {
+    BiometricTemplate reference = 1;
+    BiometricTemplate candidate = 2;
+    MatchingOptions options = 3;
+}
+
+message MatchBiometricsResponse {
+    MatchResult result = 1;
+    marty.common.v1.Status status = 2;
+}
+
+message MatchResult {
+    float similarity_score = 1;  // 0.0-1.0
+    bool is_match = 2;
+    float threshold = 3;
+    MatchDetails details = 4;
+}
+
+message MatchDetails {
+    string algorithm_used = 1;
+    int32 matching_features = 2;
+    int32 total_features = 3;
+    float confidence = 4;
+    repeated FeatureMatch feature_matches = 5;
+}
+
+message FeatureMatch {
+    int32 reference_index = 1;
+    int32 candidate_index = 2;
+    float similarity = 3;
+    float confidence = 4;
+}
+
+message MatchingOptions {
+    float match_threshold = 1;
+    string algorithm = 2;
+    bool return_details = 3;
+    int32 max_comparisons = 4;
+}
+
+// Identity verification messages
+message VerifyIdentityRequest {
+    bytes live_sample = 1;
+    BiometricTemplate stored_template = 2;
+    BiometricType type = 3;
+    VerificationOptions options = 4;
+}
+
+message VerifyIdentityResponse {
+    VerificationResult result = 1;
+    marty.common.v1.Status status = 2;
+}
+
+message VerificationResult {
+    bool identity_verified = 1;
+    float confidence_score = 2;
+    MatchResult match_result = 3;
+    QualityAssessment live_quality = 4;
+    repeated string verification_steps = 5;
+}
+
+message VerificationOptions {
+    bool liveness_detection = 1;
+    float verification_threshold = 2;
+    bool anti_spoofing = 3;
+    int32 max_attempts = 4;
+}
+
+// Batch processing messages
+message BatchProcessTemplatesRequest {
+    repeated ProcessTemplateRequest requests = 1;
+    BatchOptions options = 2;
+}
+
+message BatchProcessTemplatesResponse {
+    repeated ProcessTemplateResponse responses = 1;
+    BatchSummary summary = 2;
+    marty.common.v1.Status status = 3;
+}
+
+message BatchOptions {
+    bool parallel_processing = 1;
+    int32 max_concurrent = 2;
+    bool fail_on_error = 3;
+}
+
+message BatchSummary {
+    int32 total_processed = 1;
+    int32 successful = 2;
+    int32 failed = 3;
+    float average_processing_time_ms = 4;
+}

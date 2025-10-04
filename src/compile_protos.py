@@ -11,8 +11,8 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 PROJECT_ROOT = Path(__file__).parent.parent
-PROTO_DIR = PROJECT_ROOT / "proto"
-OUTPUT_DIR = PROJECT_ROOT / "src" / "proto"
+PROTO_DIR = PROJECT_ROOT / "proto" / "v1"
+OUTPUT_DIR = PROJECT_ROOT / "src" / "proto" / "v1"
 
 
 def fix_grpc_imports() -> None:

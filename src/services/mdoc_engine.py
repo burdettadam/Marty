@@ -33,7 +33,7 @@ from src.marty_common.grpc_logging import LoggingStreamerServicer
 from src.marty_common.logging_config import setup_logging
 
 # For LoggingStreamerServicer and its addition to server
-from src.proto import common_services_pb2_grpc, mdoc_engine_pb2, mdoc_engine_pb2_grpc
+from src.proto.v1 import common_services_pb2_grpc, mdoc_engine_pb2, mdoc_engine_pb2_grpc
 
 # --- END Project-Specific Imports ---
 

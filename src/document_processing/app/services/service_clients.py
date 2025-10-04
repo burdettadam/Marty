@@ -81,7 +81,7 @@ class GrpcPassportEngineClient(PassportEngineClient):
         """Process passport using passport-engine service"""
         try:
             # Import here to handle potential grpc import issues gracefully
-            from src.proto import passport_engine_pb2, passport_engine_pb2_grpc
+            from src.proto.v1 import passport_engine_pb2, passport_engine_pb2_grpc
 
             with grpc.insecure_channel(self.address) as channel:
                 stub = passport_engine_pb2_grpc.PassportEngineStub(channel)
@@ -119,7 +119,7 @@ class GrpcInspectionSystemClient(InspectionSystemClient):
     async def inspect_document(self, document_id: str) -> dict[str, Any]:
         """Inspect document using inspection-system service"""
         try:
-            from src.proto import inspection_system_pb2, inspection_system_pb2_grpc
+            from src.proto.v1 import inspection_system_pb2, inspection_system_pb2_grpc
 
             with grpc.insecure_channel(self.address) as channel:
                 stub = inspection_system_pb2_grpc.InspectionSystemStub(channel)
@@ -157,7 +157,7 @@ class GrpcDocumentSignerClient(DocumentSignerClient):
     async def validate_signature(self, document_data: dict[str, Any]) -> dict[str, Any]:
         """Validate document signature using document signer service"""
         try:
-            from src.proto import document_signer_pb2, document_signer_pb2_grpc
+            from src.proto.v1 import document_signer_pb2, document_signer_pb2_grpc
 
             with grpc.insecure_channel(self.address):
                 # This would call appropriate document signer endpoints

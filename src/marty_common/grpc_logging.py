@@ -23,7 +23,7 @@ except ImportError:
         )
     except ImportError:
         # Try relative import
-        from src.proto import common_services_pb2, common_services_pb2_grpc
+        from src.proto.v1 import common_services_pb2, common_services_pb2_grpc
 
 # Maximum number of log entries to queue per client.
 # If a client falls behind, older messages might be dropped or it might block.

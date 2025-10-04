@@ -18,7 +18,7 @@ from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 from marty_common.infrastructure import CertificateRepository, DatabaseManager, OutboxRepository
-from src.proto import pkd_service_pb2, pkd_service_pb2_grpc
+from src.proto.v1 import pkd_service_pb2, pkd_service_pb2_grpc
 
 
 class PKDService(pkd_service_pb2_grpc.PKDServiceServicer):

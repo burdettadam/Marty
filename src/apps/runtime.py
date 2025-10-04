@@ -29,7 +29,7 @@ from marty_common.infrastructure import (
 from marty_common.logging_config import setup_logging
 from marty_common.metrics_server import start_metrics_server
 from services.certificate_lifecycle_monitor import CertificateLifecycleMonitor
-from src.proto import common_services_pb2_grpc
+from src.proto.v1 import common_services_pb2_grpc
 
 logger = logging.getLogger(__name__)
 
@@ -243,7 +243,7 @@ def add_csca_service(
     dependencies: ServiceDependencies,
 ) -> None:
     from services.csca import CscaService
-    from src.proto import csca_service_pb2_grpc
+    from src.proto.v1 import csca_service_pb2_grpc
 
     logger.info("Registering CSCA service")
     csca_service_pb2_grpc.add_CscaServiceServicer_to_server(
@@ -259,7 +259,7 @@ def add_document_signer_service(
     dependencies: ServiceDependencies,
 ) -> None:
     from services.document_signer import DocumentSigner
-    from src.proto import document_signer_pb2_grpc
+    from src.proto.v1 import document_signer_pb2_grpc
 
     logger.info("Registering Document Signer service")
     document_signer_pb2_grpc.add_DocumentSignerServicer_to_server(
@@ -275,7 +275,7 @@ def add_trust_anchor_service(
     dependencies: ServiceDependencies,
 ) -> None:
     from services.trust_anchor import TrustAnchor
-    from src.proto import trust_anchor_pb2_grpc
+    from src.proto.v1 import trust_anchor_pb2_grpc
 
     logger.info("Registering Trust Anchor service")
     trust_anchor_pb2_grpc.add_TrustAnchorServicer_to_server(
@@ -291,7 +291,7 @@ def add_inspection_system_service(
     dependencies: ServiceDependencies,
 ) -> None:
     from services.inspection_system import InspectionSystem
-    from src.proto import inspection_system_pb2_grpc
+    from src.proto.v1 import inspection_system_pb2_grpc
 
     logger.info("Registering Inspection System service")
     inspection_system_pb2_grpc.add_InspectionSystemServicer_to_server(
@@ -307,7 +307,7 @@ def add_passport_engine_service(
     dependencies: ServiceDependencies,
 ) -> None:
     from services.passport_engine import PassportEngine
-    from src.proto import passport_engine_pb2_grpc
+    from src.proto.v1 import passport_engine_pb2_grpc
 
     logger.info("Registering Passport Engine service")
     passport_engine_pb2_grpc.add_PassportEngineServicer_to_server(
@@ -323,7 +323,7 @@ def add_mdl_engine_service(
     dependencies: ServiceDependencies | None = None,
 ) -> None:
     from mdl_engine.service import MDLEngineServicer
-    from src.proto import mdl_engine_pb2_grpc
+    from src.proto.v1 import mdl_engine_pb2_grpc
 
     logger.info("Registering MDL Engine service")
     document_signer_channel = channels.get("document_signer")
@@ -344,7 +344,7 @@ def add_mdoc_engine_service(
     dependencies: ServiceDependencies | None = None,
 ) -> None:
     from mdoc_engine.service import MDocEngineServicer
-    from src.proto import mdoc_engine_pb2_grpc
+    from src.proto.v1 import mdoc_engine_pb2_grpc
 
     logger.info("Registering MDoc Engine service")
     mdoc_engine_pb2_grpc.add_MDocEngineServicer_to_server(MDocEngineServicer(channels), server)
@@ -358,7 +358,7 @@ def add_pkd_service(
     dependencies: ServiceDependencies,
 ) -> None:
     from services.pkd_service import PKDService
-    from src.proto import pkd_service_pb2_grpc
+    from src.proto.v1 import pkd_service_pb2_grpc
 
     logger.info("Registering PKD service")
     pkd_service_pb2_grpc.add_PKDServiceServicer_to_server(

@@ -16,10 +16,10 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from pydantic import BaseModel, Field
 
-from src.proto import document_signer_pb2, inspection_system_pb2, passport_engine_pb2
+from src.proto.v1 import document_signer_pb2, inspection_system_pb2, passport_engine_pb2
 
 try:
-    from src.proto import mdl_engine_pb2
+    from src.proto.v1 import mdl_engine_pb2
 except ImportError:  # pragma: no cover - mdl proto optional in some deployments
     mdl_engine_pb2 = None  # type: ignore
 

@@ -114,7 +114,7 @@ class K8sValidationTest:
         
         success, stdout, stderr = self.run_command([
             "uv", "run", "python", "-c", 
-            "from src.proto import common_services_pb2, passport_engine_pb2; print('Imports successful')"
+            "from src.proto.v1 import common_services_pb2, passport_engine_pb2; print('Imports successful')"
         ])
         
         if success and "Imports successful" in stdout:

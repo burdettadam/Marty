@@ -15,7 +15,7 @@ from src.proto import (
 )
 
 try:
-    from src.proto import mdl_engine_pb2, mdl_engine_pb2_grpc
+    from src.proto.v1 import mdl_engine_pb2, mdl_engine_pb2_grpc
 except ImportError:  # pragma: no cover - mdl proto optional in some deployments
     mdl_engine_pb2 = None  # type: ignore
     mdl_engine_pb2_grpc = None  # type: ignore

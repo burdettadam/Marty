@@ -20,7 +20,7 @@ if TYPE_CHECKING:
     from src.services.certificate_lifecycle_monitor import CertificateLifecycleMonitor
     from src.services.csca import CscaService
 
-from src.proto import csca_service_pb2
+from src.proto.v1 import csca_service_pb2
 from src.services.certificate_lifecycle_monitor import CertificateLifecycleMonitor
 from src.services.csca import CscaService
 

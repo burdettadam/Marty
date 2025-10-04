@@ -1,6 +1,6 @@
 version: v2
 modules:
-  - path: proto
+  - path: proto/v1
 deps:
   - buf.build/googleapis/googleapis
 breaking:

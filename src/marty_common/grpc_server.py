@@ -20,7 +20,7 @@ from grpc_health.v1.health import HealthServicer
 
 from marty_common.grpc_logging import LoggingStreamerServicer
 from marty_common.logging_config import setup_logging
-from src.proto import common_services_pb2_grpc
+from src.proto.v1 import common_services_pb2_grpc
 
 logger = logging.getLogger(__name__)
 

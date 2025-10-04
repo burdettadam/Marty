@@ -14,7 +14,7 @@ if TYPE_CHECKING:
     from sqlalchemy.ext.asyncio import AsyncSession
 
 from marty_common.infrastructure import OutboxRepository, TrustEntityRepository
-from src.proto import trust_anchor_pb2_grpc
+from src.proto.v1 import trust_anchor_pb2_grpc
 
 
 class ServiceDependencies(Protocol):
@@ -62,12 +62,12 @@ class TrustAnchor(trust_anchor_pb2_grpc.TrustAnchorServicer):
             self.logger.exception("Trust verification failed for %s", entity)
             await context.abort(grpc.StatusCode.INTERNAL, "Trust verification failed")
             # This won't execute due to abort, but included for type checking
-            from src.proto import trust_anchor_pb2
+            from src.proto.v1 import trust_anchor_pb2
 
             return trust_anchor_pb2.TrustResponse(is_trusted=False)
 
         self.logger.info("Entity %s is trusted: %s", entity, is_trusted)
-        from src.proto import trust_anchor_pb2
+        from src.proto.v1 import trust_anchor_pb2
 
         return trust_anchor_pb2.TrustResponse(is_trusted=is_trusted)
 

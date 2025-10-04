@@ -31,7 +31,7 @@ from marty_common.base_config import BaseServiceConfig, GRPCServiceConfig, creat
 from marty_common.grpc_logging import LoggingStreamerServicer
 from marty_common.grpc_server import GrpcServerConfig, MartyGrpcServer
 from marty_common.logging_config import setup_logging, get_logger
-from src.proto import common_services_pb2_grpc
+from src.proto.v1 import common_services_pb2_grpc
 
 logger = get_logger(__name__)
 

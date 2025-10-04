@@ -25,7 +25,7 @@ from marty_common.crypto.vds_nc_keys import (
     VDSNCKeyMetadata,
 )
 from marty_common.infrastructure import TrustEntityRepository
-from src.proto import trust_anchor_pb2, trust_anchor_pb2_grpc
+from src.proto.v1 import trust_anchor_pb2, trust_anchor_pb2_grpc
 
 logger = logging.getLogger(__name__)
 

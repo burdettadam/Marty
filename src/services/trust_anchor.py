@@ -20,7 +20,7 @@ if TYPE_CHECKING:
     )
 
 from marty_common.infrastructure import OutboxRepository, TrustEntityRepository
-from src.proto import trust_anchor_pb2, trust_anchor_pb2_grpc
+from src.proto.v1 import trust_anchor_pb2, trust_anchor_pb2_grpc
 
 
 class TrustAnchor(trust_anchor_pb2_grpc.TrustAnchorServicer):

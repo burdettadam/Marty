@@ -14,7 +14,7 @@ from marty_common.service_config_factory import get_config_manager
 from dtc_engine_service import DTCEngineService
 
 from marty_common.config import Config
-from src.proto import dtc_engine_pb2_grpc
+from src.proto.v1 import dtc_engine_pb2_grpc
 
 
 class DTCGrpcService(BaseGrpcService):

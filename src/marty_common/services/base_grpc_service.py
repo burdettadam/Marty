@@ -21,7 +21,7 @@ from marty_common.grpc_logging import LoggingStreamerServicer
 from marty_common.grpc_server import GrpcServerConfig
 from marty_common.logging import ServiceLogger, configure_service_logging
 from marty_common.services import BaseService
-from src.proto import common_services_pb2_grpc
+from src.proto.v1 import common_services_pb2_grpc
 
 
 class ServicerProtocol(Protocol):
