@@ -35,27 +35,27 @@ class DocumentSignerStub(object):
             channel: A grpc.Channel.
         """
         self.SignDocument = channel.unary_unary(
-                '/document.DocumentSigner/SignDocument',
+                '/marty.signer.v1.DocumentSigner/SignDocument',
                 request_serializer=document__signer__pb2.SignRequest.SerializeToString,
                 response_deserializer=document__signer__pb2.SignResponse.FromString,
                 _registered_method=True)
         self.CreateCredentialOffer = channel.unary_unary(
-                '/document.DocumentSigner/CreateCredentialOffer',
+                '/marty.signer.v1.DocumentSigner/CreateCredentialOffer',
                 request_serializer=document__signer__pb2.CreateCredentialOfferRequest.SerializeToString,
                 response_deserializer=document__signer__pb2.CreateCredentialOfferResponse.FromString,
                 _registered_method=True)
         self.GetCredentialOffer = channel.unary_unary(
-                '/document.DocumentSigner/GetCredentialOffer',
+                '/marty.signer.v1.DocumentSigner/GetCredentialOffer',
                 request_serializer=document__signer__pb2.GetCredentialOfferRequest.SerializeToString,
                 response_deserializer=document__signer__pb2.GetCredentialOfferResponse.FromString,
                 _registered_method=True)
         self.RedeemPreAuthorizedCode = channel.unary_unary(
-                '/document.DocumentSigner/RedeemPreAuthorizedCode',
+                '/marty.signer.v1.DocumentSigner/RedeemPreAuthorizedCode',
                 request_serializer=document__signer__pb2.RedeemPreAuthorizedCodeRequest.SerializeToString,
                 response_deserializer=document__signer__pb2.RedeemPreAuthorizedCodeResponse.FromString,
                 _registered_method=True)
         self.IssueSdJwtCredential = channel.unary_unary(
-                '/document.DocumentSigner/IssueSdJwtCredential',
+                '/marty.signer.v1.DocumentSigner/IssueSdJwtCredential',
                 request_serializer=document__signer__pb2.IssueSdJwtCredentialRequest.SerializeToString,
                 response_deserializer=document__signer__pb2.IssueSdJwtCredentialResponse.FromString,
                 _registered_method=True)
@@ -124,9 +124,9 @@ def add_DocumentSignerServicer_to_server(servicer, server):
             ),
     }
     generic_handler = grpc.method_handlers_generic_handler(
-            'document.DocumentSigner', rpc_method_handlers)
+            'marty.signer.v1.DocumentSigner', rpc_method_handlers)
     server.add_generic_rpc_handlers((generic_handler,))
-    server.add_registered_method_handlers('document.DocumentSigner', rpc_method_handlers)
+    server.add_registered_method_handlers('marty.signer.v1.DocumentSigner', rpc_method_handlers)
 
 
  # This class is part of an EXPERIMENTAL API.
@@ -147,7 +147,7 @@ class DocumentSigner(object):
         return grpc.experimental.unary_unary(
             request,
             target,
-            '/document.DocumentSigner/SignDocument',
+            '/marty.signer.v1.DocumentSigner/SignDocument',
             document__signer__pb2.SignRequest.SerializeToString,
             document__signer__pb2.SignResponse.FromString,
             options,
@@ -174,7 +174,7 @@ class DocumentSigner(object):
         return grpc.experimental.unary_unary(
             request,
             target,
-            '/document.DocumentSigner/CreateCredentialOffer',
+            '/marty.signer.v1.DocumentSigner/CreateCredentialOffer',
             document__signer__pb2.CreateCredentialOfferRequest.SerializeToString,
             document__signer__pb2.CreateCredentialOfferResponse.FromString,
             options,
@@ -201,7 +201,7 @@ class DocumentSigner(object):
         return grpc.experimental.unary_unary(
             request,
             target,
-            '/document.DocumentSigner/GetCredentialOffer',
+            '/marty.signer.v1.DocumentSigner/GetCredentialOffer',
             document__signer__pb2.GetCredentialOfferRequest.SerializeToString,
             document__signer__pb2.GetCredentialOfferResponse.FromString,
             options,
@@ -228,7 +228,7 @@ class DocumentSigner(object):
         return grpc.experimental.unary_unary(
             request,
             target,
-            '/document.DocumentSigner/RedeemPreAuthorizedCode',
+            '/marty.signer.v1.DocumentSigner/RedeemPreAuthorizedCode',
             document__signer__pb2.RedeemPreAuthorizedCodeRequest.SerializeToString,
             document__signer__pb2.RedeemPreAuthorizedCodeResponse.FromString,
             options,
@@ -255,7 +255,7 @@ class DocumentSigner(object):
         return grpc.experimental.unary_unary(
             request,
             target,
-            '/document.DocumentSigner/IssueSdJwtCredential',
+            '/marty.signer.v1.DocumentSigner/IssueSdJwtCredential',
             document__signer__pb2.IssueSdJwtCredentialRequest.SerializeToString,
             document__signer__pb2.IssueSdJwtCredentialResponse.FromString,
             options,

@@ -24,17 +24,17 @@ _sym_db = _symbol_database.Default()
 
 
 
-DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n\x15passport_engine.proto\x12\x08passport\"*\n\x0fPassportRequest\x12\x17\n\x0fpassport_number\x18\x01 \x01(\t\"\"\n\x10PassportResponse\x12\x0e\n\x06status\x18\x01 \x01(\t2Z\n\x0ePassportEngine\x12H\n\x0fProcessPassport\x12\x19.passport.PassportRequest\x1a\x1a.passport.PassportResponseb\x06proto3')
+DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n\x15passport_engine.proto\x12\x11marty.passport.v1\"*\n\x0fPassportRequest\x12\x17\n\x0fpassport_number\x18\x01 \x01(\t\"\"\n\x10PassportResponse\x12\x0e\n\x06status\x18\x01 \x01(\t2l\n\x0ePassportEngine\x12Z\n\x0fProcessPassport\x12\".marty.passport.v1.PassportRequest\x1a#.marty.passport.v1.PassportResponseb\x06proto3')
 
 _globals = globals()
 _builder.BuildMessageAndEnumDescriptors(DESCRIPTOR, _globals)
 _builder.BuildTopDescriptorsAndMessages(DESCRIPTOR, 'passport_engine_pb2', _globals)
 if not _descriptor._USE_C_DESCRIPTORS:
   DESCRIPTOR._loaded_options = None
-  _globals['_PASSPORTREQUEST']._serialized_start=35
-  _globals['_PASSPORTREQUEST']._serialized_end=77
-  _globals['_PASSPORTRESPONSE']._serialized_start=79
-  _globals['_PASSPORTRESPONSE']._serialized_end=113
-  _globals['_PASSPORTENGINE']._serialized_start=115
-  _globals['_PASSPORTENGINE']._serialized_end=205
+  _globals['_PASSPORTREQUEST']._serialized_start=44
+  _globals['_PASSPORTREQUEST']._serialized_end=86
+  _globals['_PASSPORTRESPONSE']._serialized_start=88
+  _globals['_PASSPORTRESPONSE']._serialized_end=122
+  _globals['_PASSPORTENGINE']._serialized_start=124
+  _globals['_PASSPORTENGINE']._serialized_end=232
 # @@protoc_insertion_point(module_scope)

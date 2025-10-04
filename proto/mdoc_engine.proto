@@ -1,6 +1,6 @@
 syntax = "proto3";
 
-package mdoc;
+package marty.mdoc.v1;
 
 import "common_services.proto";
 
@@ -84,7 +84,7 @@ message DocumentImage {
 message CreateMDocResponse {
   string mdoc_id = 1;
   string status = 2; // Consider enum
-  common_services.ApiError error = 3;
+  marty.common.v1.ApiError error = 3;
 }
 
 // Request to get an mDoc

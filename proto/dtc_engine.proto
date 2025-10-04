@@ -1,6 +1,6 @@
 syntax = "proto3";
 
-package dtc_engine;
+package marty.dtc.v1;
 
 import "common_services.proto";
 

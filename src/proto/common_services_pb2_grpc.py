@@ -36,7 +36,7 @@ class LoggingStreamerStub(object):
             channel: A grpc.Channel.
         """
         self.StreamLogs = channel.unary_stream(
-                '/common_services.LoggingStreamer/StreamLogs',
+                '/marty.common.v1.LoggingStreamer/StreamLogs',
                 request_serializer=common__services__pb2.StreamLogsRequest.SerializeToString,
                 response_deserializer=common__services__pb2.LogEntry.FromString,
                 _registered_method=True)
@@ -63,9 +63,9 @@ def add_LoggingStreamerServicer_to_server(servicer, server):
             ),
     }
     generic_handler = grpc.method_handlers_generic_handler(
-            'common_services.LoggingStreamer', rpc_method_handlers)
+            'marty.common.v1.LoggingStreamer', rpc_method_handlers)
     server.add_generic_rpc_handlers((generic_handler,))
-    server.add_registered_method_handlers('common_services.LoggingStreamer', rpc_method_handlers)
+    server.add_registered_method_handlers('marty.common.v1.LoggingStreamer', rpc_method_handlers)
 
 
  # This class is part of an EXPERIMENTAL API.
@@ -87,7 +87,7 @@ class LoggingStreamer(object):
         return grpc.experimental.unary_stream(
             request,
             target,
-            '/common_services.LoggingStreamer/StreamLogs',
+            '/marty.common.v1.LoggingStreamer/StreamLogs',
             common__services__pb2.StreamLogsRequest.SerializeToString,
             common__services__pb2.LogEntry.FromString,
             options,

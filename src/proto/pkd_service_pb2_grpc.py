@@ -36,12 +36,12 @@ class PKDServiceStub(object):
             channel: A grpc.Channel.
         """
         self.ListTrustAnchors = channel.unary_unary(
-                '/pkd.PKDService/ListTrustAnchors',
+                '/marty.pkd.v1.PKDService/ListTrustAnchors',
                 request_serializer=google_dot_protobuf_dot_empty__pb2.Empty.SerializeToString,
                 response_deserializer=pkd__service__pb2.ListTrustAnchorsResponse.FromString,
                 _registered_method=True)
         self.Sync = channel.unary_unary(
-                '/pkd.PKDService/Sync',
+                '/marty.pkd.v1.PKDService/Sync',
                 request_serializer=pkd__service__pb2.SyncRequest.SerializeToString,
                 response_deserializer=pkd__service__pb2.SyncResponse.FromString,
                 _registered_method=True)
@@ -77,9 +77,9 @@ def add_PKDServiceServicer_to_server(servicer, server):
             ),
     }
     generic_handler = grpc.method_handlers_generic_handler(
-            'pkd.PKDService', rpc_method_handlers)
+            'marty.pkd.v1.PKDService', rpc_method_handlers)
     server.add_generic_rpc_handlers((generic_handler,))
-    server.add_registered_method_handlers('pkd.PKDService', rpc_method_handlers)
+    server.add_registered_method_handlers('marty.pkd.v1.PKDService', rpc_method_handlers)
 
 
  # This class is part of an EXPERIMENTAL API.
@@ -100,7 +100,7 @@ class PKDService(object):
         return grpc.experimental.unary_unary(
             request,
             target,
-            '/pkd.PKDService/ListTrustAnchors',
+            '/marty.pkd.v1.PKDService/ListTrustAnchors',
             google_dot_protobuf_dot_empty__pb2.Empty.SerializeToString,
             pkd__service__pb2.ListTrustAnchorsResponse.FromString,
             options,
@@ -127,7 +127,7 @@ class PKDService(object):
         return grpc.experimental.unary_unary(
             request,
             target,
-            '/pkd.PKDService/Sync',
+            '/marty.pkd.v1.PKDService/Sync',
             pkd__service__pb2.SyncRequest.SerializeToString,
             pkd__service__pb2.SyncResponse.FromString,
             options,

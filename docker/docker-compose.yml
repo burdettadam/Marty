@@ -50,6 +50,42 @@ services:
     networks:
       - marty-network
 
+  trust-svc:
+    platform: linux/amd64
+    build:
+      context: ..
+      dockerfile: docker/trust-service.Dockerfile
+    container_name: trust-service
+    ports:
+      - "8090:8080"
+    environment:
+      - ENV=production
+      - SERVICE_NAME=trust-svc
+      - TRUST_DB_HOST=postgres
+      - TRUST_DB_PORT=5432
+      - TRUST_DB_NAME=martydb
+      - TRUST_DB_USER=martyuser
+      - TRUST_DB_PASSWORD=martypassword
+      - TRUST_SERVICE_HOST=0.0.0.0
+      - TRUST_SERVICE_PORT=8080
+      - TRUST_SERVICE_LOG_LEVEL=INFO
+      - TRUST_PKD_REFRESH_INTERVAL=3600
+      - PROMETHEUS_MULTIPROC_DIR=/tmp/prometheus_multiproc
+    volumes:
+      - ../data/trust:/app/data
+      - ../config:/app/config
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/api/v1/admin/status"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - marty-network
+
   trust-anchor:
     platform: linux/amd64
     build:

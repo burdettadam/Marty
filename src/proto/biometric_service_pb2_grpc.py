@@ -36,32 +36,32 @@ class BiometricProcessingServiceStub(object):
             channel: A grpc.Channel.
         """
         self.ProcessTemplate = channel.unary_unary(
-                '/biometric.BiometricProcessingService/ProcessTemplate',
+                '/marty.biometric.v1.BiometricProcessingService/ProcessTemplate',
                 request_serializer=biometric__service__pb2.ProcessTemplateRequest.SerializeToString,
                 response_deserializer=biometric__service__pb2.ProcessTemplateResponse.FromString,
                 _registered_method=True)
         self.ExtractFeatures = channel.unary_unary(
-                '/biometric.BiometricProcessingService/ExtractFeatures',
+                '/marty.biometric.v1.BiometricProcessingService/ExtractFeatures',
                 request_serializer=biometric__service__pb2.ExtractFeaturesRequest.SerializeToString,
                 response_deserializer=biometric__service__pb2.ExtractFeaturesResponse.FromString,
                 _registered_method=True)
         self.ValidateQuality = channel.unary_unary(
-                '/biometric.BiometricProcessingService/ValidateQuality',
+                '/marty.biometric.v1.BiometricProcessingService/ValidateQuality',
                 request_serializer=biometric__service__pb2.ValidateQualityRequest.SerializeToString,
                 response_deserializer=biometric__service__pb2.ValidateQualityResponse.FromString,
                 _registered_method=True)
         self.MatchBiometrics = channel.unary_unary(
-                '/biometric.BiometricProcessingService/MatchBiometrics',
+                '/marty.biometric.v1.BiometricProcessingService/MatchBiometrics',
                 request_serializer=biometric__service__pb2.MatchBiometricsRequest.SerializeToString,
                 response_deserializer=biometric__service__pb2.MatchBiometricsResponse.FromString,
                 _registered_method=True)
         self.VerifyIdentity = channel.unary_unary(
-                '/biometric.BiometricProcessingService/VerifyIdentity',
+                '/marty.biometric.v1.BiometricProcessingService/VerifyIdentity',
                 request_serializer=biometric__service__pb2.VerifyIdentityRequest.SerializeToString,
                 response_deserializer=biometric__service__pb2.VerifyIdentityResponse.FromString,
                 _registered_method=True)
         self.BatchProcessTemplates = channel.unary_unary(
-                '/biometric.BiometricProcessingService/BatchProcessTemplates',
+                '/marty.biometric.v1.BiometricProcessingService/BatchProcessTemplates',
                 request_serializer=biometric__service__pb2.BatchProcessTemplatesRequest.SerializeToString,
                 response_deserializer=biometric__service__pb2.BatchProcessTemplatesResponse.FromString,
                 _registered_method=True)
@@ -145,9 +145,9 @@ def add_BiometricProcessingServiceServicer_to_server(servicer, server):
             ),
     }
     generic_handler = grpc.method_handlers_generic_handler(
-            'biometric.BiometricProcessingService', rpc_method_handlers)
+            'marty.biometric.v1.BiometricProcessingService', rpc_method_handlers)
     server.add_generic_rpc_handlers((generic_handler,))
-    server.add_registered_method_handlers('biometric.BiometricProcessingService', rpc_method_handlers)
+    server.add_registered_method_handlers('marty.biometric.v1.BiometricProcessingService', rpc_method_handlers)
 
 
  # This class is part of an EXPERIMENTAL API.
@@ -169,7 +169,7 @@ class BiometricProcessingService(object):
         return grpc.experimental.unary_unary(
             request,
             target,
-            '/biometric.BiometricProcessingService/ProcessTemplate',
+            '/marty.biometric.v1.BiometricProcessingService/ProcessTemplate',
             biometric__service__pb2.ProcessTemplateRequest.SerializeToString,
             biometric__service__pb2.ProcessTemplateResponse.FromString,
             options,
@@ -196,7 +196,7 @@ class BiometricProcessingService(object):
         return grpc.experimental.unary_unary(
             request,
             target,
-            '/biometric.BiometricProcessingService/ExtractFeatures',
+            '/marty.biometric.v1.BiometricProcessingService/ExtractFeatures',
             biometric__service__pb2.ExtractFeaturesRequest.SerializeToString,
             biometric__service__pb2.ExtractFeaturesResponse.FromString,
             options,
@@ -223,7 +223,7 @@ class BiometricProcessingService(object):
         return grpc.experimental.unary_unary(
             request,
             target,
-            '/biometric.BiometricProcessingService/ValidateQuality',
+            '/marty.biometric.v1.BiometricProcessingService/ValidateQuality',
             biometric__service__pb2.ValidateQualityRequest.SerializeToString,
             biometric__service__pb2.ValidateQualityResponse.FromString,
             options,
@@ -250,7 +250,7 @@ class BiometricProcessingService(object):
         return grpc.experimental.unary_unary(
             request,
             target,
-            '/biometric.BiometricProcessingService/MatchBiometrics',
+            '/marty.biometric.v1.BiometricProcessingService/MatchBiometrics',
             biometric__service__pb2.MatchBiometricsRequest.SerializeToString,
             biometric__service__pb2.MatchBiometricsResponse.FromString,
             options,
@@ -277,7 +277,7 @@ class BiometricProcessingService(object):
         return grpc.experimental.unary_unary(
             request,
             target,
-            '/biometric.BiometricProcessingService/VerifyIdentity',
+            '/marty.biometric.v1.BiometricProcessingService/VerifyIdentity',
             biometric__service__pb2.VerifyIdentityRequest.SerializeToString,
             biometric__service__pb2.VerifyIdentityResponse.FromString,
             options,
@@ -304,7 +304,7 @@ class BiometricProcessingService(object):
         return grpc.experimental.unary_unary(
             request,
             target,
-            '/biometric.BiometricProcessingService/BatchProcessTemplates',
+            '/marty.biometric.v1.BiometricProcessingService/BatchProcessTemplates',
             biometric__service__pb2.BatchProcessTemplatesRequest.SerializeToString,
             biometric__service__pb2.BatchProcessTemplatesResponse.FromString,
             options,

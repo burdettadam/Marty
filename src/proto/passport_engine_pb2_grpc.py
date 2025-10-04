@@ -35,7 +35,7 @@ class PassportEngineStub(object):
             channel: A grpc.Channel.
         """
         self.ProcessPassport = channel.unary_unary(
-                '/passport.PassportEngine/ProcessPassport',
+                '/marty.passport.v1.PassportEngine/ProcessPassport',
                 request_serializer=passport__engine__pb2.PassportRequest.SerializeToString,
                 response_deserializer=passport__engine__pb2.PassportResponse.FromString,
                 _registered_method=True)
@@ -60,9 +60,9 @@ def add_PassportEngineServicer_to_server(servicer, server):
             ),
     }
     generic_handler = grpc.method_handlers_generic_handler(
-            'passport.PassportEngine', rpc_method_handlers)
+            'marty.passport.v1.PassportEngine', rpc_method_handlers)
     server.add_generic_rpc_handlers((generic_handler,))
-    server.add_registered_method_handlers('passport.PassportEngine', rpc_method_handlers)
+    server.add_registered_method_handlers('marty.passport.v1.PassportEngine', rpc_method_handlers)
 
 
  # This class is part of an EXPERIMENTAL API.
@@ -83,7 +83,7 @@ class PassportEngine(object):
         return grpc.experimental.unary_unary(
             request,
             target,
-            '/passport.PassportEngine/ProcessPassport',
+            '/marty.passport.v1.PassportEngine/ProcessPassport',
             passport__engine__pb2.PassportRequest.SerializeToString,
             passport__engine__pb2.PassportResponse.FromString,
             options,

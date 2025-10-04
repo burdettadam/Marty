@@ -1,6 +1,6 @@
 syntax = "proto3";
 
-package trust;
+package marty.trust.v1;
 
 service TrustAnchor {
   // Existing method

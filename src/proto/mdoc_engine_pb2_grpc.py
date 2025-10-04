@@ -35,42 +35,42 @@ class MDocEngineStub(object):
             channel: A grpc.Channel.
         """
         self.CreateMDoc = channel.unary_unary(
-                '/mdoc.MDocEngine/CreateMDoc',
+                '/marty.mdoc.v1.MDocEngine/CreateMDoc',
                 request_serializer=mdoc__engine__pb2.CreateMDocRequest.SerializeToString,
                 response_deserializer=mdoc__engine__pb2.CreateMDocResponse.FromString,
                 _registered_method=True)
         self.GetMDoc = channel.unary_unary(
-                '/mdoc.MDocEngine/GetMDoc',
+                '/marty.mdoc.v1.MDocEngine/GetMDoc',
                 request_serializer=mdoc__engine__pb2.GetMDocRequest.SerializeToString,
                 response_deserializer=mdoc__engine__pb2.MDocResponse.FromString,
                 _registered_method=True)
         self.SignMDoc = channel.unary_unary(
-                '/mdoc.MDocEngine/SignMDoc',
+                '/marty.mdoc.v1.MDocEngine/SignMDoc',
                 request_serializer=mdoc__engine__pb2.SignMDocRequest.SerializeToString,
                 response_deserializer=mdoc__engine__pb2.SignMDocResponse.FromString,
                 _registered_method=True)
         self.GenerateMDocQRCode = channel.unary_unary(
-                '/mdoc.MDocEngine/GenerateMDocQRCode',
+                '/marty.mdoc.v1.MDocEngine/GenerateMDocQRCode',
                 request_serializer=mdoc__engine__pb2.GenerateQRCodeRequest.SerializeToString,
                 response_deserializer=mdoc__engine__pb2.GenerateQRCodeResponse.FromString,
                 _registered_method=True)
         self.TransferMDocToDevice = channel.unary_unary(
-                '/mdoc.MDocEngine/TransferMDocToDevice',
+                '/marty.mdoc.v1.MDocEngine/TransferMDocToDevice',
                 request_serializer=mdoc__engine__pb2.TransferMDocRequest.SerializeToString,
                 response_deserializer=mdoc__engine__pb2.TransferMDocResponse.FromString,
                 _registered_method=True)
         self.VerifyMDoc = channel.unary_unary(
-                '/mdoc.MDocEngine/VerifyMDoc',
+                '/marty.mdoc.v1.MDocEngine/VerifyMDoc',
                 request_serializer=mdoc__engine__pb2.VerifyMDocRequest.SerializeToString,
                 response_deserializer=mdoc__engine__pb2.VerifyMDocResponse.FromString,
                 _registered_method=True)
         self.CreateDocumentTypeTemplate = channel.unary_unary(
-                '/mdoc.MDocEngine/CreateDocumentTypeTemplate',
+                '/marty.mdoc.v1.MDocEngine/CreateDocumentTypeTemplate',
                 request_serializer=mdoc__engine__pb2.CreateTemplateRequest.SerializeToString,
                 response_deserializer=mdoc__engine__pb2.CreateTemplateResponse.FromString,
                 _registered_method=True)
         self.GetDocumentTemplates = channel.unary_unary(
-                '/mdoc.MDocEngine/GetDocumentTemplates',
+                '/marty.mdoc.v1.MDocEngine/GetDocumentTemplates',
                 request_serializer=mdoc__engine__pb2.GetTemplatesRequest.SerializeToString,
                 response_deserializer=mdoc__engine__pb2.GetTemplatesResponse.FromString,
                 _registered_method=True)
@@ -180,9 +180,9 @@ def add_MDocEngineServicer_to_server(servicer, server):
             ),
     }
     generic_handler = grpc.method_handlers_generic_handler(
-            'mdoc.MDocEngine', rpc_method_handlers)
+            'marty.mdoc.v1.MDocEngine', rpc_method_handlers)
     server.add_generic_rpc_handlers((generic_handler,))
-    server.add_registered_method_handlers('mdoc.MDocEngine', rpc_method_handlers)
+    server.add_registered_method_handlers('marty.mdoc.v1.MDocEngine', rpc_method_handlers)
 
 
  # This class is part of an EXPERIMENTAL API.
@@ -203,7 +203,7 @@ class MDocEngine(object):
         return grpc.experimental.unary_unary(
             request,
             target,
-            '/mdoc.MDocEngine/CreateMDoc',
+            '/marty.mdoc.v1.MDocEngine/CreateMDoc',
             mdoc__engine__pb2.CreateMDocRequest.SerializeToString,
             mdoc__engine__pb2.CreateMDocResponse.FromString,
             options,
@@ -230,7 +230,7 @@ class MDocEngine(object):
         return grpc.experimental.unary_unary(
             request,
             target,
-            '/mdoc.MDocEngine/GetMDoc',
+            '/marty.mdoc.v1.MDocEngine/GetMDoc',
             mdoc__engine__pb2.GetMDocRequest.SerializeToString,
             mdoc__engine__pb2.MDocResponse.FromString,
             options,
@@ -257,7 +257,7 @@ class MDocEngine(object):
         return grpc.experimental.unary_unary(
             request,
             target,
-            '/mdoc.MDocEngine/SignMDoc',
+            '/marty.mdoc.v1.MDocEngine/SignMDoc',
             mdoc__engine__pb2.SignMDocRequest.SerializeToString,
             mdoc__engine__pb2.SignMDocResponse.FromString,
             options,
@@ -284,7 +284,7 @@ class MDocEngine(object):
         return grpc.experimental.unary_unary(
             request,
             target,
-            '/mdoc.MDocEngine/GenerateMDocQRCode',
+            '/marty.mdoc.v1.MDocEngine/GenerateMDocQRCode',
             mdoc__engine__pb2.GenerateQRCodeRequest.SerializeToString,
             mdoc__engine__pb2.GenerateQRCodeResponse.FromString,
             options,
@@ -311,7 +311,7 @@ class MDocEngine(object):
         return grpc.experimental.unary_unary(
             request,
             target,
-            '/mdoc.MDocEngine/TransferMDocToDevice',
+            '/marty.mdoc.v1.MDocEngine/TransferMDocToDevice',
             mdoc__engine__pb2.TransferMDocRequest.SerializeToString,
             mdoc__engine__pb2.TransferMDocResponse.FromString,
             options,
@@ -338,7 +338,7 @@ class MDocEngine(object):
         return grpc.experimental.unary_unary(
             request,
             target,
-            '/mdoc.MDocEngine/VerifyMDoc',
+            '/marty.mdoc.v1.MDocEngine/VerifyMDoc',
             mdoc__engine__pb2.VerifyMDocRequest.SerializeToString,
             mdoc__engine__pb2.VerifyMDocResponse.FromString,
             options,
@@ -365,7 +365,7 @@ class MDocEngine(object):
         return grpc.experimental.unary_unary(
             request,
             target,
-            '/mdoc.MDocEngine/CreateDocumentTypeTemplate',
+            '/marty.mdoc.v1.MDocEngine/CreateDocumentTypeTemplate',
             mdoc__engine__pb2.CreateTemplateRequest.SerializeToString,
             mdoc__engine__pb2.CreateTemplateResponse.FromString,
             options,
@@ -392,7 +392,7 @@ class MDocEngine(object):
         return grpc.experimental.unary_unary(
             request,
             target,
-            '/mdoc.MDocEngine/GetDocumentTemplates',
+            '/marty.mdoc.v1.MDocEngine/GetDocumentTemplates',
             mdoc__engine__pb2.GetTemplatesRequest.SerializeToString,
             mdoc__engine__pb2.GetTemplatesResponse.FromString,
             options,

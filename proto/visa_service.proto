@@ -1,6 +1,6 @@
 syntax = "proto3";
 
-package visa_service;
+package marty.visa.v1;
 
 import "google/protobuf/timestamp.proto";
 import "google/protobuf/empty.proto";

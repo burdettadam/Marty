@@ -1,6 +1,6 @@
 syntax = "proto3";
 
-package storage_policy;
+package marty.storage.v1;
 
 // Storage Policy Service for Annex 9 Compliance
 service StoragePolicyEngine {

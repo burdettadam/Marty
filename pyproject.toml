@@ -4,8 +4,8 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "marty-grpc"
-version = "0.1.0"
-description = "Enterprise-grade microservices platform for secure digital identity document management (eMRTD, mDL, DTC) with ICAO PKI compliance"
+version = "1.0.0"
+description = "Enterprise-grade microservices platform for secure digital identity document management (eMRTD, mDL, DTC) with ICAO PKI compliance (v1.0.0 - semver'd protobuf namespaces)"
 readme = "README.md"
 requires-python = ">=3.10"
 license = {text = "Proprietary"}

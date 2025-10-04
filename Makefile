@@ -30,6 +30,7 @@ MDL_ENGINE_PORT := 8085
 MDOC_ENGINE_PORT := 8086
 DTC_ENGINE_PORT := 8087
 PKD_SERVICE_PORT := 8088
+TRUST_SVC_PORT := 8090
 POSTGRES_PORT := 5432
 
 # Proto Compilation Targets
@@ -58,7 +59,7 @@ lint:
 
 type-check:
 	@echo "Running type checking..."
-	cd src && $(UV) run mypy services/ marty_common/ \
+	cd src && $(UV) run mypy services/ marty_common/ trust_svc/ \
 		--ignore-missing-imports \
 		--show-error-codes \
 		--pretty \
@@ -66,7 +67,7 @@ type-check:
 		--error-summary \
 		--config-file ../pyproject.toml
 	@echo "Type checking services with strict mode..."
-	cd src && $(UV) run mypy services/ \
+	cd src && $(UV) run mypy services/ trust_svc/ \
 		--ignore-missing-imports \
 		--disable-error-code=misc \
 		--disable-error-code=attr-defined \
@@ -247,7 +248,7 @@ setup-openxpki:
 	@echo "Access the OpenXPKI web interface at: https://localhost:8443/openxpki/"
 	@echo "Development credentials loaded from docker/openxpki.env and data/openxpki/secrets/*.txt (DO NOT USE IN PROD)"
 
-.PHONY: setup clean test lint format proto compile-protos clean-protos build run docker-build docker-run test-unit test-integration test-e2e test-e2e-k8s test-e2e-k8s-existing test-e2e-k8s-smoke test-e2e-k8s-monitoring test-e2e-clean test-e2e-docker-legacy test-integration-docker-legacy test-cert-validator test-e2e-ui playwright-install generate-test-data help run-ui run-service-ui run-services-dev check-services stop-services dev-environment demo-environment dev-minimal dev-full dev-status dev-logs dev-clean dev-restart wait-for-services show-endpoints test-performance test-coverage test-security test-setup setup-openxpki test-doc-processing test-doc-processing-unit test-doc-processing-integration test-doc-processing-e2e test-doc-processing-docker test-doc-processing-api test-doc-processing-health doc-processing-start doc-processing-stop doc-processing-status doc-processing-logs doc-processing-clean
+.PHONY: setup clean test lint format proto compile-protos clean-protos build run docker-build docker-run test-unit test-integration test-e2e test-e2e-k8s test-e2e-k8s-existing test-e2e-k8s-smoke test-e2e-k8s-monitoring test-e2e-clean test-e2e-docker-legacy test-integration-docker-legacy test-cert-validator test-e2e-ui playwright-install generate-test-data help run-ui run-service-ui run-services-dev check-services stop-services dev-environment demo-environment dev-minimal dev-full dev-status dev-logs dev-clean dev-restart wait-for-services show-endpoints test-performance test-coverage test-security test-setup setup-openxpki test-doc-processing test-doc-processing-unit test-doc-processing-integration test-doc-processing-e2e test-doc-processing-docker test-doc-processing-api test-doc-processing-health doc-processing-start doc-processing-stop doc-processing-status doc-processing-logs doc-processing-clean test-trust-svc test-trust-svc-unit test-trust-svc-integration test-trust-svc-e2e test-trust-svc-docker test-trust-svc-api test-trust-svc-health trust-svc-start trust-svc-start-docker trust-svc-stop trust-svc-status trust-svc-logs trust-svc-dev-job trust-svc-load-data trust-svc-clean
 
 PYTHON := uv run python
 UV := uv
@@ -668,6 +669,7 @@ check-services:
 	@$(DOCKER_COMPOSE) ps
 	@echo "Checking service endpoints..."
 	@curl -s http://localhost:8088/ && echo "PKD Service: OK" || echo "PKD Service: FAILED"
+	@curl -s http://localhost:$(TRUST_SVC_PORT)/api/v1/admin/status && echo "Trust Service: OK" || echo "Trust Service: FAILED"
 	@curl -s http://localhost:$(UI_PORT)/health && echo "UI Service: OK" || echo "UI Service: FAILED"
 
 # Stop all services
@@ -1353,6 +1355,123 @@ doc-processing-clean:
 	@echo "✅ Document processing cleanup completed"
 
 # =============================================================================
+# TRUST SERVICE TARGETS
+# =============================================================================
+
+# Trust Service Base Configuration
+TRUST_SVC_BASE_URL := http://localhost:$(TRUST_SVC_PORT)
+
+# Run all trust service tests
+test-trust-svc: test-trust-svc-unit test-trust-svc-integration test-trust-svc-e2e
+	@echo "✅ All trust service tests completed!"
+
+# Run unit tests for trust service
+test-trust-svc-unit:
+	@echo "🧪 Running trust service unit tests..."
+	$(UV) run pytest tests/trust_svc/unit/ -v --tb=short
+
+# Run integration tests for trust service API endpoints
+test-trust-svc-integration: test-trust-svc-api test-trust-svc-health
+	@echo "✅ Trust service integration tests completed!"
+
+# Run end-to-end tests for trust service workflows
+test-trust-svc-e2e:
+	@echo "🎬 Running trust service E2E tests..."
+	$(UV) run python tests/trust_svc/e2e/test_trust_workflow.py
+
+# Test trust service API endpoints with live service
+test-trust-svc-api:
+	@echo "🔍 Testing trust service API endpoints..."
+	@echo "Checking if service is running..."
+	@curl -s -f $(TRUST_SVC_BASE_URL)/api/v1/admin/status > /dev/null || (echo "❌ Service not running. Start with 'make trust-svc-start'" && exit 1)
+	@echo "✓ Service is responding"
+	@echo ""
+	@echo "Testing core endpoints..."
+	@curl -s $(TRUST_SVC_BASE_URL)/api/v1/admin/status | jq '.' > /dev/null && echo "✓ Status endpoint working" || echo "❌ Status endpoint failed"
+	@curl -s $(TRUST_SVC_BASE_URL)/api/v1/admin/stats | jq '.' > /dev/null && echo "✓ Stats endpoint working" || echo "❌ Stats endpoint failed"
+	@curl -s $(TRUST_SVC_BASE_URL)/metrics | grep -q "trust_" && echo "✓ Metrics endpoint working" || echo "❌ Metrics endpoint failed"
+	@echo ""
+	@echo "Testing API documentation..."
+	@curl -s $(TRUST_SVC_BASE_URL)/docs > /dev/null && echo "✓ API docs available" || echo "❌ API docs failed"
+
+# Test trust service health and status endpoints
+test-trust-svc-health:
+	@echo "💚 Testing trust service health endpoints..."
+	@echo "Service URL: $(TRUST_SVC_BASE_URL)"
+	@echo ""
+	@echo "=== Health Check Details ==="
+	@curl -s $(TRUST_SVC_BASE_URL)/api/v1/admin/status | jq '.' || echo "❌ Failed to get health details"
+	@echo ""
+	@echo "=== Trust Statistics ==="
+	@curl -s $(TRUST_SVC_BASE_URL)/api/v1/admin/stats | jq '.' || echo "❌ Failed to get trust stats"
+
+# Run trust service tests with Docker
+test-trust-svc-docker:
+	@echo "🐳 Running trust service tests with Docker..."
+	docker-compose -f docker/docker-compose.trust-dev.yml up --build trust-svc
+
+# Start trust service for testing
+trust-svc-start:
+	@echo "🚀 Starting trust service..."
+	cd src && \
+		$(UV) run uvicorn trust_svc.api:app --host 0.0.0.0 --port $(TRUST_SVC_PORT) --reload &
+	@echo "Service PID: $$!"
+	@echo "Waiting for service to start..."
+	@sleep 5
+	@echo "Service should be available at: $(TRUST_SVC_BASE_URL)"
+	@echo "API Documentation: $(TRUST_SVC_BASE_URL)/docs"
+	@echo "Metrics: $(TRUST_SVC_BASE_URL)/metrics"
+
+# Start trust service with Docker
+trust-svc-start-docker:
+	@echo "🐳 Starting trust service with Docker..."
+	docker-compose -f docker/docker-compose.trust-dev.yml up -d trust-svc
+	@echo "Waiting for service to start..."
+	@sleep 10
+	@echo "Service should be available at: $(TRUST_SVC_BASE_URL)"
+
+# Stop trust service
+trust-svc-stop:
+	@echo "🛑 Stopping trust service..."
+	@pkill -f "uvicorn.*trust_svc" || true
+	@docker-compose -f docker/docker-compose.trust-dev.yml down || true
+	@echo "Trust service stopped"
+
+# Check trust service status
+trust-svc-status:
+	@echo "📊 Trust service status:"
+	@echo "Local service:"
+	@curl -s $(TRUST_SVC_BASE_URL)/api/v1/admin/status 2>/dev/null && echo "✓ Running" || echo "❌ Not running"
+	@echo "Docker service:"
+	@docker-compose -f docker/docker-compose.trust-dev.yml ps trust-svc 2>/dev/null || echo "❌ Not running"
+
+# View trust service logs
+trust-svc-logs:
+	@echo "📋 Trust service logs:"
+	@echo "=== Docker logs ==="
+	@docker-compose -f docker/docker-compose.trust-dev.yml logs --tail=50 trust-svc 2>/dev/null || echo "No Docker logs available"
+
+# Run trust service development job
+trust-svc-dev-job:
+	@echo "🔧 Running trust service development job..."
+	cd src && $(UV) run python -m trust_svc.dev_job --count 1000 --countries 10 --format table
+
+# Load synthetic data into trust service
+trust-svc-load-data:
+	@echo "📊 Loading synthetic data into trust service..."
+	cd src && $(UV) run python -m trust_svc.dev_job --count 5000 --countries 50 --format json
+
+# Clean trust service test artifacts
+trust-svc-clean:
+	@echo "🧹 Cleaning trust service test artifacts..."
+	@find src/trust_svc -name "__pycache__" -type d -exec rm -rf {} + 2>/dev/null || true
+	@find tests/trust_svc -name "__pycache__" -type d -exec rm -rf {} + 2>/dev/null || true
+	@find . -name "*.pyc" -path "*/trust_svc/*" -delete 2>/dev/null || true
+	@find . -name ".pytest_cache" -type d -path "*/trust_svc/*" -exec rm -rf {} + 2>/dev/null || true
+	@docker-compose -f docker/docker-compose.trust-dev.yml down -v 2>/dev/null || true
+	@echo "✅ Trust service cleanup completed"
+
+# =============================================================================
 # HELP COMMAND
 # =============================================================================
 
@@ -1487,6 +1606,23 @@ help:
 	@echo "  doc-processing-status    - Check service status"
 	@echo "  doc-processing-logs      - View service logs"
 	@echo "  doc-processing-clean     - Clean test artifacts"
+	@echo ""
+	@echo "🔐 Trust Services:"
+	@echo "  test-trust-svc          - Run all trust service tests"
+	@echo "  test-trust-svc-unit     - Run trust service unit tests"
+	@echo "  test-trust-svc-integration - Run trust service integration tests"
+	@echo "  test-trust-svc-e2e      - Run trust service E2E tests"
+	@echo "  test-trust-svc-api      - Test API endpoints (requires running service)"
+	@echo "  test-trust-svc-health   - Test health endpoints"
+	@echo "  test-trust-svc-docker   - Run tests with Docker"
+	@echo "  trust-svc-start         - Start trust service"
+	@echo "  trust-svc-start-docker  - Start service with Docker"
+	@echo "  trust-svc-stop          - Stop trust service"
+	@echo "  trust-svc-status        - Check service status"
+	@echo "  trust-svc-logs          - View service logs"
+	@echo "  trust-svc-dev-job       - Run development job with synthetic data"
+	@echo "  trust-svc-load-data     - Load large dataset for testing"
+	@echo "  trust-svc-clean         - Clean test artifacts"
 	@echo ""
 	@echo "🎯 Quick Start for Manual Testing:"
 	@echo "  make dev-environment    # Complete setup"

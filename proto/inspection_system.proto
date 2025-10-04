@@ -1,6 +1,6 @@
 syntax = "proto3";
 
-package inspection;
+package marty.inspection.v1;
 
 service InspectionSystem {
   rpc Inspect (InspectRequest) returns (InspectResponse);

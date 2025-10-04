@@ -37,62 +37,62 @@ class TD2ServiceStub(object):
             channel: A grpc.Channel.
         """
         self.CreateTD2Document = channel.unary_unary(
-                '/td2_service.TD2Service/CreateTD2Document',
+                '/marty.td2.v1.TD2Service/CreateTD2Document',
                 request_serializer=td2__service__pb2.CreateTD2DocumentRequest.SerializeToString,
                 response_deserializer=td2__service__pb2.CreateTD2DocumentResponse.FromString,
                 _registered_method=True)
         self.IssueTD2Document = channel.unary_unary(
-                '/td2_service.TD2Service/IssueTD2Document',
+                '/marty.td2.v1.TD2Service/IssueTD2Document',
                 request_serializer=td2__service__pb2.IssueTD2DocumentRequest.SerializeToString,
                 response_deserializer=td2__service__pb2.IssueTD2DocumentResponse.FromString,
                 _registered_method=True)
         self.VerifyTD2Document = channel.unary_unary(
-                '/td2_service.TD2Service/VerifyTD2Document',
+                '/marty.td2.v1.TD2Service/VerifyTD2Document',
                 request_serializer=td2__service__pb2.VerifyTD2DocumentRequest.SerializeToString,
                 response_deserializer=td2__service__pb2.VerifyTD2DocumentResponse.FromString,
                 _registered_method=True)
         self.GetTD2Document = channel.unary_unary(
-                '/td2_service.TD2Service/GetTD2Document',
+                '/marty.td2.v1.TD2Service/GetTD2Document',
                 request_serializer=td2__service__pb2.GetTD2DocumentRequest.SerializeToString,
                 response_deserializer=td2__service__pb2.GetTD2DocumentResponse.FromString,
                 _registered_method=True)
         self.SearchTD2Documents = channel.unary_unary(
-                '/td2_service.TD2Service/SearchTD2Documents',
+                '/marty.td2.v1.TD2Service/SearchTD2Documents',
                 request_serializer=td2__service__pb2.SearchTD2DocumentsRequest.SerializeToString,
                 response_deserializer=td2__service__pb2.SearchTD2DocumentsResponse.FromString,
                 _registered_method=True)
         self.UpdateTD2DocumentStatus = channel.unary_unary(
-                '/td2_service.TD2Service/UpdateTD2DocumentStatus',
+                '/marty.td2.v1.TD2Service/UpdateTD2DocumentStatus',
                 request_serializer=td2__service__pb2.UpdateTD2DocumentStatusRequest.SerializeToString,
                 response_deserializer=td2__service__pb2.UpdateTD2DocumentStatusResponse.FromString,
                 _registered_method=True)
         self.RevokeTD2Document = channel.unary_unary(
-                '/td2_service.TD2Service/RevokeTD2Document',
+                '/marty.td2.v1.TD2Service/RevokeTD2Document',
                 request_serializer=td2__service__pb2.RevokeTD2DocumentRequest.SerializeToString,
                 response_deserializer=td2__service__pb2.RevokeTD2DocumentResponse.FromString,
                 _registered_method=True)
         self.RenewTD2Document = channel.unary_unary(
-                '/td2_service.TD2Service/RenewTD2Document',
+                '/marty.td2.v1.TD2Service/RenewTD2Document',
                 request_serializer=td2__service__pb2.RenewTD2DocumentRequest.SerializeToString,
                 response_deserializer=td2__service__pb2.RenewTD2DocumentResponse.FromString,
                 _registered_method=True)
         self.CreateTD2DocumentsBatch = channel.unary_unary(
-                '/td2_service.TD2Service/CreateTD2DocumentsBatch',
+                '/marty.td2.v1.TD2Service/CreateTD2DocumentsBatch',
                 request_serializer=td2__service__pb2.CreateTD2DocumentsBatchRequest.SerializeToString,
                 response_deserializer=td2__service__pb2.CreateTD2DocumentsBatchResponse.FromString,
                 _registered_method=True)
         self.VerifyTD2DocumentsBatch = channel.unary_unary(
-                '/td2_service.TD2Service/VerifyTD2DocumentsBatch',
+                '/marty.td2.v1.TD2Service/VerifyTD2DocumentsBatch',
                 request_serializer=td2__service__pb2.VerifyTD2DocumentsBatchRequest.SerializeToString,
                 response_deserializer=td2__service__pb2.VerifyTD2DocumentsBatchResponse.FromString,
                 _registered_method=True)
         self.GetTD2Statistics = channel.unary_unary(
-                '/td2_service.TD2Service/GetTD2Statistics',
+                '/marty.td2.v1.TD2Service/GetTD2Statistics',
                 request_serializer=google_dot_protobuf_dot_empty__pb2.Empty.SerializeToString,
                 response_deserializer=td2__service__pb2.TD2StatisticsResponse.FromString,
                 _registered_method=True)
         self.GetExpiringTD2Documents = channel.unary_unary(
-                '/td2_service.TD2Service/GetExpiringTD2Documents',
+                '/marty.td2.v1.TD2Service/GetExpiringTD2Documents',
                 request_serializer=td2__service__pb2.GetExpiringTD2DocumentsRequest.SerializeToString,
                 response_deserializer=td2__service__pb2.GetExpiringTD2DocumentsResponse.FromString,
                 _registered_method=True)
@@ -249,9 +249,9 @@ def add_TD2ServiceServicer_to_server(servicer, server):
             ),
     }
     generic_handler = grpc.method_handlers_generic_handler(
-            'td2_service.TD2Service', rpc_method_handlers)
+            'marty.td2.v1.TD2Service', rpc_method_handlers)
     server.add_generic_rpc_handlers((generic_handler,))
-    server.add_registered_method_handlers('td2_service.TD2Service', rpc_method_handlers)
+    server.add_registered_method_handlers('marty.td2.v1.TD2Service', rpc_method_handlers)
 
 
  # This class is part of an EXPERIMENTAL API.
@@ -273,7 +273,7 @@ class TD2Service(object):
         return grpc.experimental.unary_unary(
             request,
             target,
-            '/td2_service.TD2Service/CreateTD2Document',
+            '/marty.td2.v1.TD2Service/CreateTD2Document',
             td2__service__pb2.CreateTD2DocumentRequest.SerializeToString,
             td2__service__pb2.CreateTD2DocumentResponse.FromString,
             options,
@@ -300,7 +300,7 @@ class TD2Service(object):
         return grpc.experimental.unary_unary(
             request,
             target,
-            '/td2_service.TD2Service/IssueTD2Document',
+            '/marty.td2.v1.TD2Service/IssueTD2Document',
             td2__service__pb2.IssueTD2DocumentRequest.SerializeToString,
             td2__service__pb2.IssueTD2DocumentResponse.FromString,
             options,
@@ -327,7 +327,7 @@ class TD2Service(object):
         return grpc.experimental.unary_unary(
             request,
             target,
-            '/td2_service.TD2Service/VerifyTD2Document',
+            '/marty.td2.v1.TD2Service/VerifyTD2Document',
             td2__service__pb2.VerifyTD2DocumentRequest.SerializeToString,
             td2__service__pb2.VerifyTD2DocumentResponse.FromString,
             options,
@@ -354,7 +354,7 @@ class TD2Service(object):
         return grpc.experimental.unary_unary(
             request,
             target,
-            '/td2_service.TD2Service/GetTD2Document',
+            '/marty.td2.v1.TD2Service/GetTD2Document',
             td2__service__pb2.GetTD2DocumentRequest.SerializeToString,
             td2__service__pb2.GetTD2DocumentResponse.FromString,
             options,
@@ -381,7 +381,7 @@ class TD2Service(object):
         return grpc.experimental.unary_unary(
             request,
             target,
-            '/td2_service.TD2Service/SearchTD2Documents',
+            '/marty.td2.v1.TD2Service/SearchTD2Documents',
             td2__service__pb2.SearchTD2DocumentsRequest.SerializeToString,
             td2__service__pb2.SearchTD2DocumentsResponse.FromString,
             options,
@@ -408,7 +408,7 @@ class TD2Service(object):
         return grpc.experimental.unary_unary(
             request,
             target,
-            '/td2_service.TD2Service/UpdateTD2DocumentStatus',
+            '/marty.td2.v1.TD2Service/UpdateTD2DocumentStatus',
             td2__service__pb2.UpdateTD2DocumentStatusRequest.SerializeToString,
             td2__service__pb2.UpdateTD2DocumentStatusResponse.FromString,
             options,
@@ -435,7 +435,7 @@ class TD2Service(object):
         return grpc.experimental.unary_unary(
             request,
             target,
-            '/td2_service.TD2Service/RevokeTD2Document',
+            '/marty.td2.v1.TD2Service/RevokeTD2Document',
             td2__service__pb2.RevokeTD2DocumentRequest.SerializeToString,
             td2__service__pb2.RevokeTD2DocumentResponse.FromString,
             options,
@@ -462,7 +462,7 @@ class TD2Service(object):
         return grpc.experimental.unary_unary(
             request,
             target,
-            '/td2_service.TD2Service/RenewTD2Document',
+            '/marty.td2.v1.TD2Service/RenewTD2Document',
             td2__service__pb2.RenewTD2DocumentRequest.SerializeToString,
             td2__service__pb2.RenewTD2DocumentResponse.FromString,
             options,
@@ -489,7 +489,7 @@ class TD2Service(object):
         return grpc.experimental.unary_unary(
             request,
             target,
-            '/td2_service.TD2Service/CreateTD2DocumentsBatch',
+            '/marty.td2.v1.TD2Service/CreateTD2DocumentsBatch',
             td2__service__pb2.CreateTD2DocumentsBatchRequest.SerializeToString,
             td2__service__pb2.CreateTD2DocumentsBatchResponse.FromString,
             options,
@@ -516,7 +516,7 @@ class TD2Service(object):
         return grpc.experimental.unary_unary(
             request,
             target,
-            '/td2_service.TD2Service/VerifyTD2DocumentsBatch',
+            '/marty.td2.v1.TD2Service/VerifyTD2DocumentsBatch',
             td2__service__pb2.VerifyTD2DocumentsBatchRequest.SerializeToString,
             td2__service__pb2.VerifyTD2DocumentsBatchResponse.FromString,
             options,
@@ -543,7 +543,7 @@ class TD2Service(object):
         return grpc.experimental.unary_unary(
             request,
             target,
-            '/td2_service.TD2Service/GetTD2Statistics',
+            '/marty.td2.v1.TD2Service/GetTD2Statistics',
             google_dot_protobuf_dot_empty__pb2.Empty.SerializeToString,
             td2__service__pb2.TD2StatisticsResponse.FromString,
             options,
@@ -570,7 +570,7 @@ class TD2Service(object):
         return grpc.experimental.unary_unary(
             request,
             target,
-            '/td2_service.TD2Service/GetExpiringTD2Documents',
+            '/marty.td2.v1.TD2Service/GetExpiringTD2Documents',
             td2__service__pb2.GetExpiringTD2DocumentsRequest.SerializeToString,
             td2__service__pb2.GetExpiringTD2DocumentsResponse.FromString,
             options,

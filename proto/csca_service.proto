@@ -1,6 +1,6 @@
 syntax = "proto3";
 
-package csca;
+package marty.csca.v1;
 
 import "common_services.proto";
 
@@ -39,7 +39,7 @@ message CreateCertificateResponse {
   string certificate_id = 1;
   string certificate_data = 2;  // PEM encoded certificate
   string status = 3;            // ISSUED, RENEWED, FAILED
-  common_services.ApiError error = 4;  // Present only if status is FAILED
+  marty.common.v1.ApiError error = 4;  // Present only if status is FAILED
 }
 
 message RenewCertificateRequest {
@@ -57,7 +57,7 @@ message RevokeCertificateResponse {
   string certificate_id = 1;
   bool success = 2;
   string status = 3;           // REVOKED, FAILED
-  common_services.ApiError error = 4;    // Present only if status is FAILED
+  marty.common.v1.ApiError error = 4;    // Present only if status is FAILED
 }
 
 message CertificateStatusRequest {

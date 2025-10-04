@@ -1,6 +1,6 @@
 syntax = "proto3";
 
-package pkd;
+package marty.pkd.v1;
 
 import "google/protobuf/empty.proto";
 

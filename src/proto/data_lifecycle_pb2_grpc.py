@@ -36,42 +36,42 @@ class DataLifecycleManagerStub(object):
             channel: A grpc.Channel.
         """
         self.ConfigureRetentionPolicy = channel.unary_unary(
-                '/data_lifecycle.DataLifecycleManager/ConfigureRetentionPolicy',
+                '/marty.lifecycle.v1.DataLifecycleManager/ConfigureRetentionPolicy',
                 request_serializer=data__lifecycle__pb2.RetentionPolicyRequest.SerializeToString,
                 response_deserializer=data__lifecycle__pb2.RetentionPolicyResponse.FromString,
                 _registered_method=True)
         self.ScheduleArchival = channel.unary_unary(
-                '/data_lifecycle.DataLifecycleManager/ScheduleArchival',
+                '/marty.lifecycle.v1.DataLifecycleManager/ScheduleArchival',
                 request_serializer=data__lifecycle__pb2.ArchivalScheduleRequest.SerializeToString,
                 response_deserializer=data__lifecycle__pb2.ArchivalScheduleResponse.FromString,
                 _registered_method=True)
         self.ArchiveData = channel.unary_unary(
-                '/data_lifecycle.DataLifecycleManager/ArchiveData',
+                '/marty.lifecycle.v1.DataLifecycleManager/ArchiveData',
                 request_serializer=data__lifecycle__pb2.DataArchivalRequest.SerializeToString,
                 response_deserializer=data__lifecycle__pb2.DataArchivalResponse.FromString,
                 _registered_method=True)
         self.ScheduleDeletion = channel.unary_unary(
-                '/data_lifecycle.DataLifecycleManager/ScheduleDeletion',
+                '/marty.lifecycle.v1.DataLifecycleManager/ScheduleDeletion',
                 request_serializer=data__lifecycle__pb2.DeletionScheduleRequest.SerializeToString,
                 response_deserializer=data__lifecycle__pb2.DeletionScheduleResponse.FromString,
                 _registered_method=True)
         self.DeleteData = channel.unary_unary(
-                '/data_lifecycle.DataLifecycleManager/DeleteData',
+                '/marty.lifecycle.v1.DataLifecycleManager/DeleteData',
                 request_serializer=data__lifecycle__pb2.DataDeletionRequest.SerializeToString,
                 response_deserializer=data__lifecycle__pb2.DataDeletionResponse.FromString,
                 _registered_method=True)
         self.MonitorRetentionCompliance = channel.unary_unary(
-                '/data_lifecycle.DataLifecycleManager/MonitorRetentionCompliance',
+                '/marty.lifecycle.v1.DataLifecycleManager/MonitorRetentionCompliance',
                 request_serializer=data__lifecycle__pb2.RetentionMonitoringRequest.SerializeToString,
                 response_deserializer=data__lifecycle__pb2.RetentionMonitoringResponse.FromString,
                 _registered_method=True)
         self.ExtendRetentionPeriod = channel.unary_unary(
-                '/data_lifecycle.DataLifecycleManager/ExtendRetentionPeriod',
+                '/marty.lifecycle.v1.DataLifecycleManager/ExtendRetentionPeriod',
                 request_serializer=data__lifecycle__pb2.RetentionExtensionRequest.SerializeToString,
                 response_deserializer=data__lifecycle__pb2.RetentionExtensionResponse.FromString,
                 _registered_method=True)
         self.PlaceLegalHold = channel.unary_unary(
-                '/data_lifecycle.DataLifecycleManager/PlaceLegalHold',
+                '/marty.lifecycle.v1.DataLifecycleManager/PlaceLegalHold',
                 request_serializer=data__lifecycle__pb2.LegalHoldRequest.SerializeToString,
                 response_deserializer=data__lifecycle__pb2.LegalHoldResponse.FromString,
                 _registered_method=True)
@@ -182,9 +182,9 @@ def add_DataLifecycleManagerServicer_to_server(servicer, server):
             ),
     }
     generic_handler = grpc.method_handlers_generic_handler(
-            'data_lifecycle.DataLifecycleManager', rpc_method_handlers)
+            'marty.lifecycle.v1.DataLifecycleManager', rpc_method_handlers)
     server.add_generic_rpc_handlers((generic_handler,))
-    server.add_registered_method_handlers('data_lifecycle.DataLifecycleManager', rpc_method_handlers)
+    server.add_registered_method_handlers('marty.lifecycle.v1.DataLifecycleManager', rpc_method_handlers)
 
 
  # This class is part of an EXPERIMENTAL API.
@@ -206,7 +206,7 @@ class DataLifecycleManager(object):
         return grpc.experimental.unary_unary(
             request,
             target,
-            '/data_lifecycle.DataLifecycleManager/ConfigureRetentionPolicy',
+            '/marty.lifecycle.v1.DataLifecycleManager/ConfigureRetentionPolicy',
             data__lifecycle__pb2.RetentionPolicyRequest.SerializeToString,
             data__lifecycle__pb2.RetentionPolicyResponse.FromString,
             options,
@@ -233,7 +233,7 @@ class DataLifecycleManager(object):
         return grpc.experimental.unary_unary(
             request,
             target,
-            '/data_lifecycle.DataLifecycleManager/ScheduleArchival',
+            '/marty.lifecycle.v1.DataLifecycleManager/ScheduleArchival',
             data__lifecycle__pb2.ArchivalScheduleRequest.SerializeToString,
             data__lifecycle__pb2.ArchivalScheduleResponse.FromString,
             options,
@@ -260,7 +260,7 @@ class DataLifecycleManager(object):
         return grpc.experimental.unary_unary(
             request,
             target,
-            '/data_lifecycle.DataLifecycleManager/ArchiveData',
+            '/marty.lifecycle.v1.DataLifecycleManager/ArchiveData',
             data__lifecycle__pb2.DataArchivalRequest.SerializeToString,
             data__lifecycle__pb2.DataArchivalResponse.FromString,
             options,
@@ -287,7 +287,7 @@ class DataLifecycleManager(object):
         return grpc.experimental.unary_unary(
             request,
             target,
-            '/data_lifecycle.DataLifecycleManager/ScheduleDeletion',
+            '/marty.lifecycle.v1.DataLifecycleManager/ScheduleDeletion',
             data__lifecycle__pb2.DeletionScheduleRequest.SerializeToString,
             data__lifecycle__pb2.DeletionScheduleResponse.FromString,
             options,
@@ -314,7 +314,7 @@ class DataLifecycleManager(object):
         return grpc.experimental.unary_unary(
             request,
             target,
-            '/data_lifecycle.DataLifecycleManager/DeleteData',
+            '/marty.lifecycle.v1.DataLifecycleManager/DeleteData',
             data__lifecycle__pb2.DataDeletionRequest.SerializeToString,
             data__lifecycle__pb2.DataDeletionResponse.FromString,
             options,
@@ -341,7 +341,7 @@ class DataLifecycleManager(object):
         return grpc.experimental.unary_unary(
             request,
             target,
-            '/data_lifecycle.DataLifecycleManager/MonitorRetentionCompliance',
+            '/marty.lifecycle.v1.DataLifecycleManager/MonitorRetentionCompliance',
             data__lifecycle__pb2.RetentionMonitoringRequest.SerializeToString,
             data__lifecycle__pb2.RetentionMonitoringResponse.FromString,
             options,
@@ -368,7 +368,7 @@ class DataLifecycleManager(object):
         return grpc.experimental.unary_unary(
             request,
             target,
-            '/data_lifecycle.DataLifecycleManager/ExtendRetentionPeriod',
+            '/marty.lifecycle.v1.DataLifecycleManager/ExtendRetentionPeriod',
             data__lifecycle__pb2.RetentionExtensionRequest.SerializeToString,
             data__lifecycle__pb2.RetentionExtensionResponse.FromString,
             options,
@@ -395,7 +395,7 @@ class DataLifecycleManager(object):
         return grpc.experimental.unary_unary(
             request,
             target,
-            '/data_lifecycle.DataLifecycleManager/PlaceLegalHold',
+            '/marty.lifecycle.v1.DataLifecycleManager/PlaceLegalHold',
             data__lifecycle__pb2.LegalHoldRequest.SerializeToString,
             data__lifecycle__pb2.LegalHoldResponse.FromString,
             options,

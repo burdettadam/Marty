@@ -1,0 +1,131 @@
+version: '3.8'
+
+networks:
+  marty-monitoring:
+    driver: bridge
+
+services:
+  postgres:
+    image: postgres:13
+    container_name: marty-postgres-dev
+    environment:
+      POSTGRES_USER: martyuser
+      POSTGRES_PASSWORD: martypassword
+      POSTGRES_DB: martydb
+    ports:
+      - "5432:5432"
+    volumes:
+      - marty_postgres_data:/var/lib/postgresql/data
+      - ./scripts/init-trust-db.sql:/docker-entrypoint-initdb.d/init-trust-db.sql
+    networks:
+      - marty-monitoring
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U martyuser -d martydb"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  trust-svc:
+    platform: linux/amd64
+    build:
+      context: ..
+      dockerfile: docker/trust-service.Dockerfile
+    container_name: trust-service-dev
+    ports:
+      - "8090:8080"
+    environment:
+      - ENV=development
+      - SERVICE_NAME=trust-svc
+      - TRUST_DB_HOST=postgres
+      - TRUST_DB_PORT=5432
+      - TRUST_DB_NAME=martydb
+      - TRUST_DB_USER=martyuser
+      - TRUST_DB_PASSWORD=martypassword
+      - TRUST_SERVICE_HOST=0.0.0.0
+      - TRUST_SERVICE_PORT=8080
+      - TRUST_SERVICE_LOG_LEVEL=DEBUG
+      - TRUST_PKD_REFRESH_INTERVAL=300
+      - PROMETHEUS_MULTIPROC_DIR=/tmp/prometheus_multiproc
+    volumes:
+      - ../data/trust:/app/data:ro
+      - ../config:/app/config:ro
+      - ../src:/app/src:ro
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/api/v1/admin/status"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - marty-monitoring
+
+  prometheus:
+    image: prom/prometheus:v2.47.0
+    container_name: prometheus
+    ports:
+      - "9090:9090"
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.console.libraries=/etc/prometheus/console_libraries'
+      - '--web.console.templates=/etc/prometheus/consoles'
+      - '--storage.tsdb.retention.time=200h'
+      - '--web.enable-lifecycle'
+    volumes:
+      - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus_data:/prometheus
+    networks:
+      - marty-monitoring
+    depends_on:
+      - trust-svc
+
+  grafana:
+    image: grafana/grafana:10.1.0
+    container_name: grafana
+    ports:
+      - "3000:3000"
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+      - GF_USERS_ALLOW_SIGN_UP=false
+      - GF_INSTALL_PLUGINS=grafana-piechart-panel
+    volumes:
+      - ./monitoring/grafana/datasources:/etc/grafana/provisioning/datasources:ro
+      - ./monitoring/grafana/dashboards:/etc/grafana/provisioning/dashboards:ro
+      - ../src/trust_svc/grafana_dashboard.json:/var/lib/grafana/dashboards/trust-services.json:ro
+      - grafana_data:/var/lib/grafana
+    networks:
+      - marty-monitoring
+    depends_on:
+      - prometheus
+
+  trust-job-runner:
+    platform: linux/amd64
+    build:
+      context: ..
+      dockerfile: docker/trust-service.Dockerfile
+    container_name: trust-job-runner
+    environment:
+      - ENV=development
+      - TRUST_DB_HOST=postgres
+      - TRUST_DB_PORT=5432
+      - TRUST_DB_NAME=martydb
+      - TRUST_DB_USER=martyuser
+      - TRUST_DB_PASSWORD=martypassword
+    volumes:
+      - ../data/trust:/app/data:ro
+      - ../config:/app/config:ro
+    command: ["python", "-m", "src.trust_svc.dev_job", "--count", "1000", "--countries", "10", "--format", "json"]
+    depends_on:
+      trust-svc:
+        condition: service_healthy
+    networks:
+      - marty-monitoring
+    restart: "no"
+
+volumes:
+  marty_postgres_data:
+  prometheus_data:
+  grafana_data:

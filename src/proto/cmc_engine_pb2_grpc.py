@@ -35,52 +35,52 @@ class CMCEngineStub(object):
             channel: A grpc.Channel.
         """
         self.CreateCMC = channel.unary_unary(
-                '/cmc.CMCEngine/CreateCMC',
+                '/marty.cmc.v1.CMCEngine/CreateCMC',
                 request_serializer=cmc__engine__pb2.CreateCMCRequest.SerializeToString,
                 response_deserializer=cmc__engine__pb2.CreateCMCResponse.FromString,
                 _registered_method=True)
         self.GetCMC = channel.unary_unary(
-                '/cmc.CMCEngine/GetCMC',
+                '/marty.cmc.v1.CMCEngine/GetCMC',
                 request_serializer=cmc__engine__pb2.GetCMCRequest.SerializeToString,
                 response_deserializer=cmc__engine__pb2.CMCResponse.FromString,
                 _registered_method=True)
         self.SignCMC = channel.unary_unary(
-                '/cmc.CMCEngine/SignCMC',
+                '/marty.cmc.v1.CMCEngine/SignCMC',
                 request_serializer=cmc__engine__pb2.SignCMCRequest.SerializeToString,
                 response_deserializer=cmc__engine__pb2.SignCMCResponse.FromString,
                 _registered_method=True)
         self.GenerateVDSNCBarcode = channel.unary_unary(
-                '/cmc.CMCEngine/GenerateVDSNCBarcode',
+                '/marty.cmc.v1.CMCEngine/GenerateVDSNCBarcode',
                 request_serializer=cmc__engine__pb2.GenerateVDSNCRequest.SerializeToString,
                 response_deserializer=cmc__engine__pb2.GenerateVDSNCResponse.FromString,
                 _registered_method=True)
         self.GenerateCMCQRCode = channel.unary_unary(
-                '/cmc.CMCEngine/GenerateCMCQRCode',
+                '/marty.cmc.v1.CMCEngine/GenerateCMCQRCode',
                 request_serializer=cmc__engine__pb2.GenerateQRCodeRequest.SerializeToString,
                 response_deserializer=cmc__engine__pb2.GenerateQRCodeResponse.FromString,
                 _registered_method=True)
         self.VerifyCMC = channel.unary_unary(
-                '/cmc.CMCEngine/VerifyCMC',
+                '/marty.cmc.v1.CMCEngine/VerifyCMC',
                 request_serializer=cmc__engine__pb2.VerifyCMCRequest.SerializeToString,
                 response_deserializer=cmc__engine__pb2.VerifyCMCResponse.FromString,
                 _registered_method=True)
         self.CheckBackgroundVerification = channel.unary_unary(
-                '/cmc.CMCEngine/CheckBackgroundVerification',
+                '/marty.cmc.v1.CMCEngine/CheckBackgroundVerification',
                 request_serializer=cmc__engine__pb2.BackgroundCheckRequest.SerializeToString,
                 response_deserializer=cmc__engine__pb2.BackgroundCheckResponse.FromString,
                 _registered_method=True)
         self.EnforceBackgroundPrerequisite = channel.unary_unary(
-                '/cmc.CMCEngine/EnforceBackgroundPrerequisite',
+                '/marty.cmc.v1.CMCEngine/EnforceBackgroundPrerequisite',
                 request_serializer=cmc__engine__pb2.BackgroundPrerequisiteRequest.SerializeToString,
                 response_deserializer=cmc__engine__pb2.BackgroundPrerequisiteResponse.FromString,
                 _registered_method=True)
         self.ValidateIssuanceEligibility = channel.unary_unary(
-                '/cmc.CMCEngine/ValidateIssuanceEligibility',
+                '/marty.cmc.v1.CMCEngine/ValidateIssuanceEligibility',
                 request_serializer=cmc__engine__pb2.IssuanceEligibilityRequest.SerializeToString,
                 response_deserializer=cmc__engine__pb2.IssuanceEligibilityResponse.FromString,
                 _registered_method=True)
         self.UpdateVisaFreeStatus = channel.unary_unary(
-                '/cmc.CMCEngine/UpdateVisaFreeStatus',
+                '/marty.cmc.v1.CMCEngine/UpdateVisaFreeStatus',
                 request_serializer=cmc__engine__pb2.VisaFreeStatusRequest.SerializeToString,
                 response_deserializer=cmc__engine__pb2.VisaFreeStatusResponse.FromString,
                 _registered_method=True)
@@ -213,9 +213,9 @@ def add_CMCEngineServicer_to_server(servicer, server):
             ),
     }
     generic_handler = grpc.method_handlers_generic_handler(
-            'cmc.CMCEngine', rpc_method_handlers)
+            'marty.cmc.v1.CMCEngine', rpc_method_handlers)
     server.add_generic_rpc_handlers((generic_handler,))
-    server.add_registered_method_handlers('cmc.CMCEngine', rpc_method_handlers)
+    server.add_registered_method_handlers('marty.cmc.v1.CMCEngine', rpc_method_handlers)
 
 
  # This class is part of an EXPERIMENTAL API.
@@ -236,7 +236,7 @@ class CMCEngine(object):
         return grpc.experimental.unary_unary(
             request,
             target,
-            '/cmc.CMCEngine/CreateCMC',
+            '/marty.cmc.v1.CMCEngine/CreateCMC',
             cmc__engine__pb2.CreateCMCRequest.SerializeToString,
             cmc__engine__pb2.CreateCMCResponse.FromString,
             options,
@@ -263,7 +263,7 @@ class CMCEngine(object):
         return grpc.experimental.unary_unary(
             request,
             target,
-            '/cmc.CMCEngine/GetCMC',
+            '/marty.cmc.v1.CMCEngine/GetCMC',
             cmc__engine__pb2.GetCMCRequest.SerializeToString,
             cmc__engine__pb2.CMCResponse.FromString,
             options,
@@ -290,7 +290,7 @@ class CMCEngine(object):
         return grpc.experimental.unary_unary(
             request,
             target,
-            '/cmc.CMCEngine/SignCMC',
+            '/marty.cmc.v1.CMCEngine/SignCMC',
             cmc__engine__pb2.SignCMCRequest.SerializeToString,
             cmc__engine__pb2.SignCMCResponse.FromString,
             options,
@@ -317,7 +317,7 @@ class CMCEngine(object):
         return grpc.experimental.unary_unary(
             request,
             target,
-            '/cmc.CMCEngine/GenerateVDSNCBarcode',
+            '/marty.cmc.v1.CMCEngine/GenerateVDSNCBarcode',
             cmc__engine__pb2.GenerateVDSNCRequest.SerializeToString,
             cmc__engine__pb2.GenerateVDSNCResponse.FromString,
             options,
@@ -344,7 +344,7 @@ class CMCEngine(object):
         return grpc.experimental.unary_unary(
             request,
             target,
-            '/cmc.CMCEngine/GenerateCMCQRCode',
+            '/marty.cmc.v1.CMCEngine/GenerateCMCQRCode',
             cmc__engine__pb2.GenerateQRCodeRequest.SerializeToString,
             cmc__engine__pb2.GenerateQRCodeResponse.FromString,
             options,
@@ -371,7 +371,7 @@ class CMCEngine(object):
         return grpc.experimental.unary_unary(
             request,
             target,
-            '/cmc.CMCEngine/VerifyCMC',
+            '/marty.cmc.v1.CMCEngine/VerifyCMC',
             cmc__engine__pb2.VerifyCMCRequest.SerializeToString,
             cmc__engine__pb2.VerifyCMCResponse.FromString,
             options,
@@ -398,7 +398,7 @@ class CMCEngine(object):
         return grpc.experimental.unary_unary(
             request,
             target,
-            '/cmc.CMCEngine/CheckBackgroundVerification',
+            '/marty.cmc.v1.CMCEngine/CheckBackgroundVerification',
             cmc__engine__pb2.BackgroundCheckRequest.SerializeToString,
             cmc__engine__pb2.BackgroundCheckResponse.FromString,
             options,
@@ -425,7 +425,7 @@ class CMCEngine(object):
         return grpc.experimental.unary_unary(
             request,
             target,
-            '/cmc.CMCEngine/EnforceBackgroundPrerequisite',
+            '/marty.cmc.v1.CMCEngine/EnforceBackgroundPrerequisite',
             cmc__engine__pb2.BackgroundPrerequisiteRequest.SerializeToString,
             cmc__engine__pb2.BackgroundPrerequisiteResponse.FromString,
             options,
@@ -452,7 +452,7 @@ class CMCEngine(object):
         return grpc.experimental.unary_unary(
             request,
             target,
-            '/cmc.CMCEngine/ValidateIssuanceEligibility',
+            '/marty.cmc.v1.CMCEngine/ValidateIssuanceEligibility',
             cmc__engine__pb2.IssuanceEligibilityRequest.SerializeToString,
             cmc__engine__pb2.IssuanceEligibilityResponse.FromString,
             options,
@@ -479,7 +479,7 @@ class CMCEngine(object):
         return grpc.experimental.unary_unary(
             request,
             target,
-            '/cmc.CMCEngine/UpdateVisaFreeStatus',
+            '/marty.cmc.v1.CMCEngine/UpdateVisaFreeStatus',
             cmc__engine__pb2.VisaFreeStatusRequest.SerializeToString,
             cmc__engine__pb2.VisaFreeStatusResponse.FromString,
             options,

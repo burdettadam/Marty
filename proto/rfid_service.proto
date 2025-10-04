@@ -1,6 +1,6 @@
 syntax = "proto3";
 
-package rfid;
+package marty.rfid.v1;
 
 import "common_services.proto";
 
@@ -30,7 +30,7 @@ message ListReadersRequest {
 
 message ListReadersResponse {
     repeated ReaderInfo readers = 1;
-    common_services.Status status = 2;
+    marty.common.v1.Status status = 2;
 }
 
 message ReaderInfo {
@@ -65,7 +65,7 @@ message ConnectReaderRequest {
 message ConnectReaderResponse {
     bool connected = 1;
     string atr = 2;  // Hex-encoded ATR
-    common_services.Status status = 3;
+    marty.common.v1.Status status = 3;
 }
 
 message DisconnectReaderRequest {
@@ -74,7 +74,7 @@ message DisconnectReaderRequest {
 
 message DisconnectReaderResponse {
     bool disconnected = 1;
-    common_services.Status status = 2;
+    marty.common.v1.Status status = 2;
 }
 
 message GetReaderStatusRequest {
@@ -83,7 +83,7 @@ message GetReaderStatusRequest {
 
 message GetReaderStatusResponse {
     ReaderInfo reader = 1;
-    common_services.Status status = 2;
+    marty.common.v1.Status status = 2;
 }
 
 // Card operation messages
@@ -94,7 +94,7 @@ message ReadCardRequest {
 
 message ReadCardResponse {
     map<string, bytes> data_groups = 1;  // DG name -> data
-    common_services.Status status = 2;
+    marty.common.v1.Status status = 2;
 }
 
 message SendAPDURequest {
@@ -106,7 +106,7 @@ message SendAPDUResponse {
     bytes apdu_response = 1;
     int32 sw1 = 2;
     int32 sw2 = 3;
-    common_services.Status status = 4;
+    marty.common.v1.Status status = 4;
 }
 
 message GetATRRequest {
@@ -115,7 +115,7 @@ message GetATRRequest {
 
 message GetATRResponse {
     string atr = 1;  // Hex-encoded ATR
-    common_services.Status status = 2;
+    marty.common.v1.Status status = 2;
 }
 
 // Document operation messages
@@ -133,7 +133,7 @@ message MRZData {
 
 message ReadPassportResponse {
     PassportData passport = 1;
-    common_services.Status status = 2;
+    marty.common.v1.Status status = 2;
 }
 
 message PassportData {
@@ -194,7 +194,7 @@ message VerifyDocumentRequest {
 
 message VerifyDocumentResponse {
     VerificationResult result = 1;
-    common_services.Status status = 2;
+    marty.common.v1.Status status = 2;
 }
 
 message VerificationResult {
@@ -214,5 +214,5 @@ message ExtractBiometricsRequest {
 
 message ExtractBiometricsResponse {
     BiometricData biometrics = 1;
-    common_services.Status status = 2;
+    marty.common.v1.Status status = 2;
 }

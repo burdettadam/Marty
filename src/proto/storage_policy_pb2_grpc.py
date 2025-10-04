@@ -36,27 +36,27 @@ class StoragePolicyEngineStub(object):
             channel: A grpc.Channel.
         """
         self.ValidateDataCompliance = channel.unary_unary(
-                '/storage_policy.StoragePolicyEngine/ValidateDataCompliance',
+                '/marty.storage.v1.StoragePolicyEngine/ValidateDataCompliance',
                 request_serializer=storage__policy__pb2.DataComplianceRequest.SerializeToString,
                 response_deserializer=storage__policy__pb2.DataComplianceResponse.FromString,
                 _registered_method=True)
         self.ApplyStorageConstraints = channel.unary_unary(
-                '/storage_policy.StoragePolicyEngine/ApplyStorageConstraints',
+                '/marty.storage.v1.StoragePolicyEngine/ApplyStorageConstraints',
                 request_serializer=storage__policy__pb2.StorageConstraintRequest.SerializeToString,
                 response_deserializer=storage__policy__pb2.StorageConstraintResponse.FromString,
                 _registered_method=True)
         self.MaskSensitiveData = channel.unary_unary(
-                '/storage_policy.StoragePolicyEngine/MaskSensitiveData',
+                '/marty.storage.v1.StoragePolicyEngine/MaskSensitiveData',
                 request_serializer=storage__policy__pb2.DataMaskingRequest.SerializeToString,
                 response_deserializer=storage__policy__pb2.DataMaskingResponse.FromString,
                 _registered_method=True)
         self.AuditStoredData = channel.unary_unary(
-                '/storage_policy.StoragePolicyEngine/AuditStoredData',
+                '/marty.storage.v1.StoragePolicyEngine/AuditStoredData',
                 request_serializer=storage__policy__pb2.StorageAuditRequest.SerializeToString,
                 response_deserializer=storage__policy__pb2.StorageAuditResponse.FromString,
                 _registered_method=True)
         self.PurgeExpiredData = channel.unary_unary(
-                '/storage_policy.StoragePolicyEngine/PurgeExpiredData',
+                '/marty.storage.v1.StoragePolicyEngine/PurgeExpiredData',
                 request_serializer=storage__policy__pb2.DataPurgeRequest.SerializeToString,
                 response_deserializer=storage__policy__pb2.DataPurgeResponse.FromString,
                 _registered_method=True)
@@ -131,9 +131,9 @@ def add_StoragePolicyEngineServicer_to_server(servicer, server):
             ),
     }
     generic_handler = grpc.method_handlers_generic_handler(
-            'storage_policy.StoragePolicyEngine', rpc_method_handlers)
+            'marty.storage.v1.StoragePolicyEngine', rpc_method_handlers)
     server.add_generic_rpc_handlers((generic_handler,))
-    server.add_registered_method_handlers('storage_policy.StoragePolicyEngine', rpc_method_handlers)
+    server.add_registered_method_handlers('marty.storage.v1.StoragePolicyEngine', rpc_method_handlers)
 
 
  # This class is part of an EXPERIMENTAL API.
@@ -155,7 +155,7 @@ class StoragePolicyEngine(object):
         return grpc.experimental.unary_unary(
             request,
             target,
-            '/storage_policy.StoragePolicyEngine/ValidateDataCompliance',
+            '/marty.storage.v1.StoragePolicyEngine/ValidateDataCompliance',
             storage__policy__pb2.DataComplianceRequest.SerializeToString,
             storage__policy__pb2.DataComplianceResponse.FromString,
             options,
@@ -182,7 +182,7 @@ class StoragePolicyEngine(object):
         return grpc.experimental.unary_unary(
             request,
             target,
-            '/storage_policy.StoragePolicyEngine/ApplyStorageConstraints',
+            '/marty.storage.v1.StoragePolicyEngine/ApplyStorageConstraints',
             storage__policy__pb2.StorageConstraintRequest.SerializeToString,
             storage__policy__pb2.StorageConstraintResponse.FromString,
             options,
@@ -209,7 +209,7 @@ class StoragePolicyEngine(object):
         return grpc.experimental.unary_unary(
             request,
             target,
-            '/storage_policy.StoragePolicyEngine/MaskSensitiveData',
+            '/marty.storage.v1.StoragePolicyEngine/MaskSensitiveData',
             storage__policy__pb2.DataMaskingRequest.SerializeToString,
             storage__policy__pb2.DataMaskingResponse.FromString,
             options,
@@ -236,7 +236,7 @@ class StoragePolicyEngine(object):
         return grpc.experimental.unary_unary(
             request,
             target,
-            '/storage_policy.StoragePolicyEngine/AuditStoredData',
+            '/marty.storage.v1.StoragePolicyEngine/AuditStoredData',
             storage__policy__pb2.StorageAuditRequest.SerializeToString,
             storage__policy__pb2.StorageAuditResponse.FromString,
             options,
@@ -263,7 +263,7 @@ class StoragePolicyEngine(object):
         return grpc.experimental.unary_unary(
             request,
             target,
-            '/storage_policy.StoragePolicyEngine/PurgeExpiredData',
+            '/marty.storage.v1.StoragePolicyEngine/PurgeExpiredData',
             storage__policy__pb2.DataPurgeRequest.SerializeToString,
             storage__policy__pb2.DataPurgeResponse.FromString,
             options,

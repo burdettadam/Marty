@@ -35,37 +35,37 @@ class CscaServiceStub(object):
             channel: A grpc.Channel.
         """
         self.GetCscaData = channel.unary_unary(
-                '/csca.CscaService/GetCscaData',
+                '/marty.csca.v1.CscaService/GetCscaData',
                 request_serializer=csca__service__pb2.CscaRequest.SerializeToString,
                 response_deserializer=csca__service__pb2.CscaResponse.FromString,
                 _registered_method=True)
         self.CreateCertificate = channel.unary_unary(
-                '/csca.CscaService/CreateCertificate',
+                '/marty.csca.v1.CscaService/CreateCertificate',
                 request_serializer=csca__service__pb2.CreateCertificateRequest.SerializeToString,
                 response_deserializer=csca__service__pb2.CreateCertificateResponse.FromString,
                 _registered_method=True)
         self.RenewCertificate = channel.unary_unary(
-                '/csca.CscaService/RenewCertificate',
+                '/marty.csca.v1.CscaService/RenewCertificate',
                 request_serializer=csca__service__pb2.RenewCertificateRequest.SerializeToString,
                 response_deserializer=csca__service__pb2.CreateCertificateResponse.FromString,
                 _registered_method=True)
         self.RevokeCertificate = channel.unary_unary(
-                '/csca.CscaService/RevokeCertificate',
+                '/marty.csca.v1.CscaService/RevokeCertificate',
                 request_serializer=csca__service__pb2.RevokeCertificateRequest.SerializeToString,
                 response_deserializer=csca__service__pb2.RevokeCertificateResponse.FromString,
                 _registered_method=True)
         self.GetCertificateStatus = channel.unary_unary(
-                '/csca.CscaService/GetCertificateStatus',
+                '/marty.csca.v1.CscaService/GetCertificateStatus',
                 request_serializer=csca__service__pb2.CertificateStatusRequest.SerializeToString,
                 response_deserializer=csca__service__pb2.CertificateStatusResponse.FromString,
                 _registered_method=True)
         self.ListCertificates = channel.unary_unary(
-                '/csca.CscaService/ListCertificates',
+                '/marty.csca.v1.CscaService/ListCertificates',
                 request_serializer=csca__service__pb2.ListCertificatesRequest.SerializeToString,
                 response_deserializer=csca__service__pb2.ListCertificatesResponse.FromString,
                 _registered_method=True)
         self.CheckExpiringCertificates = channel.unary_unary(
-                '/csca.CscaService/CheckExpiringCertificates',
+                '/marty.csca.v1.CscaService/CheckExpiringCertificates',
                 request_serializer=csca__service__pb2.CheckExpiringCertificatesRequest.SerializeToString,
                 response_deserializer=csca__service__pb2.ListCertificatesResponse.FromString,
                 _registered_method=True)
@@ -158,9 +158,9 @@ def add_CscaServiceServicer_to_server(servicer, server):
             ),
     }
     generic_handler = grpc.method_handlers_generic_handler(
-            'csca.CscaService', rpc_method_handlers)
+            'marty.csca.v1.CscaService', rpc_method_handlers)
     server.add_generic_rpc_handlers((generic_handler,))
-    server.add_registered_method_handlers('csca.CscaService', rpc_method_handlers)
+    server.add_registered_method_handlers('marty.csca.v1.CscaService', rpc_method_handlers)
 
 
  # This class is part of an EXPERIMENTAL API.
@@ -181,7 +181,7 @@ class CscaService(object):
         return grpc.experimental.unary_unary(
             request,
             target,
-            '/csca.CscaService/GetCscaData',
+            '/marty.csca.v1.CscaService/GetCscaData',
             csca__service__pb2.CscaRequest.SerializeToString,
             csca__service__pb2.CscaResponse.FromString,
             options,
@@ -208,7 +208,7 @@ class CscaService(object):
         return grpc.experimental.unary_unary(
             request,
             target,
-            '/csca.CscaService/CreateCertificate',
+            '/marty.csca.v1.CscaService/CreateCertificate',
             csca__service__pb2.CreateCertificateRequest.SerializeToString,
             csca__service__pb2.CreateCertificateResponse.FromString,
             options,
@@ -235,7 +235,7 @@ class CscaService(object):
         return grpc.experimental.unary_unary(
             request,
             target,
-            '/csca.CscaService/RenewCertificate',
+            '/marty.csca.v1.CscaService/RenewCertificate',
             csca__service__pb2.RenewCertificateRequest.SerializeToString,
             csca__service__pb2.CreateCertificateResponse.FromString,
             options,
@@ -262,7 +262,7 @@ class CscaService(object):
         return grpc.experimental.unary_unary(
             request,
             target,
-            '/csca.CscaService/RevokeCertificate',
+            '/marty.csca.v1.CscaService/RevokeCertificate',
             csca__service__pb2.RevokeCertificateRequest.SerializeToString,
             csca__service__pb2.RevokeCertificateResponse.FromString,
             options,
@@ -289,7 +289,7 @@ class CscaService(object):
         return grpc.experimental.unary_unary(
             request,
             target,
-            '/csca.CscaService/GetCertificateStatus',
+            '/marty.csca.v1.CscaService/GetCertificateStatus',
             csca__service__pb2.CertificateStatusRequest.SerializeToString,
             csca__service__pb2.CertificateStatusResponse.FromString,
             options,
@@ -316,7 +316,7 @@ class CscaService(object):
         return grpc.experimental.unary_unary(
             request,
             target,
-            '/csca.CscaService/ListCertificates',
+            '/marty.csca.v1.CscaService/ListCertificates',
             csca__service__pb2.ListCertificatesRequest.SerializeToString,
             csca__service__pb2.ListCertificatesResponse.FromString,
             options,
@@ -343,7 +343,7 @@ class CscaService(object):
         return grpc.experimental.unary_unary(
             request,
             target,
-            '/csca.CscaService/CheckExpiringCertificates',
+            '/marty.csca.v1.CscaService/CheckExpiringCertificates',
             csca__service__pb2.CheckExpiringCertificatesRequest.SerializeToString,
             csca__service__pb2.ListCertificatesResponse.FromString,
             options,

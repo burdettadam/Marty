@@ -1,6 +1,6 @@
 syntax = "proto3";
 
-package data_lifecycle;
+package marty.lifecycle.v1;
 
 // Data Lifecycle Management Service for Annex 9 Compliance
 service DataLifecycleManager {

@@ -36,42 +36,42 @@ class DTCEngineStub(object):
             channel: A grpc.Channel.
         """
         self.CreateDTC = channel.unary_unary(
-                '/dtc_engine.DTCEngine/CreateDTC',
+                '/marty.dtc.v1.DTCEngine/CreateDTC',
                 request_serializer=dtc__engine__pb2.CreateDTCRequest.SerializeToString,
                 response_deserializer=dtc__engine__pb2.CreateDTCResponse.FromString,
                 _registered_method=True)
         self.GetDTC = channel.unary_unary(
-                '/dtc_engine.DTCEngine/GetDTC',
+                '/marty.dtc.v1.DTCEngine/GetDTC',
                 request_serializer=dtc__engine__pb2.GetDTCRequest.SerializeToString,
                 response_deserializer=dtc__engine__pb2.DTCResponse.FromString,
                 _registered_method=True)
         self.SignDTC = channel.unary_unary(
-                '/dtc_engine.DTCEngine/SignDTC',
+                '/marty.dtc.v1.DTCEngine/SignDTC',
                 request_serializer=dtc__engine__pb2.SignDTCRequest.SerializeToString,
                 response_deserializer=dtc__engine__pb2.SignDTCResponse.FromString,
                 _registered_method=True)
         self.RevokeDTC = channel.unary_unary(
-                '/dtc_engine.DTCEngine/RevokeDTC',
+                '/marty.dtc.v1.DTCEngine/RevokeDTC',
                 request_serializer=dtc__engine__pb2.RevokeDTCRequest.SerializeToString,
                 response_deserializer=dtc__engine__pb2.RevokeDTCResponse.FromString,
                 _registered_method=True)
         self.GenerateDTCQRCode = channel.unary_unary(
-                '/dtc_engine.DTCEngine/GenerateDTCQRCode',
+                '/marty.dtc.v1.DTCEngine/GenerateDTCQRCode',
                 request_serializer=dtc__engine__pb2.GenerateDTCQRCodeRequest.SerializeToString,
                 response_deserializer=dtc__engine__pb2.GenerateDTCQRCodeResponse.FromString,
                 _registered_method=True)
         self.TransferDTCToDevice = channel.unary_unary(
-                '/dtc_engine.DTCEngine/TransferDTCToDevice',
+                '/marty.dtc.v1.DTCEngine/TransferDTCToDevice',
                 request_serializer=dtc__engine__pb2.TransferDTCToDeviceRequest.SerializeToString,
                 response_deserializer=dtc__engine__pb2.TransferDTCToDeviceResponse.FromString,
                 _registered_method=True)
         self.VerifyDTC = channel.unary_unary(
-                '/dtc_engine.DTCEngine/VerifyDTC',
+                '/marty.dtc.v1.DTCEngine/VerifyDTC',
                 request_serializer=dtc__engine__pb2.VerifyDTCRequest.SerializeToString,
                 response_deserializer=dtc__engine__pb2.VerifyDTCResponse.FromString,
                 _registered_method=True)
         self.LinkDTCToPassport = channel.unary_unary(
-                '/dtc_engine.DTCEngine/LinkDTCToPassport',
+                '/marty.dtc.v1.DTCEngine/LinkDTCToPassport',
                 request_serializer=dtc__engine__pb2.LinkDTCToPassportRequest.SerializeToString,
                 response_deserializer=dtc__engine__pb2.LinkDTCToPassportResponse.FromString,
                 _registered_method=True)
@@ -182,9 +182,9 @@ def add_DTCEngineServicer_to_server(servicer, server):
             ),
     }
     generic_handler = grpc.method_handlers_generic_handler(
-            'dtc_engine.DTCEngine', rpc_method_handlers)
+            'marty.dtc.v1.DTCEngine', rpc_method_handlers)
     server.add_generic_rpc_handlers((generic_handler,))
-    server.add_registered_method_handlers('dtc_engine.DTCEngine', rpc_method_handlers)
+    server.add_registered_method_handlers('marty.dtc.v1.DTCEngine', rpc_method_handlers)
 
 
  # This class is part of an EXPERIMENTAL API.
@@ -206,7 +206,7 @@ class DTCEngine(object):
         return grpc.experimental.unary_unary(
             request,
             target,
-            '/dtc_engine.DTCEngine/CreateDTC',
+            '/marty.dtc.v1.DTCEngine/CreateDTC',
             dtc__engine__pb2.CreateDTCRequest.SerializeToString,
             dtc__engine__pb2.CreateDTCResponse.FromString,
             options,
@@ -233,7 +233,7 @@ class DTCEngine(object):
         return grpc.experimental.unary_unary(
             request,
             target,
-            '/dtc_engine.DTCEngine/GetDTC',
+            '/marty.dtc.v1.DTCEngine/GetDTC',
             dtc__engine__pb2.GetDTCRequest.SerializeToString,
             dtc__engine__pb2.DTCResponse.FromString,
             options,
@@ -260,7 +260,7 @@ class DTCEngine(object):
         return grpc.experimental.unary_unary(
             request,
             target,
-            '/dtc_engine.DTCEngine/SignDTC',
+            '/marty.dtc.v1.DTCEngine/SignDTC',
             dtc__engine__pb2.SignDTCRequest.SerializeToString,
             dtc__engine__pb2.SignDTCResponse.FromString,
             options,
@@ -287,7 +287,7 @@ class DTCEngine(object):
         return grpc.experimental.unary_unary(
             request,
             target,
-            '/dtc_engine.DTCEngine/RevokeDTC',
+            '/marty.dtc.v1.DTCEngine/RevokeDTC',
             dtc__engine__pb2.RevokeDTCRequest.SerializeToString,
             dtc__engine__pb2.RevokeDTCResponse.FromString,
             options,
@@ -314,7 +314,7 @@ class DTCEngine(object):
         return grpc.experimental.unary_unary(
             request,
             target,
-            '/dtc_engine.DTCEngine/GenerateDTCQRCode',
+            '/marty.dtc.v1.DTCEngine/GenerateDTCQRCode',
             dtc__engine__pb2.GenerateDTCQRCodeRequest.SerializeToString,
             dtc__engine__pb2.GenerateDTCQRCodeResponse.FromString,
             options,
@@ -341,7 +341,7 @@ class DTCEngine(object):
         return grpc.experimental.unary_unary(
             request,
             target,
-            '/dtc_engine.DTCEngine/TransferDTCToDevice',
+            '/marty.dtc.v1.DTCEngine/TransferDTCToDevice',
             dtc__engine__pb2.TransferDTCToDeviceRequest.SerializeToString,
             dtc__engine__pb2.TransferDTCToDeviceResponse.FromString,
             options,
@@ -368,7 +368,7 @@ class DTCEngine(object):
         return grpc.experimental.unary_unary(
             request,
             target,
-            '/dtc_engine.DTCEngine/VerifyDTC',
+            '/marty.dtc.v1.DTCEngine/VerifyDTC',
             dtc__engine__pb2.VerifyDTCRequest.SerializeToString,
             dtc__engine__pb2.VerifyDTCResponse.FromString,
             options,
@@ -395,7 +395,7 @@ class DTCEngine(object):
         return grpc.experimental.unary_unary(
             request,
             target,
-            '/dtc_engine.DTCEngine/LinkDTCToPassport',
+            '/marty.dtc.v1.DTCEngine/LinkDTCToPassport',
             dtc__engine__pb2.LinkDTCToPassportRequest.SerializeToString,
             dtc__engine__pb2.LinkDTCToPassportResponse.FromString,
             options,

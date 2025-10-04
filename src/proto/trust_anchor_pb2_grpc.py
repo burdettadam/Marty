@@ -35,82 +35,82 @@ class TrustAnchorStub(object):
             channel: A grpc.Channel.
         """
         self.VerifyTrust = channel.unary_unary(
-                '/trust.TrustAnchor/VerifyTrust',
+                '/marty.trust.v1.TrustAnchor/VerifyTrust',
                 request_serializer=trust__anchor__pb2.TrustRequest.SerializeToString,
                 response_deserializer=trust__anchor__pb2.TrustResponse.FromString,
                 _registered_method=True)
         self.GetMasterList = channel.unary_unary(
-                '/trust.TrustAnchor/GetMasterList',
+                '/marty.trust.v1.TrustAnchor/GetMasterList',
                 request_serializer=trust__anchor__pb2.GetMasterListRequest.SerializeToString,
                 response_deserializer=trust__anchor__pb2.MasterListResponse.FromString,
                 _registered_method=True)
         self.UploadMasterList = channel.unary_unary(
-                '/trust.TrustAnchor/UploadMasterList',
+                '/marty.trust.v1.TrustAnchor/UploadMasterList',
                 request_serializer=trust__anchor__pb2.UploadMasterListRequest.SerializeToString,
                 response_deserializer=trust__anchor__pb2.UploadMasterListResponse.FromString,
                 _registered_method=True)
         self.VerifyCertificate = channel.unary_unary(
-                '/trust.TrustAnchor/VerifyCertificate',
+                '/marty.trust.v1.TrustAnchor/VerifyCertificate',
                 request_serializer=trust__anchor__pb2.VerifyCertificateRequest.SerializeToString,
                 response_deserializer=trust__anchor__pb2.VerificationResponse.FromString,
                 _registered_method=True)
         self.SyncCertificateStore = channel.unary_unary(
-                '/trust.TrustAnchor/SyncCertificateStore',
+                '/marty.trust.v1.TrustAnchor/SyncCertificateStore',
                 request_serializer=trust__anchor__pb2.SyncRequest.SerializeToString,
                 response_deserializer=trust__anchor__pb2.SyncResponse.FromString,
                 _registered_method=True)
         self.CheckExpiringCertificates = channel.unary_unary(
-                '/trust.TrustAnchor/CheckExpiringCertificates',
+                '/marty.trust.v1.TrustAnchor/CheckExpiringCertificates',
                 request_serializer=trust__anchor__pb2.ExpiryCheckRequest.SerializeToString,
                 response_deserializer=trust__anchor__pb2.ExpiryCheckResponse.FromString,
                 _registered_method=True)
         self.GetServiceStatus = channel.unary_unary(
-                '/trust.TrustAnchor/GetServiceStatus',
+                '/marty.trust.v1.TrustAnchor/GetServiceStatus',
                 request_serializer=trust__anchor__pb2.StatusRequest.SerializeToString,
                 response_deserializer=trust__anchor__pb2.ServiceStatusResponse.FromString,
                 _registered_method=True)
         self.VerifyVDSNCSignature = channel.unary_unary(
-                '/trust.TrustAnchor/VerifyVDSNCSignature',
+                '/marty.trust.v1.TrustAnchor/VerifyVDSNCSignature',
                 request_serializer=trust__anchor__pb2.VDSNCVerificationRequest.SerializeToString,
                 response_deserializer=trust__anchor__pb2.VDSNCVerificationResponse.FromString,
                 _registered_method=True)
         self.GetVDSNCKeys = channel.unary_unary(
-                '/trust.TrustAnchor/GetVDSNCKeys',
+                '/marty.trust.v1.TrustAnchor/GetVDSNCKeys',
                 request_serializer=trust__anchor__pb2.GetVDSNCKeysRequest.SerializeToString,
                 response_deserializer=trust__anchor__pb2.GetVDSNCKeysResponse.FromString,
                 _registered_method=True)
         self.RegisterVDSNCKey = channel.unary_unary(
-                '/trust.TrustAnchor/RegisterVDSNCKey',
+                '/marty.trust.v1.TrustAnchor/RegisterVDSNCKey',
                 request_serializer=trust__anchor__pb2.RegisterVDSNCKeyRequest.SerializeToString,
                 response_deserializer=trust__anchor__pb2.RegisterVDSNCKeyResponse.FromString,
                 _registered_method=True)
         self.RevokeVDSNCKey = channel.unary_unary(
-                '/trust.TrustAnchor/RevokeVDSNCKey',
+                '/marty.trust.v1.TrustAnchor/RevokeVDSNCKey',
                 request_serializer=trust__anchor__pb2.RevokeVDSNCKeyRequest.SerializeToString,
                 response_deserializer=trust__anchor__pb2.RevokeVDSNCKeyResponse.FromString,
                 _registered_method=True)
         self.GetTrustStore = channel.unary_unary(
-                '/trust.TrustAnchor/GetTrustStore',
+                '/marty.trust.v1.TrustAnchor/GetTrustStore',
                 request_serializer=trust__anchor__pb2.GetTrustStoreRequest.SerializeToString,
                 response_deserializer=trust__anchor__pb2.GetTrustStoreResponse.FromString,
                 _registered_method=True)
         self.ApplyDataRetentionPolicy = channel.unary_unary(
-                '/trust.TrustAnchor/ApplyDataRetentionPolicy',
+                '/marty.trust.v1.TrustAnchor/ApplyDataRetentionPolicy',
                 request_serializer=trust__anchor__pb2.DataRetentionPolicyRequest.SerializeToString,
                 response_deserializer=trust__anchor__pb2.DataRetentionPolicyResponse.FromString,
                 _registered_method=True)
         self.ValidateMinimalDataStorage = channel.unary_unary(
-                '/trust.TrustAnchor/ValidateMinimalDataStorage',
+                '/marty.trust.v1.TrustAnchor/ValidateMinimalDataStorage',
                 request_serializer=trust__anchor__pb2.MinimalDataValidationRequest.SerializeToString,
                 response_deserializer=trust__anchor__pb2.MinimalDataValidationResponse.FromString,
                 _registered_method=True)
         self.ManageElectronicRecord = channel.unary_unary(
-                '/trust.TrustAnchor/ManageElectronicRecord',
+                '/marty.trust.v1.TrustAnchor/ManageElectronicRecord',
                 request_serializer=trust__anchor__pb2.ElectronicRecordRequest.SerializeToString,
                 response_deserializer=trust__anchor__pb2.ElectronicRecordResponse.FromString,
                 _registered_method=True)
         self.AuditDataAccess = channel.unary_unary(
-                '/trust.TrustAnchor/AuditDataAccess',
+                '/marty.trust.v1.TrustAnchor/AuditDataAccess',
                 request_serializer=trust__anchor__pb2.DataAccessAuditRequest.SerializeToString,
                 response_deserializer=trust__anchor__pb2.DataAccessAuditResponse.FromString,
                 _registered_method=True)
@@ -304,9 +304,9 @@ def add_TrustAnchorServicer_to_server(servicer, server):
             ),
     }
     generic_handler = grpc.method_handlers_generic_handler(
-            'trust.TrustAnchor', rpc_method_handlers)
+            'marty.trust.v1.TrustAnchor', rpc_method_handlers)
     server.add_generic_rpc_handlers((generic_handler,))
-    server.add_registered_method_handlers('trust.TrustAnchor', rpc_method_handlers)
+    server.add_registered_method_handlers('marty.trust.v1.TrustAnchor', rpc_method_handlers)
 
 
  # This class is part of an EXPERIMENTAL API.
@@ -327,7 +327,7 @@ class TrustAnchor(object):
         return grpc.experimental.unary_unary(
             request,
             target,
-            '/trust.TrustAnchor/VerifyTrust',
+            '/marty.trust.v1.TrustAnchor/VerifyTrust',
             trust__anchor__pb2.TrustRequest.SerializeToString,
             trust__anchor__pb2.TrustResponse.FromString,
             options,
@@ -354,7 +354,7 @@ class TrustAnchor(object):
         return grpc.experimental.unary_unary(
             request,
             target,
-            '/trust.TrustAnchor/GetMasterList',
+            '/marty.trust.v1.TrustAnchor/GetMasterList',
             trust__anchor__pb2.GetMasterListRequest.SerializeToString,
             trust__anchor__pb2.MasterListResponse.FromString,
             options,
@@ -381,7 +381,7 @@ class TrustAnchor(object):
         return grpc.experimental.unary_unary(
             request,
             target,
-            '/trust.TrustAnchor/UploadMasterList',
+            '/marty.trust.v1.TrustAnchor/UploadMasterList',
             trust__anchor__pb2.UploadMasterListRequest.SerializeToString,
             trust__anchor__pb2.UploadMasterListResponse.FromString,
             options,
@@ -408,7 +408,7 @@ class TrustAnchor(object):
         return grpc.experimental.unary_unary(
             request,
             target,
-            '/trust.TrustAnchor/VerifyCertificate',
+            '/marty.trust.v1.TrustAnchor/VerifyCertificate',
             trust__anchor__pb2.VerifyCertificateRequest.SerializeToString,
             trust__anchor__pb2.VerificationResponse.FromString,
             options,
@@ -435,7 +435,7 @@ class TrustAnchor(object):
         return grpc.experimental.unary_unary(
             request,
             target,
-            '/trust.TrustAnchor/SyncCertificateStore',
+            '/marty.trust.v1.TrustAnchor/SyncCertificateStore',
             trust__anchor__pb2.SyncRequest.SerializeToString,
             trust__anchor__pb2.SyncResponse.FromString,
             options,
@@ -462,7 +462,7 @@ class TrustAnchor(object):
         return grpc.experimental.unary_unary(
             request,
             target,
-            '/trust.TrustAnchor/CheckExpiringCertificates',
+            '/marty.trust.v1.TrustAnchor/CheckExpiringCertificates',
             trust__anchor__pb2.ExpiryCheckRequest.SerializeToString,
             trust__anchor__pb2.ExpiryCheckResponse.FromString,
             options,
@@ -489,7 +489,7 @@ class TrustAnchor(object):
         return grpc.experimental.unary_unary(
             request,
             target,
-            '/trust.TrustAnchor/GetServiceStatus',
+            '/marty.trust.v1.TrustAnchor/GetServiceStatus',
             trust__anchor__pb2.StatusRequest.SerializeToString,
             trust__anchor__pb2.ServiceStatusResponse.FromString,
             options,
@@ -516,7 +516,7 @@ class TrustAnchor(object):
         return grpc.experimental.unary_unary(
             request,
             target,
-            '/trust.TrustAnchor/VerifyVDSNCSignature',
+            '/marty.trust.v1.TrustAnchor/VerifyVDSNCSignature',
             trust__anchor__pb2.VDSNCVerificationRequest.SerializeToString,
             trust__anchor__pb2.VDSNCVerificationResponse.FromString,
             options,
@@ -543,7 +543,7 @@ class TrustAnchor(object):
         return grpc.experimental.unary_unary(
             request,
             target,
-            '/trust.TrustAnchor/GetVDSNCKeys',
+            '/marty.trust.v1.TrustAnchor/GetVDSNCKeys',
             trust__anchor__pb2.GetVDSNCKeysRequest.SerializeToString,
             trust__anchor__pb2.GetVDSNCKeysResponse.FromString,
             options,
@@ -570,7 +570,7 @@ class TrustAnchor(object):
         return grpc.experimental.unary_unary(
             request,
             target,
-            '/trust.TrustAnchor/RegisterVDSNCKey',
+            '/marty.trust.v1.TrustAnchor/RegisterVDSNCKey',
             trust__anchor__pb2.RegisterVDSNCKeyRequest.SerializeToString,
             trust__anchor__pb2.RegisterVDSNCKeyResponse.FromString,
             options,
@@ -597,7 +597,7 @@ class TrustAnchor(object):
         return grpc.experimental.unary_unary(
             request,
             target,
-            '/trust.TrustAnchor/RevokeVDSNCKey',
+            '/marty.trust.v1.TrustAnchor/RevokeVDSNCKey',
             trust__anchor__pb2.RevokeVDSNCKeyRequest.SerializeToString,
             trust__anchor__pb2.RevokeVDSNCKeyResponse.FromString,
             options,
@@ -624,7 +624,7 @@ class TrustAnchor(object):
         return grpc.experimental.unary_unary(
             request,
             target,
-            '/trust.TrustAnchor/GetTrustStore',
+            '/marty.trust.v1.TrustAnchor/GetTrustStore',
             trust__anchor__pb2.GetTrustStoreRequest.SerializeToString,
             trust__anchor__pb2.GetTrustStoreResponse.FromString,
             options,
@@ -651,7 +651,7 @@ class TrustAnchor(object):
         return grpc.experimental.unary_unary(
             request,
             target,
-            '/trust.TrustAnchor/ApplyDataRetentionPolicy',
+            '/marty.trust.v1.TrustAnchor/ApplyDataRetentionPolicy',
             trust__anchor__pb2.DataRetentionPolicyRequest.SerializeToString,
             trust__anchor__pb2.DataRetentionPolicyResponse.FromString,
             options,
@@ -678,7 +678,7 @@ class TrustAnchor(object):
         return grpc.experimental.unary_unary(
             request,
             target,
-            '/trust.TrustAnchor/ValidateMinimalDataStorage',
+            '/marty.trust.v1.TrustAnchor/ValidateMinimalDataStorage',
             trust__anchor__pb2.MinimalDataValidationRequest.SerializeToString,
             trust__anchor__pb2.MinimalDataValidationResponse.FromString,
             options,
@@ -705,7 +705,7 @@ class TrustAnchor(object):
         return grpc.experimental.unary_unary(
             request,
             target,
-            '/trust.TrustAnchor/ManageElectronicRecord',
+            '/marty.trust.v1.TrustAnchor/ManageElectronicRecord',
             trust__anchor__pb2.ElectronicRecordRequest.SerializeToString,
             trust__anchor__pb2.ElectronicRecordResponse.FromString,
             options,
@@ -732,7 +732,7 @@ class TrustAnchor(object):
         return grpc.experimental.unary_unary(
             request,
             target,
-            '/trust.TrustAnchor/AuditDataAccess',
+            '/marty.trust.v1.TrustAnchor/AuditDataAccess',
             trust__anchor__pb2.DataAccessAuditRequest.SerializeToString,
             trust__anchor__pb2.DataAccessAuditResponse.FromString,
             options,

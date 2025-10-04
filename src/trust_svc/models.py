@@ -1,0 +1,282 @@
+"""
+Trust Services Data Models
+
+Pydantic models for trust services API requests, responses, and database entities.
+"""
+
+from __future__ import annotations
+
+from datetime import datetime
+from enum import Enum
+from typing import Any, Optional
+
+from pydantic import BaseModel, Field
+
+
+class TrustLevel(str, Enum):
+    """Trust levels for certificates and anchors."""
+    STANDARD = "standard"
+    HIGH = "high"
+    EMERGENCY = "emergency"
+
+
+class CertificateStatus(str, Enum):
+    """Certificate status enumeration."""
+    ACTIVE = "active"
+    INACTIVE = "inactive"
+    REVOKED = "revoked"
+
+
+class RevocationStatus(str, Enum):
+    """Certificate revocation status."""
+    GOOD = "good"
+    BAD = "bad"
+    UNKNOWN = "unknown"
+
+
+class JobStatus(str, Enum):
+    """Job execution status."""
+    RUNNING = "running"
+    COMPLETED = "completed"
+    FAILED = "failed"
+
+
+class SourceType(str, Enum):
+    """PKD source types."""
+    ICAO_PKD = "icao_pkd"
+    NATIONAL_PKI = "national_pki"
+    MANUAL = "manual"
+
+
+# Database Models
+class TrustAnchor(BaseModel):
+    """Trust anchor (CSCA) certificate model."""
+    id: str
+    country_code: str = Field(..., max_length=3)
+    certificate_hash: str
+    certificate_data: bytes
+    subject_dn: str
+    issuer_dn: str
+    serial_number: str
+    valid_from: datetime
+    valid_to: datetime
+    key_usage: list[str]
+    signature_algorithm: Optional[str]
+    public_key_algorithm: Optional[str]
+    immutable_flag: bool = False
+    trust_level: TrustLevel = TrustLevel.STANDARD
+    status: CertificateStatus = CertificateStatus.ACTIVE
+    created_at: datetime
+    updated_at: datetime
+
+
+class DSCCertificate(BaseModel):
+    """Document Signer Certificate model."""
+    id: str
+    country_code: str = Field(..., max_length=3)
+    certificate_hash: str
+    certificate_data: bytes
+    issuer_trust_anchor_id: Optional[str]
+    subject_dn: str
+    issuer_dn: str
+    serial_number: str
+    valid_from: datetime
+    valid_to: datetime
+    key_usage: list[str]
+    signature_algorithm: Optional[str]
+    public_key_algorithm: Optional[str]
+    
+    # Revocation status
+    revocation_status: RevocationStatus = RevocationStatus.UNKNOWN
+    revocation_checked_at: Optional[datetime]
+    revocation_reason: Optional[int]
+    revocation_date: Optional[datetime]
+    crl_source: Optional[str]
+    ocsp_source: Optional[str]
+    ocsp_checked_at: Optional[datetime]
+    
+    # Trust chain
+    chain_valid: Optional[bool]
+    chain_validated_at: Optional[datetime]
+    trust_path: list[str] = Field(default_factory=list)
+    
+    immutable_flag: bool = False
+    status: CertificateStatus = CertificateStatus.ACTIVE
+    created_at: datetime
+    updated_at: datetime
+
+
+class CRLCache(BaseModel):
+    """Certificate Revocation List cache model."""
+    id: str
+    issuer_dn: str
+    issuer_certificate_hash: Optional[str]
+    crl_url: Optional[str]
+    crl_number: Optional[int]
+    this_update: datetime
+    next_update: datetime
+    crl_data: bytes
+    crl_hash: str
+    signature_valid: bool = False
+    revoked_count: int = 0
+    fetched_at: datetime
+    status: str = "active"
+    created_at: datetime
+
+
+class RevokedCertificate(BaseModel):
+    """Revoked certificate from CRL."""
+    id: str
+    crl_id: str
+    serial_number: str
+    revocation_date: datetime
+    reason_code: Optional[int]
+    certificate_hash: Optional[str]
+    dsc_id: Optional[str]
+    created_at: datetime
+
+
+class TrustSnapshot(BaseModel):
+    """Immutable trust snapshot model."""
+    id: str
+    snapshot_time: datetime
+    snapshot_hash: str
+    signature: Optional[str]
+    signature_algorithm: str = "RSA-SHA256"
+    trust_anchor_count: int
+    dsc_count: int
+    revoked_count: int
+    crl_count: int
+    metadata: dict[str, Any] = Field(default_factory=dict)
+    immutable_flag: bool = True
+    expires_at: Optional[datetime]
+    created_at: datetime
+
+
+class JobExecution(BaseModel):
+    """Job execution tracking model."""
+    id: str
+    job_name: str
+    job_type: str
+    status: JobStatus
+    started_at: datetime
+    completed_at: Optional[datetime]
+    duration_seconds: Optional[int]
+    records_processed: int = 0
+    errors_count: int = 0
+    metadata: dict[str, Any] = Field(default_factory=dict)
+
+
+# API Request/Response Models
+class TrustStatusRequest(BaseModel):
+    """Request for certificate trust status."""
+    certificate_hash: str
+    include_chain: bool = False
+    validation_time: Optional[datetime] = None
+
+
+class TrustStatusResponse(BaseModel):
+    """Response for certificate trust status."""
+    certificate_hash: str
+    found: bool
+    trust_status: Optional[RevocationStatus]
+    trust_anchor: Optional[str]
+    chain_valid: Optional[bool]
+    revocation_checked_at: Optional[datetime]
+    expires_at: Optional[datetime]
+    trust_path: list[str] = Field(default_factory=list)
+    metadata: dict[str, Any] = Field(default_factory=dict)
+
+
+class TrustAnchorListResponse(BaseModel):
+    """Response for trust anchor listing."""
+    country_code: Optional[str]
+    trust_anchors: list[TrustAnchor]
+    total_count: int
+    valid_count: int
+    expired_count: int
+
+
+class DSCListResponse(BaseModel):
+    """Response for DSC listing."""
+    country_code: Optional[str]
+    certificates: list[DSCCertificate]
+    total_count: int
+    status_counts: dict[str, int] = Field(default_factory=dict)
+
+
+class SnapshotResponse(BaseModel):
+    """Response for trust snapshot."""
+    snapshot: TrustSnapshot
+    signature_valid: bool
+    age_seconds: int
+
+
+class MasterListUploadRequest(BaseModel):
+    """Request for master list upload."""
+    country_code: str = Field(..., max_length=3)
+    master_list_data: bytes
+    source_type: str = "manual"
+    source_url: Optional[str] = None
+
+
+class MasterListUploadResponse(BaseModel):
+    """Response for master list upload."""
+    success: bool
+    message: str
+    certificates_processed: int
+    trust_anchors_added: int
+    dscs_added: int
+    errors: list[str] = Field(default_factory=list)
+
+
+class CRLRefreshRequest(BaseModel):
+    """Request for CRL refresh."""
+    issuer_dn: Optional[str] = None
+    country_code: Optional[str] = None
+    force_refresh: bool = False
+
+
+class CRLRefreshResponse(BaseModel):
+    """Response for CRL refresh."""
+    success: bool
+    message: str
+    crls_processed: int
+    revoked_certificates_found: int
+    errors: list[str] = Field(default_factory=list)
+
+
+class ServiceStatusResponse(BaseModel):
+    """Service health and status response."""
+    status: str
+    version: str
+    uptime_seconds: int
+    database_connected: bool
+    kms_available: bool
+    job_scheduler_running: bool
+    last_snapshot_age_seconds: Optional[int]
+    certificate_counts: dict[str, int] = Field(default_factory=dict)
+    recent_jobs: list[JobExecution] = Field(default_factory=list)
+
+
+class MetricsResponse(BaseModel):
+    """Prometheus metrics response."""
+    metrics: dict[str, Any] = Field(default_factory=dict)
+
+
+# Development and Testing Models
+class DevJobRequest(BaseModel):
+    """Development job request."""
+    job_type: str = "load_synthetic"
+    country_code: str = "DEV"
+    certificate_count: int = 25
+    output_format: str = "json"
+
+
+class DevJobResponse(BaseModel):
+    """Development job response."""
+    success: bool
+    job_id: str
+    message: str
+    statistics: dict[str, Any] = Field(default_factory=dict)
+    duration_seconds: float

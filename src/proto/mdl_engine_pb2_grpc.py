@@ -35,32 +35,32 @@ class MDLEngineStub(object):
             channel: A grpc.Channel.
         """
         self.CreateMDL = channel.unary_unary(
-                '/mdl.MDLEngine/CreateMDL',
+                '/marty.mdl.v1.MDLEngine/CreateMDL',
                 request_serializer=mdl__engine__pb2.CreateMDLRequest.SerializeToString,
                 response_deserializer=mdl__engine__pb2.CreateMDLResponse.FromString,
                 _registered_method=True)
         self.GetMDL = channel.unary_unary(
-                '/mdl.MDLEngine/GetMDL',
+                '/marty.mdl.v1.MDLEngine/GetMDL',
                 request_serializer=mdl__engine__pb2.GetMDLRequest.SerializeToString,
                 response_deserializer=mdl__engine__pb2.MDLResponse.FromString,
                 _registered_method=True)
         self.SignMDL = channel.unary_unary(
-                '/mdl.MDLEngine/SignMDL',
+                '/marty.mdl.v1.MDLEngine/SignMDL',
                 request_serializer=mdl__engine__pb2.SignMDLRequest.SerializeToString,
                 response_deserializer=mdl__engine__pb2.SignMDLResponse.FromString,
                 _registered_method=True)
         self.GenerateMDLQRCode = channel.unary_unary(
-                '/mdl.MDLEngine/GenerateMDLQRCode',
+                '/marty.mdl.v1.MDLEngine/GenerateMDLQRCode',
                 request_serializer=mdl__engine__pb2.GenerateQRCodeRequest.SerializeToString,
                 response_deserializer=mdl__engine__pb2.GenerateQRCodeResponse.FromString,
                 _registered_method=True)
         self.TransferMDLToDevice = channel.unary_unary(
-                '/mdl.MDLEngine/TransferMDLToDevice',
+                '/marty.mdl.v1.MDLEngine/TransferMDLToDevice',
                 request_serializer=mdl__engine__pb2.TransferMDLRequest.SerializeToString,
                 response_deserializer=mdl__engine__pb2.TransferMDLResponse.FromString,
                 _registered_method=True)
         self.VerifyMDL = channel.unary_unary(
-                '/mdl.MDLEngine/VerifyMDL',
+                '/marty.mdl.v1.MDLEngine/VerifyMDL',
                 request_serializer=mdl__engine__pb2.VerifyMDLRequest.SerializeToString,
                 response_deserializer=mdl__engine__pb2.VerifyMDLResponse.FromString,
                 _registered_method=True)
@@ -146,9 +146,9 @@ def add_MDLEngineServicer_to_server(servicer, server):
             ),
     }
     generic_handler = grpc.method_handlers_generic_handler(
-            'mdl.MDLEngine', rpc_method_handlers)
+            'marty.mdl.v1.MDLEngine', rpc_method_handlers)
     server.add_generic_rpc_handlers((generic_handler,))
-    server.add_registered_method_handlers('mdl.MDLEngine', rpc_method_handlers)
+    server.add_registered_method_handlers('marty.mdl.v1.MDLEngine', rpc_method_handlers)
 
 
  # This class is part of an EXPERIMENTAL API.
@@ -169,7 +169,7 @@ class MDLEngine(object):
         return grpc.experimental.unary_unary(
             request,
             target,
-            '/mdl.MDLEngine/CreateMDL',
+            '/marty.mdl.v1.MDLEngine/CreateMDL',
             mdl__engine__pb2.CreateMDLRequest.SerializeToString,
             mdl__engine__pb2.CreateMDLResponse.FromString,
             options,
@@ -196,7 +196,7 @@ class MDLEngine(object):
         return grpc.experimental.unary_unary(
             request,
             target,
-            '/mdl.MDLEngine/GetMDL',
+            '/marty.mdl.v1.MDLEngine/GetMDL',
             mdl__engine__pb2.GetMDLRequest.SerializeToString,
             mdl__engine__pb2.MDLResponse.FromString,
             options,
@@ -223,7 +223,7 @@ class MDLEngine(object):
         return grpc.experimental.unary_unary(
             request,
             target,
-            '/mdl.MDLEngine/SignMDL',
+            '/marty.mdl.v1.MDLEngine/SignMDL',
             mdl__engine__pb2.SignMDLRequest.SerializeToString,
             mdl__engine__pb2.SignMDLResponse.FromString,
             options,
@@ -250,7 +250,7 @@ class MDLEngine(object):
         return grpc.experimental.unary_unary(
             request,
             target,
-            '/mdl.MDLEngine/GenerateMDLQRCode',
+            '/marty.mdl.v1.MDLEngine/GenerateMDLQRCode',
             mdl__engine__pb2.GenerateQRCodeRequest.SerializeToString,
             mdl__engine__pb2.GenerateQRCodeResponse.FromString,
             options,
@@ -277,7 +277,7 @@ class MDLEngine(object):
         return grpc.experimental.unary_unary(
             request,
             target,
-            '/mdl.MDLEngine/TransferMDLToDevice',
+            '/marty.mdl.v1.MDLEngine/TransferMDLToDevice',
             mdl__engine__pb2.TransferMDLRequest.SerializeToString,
             mdl__engine__pb2.TransferMDLResponse.FromString,
             options,
@@ -304,7 +304,7 @@ class MDLEngine(object):
         return grpc.experimental.unary_unary(
             request,
             target,
-            '/mdl.MDLEngine/VerifyMDL',
+            '/marty.mdl.v1.MDLEngine/VerifyMDL',
             mdl__engine__pb2.VerifyMDLRequest.SerializeToString,
             mdl__engine__pb2.VerifyMDLResponse.FromString,
             options,

@@ -1,0 +1,418 @@
+{
+  "dashboard": {
+    "id": null,
+    "title": "Trust Services Dashboard",
+    "tags": ["trust", "certificates", "security"],
+    "style": "dark",
+    "timezone": "browser",
+    "refresh": "30s",
+    "time": {
+      "from": "now-1h",
+      "to": "now"
+    },
+    "panels": [
+      {
+        "id": 1,
+        "title": "Service Health Overview",
+        "type": "stat",
+        "gridPos": {"h": 8, "w": 12, "x": 0, "y": 0},
+        "targets": [
+          {
+            "expr": "up{job=\"trust-svc\"}",
+            "legendFormat": "Service Up",
+            "refId": "A"
+          },
+          {
+            "expr": "trust_database_connections",
+            "legendFormat": "DB Connections",
+            "refId": "B"
+          }
+        ],
+        "options": {
+          "colorMode": "value",
+          "graphMode": "area",
+          "justifyMode": "auto",
+          "orientation": "auto",
+          "reduceOptions": {
+            "calcs": ["lastNotNull"],
+            "fields": "",
+            "values": false
+          }
+        },
+        "fieldConfig": {
+          "defaults": {
+            "mappings": [],
+            "thresholds": {
+              "steps": [
+                {"color": "red", "value": null},
+                {"color": "green", "value": 1}
+              ]
+            },
+            "unit": "short"
+          }
+        }
+      },
+      {
+        "id": 2,
+        "title": "Certificate Counts by Country",
+        "type": "bargauge",
+        "gridPos": {"h": 8, "w": 12, "x": 12, "y": 0},
+        "targets": [
+          {
+            "expr": "trust_dsc_total",
+            "legendFormat": "{{country}} - {{status}}",
+            "refId": "A"
+          }
+        ],
+        "options": {
+          "displayMode": "list",
+          "orientation": "horizontal",
+          "reduceOptions": {
+            "calcs": ["lastNotNull"],
+            "fields": "",
+            "values": false
+          },
+          "showUnfilled": true
+        },
+        "fieldConfig": {
+          "defaults": {
+            "mappings": [],
+            "thresholds": {
+              "steps": [
+                {"color": "green", "value": null},
+                {"color": "red", "value": 80}
+              ]
+            },
+            "unit": "short"
+          }
+        }
+      },
+      {
+        "id": 3,
+        "title": "Master List Age",
+        "type": "graph",
+        "gridPos": {"h": 8, "w": 12, "x": 0, "y": 8},
+        "targets": [
+          {
+            "expr": "trust_master_list_age_seconds / 3600",
+            "legendFormat": "{{country}} Master List Age (hours)",
+            "refId": "A"
+          }
+        ],
+        "yAxes": [
+          {
+            "label": "Hours",
+            "min": 0,
+            "show": true
+          },
+          {
+            "show": true
+          }
+        ],
+        "xAxis": {
+          "show": true
+        },
+        "thresholds": [
+          {
+            "value": 24,
+            "colorMode": "critical",
+            "op": "gt",
+            "line": true,
+            "lineColor": "rgba(245, 54, 54, 0.9)",
+            "yAxis": "left"
+          }
+        ],
+        "alert": {
+          "conditions": [
+            {
+              "evaluator": {
+                "params": [24],
+                "type": "gt"
+              },
+              "operator": {
+                "type": "and"
+              },
+              "query": {
+                "params": ["A", "5m", "now"]
+              },
+              "reducer": {
+                "params": [],
+                "type": "last"
+              },
+              "type": "query"
+            }
+          ],
+          "executionErrorState": "alerting",
+          "for": "5m",
+          "frequency": "10s",
+          "handler": 1,
+          "name": "Master List Age Alert",
+          "noDataState": "no_data",
+          "notifications": []
+        }
+      },
+      {
+        "id": 4,
+        "title": "CRL Age and Status",
+        "type": "graph",
+        "gridPos": {"h": 8, "w": 12, "x": 12, "y": 8},
+        "targets": [
+          {
+            "expr": "trust_crl_age_seconds / 3600",
+            "legendFormat": "{{issuer}} CRL Age (hours)",
+            "refId": "A"
+          },
+          {
+            "expr": "trust_crl_revoked_count",
+            "legendFormat": "{{issuer}} Revoked Count",
+            "refId": "B"
+          }
+        ],
+        "yAxes": [
+          {
+            "label": "Hours / Count",
+            "min": 0,
+            "show": true
+          },
+          {
+            "show": true
+          }
+        ],
+        "thresholds": [
+          {
+            "value": 6,
+            "colorMode": "critical",
+            "op": "gt",
+            "line": true,
+            "lineColor": "rgba(245, 54, 54, 0.9)",
+            "yAxis": "left"
+          }
+        ]
+      },
+      {
+        "id": 5,
+        "title": "Trust Snapshot Status",
+        "type": "singlestat",
+        "gridPos": {"h": 4, "w": 6, "x": 0, "y": 16},
+        "targets": [
+          {
+            "expr": "trust_snapshot_age_seconds / 3600",
+            "legendFormat": "Snapshot Age (hours)",
+            "refId": "A"
+          }
+        ],
+        "valueName": "current",
+        "format": "short",
+        "thresholds": "6,24",
+        "colorBackground": true,
+        "colors": ["rgba(50, 172, 45, 0.97)", "rgba(237, 129, 40, 0.89)", "rgba(245, 54, 54, 0.9)"]
+      },
+      {
+        "id": 6,
+        "title": "Total Snapshots",
+        "type": "singlestat",
+        "gridPos": {"h": 4, "w": 6, "x": 6, "y": 16},
+        "targets": [
+          {
+            "expr": "trust_snapshot_count",
+            "legendFormat": "Total Snapshots",
+            "refId": "A"
+          }
+        ],
+        "valueName": "current",
+        "format": "short",
+        "colorBackground": false,
+        "colors": ["rgba(50, 172, 45, 0.97)", "rgba(237, 129, 40, 0.89)", "rgba(245, 54, 54, 0.9)"]
+      },
+      {
+        "id": 7,
+        "title": "Job Execution Success Rate",
+        "type": "graph",
+        "gridPos": {"h": 8, "w": 12, "x": 12, "y": 16},
+        "targets": [
+          {
+            "expr": "rate(trust_job_execution_total{status=\"completed\"}[5m]) / rate(trust_job_execution_total[5m]) * 100",
+            "legendFormat": "{{job_name}} Success Rate %",
+            "refId": "A"
+          }
+        ],
+        "yAxes": [
+          {
+            "label": "Percentage",
+            "min": 0,
+            "max": 100,
+            "show": true
+          },
+          {
+            "show": true
+          }
+        ],
+        "thresholds": [
+          {
+            "value": 95,
+            "colorMode": "critical",
+            "op": "lt",
+            "line": true,
+            "lineColor": "rgba(245, 54, 54, 0.9)",
+            "yAxis": "left"
+          }
+        ]
+      },
+      {
+        "id": 8,
+        "title": "API Request Rate",
+        "type": "graph",
+        "gridPos": {"h": 8, "w": 12, "x": 0, "y": 20},
+        "targets": [
+          {
+            "expr": "rate(trust_api_requests_total[5m])",
+            "legendFormat": "{{method}} {{endpoint}} {{status_code}}",
+            "refId": "A"
+          }
+        ],
+        "yAxes": [
+          {
+            "label": "Requests/sec",
+            "min": 0,
+            "show": true
+          },
+          {
+            "show": true
+          }
+        ]
+      },
+      {
+        "id": 9,
+        "title": "Certificate Status Distribution",
+        "type": "piechart",
+        "gridPos": {"h": 8, "w": 12, "x": 12, "y": 20},
+        "targets": [
+          {
+            "expr": "sum by (status) (trust_dsc_total)",
+            "legendFormat": "{{status}}",
+            "refId": "A"
+          }
+        ],
+        "options": {
+          "legend": {
+            "displayMode": "list",
+            "placement": "bottom"
+          },
+          "pieType": "pie",
+          "reduceOptions": {
+            "calcs": ["lastNotNull"],
+            "fields": "",
+            "values": false
+          }
+        }
+      },
+      {
+        "id": 10,
+        "title": "Development Job Results",
+        "type": "table",
+        "gridPos": {"h": 8, "w": 24, "x": 0, "y": 28},
+        "targets": [
+          {
+            "expr": "trust_job_last_success_timestamp{job_type=\"load_synthetic\"}",
+            "legendFormat": "{{job_name}}",
+            "refId": "A",
+            "format": "table",
+            "instant": true
+          }
+        ],
+        "transformations": [
+          {
+            "id": "organize",
+            "options": {
+              "excludeByName": {},
+              "indexByName": {},
+              "renameByName": {
+                "job_name": "Job Name",
+                "job_type": "Job Type",
+                "Value": "Last Success (timestamp)"
+              }
+            }
+          }
+        ],
+        "options": {
+          "showHeader": true
+        },
+        "fieldConfig": {
+          "defaults": {
+            "custom": {
+              "align": "auto",
+              "displayMode": "auto"
+            },
+            "mappings": [],
+            "thresholds": {
+              "steps": [
+                {"color": "green", "value": null}
+              ]
+            },
+            "unit": "dateTimeAsIso"
+          }
+        }
+      }
+    ],
+    "templating": {
+      "list": [
+        {
+          "name": "instance",
+          "type": "query",
+          "query": "label_values(up{job=\"trust-svc\"}, instance)",
+          "refresh": 1,
+          "options": [],
+          "current": {
+            "value": "$__all",
+            "text": "All"
+          },
+          "hide": 0,
+          "includeAll": true,
+          "multi": true
+        },
+        {
+          "name": "country",
+          "type": "query", 
+          "query": "label_values(trust_dsc_total, country)",
+          "refresh": 1,
+          "options": [],
+          "current": {
+            "value": "$__all",
+            "text": "All"
+          },
+          "hide": 0,
+          "includeAll": true,
+          "multi": true
+        }
+      ]
+    },
+    "annotations": {
+      "list": [
+        {
+          "name": "Job Executions",
+          "datasource": "Prometheus",
+          "enable": true,
+          "expr": "changes(trust_job_last_success_timestamp[1h]) > 0",
+          "iconColor": "rgba(0, 211, 255, 1)",
+          "titleFormat": "Job: {{job_name}}",
+          "textFormat": "Job {{job_name}} completed successfully"
+        }
+      ]
+    },
+    "links": [
+      {
+        "title": "Trust Services API",
+        "url": "/api/v1/admin/status",
+        "type": "link",
+        "icon": "external link"
+      },
+      {
+        "title": "Metrics Endpoint",
+        "url": "/metrics",
+        "type": "link",
+        "icon": "external link"
+      }
+    ]
+  },
+  "overwrite": true
+}

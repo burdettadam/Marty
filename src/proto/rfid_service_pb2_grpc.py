@@ -36,52 +36,52 @@ class RFIDReaderServiceStub(object):
             channel: A grpc.Channel.
         """
         self.ListReaders = channel.unary_unary(
-                '/rfid.RFIDReaderService/ListReaders',
+                '/marty.rfid.v1.RFIDReaderService/ListReaders',
                 request_serializer=rfid__service__pb2.ListReadersRequest.SerializeToString,
                 response_deserializer=rfid__service__pb2.ListReadersResponse.FromString,
                 _registered_method=True)
         self.ConnectReader = channel.unary_unary(
-                '/rfid.RFIDReaderService/ConnectReader',
+                '/marty.rfid.v1.RFIDReaderService/ConnectReader',
                 request_serializer=rfid__service__pb2.ConnectReaderRequest.SerializeToString,
                 response_deserializer=rfid__service__pb2.ConnectReaderResponse.FromString,
                 _registered_method=True)
         self.DisconnectReader = channel.unary_unary(
-                '/rfid.RFIDReaderService/DisconnectReader',
+                '/marty.rfid.v1.RFIDReaderService/DisconnectReader',
                 request_serializer=rfid__service__pb2.DisconnectReaderRequest.SerializeToString,
                 response_deserializer=rfid__service__pb2.DisconnectReaderResponse.FromString,
                 _registered_method=True)
         self.GetReaderStatus = channel.unary_unary(
-                '/rfid.RFIDReaderService/GetReaderStatus',
+                '/marty.rfid.v1.RFIDReaderService/GetReaderStatus',
                 request_serializer=rfid__service__pb2.GetReaderStatusRequest.SerializeToString,
                 response_deserializer=rfid__service__pb2.GetReaderStatusResponse.FromString,
                 _registered_method=True)
         self.ReadCard = channel.unary_unary(
-                '/rfid.RFIDReaderService/ReadCard',
+                '/marty.rfid.v1.RFIDReaderService/ReadCard',
                 request_serializer=rfid__service__pb2.ReadCardRequest.SerializeToString,
                 response_deserializer=rfid__service__pb2.ReadCardResponse.FromString,
                 _registered_method=True)
         self.SendAPDU = channel.unary_unary(
-                '/rfid.RFIDReaderService/SendAPDU',
+                '/marty.rfid.v1.RFIDReaderService/SendAPDU',
                 request_serializer=rfid__service__pb2.SendAPDURequest.SerializeToString,
                 response_deserializer=rfid__service__pb2.SendAPDUResponse.FromString,
                 _registered_method=True)
         self.GetATR = channel.unary_unary(
-                '/rfid.RFIDReaderService/GetATR',
+                '/marty.rfid.v1.RFIDReaderService/GetATR',
                 request_serializer=rfid__service__pb2.GetATRRequest.SerializeToString,
                 response_deserializer=rfid__service__pb2.GetATRResponse.FromString,
                 _registered_method=True)
         self.ReadPassport = channel.unary_unary(
-                '/rfid.RFIDReaderService/ReadPassport',
+                '/marty.rfid.v1.RFIDReaderService/ReadPassport',
                 request_serializer=rfid__service__pb2.ReadPassportRequest.SerializeToString,
                 response_deserializer=rfid__service__pb2.ReadPassportResponse.FromString,
                 _registered_method=True)
         self.VerifyDocument = channel.unary_unary(
-                '/rfid.RFIDReaderService/VerifyDocument',
+                '/marty.rfid.v1.RFIDReaderService/VerifyDocument',
                 request_serializer=rfid__service__pb2.VerifyDocumentRequest.SerializeToString,
                 response_deserializer=rfid__service__pb2.VerifyDocumentResponse.FromString,
                 _registered_method=True)
         self.ExtractBiometrics = channel.unary_unary(
-                '/rfid.RFIDReaderService/ExtractBiometrics',
+                '/marty.rfid.v1.RFIDReaderService/ExtractBiometrics',
                 request_serializer=rfid__service__pb2.ExtractBiometricsRequest.SerializeToString,
                 response_deserializer=rfid__service__pb2.ExtractBiometricsResponse.FromString,
                 _registered_method=True)
@@ -209,9 +209,9 @@ def add_RFIDReaderServiceServicer_to_server(servicer, server):
             ),
     }
     generic_handler = grpc.method_handlers_generic_handler(
-            'rfid.RFIDReaderService', rpc_method_handlers)
+            'marty.rfid.v1.RFIDReaderService', rpc_method_handlers)
     server.add_generic_rpc_handlers((generic_handler,))
-    server.add_registered_method_handlers('rfid.RFIDReaderService', rpc_method_handlers)
+    server.add_registered_method_handlers('marty.rfid.v1.RFIDReaderService', rpc_method_handlers)
 
 
  # This class is part of an EXPERIMENTAL API.
@@ -233,7 +233,7 @@ class RFIDReaderService(object):
         return grpc.experimental.unary_unary(
             request,
             target,
-            '/rfid.RFIDReaderService/ListReaders',
+            '/marty.rfid.v1.RFIDReaderService/ListReaders',
             rfid__service__pb2.ListReadersRequest.SerializeToString,
             rfid__service__pb2.ListReadersResponse.FromString,
             options,
@@ -260,7 +260,7 @@ class RFIDReaderService(object):
         return grpc.experimental.unary_unary(
             request,
             target,
-            '/rfid.RFIDReaderService/ConnectReader',
+            '/marty.rfid.v1.RFIDReaderService/ConnectReader',
             rfid__service__pb2.ConnectReaderRequest.SerializeToString,
             rfid__service__pb2.ConnectReaderResponse.FromString,
             options,
@@ -287,7 +287,7 @@ class RFIDReaderService(object):
         return grpc.experimental.unary_unary(
             request,
             target,
-            '/rfid.RFIDReaderService/DisconnectReader',
+            '/marty.rfid.v1.RFIDReaderService/DisconnectReader',
             rfid__service__pb2.DisconnectReaderRequest.SerializeToString,
             rfid__service__pb2.DisconnectReaderResponse.FromString,
             options,
@@ -314,7 +314,7 @@ class RFIDReaderService(object):
         return grpc.experimental.unary_unary(
             request,
             target,
-            '/rfid.RFIDReaderService/GetReaderStatus',
+            '/marty.rfid.v1.RFIDReaderService/GetReaderStatus',
             rfid__service__pb2.GetReaderStatusRequest.SerializeToString,
             rfid__service__pb2.GetReaderStatusResponse.FromString,
             options,
@@ -341,7 +341,7 @@ class RFIDReaderService(object):
         return grpc.experimental.unary_unary(
             request,
             target,
-            '/rfid.RFIDReaderService/ReadCard',
+            '/marty.rfid.v1.RFIDReaderService/ReadCard',
             rfid__service__pb2.ReadCardRequest.SerializeToString,
             rfid__service__pb2.ReadCardResponse.FromString,
             options,
@@ -368,7 +368,7 @@ class RFIDReaderService(object):
         return grpc.experimental.unary_unary(
             request,
             target,
-            '/rfid.RFIDReaderService/SendAPDU',
+            '/marty.rfid.v1.RFIDReaderService/SendAPDU',
             rfid__service__pb2.SendAPDURequest.SerializeToString,
             rfid__service__pb2.SendAPDUResponse.FromString,
             options,
@@ -395,7 +395,7 @@ class RFIDReaderService(object):
         return grpc.experimental.unary_unary(
             request,
             target,
-            '/rfid.RFIDReaderService/GetATR',
+            '/marty.rfid.v1.RFIDReaderService/GetATR',
             rfid__service__pb2.GetATRRequest.SerializeToString,
             rfid__service__pb2.GetATRResponse.FromString,
             options,
@@ -422,7 +422,7 @@ class RFIDReaderService(object):
         return grpc.experimental.unary_unary(
             request,
             target,
-            '/rfid.RFIDReaderService/ReadPassport',
+            '/marty.rfid.v1.RFIDReaderService/ReadPassport',
             rfid__service__pb2.ReadPassportRequest.SerializeToString,
             rfid__service__pb2.ReadPassportResponse.FromString,
             options,
@@ -449,7 +449,7 @@ class RFIDReaderService(object):
         return grpc.experimental.unary_unary(
             request,
             target,
-            '/rfid.RFIDReaderService/VerifyDocument',
+            '/marty.rfid.v1.RFIDReaderService/VerifyDocument',
             rfid__service__pb2.VerifyDocumentRequest.SerializeToString,
             rfid__service__pb2.VerifyDocumentResponse.FromString,
             options,
@@ -476,7 +476,7 @@ class RFIDReaderService(object):
         return grpc.experimental.unary_unary(
             request,
             target,
-            '/rfid.RFIDReaderService/ExtractBiometrics',
+            '/marty.rfid.v1.RFIDReaderService/ExtractBiometrics',
             rfid__service__pb2.ExtractBiometricsRequest.SerializeToString,
             rfid__service__pb2.ExtractBiometricsResponse.FromString,
             options,

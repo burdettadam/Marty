@@ -1,0 +1,18 @@
+version: v2
+modules:
+  - path: proto
+deps:
+  - buf.build/googleapis/googleapis
+breaking:
+  use:
+    - FILE
+  except:
+    - FIELD_SAME_LABEL
+    - FIELD_SAME_TYPE
+    - FIELD_SAME_NAME
+lint:
+  use:
+    - DEFAULT
+  except:
+    - PACKAGE_DIRECTORY_MATCH
+    - PACKAGE_VERSION_SUFFIX

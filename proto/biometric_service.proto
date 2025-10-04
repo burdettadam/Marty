@@ -1,6 +1,6 @@
 syntax = "proto3";
 
-package biometric;
+package marty.biometric.v1;
 
 import "common_services.proto";
 
@@ -30,7 +30,7 @@ message ProcessTemplateRequest {
 message ProcessTemplateResponse {
     BiometricTemplate template = 1;
     QualityAssessment quality = 2;
-    common_services.Status status = 3;
+    marty.common.v1.Status status = 3;
 }
 
 message BiometricTemplate {
@@ -91,7 +91,7 @@ message ValidateQualityRequest {
 message ValidateQualityResponse {
     QualityAssessment assessment = 1;
     bool passes_threshold = 2;
-    common_services.Status status = 3;
+    marty.common.v1.Status status = 3;
 }
 
 message QualityAssessment {
@@ -123,7 +123,7 @@ message ExtractFeaturesRequest {
 message ExtractFeaturesResponse {
     repeated FeatureVector features = 1;
     QualityAssessment quality = 2;
-    common_services.Status status = 3;
+    marty.common.v1.Status status = 3;
 }
 
 message FeatureExtractionOptions {
@@ -142,7 +142,7 @@ message MatchBiometricsRequest {
 
 message MatchBiometricsResponse {
     MatchResult result = 1;
-    common_services.Status status = 2;
+    marty.common.v1.Status status = 2;
 }
 
 message MatchResult {
@@ -184,7 +184,7 @@ message VerifyIdentityRequest {
 
 message VerifyIdentityResponse {
     VerificationResult result = 1;
-    common_services.Status status = 2;
+    marty.common.v1.Status status = 2;
 }
 
 message VerificationResult {
@@ -211,7 +211,7 @@ message BatchProcessTemplatesRequest {
 message BatchProcessTemplatesResponse {
     repeated ProcessTemplateResponse responses = 1;
     BatchSummary summary = 2;
-    common_services.Status status = 3;
+    marty.common.v1.Status status = 3;
 }
 
 message BatchOptions {

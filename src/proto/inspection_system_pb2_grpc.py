@@ -35,7 +35,7 @@ class InspectionSystemStub(object):
             channel: A grpc.Channel.
         """
         self.Inspect = channel.unary_unary(
-                '/inspection.InspectionSystem/Inspect',
+                '/marty.inspection.v1.InspectionSystem/Inspect',
                 request_serializer=inspection__system__pb2.InspectRequest.SerializeToString,
                 response_deserializer=inspection__system__pb2.InspectResponse.FromString,
                 _registered_method=True)
@@ -60,9 +60,9 @@ def add_InspectionSystemServicer_to_server(servicer, server):
             ),
     }
     generic_handler = grpc.method_handlers_generic_handler(
-            'inspection.InspectionSystem', rpc_method_handlers)
+            'marty.inspection.v1.InspectionSystem', rpc_method_handlers)
     server.add_generic_rpc_handlers((generic_handler,))
-    server.add_registered_method_handlers('inspection.InspectionSystem', rpc_method_handlers)
+    server.add_registered_method_handlers('marty.inspection.v1.InspectionSystem', rpc_method_handlers)
 
 
  # This class is part of an EXPERIMENTAL API.
@@ -83,7 +83,7 @@ class InspectionSystem(object):
         return grpc.experimental.unary_unary(
             request,
             target,
-            '/inspection.InspectionSystem/Inspect',
+            '/marty.inspection.v1.InspectionSystem/Inspect',
             inspection__system__pb2.InspectRequest.SerializeToString,
             inspection__system__pb2.InspectResponse.FromString,
             options,

@@ -37,62 +37,62 @@ class VisaServiceStub(object):
             channel: A grpc.Channel.
         """
         self.CreateVisa = channel.unary_unary(
-                '/visa_service.VisaService/CreateVisa',
+                '/marty.visa.v1.VisaService/CreateVisa',
                 request_serializer=visa__service__pb2.CreateVisaRequest.SerializeToString,
                 response_deserializer=visa__service__pb2.CreateVisaResponse.FromString,
                 _registered_method=True)
         self.IssueVisa = channel.unary_unary(
-                '/visa_service.VisaService/IssueVisa',
+                '/marty.visa.v1.VisaService/IssueVisa',
                 request_serializer=visa__service__pb2.IssueVisaRequest.SerializeToString,
                 response_deserializer=visa__service__pb2.IssueVisaResponse.FromString,
                 _registered_method=True)
         self.VerifyVisa = channel.unary_unary(
-                '/visa_service.VisaService/VerifyVisa',
+                '/marty.visa.v1.VisaService/VerifyVisa',
                 request_serializer=visa__service__pb2.VerifyVisaRequest.SerializeToString,
                 response_deserializer=visa__service__pb2.VerifyVisaResponse.FromString,
                 _registered_method=True)
         self.GetVisa = channel.unary_unary(
-                '/visa_service.VisaService/GetVisa',
+                '/marty.visa.v1.VisaService/GetVisa',
                 request_serializer=visa__service__pb2.GetVisaRequest.SerializeToString,
                 response_deserializer=visa__service__pb2.GetVisaResponse.FromString,
                 _registered_method=True)
         self.SearchVisas = channel.unary_unary(
-                '/visa_service.VisaService/SearchVisas',
+                '/marty.visa.v1.VisaService/SearchVisas',
                 request_serializer=visa__service__pb2.SearchVisasRequest.SerializeToString,
                 response_deserializer=visa__service__pb2.SearchVisasResponse.FromString,
                 _registered_method=True)
         self.UpdateVisaStatus = channel.unary_unary(
-                '/visa_service.VisaService/UpdateVisaStatus',
+                '/marty.visa.v1.VisaService/UpdateVisaStatus',
                 request_serializer=visa__service__pb2.UpdateVisaStatusRequest.SerializeToString,
                 response_deserializer=visa__service__pb2.UpdateVisaStatusResponse.FromString,
                 _registered_method=True)
         self.RevokeVisa = channel.unary_unary(
-                '/visa_service.VisaService/RevokeVisa',
+                '/marty.visa.v1.VisaService/RevokeVisa',
                 request_serializer=visa__service__pb2.RevokeVisaRequest.SerializeToString,
                 response_deserializer=visa__service__pb2.RevokeVisaResponse.FromString,
                 _registered_method=True)
         self.RenewVisa = channel.unary_unary(
-                '/visa_service.VisaService/RenewVisa',
+                '/marty.visa.v1.VisaService/RenewVisa',
                 request_serializer=visa__service__pb2.RenewVisaRequest.SerializeToString,
                 response_deserializer=visa__service__pb2.RenewVisaResponse.FromString,
                 _registered_method=True)
         self.CreateVisasBatch = channel.unary_unary(
-                '/visa_service.VisaService/CreateVisasBatch',
+                '/marty.visa.v1.VisaService/CreateVisasBatch',
                 request_serializer=visa__service__pb2.CreateVisasBatchRequest.SerializeToString,
                 response_deserializer=visa__service__pb2.CreateVisasBatchResponse.FromString,
                 _registered_method=True)
         self.VerifyVisasBatch = channel.unary_unary(
-                '/visa_service.VisaService/VerifyVisasBatch',
+                '/marty.visa.v1.VisaService/VerifyVisasBatch',
                 request_serializer=visa__service__pb2.VerifyVisasBatchRequest.SerializeToString,
                 response_deserializer=visa__service__pb2.VerifyVisasBatchResponse.FromString,
                 _registered_method=True)
         self.GetVisaStatistics = channel.unary_unary(
-                '/visa_service.VisaService/GetVisaStatistics',
+                '/marty.visa.v1.VisaService/GetVisaStatistics',
                 request_serializer=google_dot_protobuf_dot_empty__pb2.Empty.SerializeToString,
                 response_deserializer=visa__service__pb2.VisaStatisticsResponse.FromString,
                 _registered_method=True)
         self.GetExpiringVisas = channel.unary_unary(
-                '/visa_service.VisaService/GetExpiringVisas',
+                '/marty.visa.v1.VisaService/GetExpiringVisas',
                 request_serializer=visa__service__pb2.GetExpiringVisasRequest.SerializeToString,
                 response_deserializer=visa__service__pb2.GetExpiringVisasResponse.FromString,
                 _registered_method=True)
@@ -249,9 +249,9 @@ def add_VisaServiceServicer_to_server(servicer, server):
             ),
     }
     generic_handler = grpc.method_handlers_generic_handler(
-            'visa_service.VisaService', rpc_method_handlers)
+            'marty.visa.v1.VisaService', rpc_method_handlers)
     server.add_generic_rpc_handlers((generic_handler,))
-    server.add_registered_method_handlers('visa_service.VisaService', rpc_method_handlers)
+    server.add_registered_method_handlers('marty.visa.v1.VisaService', rpc_method_handlers)
 
 
  # This class is part of an EXPERIMENTAL API.
@@ -273,7 +273,7 @@ class VisaService(object):
         return grpc.experimental.unary_unary(
             request,
             target,
-            '/visa_service.VisaService/CreateVisa',
+            '/marty.visa.v1.VisaService/CreateVisa',
             visa__service__pb2.CreateVisaRequest.SerializeToString,
             visa__service__pb2.CreateVisaResponse.FromString,
             options,
@@ -300,7 +300,7 @@ class VisaService(object):
         return grpc.experimental.unary_unary(
             request,
             target,
-            '/visa_service.VisaService/IssueVisa',
+            '/marty.visa.v1.VisaService/IssueVisa',
             visa__service__pb2.IssueVisaRequest.SerializeToString,
             visa__service__pb2.IssueVisaResponse.FromString,
             options,
@@ -327,7 +327,7 @@ class VisaService(object):
         return grpc.experimental.unary_unary(
             request,
             target,
-            '/visa_service.VisaService/VerifyVisa',
+            '/marty.visa.v1.VisaService/VerifyVisa',
             visa__service__pb2.VerifyVisaRequest.SerializeToString,
             visa__service__pb2.VerifyVisaResponse.FromString,
             options,
@@ -354,7 +354,7 @@ class VisaService(object):
         return grpc.experimental.unary_unary(
             request,
             target,
-            '/visa_service.VisaService/GetVisa',
+            '/marty.visa.v1.VisaService/GetVisa',
             visa__service__pb2.GetVisaRequest.SerializeToString,
             visa__service__pb2.GetVisaResponse.FromString,
             options,
@@ -381,7 +381,7 @@ class VisaService(object):
         return grpc.experimental.unary_unary(
             request,
             target,
-            '/visa_service.VisaService/SearchVisas',
+            '/marty.visa.v1.VisaService/SearchVisas',
             visa__service__pb2.SearchVisasRequest.SerializeToString,
             visa__service__pb2.SearchVisasResponse.FromString,
             options,
@@ -408,7 +408,7 @@ class VisaService(object):
         return grpc.experimental.unary_unary(
             request,
             target,
-            '/visa_service.VisaService/UpdateVisaStatus',
+            '/marty.visa.v1.VisaService/UpdateVisaStatus',
             visa__service__pb2.UpdateVisaStatusRequest.SerializeToString,
             visa__service__pb2.UpdateVisaStatusResponse.FromString,
             options,
@@ -435,7 +435,7 @@ class VisaService(object):
         return grpc.experimental.unary_unary(
             request,
             target,
-            '/visa_service.VisaService/RevokeVisa',
+            '/marty.visa.v1.VisaService/RevokeVisa',
             visa__service__pb2.RevokeVisaRequest.SerializeToString,
             visa__service__pb2.RevokeVisaResponse.FromString,
             options,
@@ -462,7 +462,7 @@ class VisaService(object):
         return grpc.experimental.unary_unary(
             request,
             target,
-            '/visa_service.VisaService/RenewVisa',
+            '/marty.visa.v1.VisaService/RenewVisa',
             visa__service__pb2.RenewVisaRequest.SerializeToString,
             visa__service__pb2.RenewVisaResponse.FromString,
             options,
@@ -489,7 +489,7 @@ class VisaService(object):
         return grpc.experimental.unary_unary(
             request,
             target,
-            '/visa_service.VisaService/CreateVisasBatch',
+            '/marty.visa.v1.VisaService/CreateVisasBatch',
             visa__service__pb2.CreateVisasBatchRequest.SerializeToString,
             visa__service__pb2.CreateVisasBatchResponse.FromString,
             options,
@@ -516,7 +516,7 @@ class VisaService(object):
         return grpc.experimental.unary_unary(
             request,
             target,
-            '/visa_service.VisaService/VerifyVisasBatch',
+            '/marty.visa.v1.VisaService/VerifyVisasBatch',
             visa__service__pb2.VerifyVisasBatchRequest.SerializeToString,
             visa__service__pb2.VerifyVisasBatchResponse.FromString,
             options,
@@ -543,7 +543,7 @@ class VisaService(object):
         return grpc.experimental.unary_unary(
             request,
             target,
-            '/visa_service.VisaService/GetVisaStatistics',
+            '/marty.visa.v1.VisaService/GetVisaStatistics',
             google_dot_protobuf_dot_empty__pb2.Empty.SerializeToString,
             visa__service__pb2.VisaStatisticsResponse.FromString,
             options,
@@ -570,7 +570,7 @@ class VisaService(object):
         return grpc.experimental.unary_unary(
             request,
             target,
-            '/visa_service.VisaService/GetExpiringVisas',
+            '/marty.visa.v1.VisaService/GetExpiringVisas',
             visa__service__pb2.GetExpiringVisasRequest.SerializeToString,
             visa__service__pb2.GetExpiringVisasResponse.FromString,
             options,

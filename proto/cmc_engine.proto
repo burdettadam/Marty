@@ -1,6 +1,6 @@
 syntax = "proto3";
 
-package cmc;
+package marty.cmc.v1;
 
 import "common_services.proto";
 
@@ -345,5 +345,5 @@ message GenerateQRCodeRequest {
 message GenerateQRCodeResponse {
   bytes qr_code = 1;
   string qr_data = 2; // Human-readable QR content
-  common_services.ApiError error = 3;
+  marty.common.v1.ApiError error = 3;
 }

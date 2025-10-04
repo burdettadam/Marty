@@ -1,6 +1,6 @@
 syntax = "proto3";
 
-package passport;
+package marty.passport.v1;
 
 service PassportEngine {
   rpc ProcessPassport (PassportRequest) returns (PassportResponse);

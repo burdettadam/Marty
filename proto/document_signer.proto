@@ -1,6 +1,6 @@
 syntax = "proto3";
 
-package document;
+package marty.signer.v1;
 
 service DocumentSigner {
   rpc SignDocument (SignRequest) returns (SignResponse);
