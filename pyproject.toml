@@ -50,6 +50,10 @@ dependencies = [
     "sd-jwt>=0.9.0",
     # OpenID4VP and mDoc/mDL presentation dependencies
     "cose>=0.9.dev8",
+    # ISO 18013-5 mDL transport dependencies
+    "bleak>=0.21.1",  # BLE support for mDL transactions
+    "pyscard>=2.0.7",  # Smart card/NFC support
+    "aiohttp>=3.9.0",  # HTTP client for ISO 18013-7 online flows
 ]
 
 [project.optional-dependencies]
