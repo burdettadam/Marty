@@ -1,0 +1,81 @@
+apiVersion: networking.istio.io/v1beta1
+kind: Gateway
+metadata:
+  name: marty-gateway
+  namespace: marty
+spec:
+  selector:
+    istio: ingressgateway
+  servers:
+  - port:
+      number: 80
+      name: http
+      protocol: HTTP
+    hosts:
+    - "marty.local"
+    - "*.marty.local"
+    tls:
+      httpsRedirect: true
+  - port:
+      number: 443
+      name: https
+      protocol: HTTPS
+    hosts:
+    - "marty.local"
+    - "*.marty.local"
+    tls:
+      mode: SIMPLE
+      credentialName: marty-tls-secret
+---
+apiVersion: networking.istio.io/v1beta1
+kind: VirtualService
+metadata:
+  name: marty-services
+  namespace: marty
+spec:
+  hosts:
+  - "marty.local"
+  - "*.marty.local"
+  gateways:
+  - marty-gateway
+  http:
+  - match:
+    - uri:
+        prefix: "/trust/"
+    route:
+    - destination:
+        host: trust-svc.marty.svc.cluster.local
+        port:
+          number: 8080
+  - match:
+    - uri:
+        prefix: "/pkd/"
+    route:
+    - destination:
+        host: pkd-service.marty.svc.cluster.local
+        port:
+          number: 8080
+  - match:
+    - uri:
+        prefix: "/credential-ledger/"
+    route:
+    - destination:
+        host: credential-ledger.marty.svc.cluster.local
+        port:
+          number: 8080
+  - match:
+    - uri:
+        prefix: "/inspection/"
+    route:
+    - destination:
+        host: inspection-system.marty.svc.cluster.local
+        port:
+          number: 8080
+  - match:
+    - uri:
+        prefix: "/document-signer/"
+    route:
+    - destination:
+        host: document-signer.marty.svc.cluster.local
+        port:
+          number: 8080

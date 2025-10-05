@@ -1,0 +1,44 @@
+{{- if .Values.monitoring.serviceMonitor.enabled }}
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: {{ include "marty-service.fullname" . }}
+  labels:
+    {{- include "marty-service.labels" . | nindent 4 }}
+    {{- with .Values.monitoring.serviceMonitor.labels }}
+    {{- toYaml . | nindent 4 }}
+    {{- end }}
+spec:
+  selector:
+    matchLabels:
+      {{- include "marty-service.selectorLabels" . | nindent 6 }}
+  endpoints:
+  - port: {{ .Values.monitoring.serviceMonitor.port }}
+    path: {{ .Values.monitoring.serviceMonitor.path }}
+    interval: {{ .Values.monitoring.serviceMonitor.interval }}
+    {{- if .Values.grpc.tls.enabled }}
+    scheme: https
+    tlsConfig:
+      caFile: /etc/prometheus/secrets/{{ .Values.grpc.tls.secrets.ca.name }}/{{ .Values.grpc.tls.secrets.ca.cert_key }}
+      certFile: /etc/prometheus/secrets/{{ .Values.grpc.tls.secrets.client.name }}/{{ .Values.grpc.tls.secrets.client.cert_key }}
+      keyFile: /etc/prometheus/secrets/{{ .Values.grpc.tls.secrets.client.name }}/{{ .Values.grpc.tls.secrets.client.key_key }}
+      serverName: {{ include "marty-service.fullname" . }}
+      insecureSkipVerify: false
+    {{- else }}
+    scheme: http
+    {{- end }}
+    relabelings:
+    - sourceLabels: [__meta_kubernetes_service_name]
+      targetLabel: service
+    - sourceLabels: [__meta_kubernetes_namespace]
+      targetLabel: namespace
+    - sourceLabels: [__meta_kubernetes_pod_name]
+      targetLabel: pod
+    metricRelabelings:
+    - sourceLabels: [__name__]
+      regex: 'go_.*'
+      action: drop
+    - sourceLabels: [__name__]
+      regex: 'promhttp_.*'
+      action: drop
+{{- end }}

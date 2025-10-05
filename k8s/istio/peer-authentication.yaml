@@ -1,0 +1,27 @@
+apiVersion: security.istio.io/v1beta1
+kind: PeerAuthentication
+metadata:
+  name: default-mtls
+  namespace: marty
+spec:
+  mtls:
+    mode: STRICT
+---
+apiVersion: security.istio.io/v1beta1
+kind: PeerAuthentication
+metadata:
+  name: istio-system-mtls
+  namespace: istio-system
+spec:
+  mtls:
+    mode: STRICT
+---
+# Global mesh-wide policy
+apiVersion: security.istio.io/v1beta1
+kind: PeerAuthentication
+metadata:
+  name: default-mesh-mtls
+  namespace: istio-system
+spec:
+  mtls:
+    mode: STRICT

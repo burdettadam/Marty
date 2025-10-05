@@ -1,11 +1,35 @@
-# Default values for pkd-service.
+#!/bin/bash
+
+# Script to standardize all Helm chart values.yaml files
+# This script generates standardized values.yaml for each service
+
+SERVICES=(
+  "csca-service"
+  "document-signer"
+  "inspection-system"
+  "mdl-engine"
+  "mdoc-engine"
+  "passport-engine"
+  "trust-anchor"
+)
+
+BASE_DIR="/Users/adamburdett/Github/work/Marty/helm/charts"
+
+for service in "${SERVICES[@]}"; do
+  echo "Updating ${service}..."
+  
+  # Generate service-specific database name (replace hyphens with underscores)
+  db_name=$(echo "${service}" | tr '-' '_')
+  
+  cat > "${BASE_DIR}/${service}/values.yaml" << EOF
+# Default values for ${service}.
 # This is a YAML-formatted file.
 # Declare variables to be passed into your templates.
 
 replicaCount: 1
 
 image:
-  repository: marty/pkd-service
+  repository: marty/${service}
   tag: "latest"
   pullPolicy: IfNotPresent
 
@@ -14,13 +38,9 @@ nameOverride: ""
 fullnameOverride: ""
 
 serviceAccount:
-  # Specifies whether a service account should be created
   create: true
-  # Annotations to add to the service account
   annotations: {}
-  # The name of the service account to use.
-  # If not set and create is true, a name is generated using the fullname template
-  name: "pkd-service"
+  name: "${service}"
 
 podAnnotations:
   prometheus.io/scrape: "true"
@@ -56,178 +76,104 @@ service:
 
 # Environment configuration
 env:
-  # General service environment
   LOG_LEVEL: "INFO"
-  SERVICE_NAME: "pkd-service"
+  SERVICE_NAME: "${service}"
   SERVICE_VERSION: "1.0.0"
-  
-  # Health check configuration
   HEALTH_CHECK_PORT: "8081"
   METRICS_PORT: "8081"
 
 # gRPC TLS Configuration
 grpc:
   tls:
-    # Enable TLS for gRPC connections
     enabled: true
-    
-    # mTLS configuration
     mtls: true
     require_client_auth: true
-    
-    # Server certificate configuration
     server_cert: "/etc/tls/server/tls.crt"
     server_key: "/etc/tls/server/tls.key"
-    
-    # Client CA for mTLS (when require_client_auth or mtls is true)
     client_ca: "/etc/tls/ca/ca.crt"
-    
-    # Client certificate configuration (for outbound connections)
     client_cert: "/etc/tls/client/tls.crt"
     client_key: "/etc/tls/client/tls.key"
-    
-    # Secret names for TLS certificates
     secrets:
       server:
-        name: "pkd-service-server-tls"
+        name: "${service}-server-tls"
         cert_key: "tls.crt"
         key_key: "tls.key"
       client:
-        name: "pkd-service-client-tls"
+        name: "${service}-client-tls"
         cert_key: "tls.crt"
         key_key: "tls.key"
       ca:
-        name: "pkd-service-ca"
+        name: "${service}-ca"
         cert_key: "ca.crt"
 
 # Database configuration
 database:
-  # Database connection string
-  dsn: "postgresql://marty:password@postgres.marty.svc.cluster.local:5432/pkd_service"
-  
-  # Individual connection parameters (for services that need them separately)
+  dsn: "postgresql://marty:password@postgres.marty.svc.cluster.local:5432/${db_name}"
   host: "postgres.marty.svc.cluster.local"
   port: 5432
-  name: "pkd_service"
+  name: "${db_name}"
   user: "marty"
   password: ""
-  
-  # Database secret configuration
   passwordSecret:
-    name: "pkd-service-db-secret"
+    name: "${service}-db-secret"
     key: "password"
-  
-  # Connection pool settings
   pool:
     min_size: 1
     max_size: 10
     max_overflow: 20
 
-# Object Storage configuration (S3-compatible)
+# Object Storage configuration
 objectStorage:
-  enabled: true
+  enabled: false
   endpoint: "minio.marty.svc.cluster.local:9000"
-  bucket: "pkd-service-storage"
+  bucket: "${service}-storage"
   region: "us-east-1"
   use_ssl: false
-  
-  # Credentials configuration
   access_key: ""
   secret_key: ""
-  
-  # Secret configuration
   credentialsSecret:
-    name: "pkd-service-storage-secret"
+    name: "${service}-storage-secret"
     access_key_key: "access-key"
     secret_key_key: "secret-key"
 
-# Key Vault configuration (HashiCorp Vault or Azure Key Vault)
+# Key Vault configuration
 keyVault:
   enabled: false
-  
-  # Vault type: "hashicorp" or "azure"
   type: "hashicorp"
-  
-  # HashiCorp Vault configuration
   hashicorp:
     endpoint: "vault.marty.svc.cluster.local:8200"
     auth_method: "kubernetes"
-    role: "pkd-service"
+    role: "${service}"
     mount_path: "auth/kubernetes"
-    secrets_path: "secret/pkd-service"
-  
-  # Azure Key Vault configuration
+    secrets_path: "secret/${service}"
   azure:
     vault_url: "https://marty-keyvault.vault.azure.net/"
     tenant_id: ""
     client_id: ""
     client_secret: ""
-    
-    # Secret configuration for Azure credentials
     credentialsSecret:
-      name: "pkd-service-keyvault-secret"
+      name: "${service}-keyvault-secret"
       tenant_id_key: "tenant-id"
       client_id_key: "client-id"
       client_secret_key: "client-secret"
 
-# Event Bus configuration (Kafka/NATS/RabbitMQ)
+# Event Bus configuration
 eventBus:
-  # Event bus type: "kafka", "nats", or "rabbitmq"
   type: "kafka"
-  
-  # Kafka configuration
   kafka:
     brokers: "kafka.marty.svc.cluster.local:9092"
-    topic_prefix: "pkd-service."
-    consumer_group: "pkd-service-consumers"
-    
-    # Security configuration
+    topic_prefix: "${service}."
+    consumer_group: "${service}-consumers"
     security:
       enabled: false
       protocol: "SASL_SSL"
       sasl_mechanism: "PLAIN"
       username: ""
       password: ""
-      
-      # Secret configuration
       credentialsSecret:
-        name: "pkd-service-kafka-secret"
+        name: "${service}-kafka-secret"
         username_key: "username"
         password_key: "password"
-  
-  # NATS configuration
-  nats:
-    servers: "nats.marty.svc.cluster.local:4222"
-    subject_prefix: "pkd-service."
-    
-    # Security configuration
-    security:
-      enabled: false
-      username: ""
-      password: ""
-      
-      # Secret configuration
-      credentialsSecret:
-        name: "pkd-service-nats-secret"
-        username_key: "username"
-        password_key: "password"
-  
-  # RabbitMQ configuration
-  rabbitmq:
-    host: "rabbitmq.marty.svc.cluster.local"
-    port: 5672
-    vhost: "/"
-    exchange_prefix: "pkd-service."
-    
-    # Security configuration
-    username: ""
-    password: ""
-    
-    # Secret configuration
-    credentialsSecret:
-      name: "pkd-service-rabbitmq-secret"
-      username_key: "username"
-      password_key: "password"
 
 resources:
   limits:
@@ -237,61 +183,45 @@ resources:
     cpu: 500m
     memory: 512Mi
 
-# Ingress configuration
 ingress:
   enabled: false
   className: ""
   annotations: {}
   hosts:
-    - host: "pkd-service.chart-example.local"
+    - host: "${service}.chart-example.local"
       paths:
         - path: /
           pathType: Prefix
   tls: []
 
-# Autoscaling configuration
 autoscaling:
   enabled: false
   minReplicas: 1
   maxReplicas: 100
   targetCPUUtilizationPercentage: 80
-  # targetMemoryUtilizationPercentage: 80
 
 nodeSelector: {}
-
 tolerations: []
-
 affinity: {}
 
 # Service-specific configuration
-serviceConfig:
-  # PKD service specific settings
-  openxpki:
-    enabled: true  # PKD service requires OpenXPKI
-    sync_interval: "24h"
-    batch_size: 50
+serviceConfig: {}
 
 # Migration job configuration
 migration:
   enabled: true
   image:
-    repository: marty/pkd-service
+    repository: marty/${service}
     tag: "latest"
     pullPolicy: IfNotPresent
-  
-  # Alembic configuration
   alembic:
     command: ["python", "-m", "alembic", "upgrade", "head"]
     config_file: "/app/alembic.ini"
-  
-  # Job configuration
   job:
     restartPolicy: Never
     backoffLimit: 3
     activeDeadlineSeconds: 600
     ttlSecondsAfterFinished: 86400
-  
-  # Resources for migration job
   resources:
     limits:
       cpu: 500m
@@ -302,15 +232,12 @@ migration:
 
 # Monitoring configuration
 monitoring:
-  # ServiceMonitor for Prometheus
   serviceMonitor:
     enabled: true
     interval: 30s
     path: /metrics
     port: metrics
     labels: {}
-    
-  # PodMonitor for metrics sidecars
   podMonitor:
     enabled: false
     interval: 30s
@@ -321,26 +248,20 @@ monitoring:
 # Service mesh configuration
 serviceMesh:
   enabled: false
-  type: "istio"  # "istio" or "linkerd"
-  
-  # Istio configuration
+  type: "istio"
   istio:
-    # Automatically inject sidecar
     injection: enabled
-    
-    # mTLS configuration
     mtls:
       mode: "STRICT"
-    
-    # Traffic policy
     trafficPolicy:
       tls:
         mode: "ISTIO_MUTUAL"
-  
-  # Linkerd configuration
   linkerd:
-    # Automatically inject sidecar
     injection: enabled
-    
-    # mTLS is always enabled in Linkerd
-    # Additional configurations can be added here
+EOF
+
+  echo "Updated ${service} values.yaml"
+done
+
+echo "All services updated with standardized values.yaml files!"
+EOF

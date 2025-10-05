@@ -1,22 +1,26 @@
-# Default values for trust-svc
+# Default values for {{SERVICE_NAME}}.
 # This is a YAML-formatted file.
 # Declare variables to be passed into your templates.
 
-replicaCount: 2
+replicaCount: 1
 
 image:
-  repository: marty/trust-svc
+  repository: marty/{{SERVICE_NAME}}
   tag: "latest"
-  pullPolicy: Always
+  pullPolicy: IfNotPresent
 
 imagePullSecrets: []
 nameOverride: ""
 fullnameOverride: ""
 
 serviceAccount:
+  # Specifies whether a service account should be created
   create: true
+  # Annotations to add to the service account
   annotations: {}
-  name: "trust-svc"
+  # The name of the service account to use.
+  # If not set and create is true, a name is generated using the fullname template
+  name: "{{SERVICE_NAME}}"
 
 podAnnotations:
   prometheus.io/scrape: "true"
@@ -54,7 +58,7 @@ service:
 env:
   # General service environment
   LOG_LEVEL: "INFO"
-  SERVICE_NAME: "trust-svc"
+  SERVICE_NAME: "{{SERVICE_NAME}}"
   SERVICE_VERSION: "1.0.0"
   
   # Health check configuration
@@ -85,32 +89,32 @@ grpc:
     # Secret names for TLS certificates
     secrets:
       server:
-        name: "trust-svc-server-tls"
+        name: "{{SERVICE_NAME}}-server-tls"
         cert_key: "tls.crt"
         key_key: "tls.key"
       client:
-        name: "trust-svc-client-tls"
+        name: "{{SERVICE_NAME}}-client-tls"
         cert_key: "tls.crt"
         key_key: "tls.key"
       ca:
-        name: "trust-svc-ca"
+        name: "{{SERVICE_NAME}}-ca"
         cert_key: "ca.crt"
 
 # Database configuration
 database:
   # Database connection string
-  dsn: "postgresql://marty:password@postgres.marty.svc.cluster.local:5432/trust_svc"
+  dsn: "postgresql://marty:password@postgres.marty.svc.cluster.local:5432/{{SERVICE_NAME}}"
   
   # Individual connection parameters (for services that need them separately)
   host: "postgres.marty.svc.cluster.local"
   port: 5432
-  name: "trust_svc"
+  name: "{{SERVICE_NAME}}"
   user: "marty"
   password: ""
   
   # Database secret configuration
   passwordSecret:
-    name: "trust-svc-db-secret"
+    name: "{{SERVICE_NAME}}-db-secret"
     key: "password"
   
   # Connection pool settings
@@ -121,9 +125,9 @@ database:
 
 # Object Storage configuration (S3-compatible)
 objectStorage:
-  enabled: true
+  enabled: false
   endpoint: "minio.marty.svc.cluster.local:9000"
-  bucket: "trust-svc-storage"
+  bucket: "{{SERVICE_NAME}}-storage"
   region: "us-east-1"
   use_ssl: false
   
@@ -133,7 +137,7 @@ objectStorage:
   
   # Secret configuration
   credentialsSecret:
-    name: "trust-svc-storage-secret"
+    name: "{{SERVICE_NAME}}-storage-secret"
     access_key_key: "access-key"
     secret_key_key: "secret-key"
 
@@ -148,9 +152,9 @@ keyVault:
   hashicorp:
     endpoint: "vault.marty.svc.cluster.local:8200"
     auth_method: "kubernetes"
-    role: "trust-svc"
+    role: "{{SERVICE_NAME}}"
     mount_path: "auth/kubernetes"
-    secrets_path: "secret/trust-svc"
+    secrets_path: "secret/{{SERVICE_NAME}}"
   
   # Azure Key Vault configuration
   azure:
@@ -161,7 +165,7 @@ keyVault:
     
     # Secret configuration for Azure credentials
     credentialsSecret:
-      name: "trust-svc-keyvault-secret"
+      name: "{{SERVICE_NAME}}-keyvault-secret"
       tenant_id_key: "tenant-id"
       client_id_key: "client-id"
       client_secret_key: "client-secret"
@@ -174,8 +178,8 @@ eventBus:
   # Kafka configuration
   kafka:
     brokers: "kafka.marty.svc.cluster.local:9092"
-    topic_prefix: "trust-svc."
-    consumer_group: "trust-svc-consumers"
+    topic_prefix: "{{SERVICE_NAME}}."
+    consumer_group: "{{SERVICE_NAME}}-consumers"
     
     # Security configuration
     security:
@@ -187,14 +191,14 @@ eventBus:
       
       # Secret configuration
       credentialsSecret:
-        name: "trust-svc-kafka-secret"
+        name: "{{SERVICE_NAME}}-kafka-secret"
         username_key: "username"
         password_key: "password"
   
   # NATS configuration
   nats:
     servers: "nats.marty.svc.cluster.local:4222"
-    subject_prefix: "trust-svc."
+    subject_prefix: "{{SERVICE_NAME}}."
     
     # Security configuration
     security:
@@ -204,7 +208,7 @@ eventBus:
       
       # Secret configuration
       credentialsSecret:
-        name: "trust-svc-nats-secret"
+        name: "{{SERVICE_NAME}}-nats-secret"
         username_key: "username"
         password_key: "password"
   
@@ -213,7 +217,7 @@ eventBus:
     host: "rabbitmq.marty.svc.cluster.local"
     port: 5672
     vhost: "/"
-    exchange_prefix: "trust-svc."
+    exchange_prefix: "{{SERVICE_NAME}}."
     
     # Security configuration
     username: ""
@@ -221,53 +225,38 @@ eventBus:
     
     # Secret configuration
     credentialsSecret:
-      name: "trust-svc-rabbitmq-secret"
+      name: "{{SERVICE_NAME}}-rabbitmq-secret"
       username_key: "username"
       password_key: "password"
 
+# Resources configuration
+resources:
+  limits:
+    cpu: 1000m
+    memory: 1Gi
+  requests:
+    cpu: 500m
+    memory: 512Mi
+
+# Ingress configuration
 ingress:
   enabled: false
   className: ""
   annotations: {}
   hosts:
-    - host: trust-svc.local
+    - host: "{{SERVICE_NAME}}.chart-example.local"
       paths:
         - path: /
           pathType: Prefix
   tls: []
 
-resources:
-  limits:
-    cpu: 500m
-    memory: 512Mi
-  requests:
-    cpu: 200m
-    memory: 256Mi
-
-livenessProbe:
-  httpGet:
-    path: /health
-    port: http
-  initialDelaySeconds: 30
-  periodSeconds: 10
-  timeoutSeconds: 5
-  failureThreshold: 3
-
-readinessProbe:
-  httpGet:
-    path: /ready
-    port: http
-  initialDelaySeconds: 5
-  periodSeconds: 5
-  timeoutSeconds: 3
-  failureThreshold: 3
-
+# Autoscaling configuration
 autoscaling:
   enabled: false
-  minReplicas: 2
-  maxReplicas: 10
-  targetCPUUtilizationPercentage: 70
-  targetMemoryUtilizationPercentage: 80
+  minReplicas: 1
+  maxReplicas: 100
+  targetCPUUtilizationPercentage: 80
+  # targetMemoryUtilizationPercentage: 80
 
 nodeSelector: {}
 
@@ -275,35 +264,14 @@ tolerations: []
 
 affinity: {}
 
-# Service-specific configuration
-serviceConfig:
-  # Trust Service specific configuration
-  environment: production
-  debug: false
-  
-  # PKD/HML sync configuration
-  sync:
-    pkdInterval: 3600
-    hmlInterval: 1800
-    maxRetries: 3
-    retryDelay: 300
-  
-  # Trust settings
-  trust:
-    snapshotRetentionDays: 90
-    maxCertAgeDays: 1095
-  
-  # Security settings
-  cors:
-    origins: ["*"]
-    methods: ["GET", "POST", "PUT", "DELETE"]
-    headers: ["*"]
+# Service-specific configuration (override in individual service charts)
+serviceConfig: {}
 
 # Migration job configuration
 migration:
   enabled: true
   image:
-    repository: marty/trust-svc
+    repository: marty/{{SERVICE_NAME}}
     tag: "latest"
     pullPolicy: IfNotPresent
   
@@ -372,34 +340,3 @@ serviceMesh:
     
     # mTLS is always enabled in Linkerd
     # Additional configurations can be added here
-
-# Persistent volumes for data storage
-persistence:
-  enabled: true
-  storageClass: ""
-  accessMode: ReadWriteOnce
-  size: 5Gi
-  annotations: {}
-
-# ConfigMap and Secret configurations
-configMap:
-  create: true
-  data: {}
-
-secret:
-  create: true
-  data: {}
-
-# Pod disruption budget
-podDisruptionBudget:
-  enabled: true
-  minAvailable: 1
-
-# Network policies
-networkPolicy:
-  enabled: false
-  policyTypes:
-    - Ingress
-    - Egress
-  ingress: []
-  egress: []

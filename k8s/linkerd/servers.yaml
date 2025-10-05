@@ -1,0 +1,35 @@
+apiVersion: policy.linkerd.io/v1beta1
+kind: Server
+metadata:
+  name: marty-grpc-server
+  namespace: marty
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/part-of: marty
+  port: grpc
+  proxyProtocol: "gRPC"
+---
+apiVersion: policy.linkerd.io/v1beta1
+kind: Server
+metadata:
+  name: marty-http-server
+  namespace: marty
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/part-of: marty
+  port: http
+  proxyProtocol: "HTTP/2"
+---
+apiVersion: policy.linkerd.io/v1beta1
+kind: Server
+metadata:
+  name: marty-metrics-server
+  namespace: marty
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/part-of: marty
+  port: metrics
+  proxyProtocol: "HTTP/1.1"

@@ -1,0 +1,19 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: marty
+  labels:
+    # Istio injection
+    istio-injection: enabled
+    # Linkerd injection
+    linkerd.io/inject: enabled
+    # General labels
+    app.kubernetes.io/part-of: marty
+    security.policy/enforce: strict
+  annotations:
+    # Istio annotations
+    sidecar.istio.io/inject: "true"
+    # Linkerd annotations
+    linkerd.io/inject: enabled
+    # mTLS enforcement
+    security.alpha.kubernetes.io/enforce-mtls: "true"
