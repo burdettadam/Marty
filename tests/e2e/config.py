@@ -55,3 +55,65 @@ SERVICES = {
     "dtc_engine": "http://localhost:8087",
     "pkd_service": "http://localhost:8088",
 }
+
+
+class TestConfig:
+    """Configuration class for contract testing."""
+    
+    # Service port mappings for HTTP endpoints
+    SERVICE_PORTS = {
+        "trust-svc": 8090,
+        "trust-anchor": 9080,
+        "csca-service": 8092,
+        "document-signer": 8093,
+        "inspection-system": 8094,
+        "passport-engine": 8095,
+        "mdl-engine": 8096,
+        "mdoc-engine": 8097,
+        "dtc-engine": 8098,
+        "credential-ledger": 8099,
+        "pkd-service": 8088,
+        "ui-app": 8000,
+    }
+    
+    # gRPC port mappings
+    GRPC_PORTS = {
+        "trust-svc": 9090,
+        "trust-anchor": 9091,
+        "csca-service": 9092,
+        "document-signer": 9093,
+        "inspection-system": 9094,
+        "passport-engine": 9095,
+        "mdl-engine": 9096,
+        "mdoc-engine": 9097,
+        "dtc-engine": 9098,
+        "credential-ledger": 9099,
+        "pkd-service": 9088,
+    }
+    
+    # Metrics port mappings
+    METRICS_PORTS = {
+        "trust-svc": 8091,
+        "trust-anchor": 8191,
+        "csca-service": 8192,
+        "document-signer": 8193,
+        "inspection-system": 8194,
+        "passport-engine": 8195,
+        "mdl-engine": 8196,
+        "mdoc-engine": 8197,
+        "dtc-engine": 8198,
+        "credential-ledger": 8199,
+        "pkd-service": 8188,
+    }
+    
+    def get_service_port(self, service_name: str) -> int:
+        """Get HTTP port for a service."""
+        return self.SERVICE_PORTS.get(service_name, 8080)
+    
+    def get_grpc_port(self, service_name: str) -> int:
+        """Get gRPC port for a service."""
+        return self.GRPC_PORTS.get(service_name, 9090)
+    
+    def get_metrics_port(self, service_name: str) -> int:
+        """Get metrics port for a service."""
+        return self.METRICS_PORTS.get(service_name, 8081)

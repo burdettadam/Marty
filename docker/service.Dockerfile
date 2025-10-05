@@ -1,5 +1,5 @@
-# Service-specific Dockerfile template
-# Uses the shared base image to minimize duplication
+# Hardened Service-specific Dockerfile template
+# Uses the shared base image to minimize duplication and security vulnerabilities
 
 ARG BASE_IMAGE=marty-base:latest
 FROM ${BASE_IMAGE}
@@ -14,17 +14,35 @@ ENV SERVICE_NAME=${SERVICE_NAME}
 ENV GRPC_PORT=${SERVICE_PORT}
 ENV SERVICE_MODULE=${SERVICE_MODULE:-${SERVICE_NAME}}
 
-# Copy service-specific source code
-COPY src/${SERVICE_NAME}/ /app/src/${SERVICE_NAME}/
+# Security: Ensure we're running as non-root user (inherited from base)
+USER 1000:1000
+
+# Copy service-specific source code with proper ownership
+COPY --chown=1000:1000 src/${SERVICE_NAME}/ /app/src/${SERVICE_NAME}/
 
 # Copy additional common directories
-COPY src/services/ /app/src/services/
-COPY src/apps/ /app/src/apps/
+COPY --chown=1000:1000 src/services/ /app/src/services/
+COPY --chown=1000:1000 src/apps/ /app/src/apps/
 
-# Compile protobuf files if needed
+# Security: Make files read-only to prevent tampering
+RUN find /app -type f -exec chmod 444 {} \; && \
+    find /app -type d -exec chmod 555 {} \; && \
+    chmod 755 /app/logs /app/data  # Keep data directories writable
+
+# Compile protobuf files if needed (as non-root user)
 RUN cd /app && python src/compile_protos.py
 
-# Expose service port
+# Security labels for runtime
+LABEL security.non-root="true"
+LABEL security.readonly-rootfs="recommended" 
+LABEL security.capabilities="NONE"
+
+# Expose service port (metadata only)
+EXPOSE ${SERVICE_PORT}
+
+# Health check specific to service
+HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
+    CMD ["/usr/local/bin/grpc_health_probe", "-addr=localhost:${SERVICE_PORT}"]
 EXPOSE ${SERVICE_PORT}
 
 # Create entrypoint script for flexibility

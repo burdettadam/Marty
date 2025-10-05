@@ -199,6 +199,9 @@ scan_containers() {
     
     cd "$PROJECT_ROOT"
     
+    # Check for Syft and Grype tools
+    install_security_tools
+    
     if [[ -f "docker/docker-compose.yml" ]]; then
         echo "Analyzing Docker configurations..."
         
@@ -226,9 +229,26 @@ scan_containers() {
                     echo "WARNING: Using 'latest' tag - consider pinning specific versions"
                 fi
                 
+                # Check for distroless or minimal base images
+                if grep -qE "FROM.*:(alpine|distroless|slim)" "$dockerfile"; then
+                    echo "GOOD: Using minimal base image"
+                else
+                    echo "INFO: Consider using distroless or slim base images"
+                fi
+                
+                # Check for health checks
+                if grep -q "HEALTHCHECK" "$dockerfile"; then
+                    echo "GOOD: Health check defined"
+                else
+                    echo "WARNING: No health check defined"
+                fi
+                
                 echo ""
             } >> "$SECURITY_REPORTS_DIR/container/dockerfile_analysis.txt"
         done
+        
+        # Generate SBOM and vulnerability scans for Docker images
+        generate_container_sbom
         
         print_success "Docker configuration analysis completed"
     else
@@ -243,6 +263,195 @@ scan_containers() {
     fi
     
     log_message "Container security scan completed"
+}
+
+# Function to install security tools (Syft, Grype)
+install_security_tools() {
+    print_info "Checking security scanning tools..."
+    
+    # Install Syft if not available
+    if ! command -v syft &> /dev/null; then
+        print_info "Installing Syft for SBOM generation..."
+        if [[ "$OSTYPE" == "darwin"* ]]; then
+            if command -v brew &> /dev/null; then
+                brew install syft
+            else
+                curl -sSfL https://raw.githubusercontent.com/anchore/syft/main/install.sh | sh -s -- -b /usr/local/bin
+            fi
+        else
+            curl -sSfL https://raw.githubusercontent.com/anchore/syft/main/install.sh | sh -s -- -b /usr/local/bin
+        fi
+    fi
+    
+    # Install Grype if not available
+    if ! command -v grype &> /dev/null; then
+        print_info "Installing Grype for vulnerability scanning..."
+        if [[ "$OSTYPE" == "darwin"* ]]; then
+            if command -v brew &> /dev/null; then
+                brew install grype
+            else
+                curl -sSfL https://raw.githubusercontent.com/anchore/grype/main/install.sh | sh -s -- -b /usr/local/bin
+            fi
+        else
+            curl -sSfL https://raw.githubusercontent.com/anchore/grype/main/install.sh | sh -s -- -b /usr/local/bin
+        fi
+    fi
+}
+
+# Function to generate SBOM and scan for vulnerabilities
+generate_container_sbom() {
+    print_header "📋 Generating SBOM and Vulnerability Reports"
+    
+    # Create SBOM directory
+    mkdir -p "$SECURITY_REPORTS_DIR/sbom"
+    mkdir -p "$SECURITY_REPORTS_DIR/vulnerabilities"
+    
+    # Build images first
+    print_info "Building Docker images for scanning..."
+    docker-compose -f docker/docker-compose.yml build --no-cache > /dev/null 2>&1 || {
+        print_warning "Failed to build some images, scanning available images instead"
+    }
+    
+    # Get list of Marty images
+    local images=$(docker images --filter reference="*marty*" --format "{{.Repository}}:{{.Tag}}" | grep -v "<none>" || true)
+    local scan_count=0
+    local vuln_count=0
+    
+    if [[ -n "$images" ]]; then
+        for image in $images; do
+            print_info "Scanning image: $image"
+            local base_name=$(echo "$image" | tr '/:' '_')
+            
+            # Generate SBOM
+            if syft "$image" -o spdx-json > "$SECURITY_REPORTS_DIR/sbom/sbom_${base_name}.spdx.json" 2>/dev/null; then
+                syft "$image" -o table > "$SECURITY_REPORTS_DIR/sbom/sbom_${base_name}.txt" 2>/dev/null
+                print_success "SBOM generated for $image"
+            else
+                print_warning "Failed to generate SBOM for $image"
+                continue
+            fi
+            
+            # Vulnerability scan
+            if grype "$image" -o json > "$SECURITY_REPORTS_DIR/vulnerabilities/vulns_${base_name}.json" 2>/dev/null; then
+                grype "$image" -o table > "$SECURITY_REPORTS_DIR/vulnerabilities/vulns_${base_name}.txt" 2>/dev/null
+                
+                # Count high/critical vulnerabilities
+                local high_vulns=$(jq -r '.matches[] | select(.vulnerability.severity == "High" or .vulnerability.severity == "Critical") | .vulnerability.id' "$SECURITY_REPORTS_DIR/vulnerabilities/vulns_${base_name}.json" 2>/dev/null | wc -l || echo "0")
+                
+                if [[ "$high_vulns" -gt 0 ]]; then
+                    print_warning "Found $high_vulns high/critical vulnerabilities in $image"
+                    vuln_count=$((vuln_count + high_vulns))
+                else
+                    print_success "No high/critical vulnerabilities in $image"
+                fi
+            else
+                print_warning "Failed to scan vulnerabilities for $image"
+            fi
+            
+            scan_count=$((scan_count + 1))
+        done
+    else
+        print_info "No Marty Docker images found, scanning project directory instead"
+        
+        # Scan project directory
+        if syft . -o spdx-json > "$SECURITY_REPORTS_DIR/sbom/sbom_project.spdx.json" 2>/dev/null; then
+            syft . -o table > "$SECURITY_REPORTS_DIR/sbom/sbom_project.txt" 2>/dev/null
+            print_success "SBOM generated for project directory"
+        fi
+        
+        if grype . -o json > "$SECURITY_REPORTS_DIR/vulnerabilities/vulns_project.json" 2>/dev/null; then
+            grype . -o table > "$SECURITY_REPORTS_DIR/vulnerabilities/vulns_project.txt" 2>/dev/null
+            print_success "Vulnerability scan completed for project directory"
+        fi
+    fi
+    
+    # Generate summary
+    generate_security_summary "$scan_count" "$vuln_count"
+    
+    print_success "SBOM generation and vulnerability scanning completed"
+}
+
+# Function to generate security summary
+generate_security_summary() {
+    local scan_count=$1
+    local vuln_count=$2
+    
+    print_info "Generating security summary..."
+    
+    python3 << EOF > "$SECURITY_REPORTS_DIR/security_summary.json"
+import json
+import glob
+import os
+from datetime import datetime
+
+output_dir = "$SECURITY_REPORTS_DIR"
+vuln_files = glob.glob(f"{output_dir}/vulnerabilities/vulns_*.json")
+
+total_vulnerabilities = 0
+critical_count = 0
+high_count = 0
+medium_count = 0
+low_count = 0
+scanned_targets = []
+
+for vuln_file in vuln_files:
+    try:
+        with open(vuln_file, 'r') as f:
+            data = json.load(f)
+            
+        target_name = os.path.basename(vuln_file).replace('vulns_', '').replace('.json', '')
+        scanned_targets.append(target_name)
+        
+        for match in data.get('matches', []):
+            severity = match.get('vulnerability', {}).get('severity', 'Unknown')
+            total_vulnerabilities += 1
+            
+            if severity == 'Critical':
+                critical_count += 1
+            elif severity == 'High':
+                high_count += 1
+            elif severity == 'Medium':
+                medium_count += 1
+            elif severity == 'Low':
+                low_count += 1
+                
+    except Exception as e:
+        print(f"Error processing {vuln_file}: {e}")
+
+# Generate summary
+summary = {
+    "scan_timestamp": datetime.now().isoformat(),
+    "scanned_targets": scanned_targets,
+    "targets_scanned": $scan_count,
+    "total_vulnerabilities": total_vulnerabilities,
+    "critical_vulnerabilities": critical_count,
+    "high_vulnerabilities": high_count,
+    "medium_vulnerabilities": medium_count,
+    "low_vulnerabilities": low_count,
+    "risk_score": (critical_count * 10) + (high_count * 5) + (medium_count * 2) + low_count,
+    "security_status": "FAIL" if critical_count > 0 or high_count > 10 else "PASS"
+}
+
+print(json.dumps(summary, indent=2))
+EOF
+
+    if [[ -f "$SECURITY_REPORTS_DIR/security_summary.json" ]]; then
+        local critical=$(jq -r '.critical_vulnerabilities' "$SECURITY_REPORTS_DIR/security_summary.json")
+        local high=$(jq -r '.high_vulnerabilities' "$SECURITY_REPORTS_DIR/security_summary.json")
+        local status=$(jq -r '.security_status' "$SECURITY_REPORTS_DIR/security_summary.json")
+        
+        print_info "Security Summary:"
+        print_info "  Targets Scanned: $scan_count"
+        print_info "  Critical Vulnerabilities: $critical"
+        print_info "  High Vulnerabilities: $high"
+        print_info "  Overall Status: $status"
+        
+        if [[ "$status" == "FAIL" ]]; then
+            print_critical "Security policy violations detected!"
+        else
+            print_success "Security scan passed policy requirements"
+        fi
+    fi
 }
 
 # Function to run compliance checks
