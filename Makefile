@@ -56,6 +56,88 @@ test-contracts-generate-golden:
 	$(UV) run python -c "import os; os.environ['UPDATE_GOLDEN'] = '1'"
 	$(UV) run python -m pytest tests/contracts/ -v -k "golden" --tb=short
 
+# Database Migration Targets
+.PHONY: db-upgrade db-init db-revision db-downgrade db-current db-history
+
+# Per-service database migrations
+VALID_SERVICES := document_signer csca_service pkd_service passport_engine
+
+# Validate SERVICE parameter
+validate-service:
+	@if [ -z "$(SERVICE)" ]; then \
+		echo "Error: SERVICE parameter is required. Use one of: $(VALID_SERVICES)"; \
+		echo "Example: make db-upgrade SERVICE=document_signer"; \
+		exit 1; \
+	fi
+	@if ! echo "$(VALID_SERVICES)" | grep -q "$(SERVICE)"; then \
+		echo "Error: Invalid service '$(SERVICE)'. Valid services: $(VALID_SERVICES)"; \
+		exit 1; \
+	fi
+
+db-upgrade: validate-service
+	@echo "Running database migrations for $(SERVICE) service..."
+	cd src/services/$(SERVICE) && $(UV) run alembic upgrade head
+
+db-init: validate-service
+	@echo "Initializing database for $(SERVICE) service..."
+	cd src/services/$(SERVICE) && $(UV) run alembic init alembic
+
+db-revision: validate-service
+	@echo "Creating new migration for $(SERVICE) service..."
+	@if [ -z "$(MESSAGE)" ]; then \
+		echo "Error: MESSAGE parameter is required for new revisions"; \
+		echo "Example: make db-revision SERVICE=document_signer MESSAGE='Add user table'"; \
+		exit 1; \
+	fi
+	cd src/services/$(SERVICE) && $(UV) run alembic revision --autogenerate -m "$(MESSAGE)"
+
+db-downgrade: validate-service
+	@echo "Downgrading database for $(SERVICE) service..."
+	@if [ -z "$(REVISION)" ]; then \
+		echo "Downgrading to previous revision..."; \
+		cd src/services/$(SERVICE) && $(UV) run alembic downgrade -1; \
+	else \
+		echo "Downgrading to revision $(REVISION)..."; \
+		cd src/services/$(SERVICE) && $(UV) run alembic downgrade $(REVISION); \
+	fi
+
+db-current: validate-service
+	@echo "Current migration status for $(SERVICE) service..."
+	cd src/services/$(SERVICE) && $(UV) run alembic current
+
+db-history: validate-service
+	@echo "Migration history for $(SERVICE) service..."
+	cd src/services/$(SERVICE) && $(UV) run alembic history
+
+# Upgrade all services
+db-upgrade-all:
+	@echo "Running database migrations for all services..."
+	@for service in $(VALID_SERVICES); do \
+		echo "Upgrading $$service..."; \
+		$(MAKE) db-upgrade SERVICE=$$service || exit 1; \
+	done
+
+# Database setup and testing targets
+db-setup-test:
+	@echo "Starting test PostgreSQL database..."
+	docker compose -f docker/docker-compose.test-db.yml up -d
+	@echo "Waiting for PostgreSQL to be ready..."
+	@sleep 5
+	@docker compose -f docker/docker-compose.test-db.yml exec -T postgres-test pg_isready -U postgres || echo "Database not ready yet, continuing..."
+
+db-stop-test:
+	@echo "Stopping test PostgreSQL database..."
+	docker compose -f docker/docker-compose.test-db.yml down
+
+db-test-connections:
+	@echo "Testing database connections..."
+	$(UV) run python scripts/test_databases.py
+
+db-setup-full: db-setup-test
+	@echo "Running full database setup..."
+	@sleep 3
+	$(UV) run python scripts/setup_databases.py --migrations-only
+
 # Code Quality Targets
 .PHONY: format lint type-check complexity security security-quick security-deps security-code security-secrets security-containers security-compliance quality-check pre-commit-install pre-commit-run
 
@@ -260,7 +342,7 @@ setup-openxpki:
 	@echo "Access the OpenXPKI web interface at: https://localhost:8443/openxpki/"
 	@echo "Development credentials loaded from docker/openxpki.env and data/openxpki/secrets/*.txt (DO NOT USE IN PROD)"
 
-.PHONY: setup clean test lint format proto compile-protos clean-protos test-contracts test-contracts-generate-golden build run docker-build docker-run test-unit test-integration test-e2e test-e2e-k8s test-e2e-k8s-existing test-e2e-k8s-smoke test-e2e-k8s-monitoring test-e2e-clean test-e2e-docker-legacy test-integration-docker-legacy test-cert-validator test-e2e-ui playwright-install generate-test-data help run-ui run-service-ui run-services-dev check-services stop-services dev-environment demo-environment dev-minimal dev-full dev-status dev-logs dev-clean dev-restart wait-for-services show-endpoints test-performance test-coverage test-security test-setup setup-openxpki test-doc-processing test-doc-processing-unit test-doc-processing-integration test-doc-processing-e2e test-doc-processing-docker test-doc-processing-api test-doc-processing-health doc-processing-start doc-processing-stop doc-processing-status doc-processing-logs doc-processing-clean test-trust-svc test-trust-svc-unit test-trust-svc-integration test-trust-svc-e2e test-trust-svc-docker test-trust-svc-api test-trust-svc-health trust-svc-start trust-svc-start-docker trust-svc-stop trust-svc-status trust-svc-logs trust-svc-dev-job trust-svc-load-data trust-svc-clean
+.PHONY: setup clean test lint format proto compile-protos clean-protos test-contracts test-contracts-generate-golden db-upgrade db-init db-revision db-downgrade db-current db-history db-upgrade-all db-setup-test db-stop-test db-test-connections db-setup-full validate-service build run docker-build docker-run test-unit test-integration test-e2e test-e2e-k8s test-e2e-k8s-existing test-e2e-k8s-smoke test-e2e-k8s-monitoring test-e2e-clean test-e2e-docker-legacy test-integration-docker-legacy test-cert-validator test-e2e-ui playwright-install generate-test-data help run-ui run-service-ui run-services-dev check-services stop-services dev-environment demo-environment dev-minimal dev-full dev-status dev-logs dev-clean dev-restart wait-for-services show-endpoints test-performance test-coverage test-security test-setup setup-openxpki test-doc-processing test-doc-processing-unit test-doc-processing-integration test-doc-processing-e2e test-doc-processing-docker test-doc-processing-api test-doc-processing-health doc-processing-start doc-processing-stop doc-processing-status doc-processing-logs doc-processing-clean test-trust-svc test-trust-svc-unit test-trust-svc-integration test-trust-svc-e2e test-trust-svc-docker test-trust-svc-api test-trust-svc-health trust-svc-start trust-svc-start-docker trust-svc-stop trust-svc-status trust-svc-logs trust-svc-dev-job trust-svc-load-data trust-svc-clean
 
 PYTHON := uv run python
 UV := uv

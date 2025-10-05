@@ -1,8 +1,7 @@
 """
-Configuration loading utilities for Marty services.
+Base configuration class for Marty services.
 
-This module provides functionality to load and parse configuration files
-based on environment (development, testing, production).
+This module contains the Config class that provides service-specific database configuration.
 """
 
 from __future__ import annotations
@@ -26,11 +25,10 @@ class ConfigurationError(Exception):
 
 
 class Config:
-    """Minimal configuration object used by several services and tests.
+    """Configuration object for Marty services with enforced service-specific database isolation.
 
-    This wrapper provides attribute-style access to service configuration
-    sections from the loaded YAML. Only the behavior that tests rely on is
-    implemented; new fields can be added as needed.
+    This configuration class requires service names for database access to ensure proper
+    database per service isolation.
     """
 
     def __init__(self, environment: str | None = None) -> None:
@@ -129,109 +127,95 @@ def get_config_path(environment: str | None = None) -> Path:
     if environment is None:
         environment = get_environment()
 
-    # Project root directory is two levels up from this file
-    project_root = Path(__file__).parent.parent.parent
+    # Get the project root (parent of the src directory)
+    src_path = Path(__file__).resolve().parent.parent.parent
+    project_root = src_path.parent
     config_path = project_root / "config" / f"{environment}.yaml"
 
     if not config_path.exists():
-        msg = f"Configuration file not found: {config_path}"
-        raise ConfigurationError(msg)
+        raise ConfigurationError(f"Configuration file not found: {config_path}")
 
     return config_path
 
 
 def load_config(environment: str | None = None) -> dict[str, Any]:
     """
-    Load configuration from the appropriate YAML file based on environment.
+    Load configuration from the appropriate YAML file.
 
     Args:
-        environment: The environment to use. If None, uses the value from get_environment()
+        environment: The environment to load config for. If None, uses get_environment()
 
     Returns:
-        Dictionary containing the configuration
+        Configuration dictionary
     """
     config_path = get_config_path(environment)
 
     try:
-        with open(config_path) as f:
-            config = yaml.safe_load(f)
+        with open(config_path, "r") as file:
+            config_data = yaml.safe_load(file)
 
-        # Expand environment variables in strings
-        return _expand_env_vars(config)
+        # Expand environment variables in the configuration
+        config_data = _expand_env_vars(config_data)
 
-    except Exception as e:
-        msg = f"Error loading configuration: {e!s}"
-        raise ConfigurationError(msg)
-
-
-def _expand_env_vars(config: dict[str, Any]) -> dict[str, Any]:
-    """
-    Recursively expand environment variables in configuration strings.
-
-    Args:
-        config: Configuration dictionary
-
-    Returns:
-        Configuration with environment variables expanded
-    """
-    result = {}
-
-    for key, value in config.items():
-        if isinstance(value, dict):
-            result[key] = _expand_env_vars(value)
-        elif isinstance(value, str) and "${" in value and "}" in value:
-            # Extract environment variable pattern
-            var_pattern = value.split("${")[1].split("}")[0]
-
-            if ":-" in var_pattern:
-                env_var, default = var_pattern.split(":-", 1)
-                env_value = os.environ.get(env_var)
-                if env_value is not None:
-                    result[key] = value.replace(f"${{{var_pattern}}}", env_value)
-                else:
-                    result[key] = value.replace(f"${{{var_pattern}}}", default)
-            else:
-                env_var = var_pattern
-                env_value = os.environ.get(env_var)
-                if env_value is not None:
-                    result[key] = value.replace(f"${{{env_var}}}", env_value)
-                else:
-                    # Keep the original if environment variable is not set
-                    result[key] = value
-        else:
-            result[key] = value
-
-    return result
+        return config_data
+    except yaml.YAMLError as e:
+        raise ConfigurationError(f"Error parsing YAML configuration file {config_path}: {e}")
+    except OSError as e:
+        raise ConfigurationError(f"Error reading configuration file {config_path}: {e}")
 
 
 def get_service_config(service_name: str, environment: str | None = None) -> dict[str, Any]:
     """
-    Get configuration specific to a service.
+    Get configuration for a specific service.
 
     Args:
-        service_name: The name of the service
-        environment: The environment to use. If None, uses the value from get_environment()
+        service_name: Name of the service
+        environment: Environment to load config for
 
     Returns:
         Service-specific configuration
     """
     config = load_config(environment)
+    services_config = config.get("services", {})
 
-    # Common configuration for all services
-    result = {
-        "environment": get_environment(),
-        "logging": config.get("logging", {}),
-    }
+    if service_name not in services_config:
+        raise ConfigurationError(f"No configuration found for service: {service_name}")
 
-    # Add service-specific configuration if available
-    if "services" in config and service_name in config["services"]:
-        result.update(config["services"][service_name])
+    return services_config[service_name]
 
-    # Add general configuration
-    if "ports" in config and service_name in config["ports"]:
-        result["port"] = config["ports"][service_name]
 
-    if "hosts" in config and service_name in config["hosts"]:
-        result["host"] = config["hosts"][service_name]
+def _expand_env_vars(obj: Any) -> Any:
+    """
+    Recursively expand environment variables in configuration values.
 
-    return result
+    Supports format: ${VAR_NAME:-default_value}
+    """
+    if isinstance(obj, dict):
+        return {key: _expand_env_vars(value) for key, value in obj.items()}
+    elif isinstance(obj, list):
+        return [_expand_env_vars(item) for item in obj]
+    elif isinstance(obj, str):
+        return _expand_env_var_string(obj)
+    else:
+        return obj
+
+
+def _expand_env_var_string(value: str) -> str:
+    """
+    Expand environment variables in a string.
+
+    Supports format: ${VAR_NAME:-default_value}
+    """
+    import re
+
+    pattern = r'\$\{([^}]+)\}'
+
+    def replace_var(match):
+        var_expr = match.group(1)
+        if ":-" in var_expr:
+            var_name, default_value = var_expr.split(":-", 1)
+            return os.environ.get(var_name, default_value)
+        else:
+            return os.environ.get(var_expr, "")
+
+    return re.sub(pattern, replace_var, value)

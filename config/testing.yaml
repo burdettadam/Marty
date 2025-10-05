@@ -102,14 +102,39 @@ logging:
   format: '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
   file: logs/test.log
 
-# Database
+# Database - per service databases for testing
 database:
-  url: "${MARTY_DATABASE_URL:-postgresql+asyncpg://test_user:test_password@localhost:5432/marty_test}"
-  host: localhost
-  port: 5432
-  user: test_user
-  password: test_password
-  name: marty_test
+  document_signer:
+    url: "${DOCUMENT_SIGNER_DATABASE_URL:-postgresql+asyncpg://dev_user:dev_password@localhost:5432/marty_document_signer}"
+    host: localhost
+    port: 5432
+    user: dev_user
+    password: dev_password
+    name: marty_document_signer
+  
+  csca:
+    url: "${CSCA_DATABASE_URL:-postgresql+asyncpg://dev_user:dev_password@localhost:5432/marty_csca}"
+    host: localhost
+    port: 5432
+    user: dev_user
+    password: dev_password
+    name: marty_csca
+  
+  pkd_service:
+    url: "${PKD_SERVICE_DATABASE_URL:-postgresql+asyncpg://dev_user:dev_password@localhost:5432/marty_pkd}"
+    host: localhost
+    port: 5432
+    user: dev_user
+    password: dev_password
+    name: marty_pkd
+  
+  passport_engine:
+    url: "${PASSPORT_ENGINE_DATABASE_URL:-postgresql+asyncpg://dev_user:dev_password@localhost:5432/marty_passport_engine}"
+    host: localhost
+    port: 5432
+    user: dev_user
+    password: dev_password
+    name: marty_passport_engine
 
 # Security
 security:

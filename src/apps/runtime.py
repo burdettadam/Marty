@@ -77,9 +77,27 @@ class ServiceDependencies:
 
 async def build_dependencies_async(
     runtime_config: MartyConfig | None = None,
+    service_name: str | None = None,
 ) -> ServiceDependencies:
-    runtime_config = runtime_config or MartyConfig()
-    database = DatabaseManager(runtime_config.database())
+    """Build service dependencies with service-specific database configuration.
+    
+    Args:
+        runtime_config: Runtime configuration (optional)
+        service_name: Name of the service (required for database isolation)
+        
+    Raises:
+        ValueError: If service_name is not provided
+    """
+    if service_name is None:
+        raise ValueError(
+            "service_name is required for dependency injection. "
+            "Each service must specify its name for proper database isolation."
+        )
+    
+    if runtime_config is None:
+        runtime_config = MartyConfig()
+        
+    database = DatabaseManager(runtime_config.database(service_name))
     await database.create_all()
     object_storage = ObjectStorageClient(runtime_config.object_storage())
     key_vault = build_key_vault_client(runtime_config.key_vault())
@@ -458,7 +476,7 @@ async def serve_service_async(
     health = setup_health_service(server)
     setup_logging_streamer_service(server, health)
 
-    dependencies = await build_dependencies_async(runtime_config)
+    dependencies = await build_dependencies_async(runtime_config, service_name=service.name)
 
     registrar = SERVICE_REGISTRARS.get(service.name)
     if not registrar:

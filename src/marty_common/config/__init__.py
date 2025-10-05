@@ -1,5 +1,6 @@
 """Configuration management utilities for Marty services."""
 
+from .base_config import Config, ConfigurationError
 from .enhanced_config import (
     ConfigurationManager,
     EnhancedServiceConfig,
@@ -10,7 +11,9 @@ from .enhanced_config import (
 )
 
 __all__ = [
-    "ConfigurationManager",
+    "Config",
+    "ConfigurationError",
+    "ConfigurationManager", 
     "EnhancedServiceConfig",
     "create_certificate_service_config",
     "create_enhanced_config",

@@ -127,14 +127,39 @@ logging:
   format: '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
   file: logs/production.log
 
-# Database
+# Database - per service databases for production
 database:
-  url: "${MARTY_DATABASE_URL:-postgresql+asyncpg://${DB_USER}:${DB_PASSWORD}@db:5432/marty_production}"
-  host: db
-  port: 5432
-  user: "${DB_USER}"
-  password: "${DB_PASSWORD}"
-  name: marty_production
+  document_signer:
+    url: "${DOCUMENT_SIGNER_DATABASE_URL:-postgresql+asyncpg://${DB_USER}:${DB_PASSWORD}@db:5432/marty_document_signer_production}"
+    host: db
+    port: 5432
+    user: "${DB_USER}"
+    password: "${DB_PASSWORD}"
+    name: marty_document_signer_production
+  
+  csca:
+    url: "${CSCA_DATABASE_URL:-postgresql+asyncpg://${DB_USER}:${DB_PASSWORD}@db:5432/marty_csca_production}"
+    host: db
+    port: 5432
+    user: "${DB_USER}"
+    password: "${DB_PASSWORD}"
+    name: marty_csca_production
+  
+  pkd_service:
+    url: "${PKD_SERVICE_DATABASE_URL:-postgresql+asyncpg://${DB_USER}:${DB_PASSWORD}@db:5432/marty_pkd_production}"
+    host: db
+    port: 5432
+    user: "${DB_USER}"
+    password: "${DB_PASSWORD}"
+    name: marty_pkd_production
+  
+  passport_engine:
+    url: "${PASSPORT_ENGINE_DATABASE_URL:-postgresql+asyncpg://${DB_USER}:${DB_PASSWORD}@db:5432/marty_passport_engine_production}"
+    host: db
+    port: 5432
+    user: "${DB_USER}"
+    password: "${DB_PASSWORD}"
+    name: marty_passport_engine_production
 
 # Security
 security:
