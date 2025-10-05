@@ -1,0 +1,870 @@
+# Marty Platform Demo Environment
+# One-command demo with full observability stack and sample data
+# Usage: docker-compose -f docker/docker-compose.demo.yml --env-file .env.demo up
+
+version: '3.8'
+
+networks:
+  marty-demo-network:
+    driver: bridge
+
+volumes:
+  demo_postgres_data:
+  demo_minio_data:
+  demo_vault_data:
+  demo_prometheus_data:
+  demo_grafana_data:
+  demo_jaeger_data:
+
+services:
+  # === Infrastructure Services ===
+  
+  # PostgreSQL with multiple schemas for microservices
+  postgres-demo:
+    image: postgres:15
+    container_name: marty-demo-postgres
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-martyuser}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-martypassword}
+      POSTGRES_DB: ${POSTGRES_DB:-martydb}
+      POSTGRES_MULTIPLE_DATABASES: "martydb,trust_db,credentials_db,audit_db"
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - demo_postgres_data:/var/lib/postgresql/data
+      - ../scripts/init-demo-db.sql:/docker-entrypoint-initdb.d/init-demo-db.sql
+    networks:
+      - marty-demo-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-martyuser} -d ${POSTGRES_DB:-martydb}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # MinIO Object Storage
+  minio-demo:
+    image: minio/minio:latest
+    container_name: marty-demo-minio
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:-minioadmin}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-minioadmin123}
+    ports:
+      - "${MINIO_API_PORT:-9000}:9000"
+      - "${MINIO_CONSOLE_PORT:-9001}:9001"
+    volumes:
+      - demo_minio_data:/data
+    networks:
+      - marty-demo-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 30s
+      timeout: 20s
+      retries: 3
+
+  # Create MinIO buckets
+  minio-setup:
+    image: minio/mc:latest
+    container_name: marty-demo-minio-setup
+    depends_on:
+      - minio-demo
+    entrypoint: >
+      /bin/sh -c "
+      sleep 10;
+      /usr/bin/mc alias set myminio http://minio-demo:9000 ${MINIO_ROOT_USER:-minioadmin} ${MINIO_ROOT_PASSWORD:-minioadmin123};
+      /usr/bin/mc mb myminio/documents --ignore-existing;
+      /usr/bin/mc mb myminio/certificates --ignore-existing;
+      /usr/bin/mc mb myminio/credentials --ignore-existing;
+      /usr/bin/mc mb myminio/audit-logs --ignore-existing;
+      /usr/bin/mc policy set public myminio/documents;
+      exit 0;
+      "
+    networks:
+      - marty-demo-network
+
+  # HashiCorp Vault (Dev Mode)
+  vault-demo:
+    image: hashicorp/vault:latest
+    container_name: marty-demo-vault
+    cap_add:
+      - IPC_LOCK
+    environment:
+      VAULT_DEV_ROOT_TOKEN_ID: ${VAULT_ROOT_TOKEN:-demo-root-token}
+      VAULT_DEV_LISTEN_ADDRESS: 0.0.0.0:8200
+    ports:
+      - "${VAULT_PORT:-8200}:8200"
+    volumes:
+      - demo_vault_data:/vault/data
+    networks:
+      - marty-demo-network
+    healthcheck:
+      test: ["CMD", "vault", "status"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # === Observability Stack ===
+
+  # OpenTelemetry Collector
+  otel-collector:
+    image: otel/opentelemetry-collector-contrib:latest
+    container_name: marty-demo-otel-collector
+    command: ["--config=/etc/otel-collector-config.yaml"]
+    volumes:
+      - ./monitoring/otel-collector-config.yaml:/etc/otel-collector-config.yaml
+    ports:
+      - "4317:4317"   # OTLP gRPC receiver
+      - "4318:4318"   # OTLP HTTP receiver
+      - "8888:8888"   # Prometheus metrics
+      - "8889:8889"   # Prometheus exporter metrics
+    depends_on:
+      - jaeger-demo
+      - prometheus-demo
+    networks:
+      - marty-demo-network
+
+  # Jaeger
+  jaeger-demo:
+    image: jaegertracing/all-in-one:latest
+    container_name: marty-demo-jaeger
+    environment:
+      COLLECTOR_OTLP_ENABLED: true
+    ports:
+      - "16686:16686"  # Jaeger UI
+      - "14250:14250"  # gRPC
+      - "14268:14268"  # HTTP
+    volumes:
+      - demo_jaeger_data:/tmp
+    networks:
+      - marty-demo-network
+
+  # Prometheus
+  prometheus-demo:
+    image: prom/prometheus:latest
+    container_name: marty-demo-prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.console.libraries=/etc/prometheus/console_libraries'
+      - '--web.console.templates=/etc/prometheus/consoles'
+      - '--storage.tsdb.retention.time=200h'
+      - '--web.enable-lifecycle'
+    ports:
+      - "${PROMETHEUS_PORT:-9090}:9090"
+    volumes:
+      - ./monitoring/prometheus-demo.yml:/etc/prometheus/prometheus.yml
+      - demo_prometheus_data:/prometheus
+    networks:
+      - marty-demo-network
+
+  # Grafana
+  grafana-demo:
+    image: grafana/grafana:latest
+    container_name: marty-demo-grafana
+    environment:
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_PASSWORD:-admin}
+      GF_INSTALL_PLUGINS: grafana-piechart-panel
+    ports:
+      - "${GRAFANA_PORT:-3000}:3000"
+    volumes:
+      - demo_grafana_data:/var/lib/grafana
+      - ./monitoring/grafana/provisioning:/etc/grafana/provisioning
+      - ./monitoring/grafana/dashboards:/var/lib/grafana/dashboards
+    depends_on:
+      - prometheus-demo
+    networks:
+      - marty-demo-network
+
+  # === Core Marty Services ===
+
+  # Trust Service
+  trust-svc-demo:
+    platform: linux/amd64
+    build:
+      context: ..
+      dockerfile: docker/trust-svc.Dockerfile
+    container_name: marty-demo-trust-svc
+    ports:
+      - "8090:8080"    # HTTP API
+      - "9090:9090"    # gRPC  
+      - "8091:8081"    # Metrics
+    environment:
+      - ENV=demo
+      - SERVICE_NAME=trust-svc
+      - HOST=0.0.0.0
+      - PORT=8080
+      - GRPC_PORT=9090
+      - METRICS_PORT=8081
+      - DATABASE_URL=postgresql+asyncpg://${POSTGRES_USER:-martyuser}:${POSTGRES_PASSWORD:-martypassword}@postgres-demo:5432/trust_db
+      - LOG_LEVEL=INFO
+      - DEBUG=true
+      - PKD_SYNC_INTERVAL=3600
+      - HML_SYNC_INTERVAL=1800
+      - METRICS_ENABLED=true
+      - TRUST_SNAPSHOT_RETENTION_DAYS=90
+      - MAX_CERT_AGE_DAYS=1095
+      - OTEL_EXPORTER_OTLP_ENDPOINT=http://otel-collector:4317
+      - OTEL_SERVICE_NAME=trust-svc
+      - OTEL_RESOURCE_ATTRIBUTES=service.name=trust-svc,service.version=1.0.0,deployment.environment=demo
+    volumes:
+      - ../data/trust:/app/data
+      - ../logs/trust-svc:/app/logs
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+    depends_on:
+      postgres-demo:
+        condition: service_healthy
+      vault-demo:
+        condition: service_healthy
+      otel-collector:
+        condition: service_started
+    networks:
+      - marty-demo-network
+
+  # Trust Anchor
+  trust-anchor-demo:
+    platform: linux/amd64
+    build:
+      context: ..
+      dockerfile: docker/trust-anchor.Dockerfile
+    container_name: marty-demo-trust-anchor
+    ports:
+      - "9080:8080"
+    environment:
+      - ENV=demo
+      - SERVICE_NAME=trust-anchor
+      - GRPC_PORT=8080
+      - OTEL_EXPORTER_OTLP_ENDPOINT=http://otel-collector:4317
+      - OTEL_SERVICE_NAME=trust-anchor
+      - OTEL_RESOURCE_ATTRIBUTES=service.name=trust-anchor,service.version=1.0.0,deployment.environment=demo
+      # Service discovery environment variables
+      - CSCA_SERVICE_HOST=csca-service-demo
+      - CSCA_SERVICE_PORT=8081
+      - DOCUMENT_SIGNER_HOST=document-signer-demo
+      - DOCUMENT_SIGNER_PORT=8082
+      - INSPECTION_SYSTEM_HOST=inspection-system-demo
+      - INSPECTION_SYSTEM_PORT=8083
+      - PASSPORT_ENGINE_HOST=passport-engine-demo
+      - PASSPORT_ENGINE_PORT=8084
+      - MDL_ENGINE_HOST=mdl-engine-demo
+      - MDL_ENGINE_PORT=8085
+      - MDOC_ENGINE_HOST=mdoc-engine-demo
+      - MDOC_ENGINE_PORT=8086
+      - DTC_ENGINE_HOST=dtc-engine-demo
+      - DTC_ENGINE_PORT=8087
+    volumes:
+      - ../data/trust:/app/data
+    healthcheck:
+      test: ["CMD", "python", "-c", "import grpc; channel = grpc.insecure_channel('localhost:8080'); channel.close()"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    depends_on:
+      otel-collector:
+        condition: service_started
+    networks:
+      - marty-demo-network
+
+  # CSCA Service
+  csca-service-demo:
+    platform: linux/amd64
+    build:
+      context: ..
+      dockerfile: docker/csca-service.Dockerfile
+    container_name: marty-demo-csca-service
+    ports:
+      - "8081:8081"
+    environment:
+      - ENV=demo
+      - SERVICE_NAME=csca-service
+      - GRPC_PORT=8081
+      - OTEL_EXPORTER_OTLP_ENDPOINT=http://otel-collector:4317
+      - OTEL_SERVICE_NAME=csca-service
+      - OTEL_RESOURCE_ATTRIBUTES=service.name=csca-service,service.version=1.0.0,deployment.environment=demo
+      # Service discovery environment variables
+      - TRUST_ANCHOR_HOST=trust-anchor-demo
+      - TRUST_ANCHOR_PORT=8080
+      - DOCUMENT_SIGNER_HOST=document-signer-demo
+      - DOCUMENT_SIGNER_PORT=8082
+      - INSPECTION_SYSTEM_HOST=inspection-system-demo
+      - INSPECTION_SYSTEM_PORT=8083
+      - PASSPORT_ENGINE_HOST=passport-engine-demo
+      - PASSPORT_ENGINE_PORT=8084
+      - MDL_ENGINE_HOST=mdl-engine-demo
+      - MDL_ENGINE_PORT=8085
+      - MDOC_ENGINE_HOST=mdoc-engine-demo
+      - MDOC_ENGINE_PORT=8086
+      - DTC_ENGINE_HOST=dtc-engine-demo
+      - DTC_ENGINE_PORT=8087
+    volumes:
+      - ../data/csca:/app/data
+    healthcheck:
+      test: ["CMD", "python", "-c", "import grpc; channel = grpc.insecure_channel('localhost:8081'); channel.close()"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    depends_on:
+      trust-anchor-demo:
+        condition: service_healthy
+      otel-collector:
+        condition: service_started
+    networks:
+      - marty-demo-network
+
+  # Document Signer
+  document-signer-demo:
+    platform: linux/amd64
+    build:
+      context: ..
+      dockerfile: docker/document-signer.Dockerfile
+    container_name: marty-demo-document-signer
+    ports:
+      - "8082:8082"
+    environment:
+      - ENV=demo
+      - SERVICE_NAME=document-signer
+      - GRPC_PORT=8082
+      - VAULT_ADDR=http://vault-demo:8200
+      - VAULT_TOKEN=${VAULT_ROOT_TOKEN:-demo-root-token}
+      - OTEL_EXPORTER_OTLP_ENDPOINT=http://otel-collector:4317
+      - OTEL_SERVICE_NAME=document-signer
+      - OTEL_RESOURCE_ATTRIBUTES=service.name=document-signer,service.version=1.0.0,deployment.environment=demo
+      # Service discovery environment variables
+      - TRUST_ANCHOR_HOST=trust-anchor-demo
+      - TRUST_ANCHOR_PORT=8080
+      - CSCA_SERVICE_HOST=csca-service-demo
+      - CSCA_SERVICE_PORT=8081
+      - INSPECTION_SYSTEM_HOST=inspection-system-demo
+      - INSPECTION_SYSTEM_PORT=8083
+      - PASSPORT_ENGINE_HOST=passport-engine-demo
+      - PASSPORT_ENGINE_PORT=8084
+      - MDL_ENGINE_HOST=mdl-engine-demo
+      - MDL_ENGINE_PORT=8085
+      - MDOC_ENGINE_HOST=mdoc-engine-demo
+      - MDOC_ENGINE_PORT=8086
+      - DTC_ENGINE_HOST=dtc-engine-demo
+      - DTC_ENGINE_PORT=8087
+    volumes:
+      - ../data/ds:/app/data
+    healthcheck:
+      test: ["CMD", "python", "-c", "import grpc; channel = grpc.insecure_channel('localhost:8082'); channel.close()"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    depends_on:
+      csca-service-demo:
+        condition: service_healthy
+      vault-demo:
+        condition: service_healthy
+      otel-collector:
+        condition: service_started
+    networks:
+      - marty-demo-network
+
+  # Inspection System
+  inspection-system-demo:
+    platform: linux/amd64
+    build:
+      context: ..
+      dockerfile: docker/inspection-system.Dockerfile
+    container_name: marty-demo-inspection-system
+    ports:
+      - "8083:8083"
+    environment:
+      - ENV=demo
+      - SERVICE_NAME=inspection-system
+      - GRPC_PORT=8083
+      - OTEL_EXPORTER_OTLP_ENDPOINT=http://otel-collector:4317
+      - OTEL_SERVICE_NAME=inspection-system
+      - OTEL_RESOURCE_ATTRIBUTES=service.name=inspection-system,service.version=1.0.0,deployment.environment=demo
+      # Service discovery environment variables
+      - TRUST_ANCHOR_HOST=trust-anchor-demo
+      - TRUST_ANCHOR_PORT=8080
+      - CSCA_SERVICE_HOST=csca-service-demo
+      - CSCA_SERVICE_PORT=8081
+      - DOCUMENT_SIGNER_HOST=document-signer-demo
+      - DOCUMENT_SIGNER_PORT=8082
+      - PASSPORT_ENGINE_HOST=passport-engine-demo
+      - PASSPORT_ENGINE_PORT=8084
+      - MDL_ENGINE_HOST=mdl-engine-demo
+      - MDL_ENGINE_PORT=8085
+      - MDOC_ENGINE_HOST=mdoc-engine-demo
+      - MDOC_ENGINE_PORT=8086
+      - DTC_ENGINE_HOST=dtc-engine-demo
+      - DTC_ENGINE_PORT=8087
+      # Add path to passport data for verification
+      - PASSPORT_DATA_DIR=/app/passport_data
+      - MDL_DATA_DIR=/app/mdl_data
+      - MDOC_DATA_DIR=/app/mdoc_data
+    volumes:
+      - ../data/inspection:/app/data
+      - ../data/passport:/app/passport_data
+      - ../data/mdl:/app/mdl_data
+      - ../data/mdoc:/app/mdoc_data
+    healthcheck:
+      test: ["CMD", "python", "-c", "import grpc; channel = grpc.insecure_channel('localhost:8083'); channel.close()"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    depends_on:
+      document-signer-demo:
+        condition: service_healthy
+      otel-collector:
+        condition: service_started
+    networks:
+      - marty-demo-network
+
+  # Passport Engine
+  passport-engine-demo:
+    platform: linux/amd64
+    build:
+      context: ..
+      dockerfile: docker/passport-engine.Dockerfile
+    container_name: marty-demo-passport-engine
+    ports:
+      - "8084:8084"
+    environment:
+      - ENV=demo
+      - SERVICE_NAME=passport-engine
+      - GRPC_PORT=8084
+      - OTEL_EXPORTER_OTLP_ENDPOINT=http://otel-collector:4317
+      - OTEL_SERVICE_NAME=passport-engine
+      - OTEL_RESOURCE_ATTRIBUTES=service.name=passport-engine,service.version=1.0.0,deployment.environment=demo
+      # Service discovery environment variables
+      - TRUST_ANCHOR_HOST=trust-anchor-demo
+      - TRUST_ANCHOR_PORT=8080
+      - CSCA_SERVICE_HOST=csca-service-demo
+      - CSCA_SERVICE_PORT=8081
+      - DOCUMENT_SIGNER_HOST=document-signer-demo
+      - DOCUMENT_SIGNER_PORT=8082
+      - INSPECTION_SYSTEM_HOST=inspection-system-demo
+      - INSPECTION_SYSTEM_PORT=8083
+      - MDL_ENGINE_HOST=mdl-engine-demo
+      - MDL_ENGINE_PORT=8085
+      - MDOC_ENGINE_HOST=mdoc-engine-demo
+      - MDOC_ENGINE_PORT=8086
+      - DTC_ENGINE_HOST=dtc-engine-demo
+      - DTC_ENGINE_PORT=8087
+    volumes:
+      - ../data/passport:/app/data
+    healthcheck:
+      test: ["CMD", "python", "-c", "import grpc; channel = grpc.insecure_channel('localhost:8084'); channel.close()"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    depends_on:
+      document-signer-demo:
+        condition: service_healthy
+      otel-collector:
+        condition: service_started
+    networks:
+      - marty-demo-network
+
+  # MDL Engine
+  mdl-engine-demo:
+    platform: linux/amd64
+    build:
+      context: ..
+      dockerfile: docker/mdl-engine.Dockerfile
+    container_name: marty-demo-mdl-engine
+    ports:
+      - "8085:8085"
+    environment:
+      - ENV=demo
+      - SERVICE_NAME=mdl-engine
+      - GRPC_PORT=8085
+      - DATABASE_URL=postgresql://${POSTGRES_USER:-martyuser}:${POSTGRES_PASSWORD:-martypassword}@postgres-demo:5432/credentials_db
+      - OTEL_EXPORTER_OTLP_ENDPOINT=http://otel-collector:4317
+      - OTEL_SERVICE_NAME=mdl-engine
+      - OTEL_RESOURCE_ATTRIBUTES=service.name=mdl-engine,service.version=1.0.0,deployment.environment=demo
+      # Service discovery environment variables
+      - TRUST_ANCHOR_HOST=trust-anchor-demo
+      - TRUST_ANCHOR_PORT=8080
+      - CSCA_SERVICE_HOST=csca-service-demo
+      - CSCA_SERVICE_PORT=8081
+      - DOCUMENT_SIGNER_HOST=document-signer-demo
+      - DOCUMENT_SIGNER_PORT=8082
+      - INSPECTION_SYSTEM_HOST=inspection-system-demo
+      - INSPECTION_SYSTEM_PORT=8083
+      - PASSPORT_ENGINE_HOST=passport-engine-demo
+      - PASSPORT_ENGINE_PORT=8084
+      - MDOC_ENGINE_HOST=mdoc-engine-demo
+      - MDOC_ENGINE_PORT=8086
+      - DTC_ENGINE_HOST=dtc-engine-demo
+      - DTC_ENGINE_PORT=8087
+    volumes:
+      - ../data/mdl:/app/data
+    healthcheck:
+      test: ["CMD", "python", "-c", "import grpc; channel = grpc.insecure_channel('localhost:8085'); channel.close()"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    depends_on:
+      document-signer-demo:
+        condition: service_healthy
+      postgres-demo:
+        condition: service_healthy
+      otel-collector:
+        condition: service_started
+    networks:
+      - marty-demo-network
+
+  # mDoc Engine
+  mdoc-engine-demo:
+    platform: linux/amd64
+    build:
+      context: ..
+      dockerfile: docker/mdoc-engine.Dockerfile
+    container_name: marty-demo-mdoc-engine
+    ports:
+      - "8086:8086"
+    environment:
+      - ENV=demo
+      - SERVICE_NAME=mdoc-engine
+      - GRPC_PORT=8086
+      - DATABASE_URL=postgresql://${POSTGRES_USER:-martyuser}:${POSTGRES_PASSWORD:-martypassword}@postgres-demo:5432/credentials_db
+      - OTEL_EXPORTER_OTLP_ENDPOINT=http://otel-collector:4317
+      - OTEL_SERVICE_NAME=mdoc-engine
+      - OTEL_RESOURCE_ATTRIBUTES=service.name=mdoc-engine,service.version=1.0.0,deployment.environment=demo
+      # Service discovery environment variables
+      - TRUST_ANCHOR_HOST=trust-anchor-demo
+      - TRUST_ANCHOR_PORT=8080
+      - CSCA_SERVICE_HOST=csca-service-demo
+      - CSCA_SERVICE_PORT=8081
+      - DOCUMENT_SIGNER_HOST=document-signer-demo
+      - DOCUMENT_SIGNER_PORT=8082
+      - INSPECTION_SYSTEM_HOST=inspection-system-demo
+      - INSPECTION_SYSTEM_PORT=8083
+      - PASSPORT_ENGINE_HOST=passport-engine-demo
+      - PASSPORT_ENGINE_PORT=8084
+      - MDL_ENGINE_HOST=mdl-engine-demo
+      - MDL_ENGINE_PORT=8085
+      - DTC_ENGINE_HOST=dtc-engine-demo
+      - DTC_ENGINE_PORT=8087
+    volumes:
+      - ../data/mdoc:/app/data
+    healthcheck:
+      test: ["CMD", "python", "-c", "import grpc; channel = grpc.insecure_channel('localhost:8086'); channel.close()"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    depends_on:
+      document-signer-demo:
+        condition: service_healthy
+      postgres-demo:
+        condition: service_healthy
+      otel-collector:
+        condition: service_started
+    networks:
+      - marty-demo-network
+
+  # DTC Engine
+  dtc-engine-demo:
+    platform: linux/amd64
+    build:
+      context: ..
+      dockerfile: docker/dtc-engine.Dockerfile
+    container_name: marty-demo-dtc-engine
+    ports:
+      - "8087:8087"
+    environment:
+      - ENV=demo
+      - SERVICE_NAME=dtc-engine
+      - GRPC_PORT=8087
+      - OTEL_EXPORTER_OTLP_ENDPOINT=http://otel-collector:4317
+      - OTEL_SERVICE_NAME=dtc-engine
+      - OTEL_RESOURCE_ATTRIBUTES=service.name=dtc-engine,service.version=1.0.0,deployment.environment=demo
+      # Service discovery environment variables
+      - TRUST_ANCHOR_HOST=trust-anchor-demo
+      - TRUST_ANCHOR_PORT=8080
+      - CSCA_SERVICE_HOST=csca-service-demo
+      - CSCA_SERVICE_PORT=8081
+      - DOCUMENT_SIGNER_HOST=document-signer-demo
+      - DOCUMENT_SIGNER_PORT=8082
+      - INSPECTION_SYSTEM_HOST=inspection-system-demo
+      - INSPECTION_SYSTEM_PORT=8083
+      - PASSPORT_ENGINE_HOST=passport-engine-demo
+      - PASSPORT_ENGINE_PORT=8084
+      - MDL_ENGINE_HOST=mdl-engine-demo
+      - MDL_ENGINE_PORT=8085
+      - MDOC_ENGINE_HOST=mdoc-engine-demo
+      - MDOC_ENGINE_PORT=8086
+    volumes:
+      - ../data/dtc:/app/data
+    healthcheck:
+      test: ["CMD", "python", "-c", "import grpc; channel = grpc.insecure_channel('localhost:8087'); channel.close()"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    depends_on:
+      document-signer-demo:
+        condition: service_healthy
+      passport-engine-demo:
+        condition: service_healthy
+      otel-collector:
+        condition: service_started
+    networks:
+      - marty-demo-network
+
+  # Credential Ledger
+  credential-ledger-demo:
+    platform: linux/amd64
+    build:
+      context: ..
+      dockerfile: docker/credential-ledger.Dockerfile
+    container_name: marty-demo-credential-ledger
+    ports:
+      - "8089:8089"
+    environment:
+      - ENV=demo
+      - SERVICE_NAME=credential-ledger
+      - GRPC_PORT=8089
+      - DATABASE_URL=postgresql://${POSTGRES_USER:-martyuser}:${POSTGRES_PASSWORD:-martypassword}@postgres-demo:5432/credentials_db
+      - OTEL_EXPORTER_OTLP_ENDPOINT=http://otel-collector:4317
+      - OTEL_SERVICE_NAME=credential-ledger
+      - OTEL_RESOURCE_ATTRIBUTES=service.name=credential-ledger,service.version=1.0.0,deployment.environment=demo
+      # Service discovery environment variables
+      - TRUST_ANCHOR_HOST=trust-anchor-demo
+      - TRUST_ANCHOR_PORT=8080
+      - CSCA_SERVICE_HOST=csca-service-demo
+      - CSCA_SERVICE_PORT=8081
+      - DOCUMENT_SIGNER_HOST=document-signer-demo
+      - DOCUMENT_SIGNER_PORT=8082
+      - INSPECTION_SYSTEM_HOST=inspection-system-demo
+      - INSPECTION_SYSTEM_PORT=8083
+      - PASSPORT_ENGINE_HOST=passport-engine-demo
+      - PASSPORT_ENGINE_PORT=8084
+      - MDL_ENGINE_HOST=mdl-engine-demo
+      - MDL_ENGINE_PORT=8085
+      - MDOC_ENGINE_HOST=mdoc-engine-demo
+      - MDOC_ENGINE_PORT=8086
+      - DTC_ENGINE_HOST=dtc-engine-demo
+      - DTC_ENGINE_PORT=8087
+    volumes:
+      - ../data:/app/data
+    healthcheck:
+      test: ["CMD", "python", "-c", "import grpc; channel = grpc.insecure_channel('localhost:8089'); channel.close()"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    depends_on:
+      postgres-demo:
+        condition: service_healthy
+      otel-collector:
+        condition: service_started
+    networks:
+      - marty-demo-network
+
+  # PKD Service
+  pkd-service-demo:
+    platform: linux/amd64
+    build:
+      context: ..
+      dockerfile: docker/pkd-service.Dockerfile
+    container_name: marty-demo-pkd-service
+    ports:
+      - "8088:8000"
+    environment:
+      - ENVIRONMENT=demo
+      - PKD_API_KEY=${PKD_API_KEY:-demo_secure_api_key}
+      - SECRET_KEY=${PKD_SECRET_KEY:-demo_secure_secret_key_for_jwt}
+      - API_V1_STR=/v1/pkd
+      - OTEL_EXPORTER_OTLP_ENDPOINT=http://otel-collector:4318
+      - OTEL_SERVICE_NAME=pkd-service
+      - OTEL_RESOURCE_ATTRIBUTES=service.name=pkd-service,service.version=1.0.0,deployment.environment=demo
+      # Service discovery environment variables
+      - CSCA_SERVICE_ENDPOINT=csca-service-demo:8081
+      - DS_SERVICE_ENDPOINT=document-signer-demo:8082
+      - TRUST_ANCHOR_ENDPOINT=trust-anchor-demo:8080
+      # PKD synchronization configuration
+      - PKD_SYNC_INTERVAL_HOURS=24
+      - EXTERNAL_PKD_URL=https://pkd.icao.int
+      # Storage paths
+      - PKD_MASTERLIST_PATH=/data/pkd/masterlist
+      - PKD_DSCLIST_PATH=/data/pkd/dsclist
+      - PKD_CRL_PATH=/data/pkd/crl
+    volumes:
+      - ../data/pkd:/data/pkd
+    healthcheck:
+      test: ["CMD", "python", "-c", "import requests; requests.get('http://localhost:8000/v1/csca/health', timeout=5)"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 20s
+    depends_on:
+      csca-service-demo:
+        condition: service_healthy
+      document-signer-demo:
+        condition: service_healthy
+      trust-anchor-demo:
+        condition: service_healthy
+      otel-collector:
+        condition: service_started
+    networks:
+      - marty-demo-network
+
+  # === REST API Facades ===
+
+  # Issuer REST API (OID4VCI)
+  issuer-api-demo:
+    platform: linux/amd64
+    build:
+      context: ..
+      dockerfile: docker/service.Dockerfile
+      args:
+        SERVICE_NAME: issuer_api
+    container_name: marty-demo-issuer-api
+    ports:
+      - "8092:8000"
+    environment:
+      - ENV=demo
+      - SERVICE_NAME=issuer-api
+      - FASTAPI_HOST=0.0.0.0
+      - FASTAPI_PORT=8000
+      - GRPC_DOCUMENT_SIGNER_ADDRESS=document-signer-demo:8082
+      - GRPC_MDL_ENGINE_ADDRESS=mdl-engine-demo:8085
+      - GRPC_MDOC_ENGINE_ADDRESS=mdoc-engine-demo:8086
+      - GRPC_PASSPORT_ENGINE_ADDRESS=passport-engine-demo:8084
+      - OTEL_EXPORTER_OTLP_ENDPOINT=http://otel-collector:4318
+      - OTEL_SERVICE_NAME=issuer-api
+      - OTEL_RESOURCE_ATTRIBUTES=service.name=issuer-api,service.version=1.0.0,deployment.environment=demo
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 20s
+    depends_on:
+      document-signer-demo:
+        condition: service_healthy
+      mdl-engine-demo:
+        condition: service_healthy
+      mdoc-engine-demo:
+        condition: service_healthy
+      passport-engine-demo:
+        condition: service_healthy
+      otel-collector:
+        condition: service_started
+    networks:
+      - marty-demo-network
+
+  # === Demo UI Application ===
+
+  # Demo UI App (FastAPI + Jinja2)
+  ui-app-demo:
+    platform: linux/amd64
+    build:
+      context: ..
+      dockerfile: docker/ui-app.Dockerfile
+      args:
+        SERVICE_NAME: ui_app
+    container_name: marty-demo-ui-app
+    ports:
+      - "8093:8000"
+    environment:
+      - ENV=demo
+      - SERVICE_NAME=ui-app
+      - UI_TITLE=Marty Demo Console
+      - UI_ENVIRONMENT=demo
+      - UI_ISSUER_API_ADDR=http://issuer-api-demo:8000
+      - UI_PASSPORT_ENGINE_ADDR=passport-engine-demo:8084
+      - UI_INSPECTION_SYSTEM_ADDR=inspection-system-demo:8083
+      - UI_MDL_ENGINE_ADDR=mdl-engine-demo:8085
+      - UI_MDOC_ENGINE_ADDR=mdoc-engine-demo:8086
+      - UI_TRUST_ANCHOR_ADDR=trust-anchor-demo:8080
+      - UI_JAEGER_ADDR=http://jaeger-demo:16686
+      - UI_GRAFANA_ADDR=http://grafana-demo:3000
+      - UI_GRPC_TIMEOUT_SECONDS=10
+      - UI_ENABLE_MOCK_DATA=true
+      - UI_THEME=light
+      - OTEL_EXPORTER_OTLP_ENDPOINT=http://otel-collector:4318
+      - OTEL_SERVICE_NAME=ui-app
+      - OTEL_RESOURCE_ATTRIBUTES=service.name=ui-app,service.version=1.0.0,deployment.environment=demo
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 20s
+    depends_on:
+      issuer-api-demo:
+        condition: service_healthy
+      passport-engine-demo:
+        condition: service_healthy
+      inspection-system-demo:
+        condition: service_healthy
+      mdl-engine-demo:
+        condition: service_healthy
+      mdoc-engine-demo:
+        condition: service_healthy
+      trust-anchor-demo:
+        condition: service_healthy
+      jaeger-demo:
+        condition: service_started
+      grafana-demo:
+        condition: service_started
+      otel-collector:
+        condition: service_started
+    networks:
+      - marty-demo-network
+
+  # === Demo Data Initialization ===
+
+  # Demo seed data service
+  demo-seed:
+    platform: linux/amd64
+    build:
+      context: ..
+      dockerfile: docker/service.Dockerfile
+      args:
+        SERVICE_NAME: demo_seed
+    container_name: marty-demo-seed
+    environment:
+      - ENV=demo
+      - POSTGRES_URL=postgresql://${POSTGRES_USER:-martyuser}:${POSTGRES_PASSWORD:-martypassword}@postgres-demo:5432/martydb
+      - MINIO_ENDPOINT=minio-demo:9000
+      - MINIO_ACCESS_KEY=${MINIO_ROOT_USER:-minioadmin}
+      - MINIO_SECRET_KEY=${MINIO_ROOT_PASSWORD:-minioadmin123}
+      - VAULT_ADDR=http://vault-demo:8200
+      - VAULT_TOKEN=${VAULT_ROOT_TOKEN:-demo-root-token}
+      - ISSUER_API_ENDPOINT=http://issuer-api-demo:8000
+    volumes:
+      - ../data:/app/data
+      - ../scripts:/app/scripts
+    depends_on:
+      postgres-demo:
+        condition: service_healthy
+      minio-setup:
+        condition: service_completed_successfully
+      vault-demo:
+        condition: service_healthy
+      issuer-api-demo:
+        condition: service_healthy
+    command: >
+      sh -c "
+        echo 'Waiting for services to be ready...';
+        sleep 30;
+        echo 'Seeding demo data...';
+        python /app/scripts/seed_demo_data.py;
+        echo 'Demo data seeded successfully!';
+        tail -f /dev/null
+      "
+    networks:
+      - marty-demo-network
+
+  # === Health Check & Service Discovery ===
+
+  # Simple health check and service registry
+  service-registry:
+    image: nginx:alpine
+    container_name: marty-demo-registry
+    ports:
+      - "8099:80"
+    volumes:
+      - ./monitoring/service-registry.html:/usr/share/nginx/html/index.html
+    networks:
+      - marty-demo-network

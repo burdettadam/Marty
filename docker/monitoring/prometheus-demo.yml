@@ -1,0 +1,140 @@
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+  external_labels:
+    environment: 'demo'
+    cluster: 'marty-demo'
+
+rule_files:
+  - "demo_alert_rules.yml"
+
+alerting:
+  alertmanagers:
+    - static_configs:
+        - targets: []
+
+scrape_configs:
+  # Prometheus self-monitoring
+  - job_name: 'prometheus'
+    static_configs:
+      - targets: ['localhost:9090']
+
+  # OTEL Collector metrics
+  - job_name: 'otel-collector'
+    static_configs:
+      - targets: ['otel-collector:8888', 'otel-collector:8889']
+    metrics_path: '/metrics'
+    scrape_interval: 15s
+
+  # Core Marty Services
+  - job_name: 'trust-svc-demo'
+    static_configs:
+      - targets: ['trust-svc-demo:8081']
+    metrics_path: '/metrics'
+    scrape_interval: 30s
+    scrape_timeout: 10s
+
+  - job_name: 'trust-anchor-demo'
+    static_configs:
+      - targets: ['trust-anchor-demo:8080']
+    metrics_path: '/metrics'
+    scrape_interval: 30s
+
+  - job_name: 'csca-service-demo'
+    static_configs:
+      - targets: ['csca-service-demo:8081']
+    metrics_path: '/metrics'
+    scrape_interval: 30s
+
+  - job_name: 'document-signer-demo'
+    static_configs:
+      - targets: ['document-signer-demo:8082']
+    metrics_path: '/metrics'
+    scrape_interval: 30s
+
+  - job_name: 'inspection-system-demo'
+    static_configs:
+      - targets: ['inspection-system-demo:8083']
+    metrics_path: '/metrics'
+    scrape_interval: 30s
+
+  - job_name: 'passport-engine-demo'
+    static_configs:
+      - targets: ['passport-engine-demo:8084']
+    metrics_path: '/metrics'
+    scrape_interval: 30s
+
+  - job_name: 'mdl-engine-demo'
+    static_configs:
+      - targets: ['mdl-engine-demo:8085']
+    metrics_path: '/metrics'
+    scrape_interval: 30s
+
+  - job_name: 'mdoc-engine-demo'
+    static_configs:
+      - targets: ['mdoc-engine-demo:8086']
+    metrics_path: '/metrics'
+    scrape_interval: 30s
+
+  - job_name: 'dtc-engine-demo'
+    static_configs:
+      - targets: ['dtc-engine-demo:8087']
+    metrics_path: '/metrics'
+    scrape_interval: 30s
+
+  - job_name: 'credential-ledger-demo'
+    static_configs:
+      - targets: ['credential-ledger-demo:8089']
+    metrics_path: '/metrics'
+    scrape_interval: 30s
+
+  - job_name: 'pkd-service-demo'
+    static_configs:
+      - targets: ['pkd-service-demo:8000']
+    metrics_path: '/metrics'
+    scrape_interval: 30s
+
+  - job_name: 'issuer-api-demo'
+    static_configs:
+      - targets: ['issuer-api-demo:8000']
+    metrics_path: '/metrics'
+    scrape_interval: 30s
+
+  - job_name: 'ui-app-demo'
+    static_configs:
+      - targets: ['ui-app-demo:8000']
+    metrics_path: '/metrics'
+    scrape_interval: 30s
+
+  # Infrastructure Services
+  - job_name: 'postgres-demo'
+    static_configs:
+      - targets: ['postgres-demo:5432']
+    metrics_path: '/metrics'
+    scrape_interval: 60s
+
+  - job_name: 'minio-demo'
+    static_configs:
+      - targets: ['minio-demo:9000']
+    metrics_path: '/minio/v2/metrics/cluster'
+    scrape_interval: 60s
+
+  - job_name: 'vault-demo'
+    static_configs:
+      - targets: ['vault-demo:8200']
+    metrics_path: '/v1/sys/metrics'
+    scrape_interval: 60s
+    params:
+      format: ['prometheus']
+
+  # Health check endpoints
+  - job_name: 'marty-services-health'
+    static_configs:
+      - targets: 
+          - 'trust-svc-demo:8080'
+          - 'issuer-api-demo:8000'
+          - 'ui-app-demo:8000'
+          - 'pkd-service-demo:8000'
+    metrics_path: '/health'
+    scrape_interval: 15s
+    scrape_timeout: 5s
