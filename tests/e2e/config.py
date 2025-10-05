@@ -42,69 +42,21 @@ TEST_UPLOAD_FILES = {
     "mdl_image": "tests/test_data/mdl_sample.jpg",
 }
 
-# Service endpoints for direct testing
-SERVICES = {
-    "ui": BASE_URL,
-    "trust_anchor": "http://localhost:9080",
-    "csca": "http://localhost:8081",
-    "document_signer": "http://localhost:8082",
-    "inspection_system": "http://localhost:8083",
-    "passport_engine": "http://localhost:8084",
-    "mdl_engine": "http://localhost:8085",
-    "mdoc_engine": "http://localhost:8086",
-    "dtc_engine": "http://localhost:8087",
-    "pkd_service": "http://localhost:8088",
-}
+# Service endpoints for direct testing (using centralized registry)
+from src.marty_common.service_registry import ServiceRegistry
+
+SERVICES = ServiceRegistry.get_service_endpoints("local")
+# Override UI service to use configured BASE_URL
+SERVICES["ui"] = BASE_URL
 
 
 class TestConfig:
     """Configuration class for contract testing."""
     
-    # Service port mappings for HTTP endpoints
-    SERVICE_PORTS = {
-        "trust-svc": 8090,
-        "trust-anchor": 9080,
-        "csca-service": 8092,
-        "document-signer": 8093,
-        "inspection-system": 8094,
-        "passport-engine": 8095,
-        "mdl-engine": 8096,
-        "mdoc-engine": 8097,
-        "dtc-engine": 8098,
-        "credential-ledger": 8099,
-        "pkd-service": 8088,
-        "ui-app": 8000,
-    }
-    
-    # gRPC port mappings
-    GRPC_PORTS = {
-        "trust-svc": 9090,
-        "trust-anchor": 9091,
-        "csca-service": 9092,
-        "document-signer": 9093,
-        "inspection-system": 9094,
-        "passport-engine": 9095,
-        "mdl-engine": 9096,
-        "mdoc-engine": 9097,
-        "dtc-engine": 9098,
-        "credential-ledger": 9099,
-        "pkd-service": 9088,
-    }
-    
-    # Metrics port mappings
-    METRICS_PORTS = {
-        "trust-svc": 8091,
-        "trust-anchor": 8191,
-        "csca-service": 8192,
-        "document-signer": 8193,
-        "inspection-system": 8194,
-        "passport-engine": 8195,
-        "mdl-engine": 8196,
-        "mdoc-engine": 8197,
-        "dtc-engine": 8198,
-        "credential-ledger": 8199,
-        "pkd-service": 8188,
-    }
+    # Use centralized service registry for all port mappings
+    SERVICE_PORTS = ServiceRegistry.get_service_ports()
+    GRPC_PORTS = ServiceRegistry.get_grpc_ports()
+    METRICS_PORTS = ServiceRegistry.get_metrics_ports()
     
     def get_service_port(self, service_name: str) -> int:
         """Get HTTP port for a service."""
