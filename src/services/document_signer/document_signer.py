@@ -30,43 +30,14 @@ from marty_common.validation.schemas.document_signer import (
     SignDocumentRequestSchema,
 )
 from marty_common.vc import SdJwtConfig
-from proto import (
-    csca_service_pb2,
-    csca_service_pb2_grpc,
-    document_signer_pb2,
-    document_signer_pb2_grpc,
-)
+from src.proto.v1 import document_signer_pb2, document_signer_pb2_grpc
+from src.proto.v1 import csca_service_pb2, csca_service_pb2_grpc
 
-# Import our refactored modules (using dummy imports for now to avoid protobuf issues)
-try:
-    from .certificate_manager import CertificateManager
-    from .sd_jwt_manager import SdJwtManager
-    from .storage_manager import StorageManager
-    from .utils import build_event_payload, seconds_until
-except ImportError:
-    # Fallback for when imports fail during development
-    CertificateManager = None  # type: ignore[attr-defined]
-    SdJwtManager = None  # type: ignore[attr-defined]
-    StorageManager = None  # type: ignore[attr-defined]
-
-    def build_event_payload(
-        document_id: str,
-        payload_hash: bytes,
-        storage_key: str,
-        signing_key_id: str,
-    ) -> dict[str, Any]:
-        return {
-            "document_id": document_id,
-            "hash_algo": "SHA256",
-            "hash": payload_hash.hex(),
-            "signature_location": storage_key,
-            "signer": signing_key_id,
-        }
-
-    def seconds_until(moment: datetime) -> int:
-        now = datetime.now(timezone.utc)
-        delta = max(moment - now, timedelta(0))
-        return int(delta.total_seconds())
+# Import our refactored modules
+from .certificate_manager import CertificateManager
+from .sd_jwt_manager import SdJwtManager
+from .storage_manager import StorageManager
+from .utils import build_event_payload, seconds_until
 
 
 class DocumentSigner(document_signer_pb2_grpc.DocumentSignerServicer):
@@ -114,7 +85,7 @@ class DocumentSigner(document_signer_pb2_grpc.DocumentSignerServicer):
             [sd_jwt_settings.get("certificate_id", "document-signer-cert")],
         )
 
-        if CertificateManager:
+        if CertificateManager is not None:
             self._certificate_manager = CertificateManager(
                 database=self._database,
                 key_vault=self._key_vault,
@@ -122,14 +93,18 @@ class DocumentSigner(document_signer_pb2_grpc.DocumentSignerServicer):
                 vault_algorithm=vault_algorithm,
                 certificate_ids=certificate_ids,
             )
+        else:
+            self._certificate_manager = None
 
         # Storage management
         storage_prefix = sd_jwt_settings.get("storage_prefix", "sd-jwt")
-        if StorageManager:
+        if StorageManager is not None:
             self._storage_manager = StorageManager(
                 object_storage=self._object_storage,
                 storage_prefix=storage_prefix,
             )
+        else:
+            self._storage_manager = None
 
         # SD-JWT configuration and manager
         credential_ttl_seconds = int(sd_jwt_settings.get("credential_ttl_seconds", 60 * 60 * 24))
@@ -148,7 +123,7 @@ class DocumentSigner(document_signer_pb2_grpc.DocumentSignerServicer):
             audience=sd_jwt_settings.get("default_audience"),
         )
 
-        if SdJwtManager and self._certificate_manager:
+        if SdJwtManager is not None and self._certificate_manager is not None:
             self._sd_jwt_manager = SdJwtManager(
                 database=self._database,
                 key_vault=self._key_vault,
@@ -159,6 +134,8 @@ class DocumentSigner(document_signer_pb2_grpc.DocumentSignerServicer):
                 token_ttl=token_ttl,
                 default_credential_type=default_credential_type,
             )
+        else:
+            self._sd_jwt_manager = None
 
     def _error(
         self,
@@ -291,6 +268,25 @@ class DocumentSigner(document_signer_pb2_grpc.DocumentSignerServicer):
                 selective_disclosures=payload.selective_disclosures,
                 metadata=payload.metadata,
             )
+
+            # Persist audit event for credential offer creation
+            event_payload = {
+                "event_type": "credential_offer_created",
+                "offer_id": offer_id,
+                "subject_id": payload.subject_id,
+                "credential_type": payload.credential_type or (self._sd_jwt_manager._default_credential_type if self._sd_jwt_manager else "VerifiableCredential"),
+                "expires_in": expires_in,
+            }
+
+            async def audit_handler(session: AsyncSession) -> None:
+                outbox = OutboxRepository(session)
+                await outbox.enqueue(
+                    topic="credential.offer.created",
+                    payload=json.dumps(event_payload).encode("utf-8"),
+                    key=offer_id.encode("utf-8"),
+                )
+
+            await self._database.run_within_transaction(audit_handler)
         except Exception as exc:  # pylint: disable=broad-except
             self.logger.exception("Failed to create credential offer for %s", payload.subject_id)
             error = self._error(
@@ -380,6 +376,25 @@ class DocumentSigner(document_signer_pb2_grpc.DocumentSignerServicer):
             return document_signer_pb2.RedeemPreAuthorizedCodeResponse(error=error)
 
         offer_id, access_token, expires_in, c_nonce = result
+
+        # Persist audit event for code redemption
+        event_payload = {
+            "event_type": "pre_authorized_code_redeemed",
+            "offer_id": offer_id,
+            "pre_authorized_code": payload.pre_authorized_code,
+            "access_token": access_token,
+            "expires_in": expires_in,
+        }
+
+        async def audit_handler(session: AsyncSession) -> None:
+            outbox = OutboxRepository(session)
+            await outbox.enqueue(
+                topic="credential.code.redeemed",
+                payload=json.dumps(event_payload).encode("utf-8"),
+                key=offer_id.encode("utf-8"),
+            )
+
+        await self._database.run_within_transaction(audit_handler)
         return document_signer_pb2.RedeemPreAuthorizedCodeResponse(
             offer_id=offer_id,
             access_token=access_token,
@@ -450,6 +465,27 @@ class DocumentSigner(document_signer_pb2_grpc.DocumentSignerServicer):
                 str(exc),
             )
             return document_signer_pb2.IssueSdJwtCredentialResponse(error=error)
+
+        # Persist audit event for credential issuance
+        event_payload = {
+            "event_type": "sd_jwt_credential_issued",
+            "credential_id": credential_id,
+            "subject_id": subject_id,
+            "credential_type": credential_type,
+            "issuer": issuer,
+            "expires_in": expires_in,
+            "access_token": payload.access_token,
+        }
+
+        async def audit_handler(session: AsyncSession) -> None:
+            outbox = OutboxRepository(session)
+            await outbox.enqueue(
+                topic="credential.issued",
+                payload=json.dumps(event_payload).encode("utf-8"),
+                key=credential_id.encode("utf-8"),
+            )
+
+        await self._database.run_within_transaction(audit_handler)
 
         return document_signer_pb2.IssueSdJwtCredentialResponse(
             credential=token,

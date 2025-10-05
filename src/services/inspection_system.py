@@ -379,3 +379,265 @@ class InspectionSystem(inspection_system_pb2_grpc.InspectionSystemServicer):
             lines.extend(f"  - {warn}" for warn in result.warnings)
 
         return "\n".join(lines)
+
+    async def VerifyPresentation(
+        self, 
+        request: ProtoMessage,  # inspection_system_pb2.VerifyPresentationRequest
+        context: GrpcServicerContext,  # grpc.ServicerContext
+    ) -> ProtoMessage:  # inspection_system_pb2.VerifyPresentationResponse
+        """Verify an OID4VP presentation against a presentation definition."""
+        try:
+            # Parse the VP token (can be SD-JWT or other format)
+            vp_token = request.vp_token
+            presentation_definition = request.presentation_definition
+            nonce = request.nonce
+            
+            # Load presentation definition from DB if ID provided
+            if request.presentation_definition_id:
+                pd_data = await self._load_presentation_definition(request.presentation_definition_id)
+                if pd_data:
+                    presentation_definition = json.dumps(pd_data)
+            
+            if not presentation_definition:
+                return inspection_system_pb2.VerifyPresentationResponse(
+                    valid=False,
+                    errors=["Missing presentation definition"]
+                )
+            
+            pd_obj = json.loads(presentation_definition)
+            verification_result = await self._verify_vp_token_against_pd(vp_token, pd_obj, nonce)
+            
+            return inspection_system_pb2.VerifyPresentationResponse(
+                valid=verification_result.valid,
+                errors=verification_result.errors,
+                warnings=verification_result.warnings,
+                disclosed_claims=json.dumps(verification_result.disclosed_claims),
+                issuer=verification_result.issuer,
+                subject=verification_result.subject
+            )
+            
+        except Exception as e:
+            self.logger.exception("Failed to verify presentation")
+            return inspection_system_pb2.VerifyPresentationResponse(
+                valid=False,
+                errors=[f"Verification failed: {str(e)}"]
+            )
+
+    async def _load_presentation_definition(self, pd_id: str) -> dict[str, Any] | None:
+        """Load presentation definition from database or config."""
+        try:
+            # Try to load from object storage first
+            storage_key = f"presentation-definitions/{pd_id}.json"
+            payload = await self._object_storage.get_object(storage_key)
+            return json.loads(payload.decode("utf-8"))
+        except Exception:
+            self.logger.warning(f"Could not load presentation definition {pd_id} from storage")
+            
+        # Fallback to loading from config directory
+        try:
+            config_path = f"/app/config/pd/{pd_id}.json"
+            if os.path.exists(config_path):
+                with open(config_path) as f:
+                    return json.load(f)
+        except Exception as e:
+            self.logger.warning(f"Could not load presentation definition {pd_id} from config: {e}")
+            
+        return None
+
+    async def _verify_vp_token_against_pd(self, vp_token: str, pd: dict[str, Any], nonce: str | None) -> 'VerificationResult':
+        """Verify a VP token against a presentation definition."""
+        class VerificationResult:
+            def __init__(self):
+                self.valid = False
+                self.errors: list[str] = []
+                self.warnings: list[str] = []
+                self.disclosed_claims: dict[str, Any] = {}
+                self.issuer = ""
+                self.subject = ""
+        
+        result = VerificationResult()
+        
+        try:
+            # Check if it's an SD-JWT format
+            if "~" in vp_token or vp_token.count(".") >= 2:
+                # Parse SD-JWT presentation
+                sd_jwt_result = await self._verify_sd_jwt_presentation(vp_token, pd, nonce)
+                result.valid = sd_jwt_result.valid
+                result.errors = sd_jwt_result.errors
+                result.warnings = sd_jwt_result.warnings
+                result.disclosed_claims = sd_jwt_result.disclosed_claims
+                result.issuer = sd_jwt_result.issuer
+                result.subject = sd_jwt_result.subject
+            else:
+                result.errors.append("Unsupported VP token format")
+                
+        except Exception as e:
+            result.errors.append(f"Token verification error: {str(e)}")
+            
+        return result
+
+    async def _verify_sd_jwt_presentation(self, sd_jwt_token: str, pd: dict[str, Any], nonce: str | None) -> 'SdJwtVerificationResult':
+        """Verify an SD-JWT presentation token against presentation definition."""
+        class SdJwtVerificationResult:
+            def __init__(self):
+                self.valid = False
+                self.errors: list[str] = []
+                self.warnings: list[str] = []
+                self.disclosed_claims: dict[str, Any] = {}
+                self.issuer = ""
+                self.subject = ""
+        
+        result = SdJwtVerificationResult()
+        
+        try:
+            # Split SD-JWT token into parts (JWT~disclosure1~disclosure2~...~)
+            parts = sd_jwt_token.split("~")
+            jwt_part = parts[0]
+            disclosures = [part for part in parts[1:] if part]
+            
+            # Load trust anchors for verification
+            trust_anchors = await self._load_trust_anchors()
+            wallet_anchors = await self._load_wallet_attestation_certificates()
+            verifier = SdJwtVerifier(trust_anchors, wallet_anchors)
+            
+            # Verify the SD-JWT
+            verification = verifier.verify(jwt_part, disclosures)
+            
+            if not verification.valid:
+                result.errors.extend(verification.errors)
+                return result
+            
+            # Extract issuer and subject
+            result.issuer = verification.payload.get("iss", "")
+            result.subject = verification.payload.get("sub", "")
+            result.disclosed_claims = verification.disclosures
+            
+            # Verify against presentation definition
+            pd_result = self._check_presentation_definition_compliance(
+                verification.payload, 
+                verification.disclosures, 
+                pd
+            )
+            
+            result.valid = pd_result.valid
+            result.errors.extend(pd_result.errors)
+            result.warnings.extend(pd_result.warnings)
+            
+            # Verify nonce if provided
+            if nonce:
+                token_nonce = verification.payload.get("nonce")
+                if token_nonce != nonce:
+                    result.valid = False
+                    result.errors.append("Nonce mismatch")
+            
+        except Exception as e:
+            result.errors.append(f"SD-JWT verification error: {str(e)}")
+            
+        return result
+
+    def _check_presentation_definition_compliance(
+        self, 
+        payload: dict[str, Any], 
+        disclosures: dict[str, Any], 
+        pd: dict[str, Any]
+    ) -> 'ComplianceResult':
+        """Check if the disclosed claims comply with presentation definition requirements."""
+        class ComplianceResult:
+            def __init__(self):
+                self.valid = True
+                self.errors: list[str] = []
+                self.warnings: list[str] = []
+        
+        result = ComplianceResult()
+        
+        try:
+            # Get input descriptors from presentation definition
+            input_descriptors = pd.get("input_descriptors", [])
+            
+            for descriptor in input_descriptors:
+                descriptor_id = descriptor.get("id", "unknown")
+                constraints = descriptor.get("constraints", {})
+                fields = constraints.get("fields", [])
+                
+                for field in fields:
+                    path = field.get("path", [])
+                    optional = field.get("optional", False)
+                    
+                    # Check if required fields are present
+                    field_found = False
+                    for json_path in path:
+                        # Simple path checking (could be enhanced with JSONPath library)
+                        field_name = json_path.replace("$.", "").replace("$.vc.credentialSubject.", "")
+                        
+                        if field_name in payload or field_name in disclosures:
+                            field_found = True
+                            break
+                    
+                    if not field_found and not optional:
+                        result.valid = False
+                        result.errors.append(f"Required field missing: {field.get('path')} in descriptor {descriptor_id}")
+                        
+                    # Check field filters if present
+                    if field_found and "filter" in field:
+                        filter_result = self._apply_field_filter(
+                            payload.get(field_name) or disclosures.get(field_name),
+                            field["filter"]
+                        )
+                        if not filter_result.valid:
+                            result.valid = False
+                            result.errors.extend(filter_result.errors)
+                            
+        except Exception as e:
+            result.valid = False
+            result.errors.append(f"Presentation definition compliance check error: {str(e)}")
+            
+        return result
+
+    def _apply_field_filter(self, value: Any, filter_spec: dict[str, Any]) -> 'FilterResult':
+        """Apply field filter to a disclosed value."""
+        class FilterResult:
+            def __init__(self):
+                self.valid = True
+                self.errors: list[str] = []
+        
+        result = FilterResult()
+        
+        try:
+            # Handle type constraints
+            if "type" in filter_spec:
+                expected_type = filter_spec["type"]
+                if expected_type == "string" and not isinstance(value, str):
+                    result.valid = False
+                    result.errors.append(f"Expected string, got {type(value).__name__}")
+                elif expected_type == "number" and not isinstance(value, (int, float)):
+                    result.valid = False
+                    result.errors.append(f"Expected number, got {type(value).__name__}")
+                elif expected_type == "boolean" and not isinstance(value, bool):
+                    result.valid = False
+                    result.errors.append(f"Expected boolean, got {type(value).__name__}")
+            
+            # Handle const constraints
+            if "const" in filter_spec:
+                if value != filter_spec["const"]:
+                    result.valid = False
+                    result.errors.append(f"Expected constant value {filter_spec['const']}, got {value}")
+            
+            # Handle enum constraints
+            if "enum" in filter_spec:
+                if value not in filter_spec["enum"]:
+                    result.valid = False
+                    result.errors.append(f"Value {value} not in allowed values {filter_spec['enum']}")
+                    
+            # Handle pattern constraints (for strings)
+            if "pattern" in filter_spec and isinstance(value, str):
+                import re
+                pattern = filter_spec["pattern"]
+                if not re.match(pattern, value):
+                    result.valid = False
+                    result.errors.append(f"Value '{value}' does not match pattern '{pattern}'")
+                    
+        except Exception as e:
+            result.valid = False
+            result.errors.append(f"Filter application error: {str(e)}")
+            
+        return result

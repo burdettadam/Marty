@@ -1,0 +1,79 @@
+{
+  "id": "selective_disclosure_demo",
+  "name": "Selective Disclosure Demo",
+  "purpose": "Demonstrate selective disclosure capabilities with optional fields",
+  "input_descriptors": [
+    {
+      "id": "demo_credential",
+      "name": "Demo Credential with Selective Disclosure",
+      "purpose": "Show different levels of disclosure",
+      "constraints": {
+        "fields": [
+          {
+            "path": ["$.vc.credentialSubject.given_name", "$.given_name"],
+            "purpose": "Required: First name",
+            "filter": {
+              "type": "string"
+            }
+          },
+          {
+            "path": ["$.vc.credentialSubject.family_name", "$.family_name"],
+            "purpose": "Required: Last name",
+            "filter": {
+              "type": "string" 
+            }
+          },
+          {
+            "path": ["$.vc.credentialSubject.email", "$.email"],
+            "purpose": "Optional: Email address",
+            "optional": true,
+            "filter": {
+              "type": "string",
+              "pattern": "^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$"
+            }
+          },
+          {
+            "path": ["$.vc.credentialSubject.phone", "$.phone"],
+            "purpose": "Optional: Phone number",
+            "optional": true,
+            "filter": {
+              "type": "string"
+            }
+          },
+          {
+            "path": ["$.vc.credentialSubject.address", "$.address"],
+            "purpose": "Optional: Address information",
+            "optional": true,
+            "filter": {
+              "type": "object"
+            }
+          },
+          {
+            "path": ["$.vc.credentialSubject.address.street", "$.address.street"],
+            "purpose": "Optional: Street address",
+            "optional": true,
+            "filter": {
+              "type": "string"
+            }
+          },
+          {
+            "path": ["$.vc.credentialSubject.address.city", "$.address.city"],
+            "purpose": "Optional: City",
+            "optional": true,
+            "filter": {
+              "type": "string"
+            }
+          },
+          {
+            "path": ["$.vc.credentialSubject.address.country", "$.address.country"],
+            "purpose": "Optional: Country",
+            "optional": true,
+            "filter": {
+              "type": "string"
+            }
+          }
+        ]
+      }
+    }
+  ]
+}
