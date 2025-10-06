@@ -1,0 +1,228 @@
+syntax = "proto3";
+
+package marty.consistency.v1;
+
+import "common_services.proto";
+import "google/protobuf/timestamp.proto";
+
+// Cross-Zone Consistency Engine Service
+service ConsistencyEngine {
+  // Perform comprehensive consistency checks across all document zones
+  rpc CheckConsistency(ConsistencyCheckRequest) returns (ConsistencyCheckResponse) {}
+  
+  // Get detailed audit history for a specific consistency check
+  rpc GetAuditHistory(AuditHistoryRequest) returns (AuditHistoryResponse) {}
+  
+  // Validate specific field mappings (for testing/debugging)
+  rpc ValidateFieldMapping(FieldMappingRequest) returns (FieldMappingResponse) {}
+  
+  // Get supported consistency rules and their descriptions
+  rpc GetSupportedRules(GetSupportedRulesRequest) returns (GetSupportedRulesResponse) {}
+}
+
+// Enumeration of document zones for data extraction
+enum DocumentZone {
+  DOCUMENT_ZONE_UNSPECIFIED = 0;
+  VISUAL_OCR = 1;      // Visual inspection zone (OCR)
+  MRZ = 2;             // Machine Readable Zone
+  BARCODE_1D = 3;      // 1D Barcode (Code 128, etc.)
+  BARCODE_2D = 4;      // 2D Barcode (QR, PDF417, etc.)
+  RFID_CHIP = 5;       // RFID/NFC chip data
+  MAGNETIC_STRIPE = 6; // Magnetic stripe (if applicable)
+}
+
+// Enumeration of canonical document fields
+enum CanonicalField {
+  CANONICAL_FIELD_UNSPECIFIED = 0;
+  DOCUMENT_NUMBER = 1;
+  DOCUMENT_TYPE = 2;
+  ISSUING_COUNTRY = 3;
+  SURNAME = 4;
+  GIVEN_NAMES = 5;
+  NATIONALITY = 6;
+  DATE_OF_BIRTH = 7;
+  GENDER = 8;
+  DATE_OF_ISSUE = 9;
+  DATE_OF_EXPIRY = 10;
+  PLACE_OF_BIRTH = 11;
+  ISSUING_AUTHORITY = 12;
+  ENDORSEMENTS = 13;
+  PERSONAL_NUMBER = 14;
+  CHECK_DIGIT_DOCUMENT = 15;
+  CHECK_DIGIT_DOB = 16;
+  CHECK_DIGIT_EXPIRY = 17;
+  CHECK_DIGIT_PERSONAL = 18;
+  CHECK_DIGIT_COMPOSITE = 19;
+  PORTRAIT_HASH = 20;
+  SIGNATURE_HASH = 21;
+}
+
+// Consistency rule types
+enum ConsistencyRule {
+  CONSISTENCY_RULE_UNSPECIFIED = 0;
+  FIELD_EXACT_MATCH = 1;           // Fields must match exactly
+  FIELD_FUZZY_MATCH = 2;           // Fields must match within tolerance
+  DATE_FORMAT_VALIDATION = 3;      // Date format consistency
+  CHECKSUM_VALIDATION = 4;         // Validate checksums/check digits
+  HASH_VALIDATION = 5;             // Validate portrait/signature hashes
+  CROSS_REFERENCE_VALIDATION = 6;  // Cross-reference between zones
+  ENCODING_CONSISTENCY = 7;        // Character encoding consistency
+  LENGTH_VALIDATION = 8;           // Field length validation
+}
+
+// Confidence levels for consistency checks
+enum ConfidenceLevel {
+  CONFIDENCE_LEVEL_UNSPECIFIED = 0;
+  VERY_LOW = 1;    // 0-20%
+  LOW = 2;         // 21-40%
+  MEDIUM = 3;      // 41-60%
+  HIGH = 4;        // 61-80%
+  VERY_HIGH = 5;   // 81-100%
+}
+
+// Result status for consistency checks
+enum ConsistencyStatus {
+  CONSISTENCY_STATUS_UNSPECIFIED = 0;
+  PASS = 1;                        // All checks passed
+  FAIL = 2;                        // Critical mismatches found
+  WARNING = 3;                     // Non-critical mismatches found
+  INCOMPLETE = 4;                  // Insufficient data for complete check
+  ERROR = 5;                       // System error during processing
+}
+
+// Extracted field data from a specific zone
+message ZoneFieldData {
+  DocumentZone zone = 1;
+  map<string, string> fields = 2;  // Field name -> extracted value
+  float extraction_confidence = 3;  // 0.0 - 1.0
+  google.protobuf.Timestamp extracted_at = 4;
+  string extraction_method = 5;     // OCR engine, parser version, etc.
+  map<string, string> metadata = 6; // Additional zone-specific metadata
+}
+
+// A single field mismatch between zones
+message FieldMismatch {
+  CanonicalField field = 1;
+  string field_name = 2;  // Human-readable field name
+  DocumentZone zone_a = 3;
+  string value_a = 4;
+  DocumentZone zone_b = 5;
+  string value_b = 6;
+  ConsistencyRule rule_violated = 7;
+  string explanation = 8;
+  float severity_score = 9;  // 0.0 (minor) - 1.0 (critical)
+  map<string, string> details = 10; // Additional diagnostic information
+}
+
+// Consistency check result for a specific rule
+message RuleCheckResult {
+  ConsistencyRule rule = 1;
+  string rule_description = 2;
+  ConsistencyStatus status = 3;
+  repeated FieldMismatch mismatches = 4;
+  float confidence_score = 5;  // 0.0 - 1.0
+  ConfidenceLevel confidence_level = 6;
+  string explanation = 7;
+  google.protobuf.Timestamp checked_at = 8;
+  int64 execution_time_ms = 9;
+}
+
+// Main request for consistency checking
+message ConsistencyCheckRequest {
+  string request_id = 1;  // Unique identifier for this request
+  repeated ZoneFieldData zone_data = 2;
+  repeated ConsistencyRule rules_to_check = 3;  // If empty, check all applicable rules
+  bool include_audit_trail = 4;  // Whether to store detailed audit information
+  map<string, string> context = 5;  // Additional context (user, session, etc.)
+  float fuzzy_match_threshold = 6;  // Threshold for fuzzy matching (0.0-1.0)
+}
+
+// Main response for consistency checking
+message ConsistencyCheckResponse {
+  string request_id = 1;
+  ConsistencyStatus overall_status = 2;
+  repeated RuleCheckResult rule_results = 3;
+  repeated FieldMismatch critical_mismatches = 4;  // High-severity mismatches
+  repeated FieldMismatch warnings = 5;             // Lower-severity mismatches
+  float overall_confidence = 6;  // 0.0 - 1.0
+  ConfidenceLevel overall_confidence_level = 7;
+  string summary = 8;  // Human-readable summary
+  google.protobuf.Timestamp processed_at = 9;
+  int64 total_processing_time_ms = 10;
+  string audit_id = 11;  // Identifier for audit trail
+  marty.common.v1.ApiError error = 12;  // Error details if any
+  map<string, string> metadata = 13;  // Additional response metadata
+}
+
+// Request for audit history
+message AuditHistoryRequest {
+  string audit_id = 1;  // Specific audit record
+  string request_id = 2;  // Or by request ID
+  google.protobuf.Timestamp from_time = 3;  // Time range filter
+  google.protobuf.Timestamp to_time = 4;
+  int32 limit = 5;  // Maximum records to return
+  int32 offset = 6;  // Pagination offset
+}
+
+// Audit trail entry
+message AuditEntry {
+  string audit_id = 1;
+  string request_id = 2;
+  google.protobuf.Timestamp timestamp = 3;
+  string operation = 4;  // "consistency_check", "rule_validation", etc.
+  string details = 5;    // JSON-encoded operation details
+  ConsistencyStatus result_status = 6;
+  int64 processing_time_ms = 7;
+  map<string, string> context = 8;
+}
+
+// Response for audit history
+message AuditHistoryResponse {
+  repeated AuditEntry entries = 1;
+  int32 total_count = 2;
+  int32 returned_count = 3;
+  marty.common.v1.ApiError error = 4;
+}
+
+// Request for field mapping validation
+message FieldMappingRequest {
+  DocumentZone source_zone = 1;
+  DocumentZone target_zone = 2;
+  CanonicalField field = 3;
+  string source_value = 4;
+  string target_value = 5;
+  ConsistencyRule rule = 6;
+}
+
+// Response for field mapping validation
+message FieldMappingResponse {
+  bool is_consistent = 1;
+  float consistency_score = 2;  // 0.0 - 1.0
+  string explanation = 3;
+  repeated string suggestions = 4;  // Suggested corrections if inconsistent
+  marty.common.v1.ApiError error = 5;
+}
+
+// Request for supported rules information
+message GetSupportedRulesRequest {
+  DocumentZone zone_filter = 1;  // Filter by zone (optional)
+  CanonicalField field_filter = 2;  // Filter by field (optional)
+}
+
+// Description of a consistency rule
+message RuleDescription {
+  ConsistencyRule rule = 1;
+  string name = 2;
+  string description = 3;
+  repeated DocumentZone applicable_zones = 4;
+  repeated CanonicalField applicable_fields = 5;
+  bool is_critical = 6;  // Whether failure is considered critical
+  string documentation_url = 7;  // Link to detailed documentation
+}
+
+// Response for supported rules
+message GetSupportedRulesResponse {
+  repeated RuleDescription rules = 1;
+  int32 total_rules = 2;
+  marty.common.v1.ApiError error = 3;
+}

@@ -1,0 +1,344 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: consistency-engine
+  namespace: marty-services
+  labels:
+    app: consistency-engine
+    service: consistency-engine
+    version: v1
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: consistency-engine
+      version: v1
+  template:
+    metadata:
+      labels:
+        app: consistency-engine
+        version: v1
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "8080"
+        prometheus.io/path: "/metrics"
+    spec:
+      serviceAccountName: consistency-engine
+      containers:
+      - name: consistency-engine
+        image: marty/consistency-engine:latest
+        imagePullPolicy: IfNotPresent
+        ports:
+        - containerPort: 8080
+          name: http
+          protocol: TCP
+        - containerPort: 50051
+          name: grpc
+          protocol: TCP
+        env:
+        - name: SERVICE_NAME
+          value: "consistency-engine"
+        - name: LOG_LEVEL
+          value: "INFO"
+        - name: GRPC_PORT
+          value: "50051"
+        - name: HTTP_PORT
+          value: "8080"
+        - name: ENABLE_PROMETHEUS
+          value: "true"
+        - name: DATABASE_URL
+          valueFrom:
+            secretKeyRef:
+              name: consistency-engine-secrets
+              key: database-url
+        - name: REDIS_URL
+          valueFrom:
+            secretKeyRef:
+              name: consistency-engine-secrets
+              key: redis-url
+        resources:
+          requests:
+            memory: "256Mi"
+            cpu: "100m"
+          limits:
+            memory: "1Gi"
+            cpu: "500m"
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 8080
+          initialDelaySeconds: 10
+          periodSeconds: 5
+          timeoutSeconds: 3
+          successThreshold: 1
+          failureThreshold: 3
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 8080
+          initialDelaySeconds: 30
+          periodSeconds: 30
+          timeoutSeconds: 5
+          successThreshold: 1
+          failureThreshold: 3
+        volumeMounts:
+        - name: config
+          mountPath: /app/config
+          readOnly: true
+        - name: audit-storage
+          mountPath: /app/audit
+        securityContext:
+          runAsNonRoot: true
+          runAsUser: 1000
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: true
+          capabilities:
+            drop:
+            - ALL
+      volumes:
+      - name: config
+        configMap:
+          name: consistency-engine-config
+      - name: audit-storage
+        persistentVolumeClaim:
+          claimName: consistency-engine-audit-pvc
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+          - weight: 100
+            podAffinityTerm:
+              labelSelector:
+                matchExpressions:
+                - key: app
+                  operator: In
+                  values:
+                  - consistency-engine
+              topologyKey: kubernetes.io/hostname
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: consistency-engine
+  namespace: marty-services
+  labels:
+    app: consistency-engine
+    service: consistency-engine
+spec:
+  type: ClusterIP
+  ports:
+  - port: 8080
+    targetPort: 8080
+    protocol: TCP
+    name: http
+  - port: 50051
+    targetPort: 50051
+    protocol: TCP
+    name: grpc
+  selector:
+    app: consistency-engine
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: consistency-engine-headless
+  namespace: marty-services
+  labels:
+    app: consistency-engine
+    service: consistency-engine
+spec:
+  type: ClusterIP
+  clusterIP: None
+  ports:
+  - port: 50051
+    targetPort: 50051
+    protocol: TCP
+    name: grpc
+  selector:
+    app: consistency-engine
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: consistency-engine
+  namespace: marty-services
+  labels:
+    app: consistency-engine
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: consistency-engine-config
+  namespace: marty-services
+  labels:
+    app: consistency-engine
+data:
+  config.yaml: |
+    service:
+      name: consistency-engine
+      version: "1.0.0"
+      grpc_port: 50051
+      http_port: 8080
+    
+    logging:
+      level: INFO
+      format: json
+      enable_audit: true
+    
+    metrics:
+      enabled: true
+      prometheus_enabled: true
+      collection_interval: 30
+    
+    consistency_rules:
+      default_fuzzy_threshold: 0.8
+      enable_cross_validation: true
+      enable_checksum_validation: true
+    
+    field_mappings:
+      strict_validation: true
+      normalize_dates: true
+      normalize_names: true
+    
+    performance:
+      max_concurrent_checks: 100
+      processing_timeout_seconds: 30
+      audit_retention_days: 90
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: consistency-engine-secrets
+  namespace: marty-services
+  labels:
+    app: consistency-engine
+type: Opaque
+stringData:
+  database-url: "postgresql://consistency_engine:password@postgres:5432/consistency_db"
+  redis-url: "redis://redis:6379/0"
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: consistency-engine-audit-pvc
+  namespace: marty-services
+  labels:
+    app: consistency-engine
+spec:
+  accessModes:
+  - ReadWriteOnce
+  resources:
+    requests:
+      storage: 10Gi
+  storageClassName: fast-ssd
+---
+apiVersion: networking.istio.io/v1beta1
+kind: VirtualService
+metadata:
+  name: consistency-engine
+  namespace: marty-services
+  labels:
+    app: consistency-engine
+spec:
+  hosts:
+  - consistency-engine
+  http:
+  - match:
+    - uri:
+        prefix: "/api/v1/consistency"
+    route:
+    - destination:
+        host: consistency-engine
+        port:
+          number: 8080
+  - match:
+    - uri:
+        prefix: "/health"
+    route:
+    - destination:
+        host: consistency-engine
+        port:
+          number: 8080
+  - match:
+    - uri:
+        prefix: "/metrics"
+    route:
+    - destination:
+        host: consistency-engine
+        port:
+          number: 8080
+---
+apiVersion: networking.istio.io/v1beta1
+kind: DestinationRule
+metadata:
+  name: consistency-engine
+  namespace: marty-services
+  labels:
+    app: consistency-engine
+spec:
+  host: consistency-engine
+  trafficPolicy:
+    connectionPool:
+      tcp:
+        maxConnections: 100
+      http:
+        http1MaxPendingRequests: 50
+        maxRequestsPerConnection: 10
+        consecutiveGatewayErrors: 5
+        interval: 30s
+        baseEjectionTime: 30s
+    loadBalancer:
+      simple: LEAST_CONN
+  subsets:
+  - name: v1
+    labels:
+      version: v1
+---
+apiVersion: security.istio.io/v1beta1
+kind: PeerAuthentication
+metadata:
+  name: consistency-engine
+  namespace: marty-services
+  labels:
+    app: consistency-engine
+spec:
+  selector:
+    matchLabels:
+      app: consistency-engine
+  mtls:
+    mode: STRICT
+---
+apiVersion: security.istio.io/v1beta1
+kind: AuthorizationPolicy
+metadata:
+  name: consistency-engine
+  namespace: marty-services
+  labels:
+    app: consistency-engine
+spec:
+  selector:
+    matchLabels:
+      app: consistency-engine
+  rules:
+  - from:
+    - source:
+        principals: ["cluster.local/ns/marty-services/sa/document-processor"]
+    - source:
+        principals: ["cluster.local/ns/marty-services/sa/verification-service"]
+    to:
+    - operation:
+        methods: ["GET", "POST"]
+        paths: ["/api/v1/consistency/*"]
+  - from:
+    - source:
+        principals: ["cluster.local/ns/monitoring/sa/prometheus"]
+    to:
+    - operation:
+        methods: ["GET"]
+        paths: ["/metrics"]
+  - from:
+    - source:
+        principals: ["cluster.local/ns/kube-system/sa/kubernetes-dashboard"]
+    to:
+    - operation:
+        methods: ["GET"]
+        paths: ["/health"]
