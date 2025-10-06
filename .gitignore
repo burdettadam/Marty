@@ -131,6 +131,17 @@ test_*.py
 !tests/test_secure_crypto.py
 fix_imports.py
 
+# Backup files
+*.backup
+*.bak
+*.old
+*.copy
+*.tmp
+*_backup
+*_backup.*
+*.backup.*
+.env.*.backup.*
+
 # Playwright artifacts
 .playwright-mcp/
 tests/e2e/traces/
