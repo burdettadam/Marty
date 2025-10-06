@@ -342,7 +342,7 @@ setup-openxpki:
 	@echo "Access the OpenXPKI web interface at: https://localhost:8443/openxpki/"
 	@echo "Development credentials loaded from docker/openxpki.env and data/openxpki/secrets/*.txt (DO NOT USE IN PROD)"
 
-.PHONY: setup clean test lint format proto compile-protos clean-protos test-contracts test-contracts-generate-golden db-upgrade db-init db-revision db-downgrade db-current db-history db-upgrade-all db-setup-test db-stop-test db-test-connections db-setup-full validate-service build run docker-build docker-run test-unit test-integration test-e2e test-e2e-k8s test-e2e-k8s-existing test-e2e-k8s-smoke test-e2e-k8s-monitoring test-e2e-clean test-e2e-docker-legacy test-integration-docker-legacy test-cert-validator test-e2e-ui playwright-install generate-test-data help run-ui run-service-ui run-services-dev check-services stop-services dev-environment demo-environment dev-minimal dev-full dev-status dev-logs dev-clean dev-restart wait-for-services show-endpoints test-performance test-coverage test-security test-setup setup-openxpki test-doc-processing test-doc-processing-unit test-doc-processing-integration test-doc-processing-e2e test-doc-processing-docker test-doc-processing-api test-doc-processing-health doc-processing-start doc-processing-stop doc-processing-status doc-processing-logs doc-processing-clean test-trust-svc test-trust-svc-unit test-trust-svc-integration test-trust-svc-e2e test-trust-svc-docker test-trust-svc-api test-trust-svc-health trust-svc-start trust-svc-start-docker trust-svc-stop trust-svc-status trust-svc-logs trust-svc-dev-job trust-svc-load-data trust-svc-clean
+.PHONY: setup clean test lint format proto compile-protos clean-protos test-contracts test-contracts-generate-golden db-upgrade db-init db-revision db-downgrade db-current db-history db-upgrade-all db-setup-test db-stop-test db-test-connections db-setup-full validate-service build run docker-build docker-run test-unit test-integration test-e2e test-e2e-k8s test-e2e-k8s-existing test-e2e-k8s-smoke test-e2e-k8s-monitoring test-e2e-clean test-e2e-docker-legacy test-integration-docker-legacy test-cert-validator test-e2e-ui playwright-install generate-test-data help run-ui run-service-ui run-services-dev check-services stop-services dev-environment demo-environment demo-microsoft demo-microsoft-status demo-microsoft-test demo-microsoft-cleanup demo-microsoft-configure-tunnels dev-minimal dev-full dev-status dev-logs dev-clean dev-restart wait-for-services show-endpoints test-performance test-coverage test-security test-setup setup-openxpki test-doc-processing test-doc-processing-unit test-doc-processing-integration test-doc-processing-e2e test-doc-processing-docker test-doc-processing-api test-doc-processing-health doc-processing-start doc-processing-stop doc-processing-status doc-processing-logs doc-processing-clean test-trust-svc test-trust-svc-unit test-trust-svc-integration test-trust-svc-e2e test-trust-svc-docker test-trust-svc-api test-trust-svc-health trust-svc-start trust-svc-start-docker trust-svc-stop trust-svc-status trust-svc-logs trust-svc-dev-job trust-svc-load-data trust-svc-clean
 
 PYTHON := uv run python
 UV := uv
@@ -1207,6 +1207,73 @@ demo-environment: dev-clean build generate-test-data
 	@echo "🎉 Demo environment ready with sample data!"
 	@$(MAKE) --no-print-directory show-endpoints
 
+# =============================================================================
+# MICROSOFT AUTHENTICATOR DEMO COMMANDS (Consolidated)
+# =============================================================================
+# All Microsoft demo operations are now consolidated in src/microsoft_demo/
+# These commands delegate to the consolidated Makefile for DRY management
+
+# Setup complete Microsoft Authenticator demo (delegated)
+demo-microsoft:
+	@echo "🎬 Setting up Microsoft Authenticator demo..."
+	@$(MAKE) -C src/microsoft_demo setup-k8s
+
+# Setup Microsoft demo with Docker (delegated)
+demo-microsoft-docker:
+	@echo "🐳 Setting up Microsoft Authenticator demo with Docker..."
+	@$(MAKE) -C src/microsoft_demo setup
+
+# Setup Microsoft demo for VS Code (delegated)
+demo-microsoft-vscode:
+	@echo "🌐 Setting up Microsoft Authenticator demo for VS Code..."
+	@$(MAKE) -C src/microsoft_demo setup-vscode
+
+# Check Microsoft demo status and health (delegated)
+demo-microsoft-status:
+	@echo "� Checking Microsoft Authenticator demo status..."
+	@$(MAKE) -C src/microsoft_demo status
+
+# Test Microsoft demo APIs and endpoints (delegated)
+demo-microsoft-test:
+	@echo "🧪 Testing Microsoft Authenticator demo..."
+	@$(MAKE) -C src/microsoft_demo test-all
+
+# Cleanup Microsoft demo environment (delegated)
+demo-microsoft-cleanup:
+	@echo "🧹 Cleaning up Microsoft Authenticator demo environment..."
+	@$(MAKE) -C src/microsoft_demo clean
+
+# Configure Microsoft demo with dev tunnels URLs (delegated)
+demo-microsoft-configure-tunnels:
+	@echo "🔧 Configuring Microsoft demo with dev tunnels URLs..."
+	@if [ -z "$(ISSUER_URL)" ] || [ -z "$(VERIFIER_URL)" ]; then \
+		echo "$(RED)Error: Both ISSUER_URL and VERIFIER_URL are required$(NC)"; \
+		echo "Usage: make demo-microsoft-configure-tunnels ISSUER_URL=https://xxx-8000.devtunnels.ms VERIFIER_URL=https://xxx-8001.devtunnels.ms"; \
+		exit 1; \
+	fi
+	@$(MAKE) -C src/microsoft_demo configure-urls ISSUER_URL=$(ISSUER_URL) VERIFIER_URL=$(VERIFIER_URL)
+
+# Show Microsoft demo help (delegated)
+demo-microsoft-help:
+	@echo "🎯 Microsoft Authenticator Demo Help"
+	@echo "===================================="
+	@echo ""
+	@echo "$(YELLOW)📍 Demo Location:$(NC) src/microsoft_demo/"
+	@echo ""
+	@echo "$(YELLOW)🚀 Quick Start Commands:$(NC)"
+	@echo "  make demo-microsoft                    - Setup with Kubernetes (recommended)"
+	@echo "  make demo-microsoft-docker             - Setup with Docker"
+	@echo "  make demo-microsoft-vscode             - Setup for VS Code port forwarding"
+	@echo ""
+	@echo "$(YELLOW)🔧 Management Commands:$(NC)"
+	@echo "  make demo-microsoft-status             - Check status"
+	@echo "  make demo-microsoft-test               - Run tests"
+	@echo "  make demo-microsoft-cleanup            - Cleanup"
+	@echo "  make demo-microsoft-configure-tunnels  - Configure URLs"
+	@echo ""
+	@echo "$(YELLOW)📖 For detailed help:$(NC)"
+	@echo "  cd src/microsoft_demo && make help"
+
 # Minimal development setup (UI + essential services only)
 dev-minimal: dev-clean build
 	@echo "🏃 Setting up minimal development environment..."
@@ -1577,6 +1644,21 @@ help:
 	@echo "🚀 Development Environment:"
 	@echo "  dev-environment    - Complete development setup (recommended)"
 	@echo "  demo-environment   - Demo setup with sample data"
+	@echo ""
+	@echo "📱 Microsoft Authenticator Demo (Consolidated):"
+	@echo "  demo-microsoft                        - Setup with Kubernetes (recommended)"
+	@echo "  demo-microsoft-docker                 - Setup with Docker"
+	@echo "  demo-microsoft-vscode                 - Setup for VS Code port forwarding"
+	@echo "  demo-microsoft-status                 - Check demo status and health"
+	@echo "  demo-microsoft-test                   - Test demo APIs and endpoints"
+	@echo "  demo-microsoft-cleanup                - Cleanup demo environment"
+	@echo "  demo-microsoft-configure-tunnels      - Configure with dev tunnels URLs"
+	@echo "  demo-microsoft-help                   - Show detailed demo help"
+	@echo "    Usage: make demo-microsoft-configure-tunnels \\"
+	@echo "           ISSUER_URL=https://xxx-8000.devtunnels.ms \\"
+	@echo "           VERIFIER_URL=https://xxx-8001.devtunnels.ms"
+	@echo ""
+	@echo "⚙️  Other Development:"
 	@echo "  dev-minimal        - Minimal setup (UI + essential services)"
 	@echo "  dev-full           - Full setup (all services)"
 	@echo "  dev-status         - Check environment status"
@@ -1725,6 +1807,7 @@ help:
 	@echo ""
 	@echo "🎬 Quick Start for Demo:"
 	@echo "  make demo-environment   # Setup with sample data"
+	@echo "  make demo-microsoft     # Microsoft Authenticator demo (K8s)"
 
 # Default target
 .DEFAULT_GOAL := help

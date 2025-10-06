@@ -1,0 +1,497 @@
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: marty-microsoft-demo
+  labels:
+    name: marty-microsoft-demo
+
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: issuer-api-code
+  namespace: marty-microsoft-demo
+data:
+  issuer_api.py: |
+    from fastapi import FastAPI, HTTPException, Request
+    from fastapi.responses import HTMLResponse, JSONResponse
+    from fastapi.staticfiles import StaticFiles
+    from fastapi.templating import Jinja2Templates
+    import qrcode
+    import io
+    import base64
+    import uuid
+    import json
+    from typing import Dict, Any
+    from datetime import datetime, timezone
+    import uvicorn
+    from fastapi.middleware.cors import CORSMiddleware
+
+    app = FastAPI(
+        title="Microsoft Demo Issuer API",
+        description="API for issuing verifiable credentials compatible with Microsoft Authenticator",
+        version="1.0.0"
+    )
+
+    # Add CORS middleware
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=["*"],
+        allow_credentials=True,
+        allow_methods=["*"],
+        allow_headers=["*"],
+    )
+
+    # In-memory storage for demo purposes
+    credential_offers: Dict[str, Dict[str, Any]] = {}
+    issuance_requests: Dict[str, Dict[str, Any]] = {}
+
+    @app.get("/health")
+    async def health_check():
+        return {"status": "healthy", "timestamp": datetime.now(timezone.utc).isoformat()}
+
+    @app.get("/", response_class=JSONResponse)
+    async def root():
+        return {
+            "name": "Microsoft Demo Issuer API",
+            "version": "1.0.0",
+            "issuer": "did:web:https%3A",
+            "base_url": "https://7bmt9pc1-8000.usw3.devtunnels.ms",
+            "endpoints": {
+                "metadata": "/.well-known/openid_credential_issuer",
+                "token": "/token",
+                "credential": "/credential",
+                "offers": "/credential-offer",
+                "demo": "/demo"
+            },
+            "status": "operational"
+        }
+
+    @app.get("/demo", response_class=HTMLResponse)
+    async def demo_page():
+        return """
+    <!DOCTYPE html>
+    <html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Microsoft Authenticator Credential Demo</title>
+        <style>
+            body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 800px; margin: 0 auto; padding: 20px; line-height: 1.6; }
+            .container { background: #f8f9fa; padding: 20px; border-radius: 8px; margin: 20px 0; }
+            .success { background: #d4edda; border: 1px solid #c3e6cb; color: #155724; }
+            .info { background: #d1ecf1; border: 1px solid #bee5eb; color: #0c5460; }
+            button { background: #0078d4; color: white; border: none; padding: 12px 24px; border-radius: 4px; cursor: pointer; font-size: 16px; }
+            button:hover { background: #106ebe; }
+            button:disabled { background: #6c757d; cursor: not-allowed; }
+            .qr-container { text-align: center; margin: 20px 0; }
+            .qr-container img { border: 2px solid #ddd; border-radius: 8px; }
+            .credential-info { background: white; padding: 15px; border-radius: 4px; margin: 10px 0; border-left: 4px solid #0078d4; }
+            code { background: #f1f3f4; padding: 2px 6px; border-radius: 3px; font-family: 'Courier New', monospace; }
+        </style>
+    </head>
+    <body>
+        <h1>🆔 Microsoft Authenticator Demo</h1>
+        <p>Issue and store verifiable credentials in Microsoft Authenticator</p>
+        
+        <div class="container info">
+            <h3>📱 Step 1: Ensure Microsoft Authenticator is Ready</h3>
+            <p>Make sure you have Microsoft Authenticator installed on your mobile device and set up.</p>
+        </div>
+        
+        <div class="container">
+            <h3>🎫 Step 2: Create a Credential Offer</h3>
+            <p>Click the button below to generate a credential offer for an Employee Credential:</p>
+            <button onclick="createCredentialOffer()">Generate QR Code</button>
+            <div id="offerResult"></div>
+        </div>
+        
+        <div class="container">
+            <h3>📱 Step 3: Scan QR Code with Microsoft Authenticator</h3>
+            <p>Use Microsoft Authenticator to scan the QR code below:</p>
+            <div id="qrCodeContainer"></div>
+        </div>
+        
+        <div class="container">
+            <h3>✅ Step 4: Complete the Flow</h3>
+            <p>Follow the prompts in Microsoft Authenticator to complete the credential issuance.</p>
+            <p>Once complete, you can proceed to verification:</p>
+            <a href="https://7bmt9pc1-8000.usw3.devtunnels.ms/verification-demo">Go to Verification Demo</a>
+        </div>
+
+        <script>
+            async function createCredentialOffer() {
+                try {
+                    const response = await fetch('/credential-offer', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({
+                            credential_type: "EmployeeCredential",
+                            claims: {
+                                given_name: "John",
+                                family_name: "Doe",
+                                employee_id: "EMP001",
+                                department: "Engineering",
+                                position: "Senior Developer"
+                            }
+                        })
+                    });
+                    
+                    const result = await response.json();
+                    
+                    if (response.ok) {
+                        document.getElementById('offerResult').innerHTML = `
+                            <div class="credential-info success">
+                                <strong>✅ Credential Offer Created!</strong><br>
+                                <strong>Offer ID:</strong> <code>${result.offer_id}</code><br>
+                            </div>
+                            <div class="credential-info">
+                                <strong>Credential Offer URI:</strong><br>
+                                <code>${result.offer_uri}</code>
+                            </div>
+                        `;
+                        
+                        // Generate and display QR code
+                        const qrResponse = await fetch('/generate-qr', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json'
+                            },
+                            body: JSON.stringify({
+                                data: result.offer_uri
+                            })
+                        });
+                        
+                        if (qrResponse.ok) {
+                            const qrResult = await qrResponse.json();
+                            const img = document.createElement('img');
+                            img.src = 'data:image/png;base64,' + qrResult.qr_code;
+                            img.alt = 'Credential Offer QR Code';
+                            img.style.maxWidth = '300px';
+                            
+                            document.getElementById('qrCodeContainer').innerHTML = '';
+                            document.getElementById('qrCodeContainer').appendChild(img);
+                            
+                            const instructions = document.createElement('p');
+                            instructions.innerHTML = '<strong>Scan this QR code with Microsoft Authenticator</strong>';
+                            document.getElementById('qrCodeContainer').appendChild(instructions);
+                        }
+                    } else {
+                        document.getElementById('offerResult').innerHTML = `
+                            <div class="credential-info" style="background: #f8d7da; border-color: #f5c6cb; color: #721c24;">
+                                <strong>❌ Error:</strong> ${result.detail || 'Failed to create credential offer'}
+                            </div>
+                        `;
+                    }
+                } catch (error) {
+                    document.getElementById('offerResult').innerHTML = `
+                        <div class="credential-info" style="background: #f8d7da; border-color: #f5c6cb; color: #721c24;">
+                            <strong>❌ Error:</strong> ${error.message}
+                        </div>
+                    `;
+                }
+            }
+
+            function getMobileInstructions() {
+                return "Open Microsoft Authenticator and scan the QR code above to add this credential to your wallet.";
+            }
+        </script>
+    </body>
+    </html>
+        """
+
+    @app.post("/credential-offer")
+    async def create_credential_offer(request: Dict[str, Any]):
+        """Create a credential offer compatible with Microsoft Authenticator"""
+        try:
+            offer_id = str(uuid.uuid4())
+            request_id = str(uuid.uuid4())
+            
+            # Store the credential offer
+            credential_offers[offer_id] = {
+                "id": offer_id,
+                "request_id": request_id,
+                "credential_type": request.get("credential_type", "EmployeeCredential"),
+                "claims": request.get("claims", {}),
+                "created_at": datetime.now(timezone.utc).isoformat(),
+                "status": "pending"
+            }
+            
+            # Create issuance request for Microsoft Entra Verified ID format
+            issuance_requests[request_id] = {
+                "includeQRCode": False,
+                "callback": {
+                    "url": f"https://7bmt9pc1-8000.usw3.devtunnels.ms/api/issuer/issuanceCallback",
+                    "state": request_id,
+                    "headers": {
+                        "api-key": "OPTIONAL API-KEY for WEBHOOK SECURITY"
+                    }
+                },
+                "authority": "did:web:verifiedid.contoso.com",
+                "registration": {
+                    "clientName": "Verifiable Credential Expert Sample"
+                },
+                "manifest": f"https://verifiedid.did.msidentity.com/v1.0/tenants/3c32ed40-8a10-465b-8ba4-0b1e86882668/verifiableCredentials/contracts/{request.get('credential_type', 'EmployeeCredential')}",
+                "claims": request.get("claims", {}),
+                "pin": {
+                    "value": "1234",
+                    "length": 4
+                }
+            }
+            
+            # Create the openid-vc URI for Microsoft Authenticator
+            base_url = "https://7bmt9pc1-8000.usw3.devtunnels.ms"
+            offer_uri = f"openid-vc://?request_uri={base_url}/issuance-requests/{request_id}"
+            
+            return {
+                "offer_id": offer_id,
+                "request_id": request_id,
+                "offer_uri": offer_uri,
+                "credential_type": request.get("credential_type", "EmployeeCredential"),
+                "claims": request.get("claims", {}),
+                "status": "created"
+            }
+            
+        except Exception as e:
+            raise HTTPException(status_code=500, detail=f"Failed to create credential offer: {str(e)}")
+
+    @app.get("/issuance-requests/{request_id}")
+    async def get_issuance_request(request_id: str):
+        """Get issuance request in Microsoft Entra Verified ID format"""
+        if request_id not in issuance_requests:
+            raise HTTPException(status_code=404, detail="Issuance request not found")
+        
+        return issuance_requests[request_id]
+
+    @app.post("/api/issuer/issuanceCallback")
+    async def issuance_callback(request: Dict[str, Any]):
+        """Handle issuance callback from Microsoft Authenticator"""
+        return {"status": "received", "message": "Callback processed successfully"}
+
+    @app.post("/generate-qr")
+    async def generate_qr_code(request: Dict[str, Any]):
+        """Generate QR code for credential offer"""
+        try:
+            data = request.get("data")
+            if not data:
+                raise HTTPException(status_code=400, detail="No data provided for QR code")
+            
+            # Create QR code
+            qr = qrcode.QRCode(
+                version=1,
+                error_correction=qrcode.constants.ERROR_CORRECT_L,
+                box_size=10,
+                border=4,
+            )
+            qr.add_data(data)
+            qr.make(fit=True)
+            
+            # Create image
+            img = qr.make_image(fill_color="black", back_color="white")
+            
+            # Convert to base64
+            img_buffer = io.BytesIO()
+            img.save(img_buffer, format='PNG')
+            img_str = base64.b64encode(img_buffer.getvalue()).decode()
+            
+            return {
+                "qr_code": img_str,
+                "data": data,
+                "format": "PNG"
+            }
+            
+        except Exception as e:
+            raise HTTPException(status_code=500, detail=f"Failed to generate QR code: {str(e)}")
+
+    if __name__ == "__main__":
+        uvicorn.run(app, host="0.0.0.0", port=8000)
+
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: verifier-api-code
+  namespace: marty-microsoft-demo
+data:
+  verifier_api.py: |
+    from fastapi import FastAPI, HTTPException
+    from fastapi.responses import HTMLResponse, JSONResponse
+    from typing import Dict, Any
+    from datetime import datetime, timezone
+    import uvicorn
+
+    app = FastAPI(
+        title="Microsoft Demo Verifier API", 
+        description="API for verifying credentials from Microsoft Authenticator",
+        version="1.0.0"
+    )
+
+    @app.get("/health")
+    async def health_check():
+        return {"status": "healthy", "timestamp": datetime.now(timezone.utc).isoformat()}
+
+    @app.get("/", response_class=JSONResponse)
+    async def root():
+        return {
+            "name": "Microsoft Demo Verifier API",
+            "version": "1.0.0",
+            "status": "operational"
+        }
+
+    if __name__ == "__main__":
+        uvicorn.run(app, host="0.0.0.0", port=8001)
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: issuer-api-microsoft-demo
+  namespace: marty-microsoft-demo
+  labels:
+    app: issuer-api
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: issuer-api
+  template:
+    metadata:
+      labels:
+        app: issuer-api
+    spec:
+      containers:
+        - name: issuer-api
+          image: python:3.10-slim
+          command:
+            - /bin/bash
+            - -c
+            - |
+              set -e
+              echo "Installing dependencies..."
+              pip install --no-cache-dir fastapi uvicorn[standard] pydantic qrcode[pil]
+              echo "Setting up application structure..."
+              mkdir -p /app/src/microsoft_demo
+              echo "# Microsoft Demo Module" > /app/src/microsoft_demo/__init__.py
+              cp /config/issuer_api.py /app/src/microsoft_demo/issuer_api.py
+              echo "Starting issuer API..."
+              cd /app && python -m uvicorn src.microsoft_demo.issuer_api:app --host 0.0.0.0 --port 8000
+          ports:
+            - containerPort: 8000
+              name: http
+          volumeMounts:
+            - name: issuer-code
+              mountPath: /config
+              readOnly: true
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 8000
+            initialDelaySeconds: 30
+            periodSeconds: 5
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 8000
+            initialDelaySeconds: 60
+            periodSeconds: 10
+      volumes:
+        - name: issuer-code
+          configMap:
+            name: issuer-api-code
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: issuer-api-microsoft-demo
+  namespace: marty-microsoft-demo
+  labels:
+    app: issuer-api
+spec:
+  type: NodePort
+  ports:
+    - port: 8000
+      targetPort: 8000
+      nodePort: 30000
+      name: http
+  selector:
+    app: issuer-api
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: verifier-api-microsoft-demo
+  namespace: marty-microsoft-demo
+  labels:
+    app: verifier-api
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: verifier-api
+  template:
+    metadata:
+      labels:
+        app: verifier-api
+    spec:
+      containers:
+        - name: verifier-api
+          image: python:3.10-slim
+          command:
+            - /bin/bash
+            - -c
+            - |
+              set -e
+              echo "Installing dependencies..."
+              pip install --no-cache-dir fastapi uvicorn[standard] pydantic
+              echo "Setting up application structure..."
+              mkdir -p /app/src/microsoft_demo
+              echo "# Microsoft Demo Module" > /app/src/microsoft_demo/__init__.py
+              cp /config/verifier_api.py /app/src/microsoft_demo/verifier_api.py
+              echo "Starting verifier API..."
+              cd /app && python -m uvicorn src.microsoft_demo.verifier_api:app --host 0.0.0.0 --port 8001
+          ports:
+            - containerPort: 8001
+              name: http
+          volumeMounts:
+            - name: verifier-code
+              mountPath: /config
+              readOnly: true
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 8001
+            initialDelaySeconds: 30
+            periodSeconds: 5
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 8001
+            initialDelaySeconds: 60
+            periodSeconds: 10
+      volumes:
+        - name: verifier-code
+          configMap:
+            name: verifier-api-code
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: verifier-api-microsoft-demo
+  namespace: marty-microsoft-demo
+  labels:
+    app: verifier-api
+spec:
+  type: NodePort
+  ports:
+    - port: 8001
+      targetPort: 8001
+      nodePort: 30001
+      name: http
+  selector:
+    app: verifier-api

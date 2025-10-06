@@ -2,13 +2,18 @@
 
 from __future__ import annotations
 
+import base64
 import json
 import logging
+import uuid
 from typing import Any
+from urllib.parse import urlencode
 
 import grpc
-from fastapi import FastAPI, HTTPException, status
+import qrcode
+from fastapi import FastAPI, HTTPException, status, Header, Depends
 from fastapi.responses import JSONResponse
+from io import BytesIO
 from pydantic import BaseModel, Field
 
 from src.proto.v1 import document_signer_pb2, document_signer_pb2_grpc
@@ -16,15 +21,22 @@ from src.proto.v1 import document_signer_pb2, document_signer_pb2_grpc
 logger = logging.getLogger(__name__)
 
 app = FastAPI(
-    title="OID4VCI Issuer API",
-    description="OpenID for Verifiable Credential Issuance - REST API facade",
-    version="1.0.0"
+    title="Marty OID4VCI Issuer API",
+    description="OpenID for Verifiable Credential Issuance - Microsoft Authenticator Compatible",
+    version="1.0.0",
+    docs_url="/docs",
+    redoc_url="/redoc"
 )
 
 # gRPC client setup
 GRPC_DOCUMENT_SIGNER_ADDRESS = "localhost:50051"  # This should come from config
 channel: grpc.Channel | None = None
 document_signer_stub: document_signer_pb2_grpc.DocumentSignerStub | None = None
+
+# Microsoft Authenticator / Entra Verified ID Configuration
+ISSUER_BASE_URL = "https://issuer.marty.local"  # Should come from config
+VERIFIER_BASE_URL = "https://verifier.marty.local"  # Should come from config
+CREDENTIAL_ISSUER_DID = "did:web:issuer.marty.local"  # Should come from config
 
 
 def get_grpc_client() -> document_signer_pb2_grpc.DocumentSignerStub:
@@ -36,6 +48,36 @@ def get_grpc_client() -> document_signer_pb2_grpc.DocumentSignerStub:
         document_signer_stub = document_signer_pb2_grpc.DocumentSignerStub(channel)
     
     return document_signer_stub
+
+
+def get_bearer_token(authorization: str = Header(None)) -> str:
+    """Extract bearer token from Authorization header."""
+    if not authorization or not authorization.startswith("Bearer "):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Missing or invalid authorization header",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+    return authorization[7:]  # Remove "Bearer " prefix
+
+
+def generate_qr_code(data: str) -> str:
+    """Generate base64-encoded QR code for the given data."""
+    qr = qrcode.QRCode(
+        version=1,
+        error_correction=qrcode.ERROR_CORRECT_L,
+        box_size=10,
+        border=4,
+    )
+    qr.add_data(data)
+    qr.make(fit=True)
+    
+    img = qr.make_image(fill_color="black", back_color="white")
+    buffer = BytesIO()
+    img.save(buffer, "PNG")
+    buffer.seek(0)
+    
+    return base64.b64encode(buffer.getvalue()).decode()
 
 
 # Pydantic models for OID4VCI
@@ -64,15 +106,49 @@ class CredentialRequest(BaseModel):
     wallet_attestation: dict[str, Any] | None = Field(default=None, description="Wallet attestation")
 
 
+class QROfferRequest(BaseModel):
+    """Request to generate QR code for credential offer."""
+    credential_type: str = Field(default="MartyDigitalPassport", description="Type of credential to offer")
+    subject_claims: dict[str, Any] = Field(..., description="Subject claims for the credential")
+    issuer_metadata: dict[str, Any] | None = Field(default=None, description="Additional issuer metadata")
+
+
 @app.get("/.well-known/openid-credential-issuer")
 async def openid_credential_issuer_metadata() -> dict[str, Any]:
-    """Return OpenID Credential Issuer metadata."""
+    """Return OpenID Credential Issuer metadata for Microsoft Authenticator compatibility."""
     return {
-        "credential_issuer": "https://issuer.example.com",  # Should come from config
-        "authorization_servers": ["https://issuer.example.com"],
-        "credential_endpoint": "/credential",
-        "token_endpoint": "/token",
+        "credential_issuer": ISSUER_BASE_URL,
+        "authorization_servers": [ISSUER_BASE_URL],
+        "credential_endpoint": f"{ISSUER_BASE_URL}/credential",
+        "token_endpoint": f"{ISSUER_BASE_URL}/token",
         "credentials_supported": [
+            {
+                "format": "jwt_vc_json",
+                "credential_definition": {
+                    "type": ["VerifiableCredential", "MartyDigitalPassport"],
+                    "credentialSubject": {
+                        "given_name": {"display": [{"name": "Given Name", "locale": "en"}]},
+                        "family_name": {"display": [{"name": "Family Name", "locale": "en"}]},
+                        "nationality": {"display": [{"name": "Nationality", "locale": "en"}]},
+                        "date_of_birth": {"display": [{"name": "Date of Birth", "locale": "en"}]},
+                        "passport_number": {"display": [{"name": "Passport Number", "locale": "en"}]},
+                        "issuing_country": {"display": [{"name": "Issuing Country", "locale": "en"}]},
+                        "expiry_date": {"display": [{"name": "Expiry Date", "locale": "en"}]}
+                    }
+                },
+                "display": [
+                    {
+                        "name": "Marty Digital Passport",
+                        "locale": "en",
+                        "background_color": "#1e3a8a",
+                        "text_color": "#FFFFFF",
+                        "logo": {
+                            "url": f"{ISSUER_BASE_URL}/static/marty-logo.png",
+                            "alt_text": "Marty Digital Identity"
+                        }
+                    }
+                ]
+            },
             {
                 "format": "sd-jwt",
                 "credential_definition": {
@@ -96,11 +172,11 @@ async def openid_credential_issuer_metadata() -> dict[str, Any]:
         ],
         "display": [
             {
-                "name": "Example Issuer",
+                "name": "Marty Digital Identity Issuer",
                 "locale": "en",
                 "logo": {
-                    "url": "https://issuer.example.com/logo.png",
-                    "alt_text": "Example Issuer Logo"
+                    "url": f"{ISSUER_BASE_URL}/static/marty-issuer-logo.png",
+                    "alt_text": "Marty Digital Identity Issuer Logo"
                 }
             }
         ]
@@ -199,17 +275,9 @@ async def token_endpoint(request: TokenRequest) -> dict[str, Any]:
 @app.post("/credential")
 async def credential_endpoint(
     request: CredentialRequest,
-    authorization: str = None  # Should be extracted from header
+    access_token: str = Depends(get_bearer_token)
 ) -> dict[str, Any]:
     """Credential endpoint for OID4VCI flow."""
-    if not authorization or not authorization.startswith("Bearer "):
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Missing or invalid authorization header"
-        )
-    
-    access_token = authorization[7:]  # Remove "Bearer " prefix
-    
     try:
         client = get_grpc_client()
         
@@ -234,18 +302,29 @@ async def credential_endpoint(
                 detail=f"Failed to issue credential: {response.error.message}"
             )
         
-        return {
-            "credential": response.credential,
-            "disclosures": response.disclosures,
-            "format": response.format,
-            "credential_id": response.credential_id,
-            "expires_in": response.expires_in,
-            "sd_jwt_location": response.sd_jwt_location,
-            "disclosures_location": response.disclosures_location,
-            "issuer": response.issuer,
-            "credential_type": response.credential_type,
-            "subject_id": response.subject_id
-        }
+        # Format the response based on requested format
+        if request.format == "jwt_vc_json":
+            # Microsoft Authenticator expects JWT VC JSON format
+            return {
+                "credential": response.credential,
+                "format": "jwt_vc_json",
+                "credential_id": response.credential_id,
+                "expires_in": response.expires_in
+            }
+        else:
+            # Default SD-JWT format
+            return {
+                "credential": response.credential,
+                "disclosures": response.disclosures,
+                "format": response.format,
+                "credential_id": response.credential_id,
+                "expires_in": response.expires_in,
+                "sd_jwt_location": response.sd_jwt_location,
+                "disclosures_location": response.disclosures_location,
+                "issuer": response.issuer,
+                "credential_type": response.credential_type,
+                "subject_id": response.subject_id
+            }
         
     except grpc.RpcError as e:
         logger.exception("gRPC error issuing credential")
@@ -255,6 +334,59 @@ async def credential_endpoint(
         ) from e
     except Exception as e:
         logger.exception("Unexpected error issuing credential")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Internal server error"
+        ) from e
+
+
+@app.post("/offer")
+async def create_qr_offer(request: QROfferRequest) -> dict[str, Any]:
+    """Create a QR code offer for credential issuance compatible with Microsoft Authenticator."""
+    try:
+        # Create a credential offer
+        offer_id = str(uuid.uuid4())
+        pre_authorized_code = str(uuid.uuid4()).replace("-", "")
+        
+        # Construct the credential offer object compatible with Microsoft Authenticator
+        credential_offer = {
+            "credential_issuer": ISSUER_BASE_URL,
+            "credentials": [
+                {
+                    "format": "jwt_vc_json",
+                    "credential_definition": {
+                        "type": ["VerifiableCredential", request.credential_type]
+                    }
+                }
+            ],
+            "grants": {
+                "urn:ietf:params:oauth:grant-type:pre-authorized_code": {
+                    "pre-authorized_code": pre_authorized_code,
+                    "user_pin_required": False
+                }
+            }
+        }
+        
+        # Create the credential offer URI for Microsoft Authenticator
+        offer_uri_params = {
+            "credential_offer": json.dumps(credential_offer)
+        }
+        offer_uri = f"openid-credential-offer://?{urlencode(offer_uri_params)}"
+        
+        # Generate QR code
+        qr_code_data = generate_qr_code(offer_uri)
+        
+        return {
+            "offer_id": offer_id,
+            "credential_offer_uri": offer_uri,
+            "credential_offer": credential_offer,
+            "pre_authorized_code": pre_authorized_code,
+            "qr_code": f"data:image/png;base64,{qr_code_data}",
+            "expires_in": 3600  # 1 hour
+        }
+        
+    except Exception as e:
+        logger.exception("Unexpected error creating QR offer")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Internal server error"
