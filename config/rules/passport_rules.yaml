@@ -1,0 +1,270 @@
+---
+metadata:
+  name: "Passport Validation Rules"
+  version: "1.0.0"
+  document_types: [passport]
+  validation_mode: strict
+  issuing_countries: ["USA", "CAN", "GBR", "DEU", "FRA", "JPN", "AUS"]
+  tags: ["passport", "travel_document", "machine_readable"]
+  description: "Comprehensive validation rules for machine-readable passports"
+
+field_mappings:
+  DOCUMENT_NUMBER:
+    canonical_field: "DOCUMENT_NUMBER"
+    zone_mappings:
+      VISUAL_OCR: "passport_number"
+      MRZ: "document_number"
+      RFID_CHIP: "document_number"
+    data_type: string
+    validation_regex: "^[A-Z0-9]{6,12}$"
+    max_length: 12
+    min_length: 6
+    is_required: true
+
+  SURNAME:
+    canonical_field: "SURNAME"
+    zone_mappings:
+      VISUAL_OCR: "surname"
+      MRZ: "surname"
+      RFID_CHIP: "surname"
+    data_type: string
+    validation_regex: "^[A-Z\\s\\-']{1,39}$"
+    max_length: 39
+    is_required: true
+
+  GIVEN_NAMES:
+    canonical_field: "GIVEN_NAMES"
+    zone_mappings:
+      VISUAL_OCR: "given_names"
+      MRZ: "given_names"
+      RFID_CHIP: "given_names"
+    data_type: string
+    validation_regex: "^[A-Z\\s\\-']{1,39}$"
+    max_length: 39
+    is_required: true
+
+  DATE_OF_BIRTH:
+    canonical_field: "DATE_OF_BIRTH"
+    zone_mappings:
+      VISUAL_OCR: "date_of_birth"
+      MRZ: "date_of_birth"
+      RFID_CHIP: "date_of_birth"
+    data_type: date
+    validation_regex: "^\\d{4}-\\d{2}-\\d{2}$|^\\d{6}$"
+    is_required: true
+    format_hint: "YYYY-MM-DD or YYMMDD"
+
+  DATE_OF_EXPIRY:
+    canonical_field: "DATE_OF_EXPIRY"
+    zone_mappings:
+      VISUAL_OCR: "date_of_expiry"
+      MRZ: "date_of_expiry"
+      RFID_CHIP: "date_of_expiry"
+    data_type: date
+    validation_regex: "^\\d{4}-\\d{2}-\\d{2}$|^\\d{6}$"
+    is_required: true
+    format_hint: "YYYY-MM-DD or YYMMDD"
+
+  NATIONALITY:
+    canonical_field: "NATIONALITY"
+    zone_mappings:
+      VISUAL_OCR: "nationality"
+      MRZ: "nationality"
+      RFID_CHIP: "nationality"
+    data_type: string
+    validation_regex: "^[A-Z]{3}$"
+    max_length: 3
+    min_length: 3
+    is_required: true
+
+  GENDER:
+    canonical_field: "GENDER"
+    zone_mappings:
+      VISUAL_OCR: "sex"
+      MRZ: "sex"
+      RFID_CHIP: "gender"
+    data_type: string
+    validation_regex: "^[MFX]$"
+    max_length: 1
+    is_required: true
+
+  ISSUING_COUNTRY:
+    canonical_field: "ISSUING_COUNTRY"
+    zone_mappings:
+      VISUAL_OCR: "issuing_country"
+      MRZ: "issuing_state"
+      RFID_CHIP: "issuing_state"
+    data_type: string
+    validation_regex: "^[A-Z]{3}$"
+    max_length: 3
+    min_length: 3
+    is_required: true
+
+validation_rules:
+  - rule_id: "PASSPORT_EXACT_MATCH"
+    name: "Passport Exact Field Match"
+    description: "Critical fields must match exactly across all zones"
+    rule_type: exact_match
+    applicable_fields: ["DOCUMENT_NUMBER", "NATIONALITY", "ISSUING_COUNTRY", "GENDER"]
+    sources: ["VISUAL_OCR", "MRZ", "RFID_CHIP"]
+    targets: ["VISUAL_OCR", "MRZ", "RFID_CHIP"]
+    severity: critical
+    confidence_threshold: 0.9
+    parameters:
+      case_sensitive: true
+      ignore_whitespace: false
+    is_active: true
+    version: "1.0"
+
+  - rule_id: "PASSPORT_NAME_FUZZY_MATCH"
+    name: "Passport Name Fuzzy Match"
+    description: "Names should match within acceptable similarity threshold"
+    rule_type: fuzzy_match
+    applicable_fields: ["SURNAME", "GIVEN_NAMES"]
+    sources: ["VISUAL_OCR", "MRZ", "RFID_CHIP"]
+    targets: ["VISUAL_OCR", "MRZ", "RFID_CHIP"]
+    severity: warning
+    confidence_threshold: 0.8
+    parameters:
+      fuzzy_threshold: 0.85
+      case_sensitive: false
+      ignore_whitespace: true
+    strict_mode_overrides:
+      fuzzy_threshold: 0.95
+    lenient_mode_overrides:
+      fuzzy_threshold: 0.75
+    is_active: true
+    version: "1.0"
+
+  - rule_id: "PASSPORT_DATE_VALIDATION"
+    name: "Passport Date Format Validation"
+    description: "Date fields must be valid and consistent across zones"
+    rule_type: date_validation
+    applicable_fields: ["DATE_OF_BIRTH", "DATE_OF_EXPIRY"]
+    sources: ["VISUAL_OCR", "MRZ", "RFID_CHIP"]
+    targets: ["VISUAL_OCR", "MRZ", "RFID_CHIP"]
+    severity: critical
+    confidence_threshold: 0.95
+    parameters:
+      date_formats: ["YYYY-MM-DD", "YYMMDD"]
+      tolerance: 0  # No tolerance for date mismatches
+    is_active: true
+    version: "1.0"
+
+  - rule_id: "PASSPORT_CHECKSUM_VALIDATION"
+    name: "Passport MRZ Checksum Validation"
+    description: "Validate MRZ check digits for data integrity"
+    rule_type: checksum_validation
+    applicable_fields: ["DOCUMENT_NUMBER", "DATE_OF_BIRTH", "DATE_OF_EXPIRY"]
+    sources: ["MRZ"]
+    targets: ["MRZ"]
+    severity: critical
+    confidence_threshold: 1.0
+    parameters:
+      checksum_algorithm: "icao_9303"
+    is_active: true
+    version: "1.0"
+
+  - rule_id: "PASSPORT_CROSS_REFERENCE"
+    name: "Passport Cross-Reference Validation"
+    description: "Validate relationships between different fields"
+    rule_type: cross_reference
+    applicable_fields: ["DATE_OF_BIRTH", "DATE_OF_EXPIRY", "ISSUING_COUNTRY", "NATIONALITY"]
+    sources: ["VISUAL_OCR", "MRZ", "RFID_CHIP"]
+    targets: ["VISUAL_OCR", "MRZ", "RFID_CHIP"]
+    severity: warning
+    confidence_threshold: 0.8
+    parameters:
+      max_age_years: 150
+      min_validity_years: 1
+    is_active: true
+    version: "1.0"
+
+cedar_policies:
+  - policy_id: "passport_exact_match_policy"
+    description: "Allow validation when critical fields match exactly"
+    effect: permit
+    principal: 'ValidationRule::"PASSPORT_EXACT_MATCH"'
+    action: 'ValidateFieldConsistency'
+    resource: 'ComparisonContext'
+    conditions:
+      - condition: 'resource.source_value == resource.target_value'
+      - condition: 'resource.field.canonical_name in ["DOCUMENT_NUMBER", "NATIONALITY", "ISSUING_COUNTRY", "GENDER"]'
+      - condition: 'principal.is_active == true'
+    annotations:
+      rule_id: "PASSPORT_EXACT_MATCH"
+      severity: "critical"
+
+  - policy_id: "passport_exact_mismatch_policy"
+    description: "Forbid validation when critical fields don't match exactly"
+    effect: forbid
+    principal: 'ValidationRule::"PASSPORT_EXACT_MATCH"'
+    action: 'ValidateFieldConsistency'
+    resource: 'ComparisonContext'
+    conditions:
+      - condition: 'resource.source_value != resource.target_value'
+      - condition: 'resource.field.canonical_name in ["DOCUMENT_NUMBER", "NATIONALITY", "ISSUING_COUNTRY", "GENDER"]'
+      - condition: 'principal.is_active == true'
+    annotations:
+      rule_id: "PASSPORT_EXACT_MATCH"
+      severity: "critical"
+
+  - policy_id: "passport_fuzzy_match_policy"
+    description: "Allow validation when names match within fuzzy threshold"
+    effect: permit
+    principal: 'ValidationRule::"PASSPORT_NAME_FUZZY_MATCH"'
+    action: 'ValidateFieldConsistency'
+    resource: 'ComparisonContext'
+    conditions:
+      - condition: 'resource.field.canonical_name in ["SURNAME", "GIVEN_NAMES"]'
+      - condition: 'principal.is_active == true'
+      - condition: 'resource.fuzzy_threshold >= 85 || resource.strict_mode == false'
+    annotations:
+      rule_id: "PASSPORT_NAME_FUZZY_MATCH"
+      severity: "warning"
+
+  - policy_id: "passport_strict_mode_policy"
+    description: "Apply stricter validation in strict mode"
+    effect: permit
+    principal: 'ValidationRule'
+    action: 'ApplyStrictMode'
+    resource: 'ComparisonContext'
+    conditions:
+      - condition: 'resource.strict_mode == true'
+      - condition: 'resource.source_zone.extraction_confidence >= 90'
+      - condition: 'resource.target_zone.extraction_confidence >= 90'
+    annotations:
+      mode: "strict"
+
+  - policy_id: "passport_lenient_mode_policy"
+    description: "Apply more lenient validation in lenient mode"
+    effect: permit
+    principal: 'ValidationRule'
+    action: 'ApplyLenientMode'
+    resource: 'ComparisonContext'
+    conditions:
+      - condition: 'resource.strict_mode == false'
+      - condition: 'resource.source_zone.extraction_confidence >= 70 || resource.target_zone.extraction_confidence >= 70'
+    annotations:
+      mode: "lenient"
+
+  - policy_id: "passport_date_validation_policy"
+    description: "Validate date formats and ranges for passport dates"
+    effect: permit
+    principal: 'ValidationRule::"PASSPORT_DATE_VALIDATION"'
+    action: 'ValidateDateFormat'
+    resource: 'DocumentField'
+    conditions:
+      - condition: 'resource.canonical_name in ["DATE_OF_BIRTH", "DATE_OF_EXPIRY"]'
+      - condition: 'resource.data_type == "date"'
+      - condition: 'principal.is_active == true'
+    annotations:
+      rule_id: "PASSPORT_DATE_VALIDATION"
+      severity: "critical"
+
+global_settings:
+  default_fuzzy_threshold: 0.85
+  default_confidence_threshold: 0.9
+  enable_hot_reload: true
+  cache_policies: true
+  policy_evaluation_timeout_ms: 3000

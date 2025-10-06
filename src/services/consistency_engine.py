@@ -16,6 +16,7 @@ from google.protobuf.timestamp_pb2 import Timestamp
 
 from src.marty_common.observability import MetricsCollector, StructuredLogger
 from src.proto import consistency_engine_pb2, consistency_engine_pb2_grpc
+from src.services.cedar_policy_engine import CedarPolicyEngine, ValidationContext
 
 
 @dataclass
@@ -75,6 +76,9 @@ class ConsistencyEngine(consistency_engine_pb2_grpc.ConsistencyEngineServicer):
         self.logger = StructuredLogger(__name__)
         self.metrics = MetricsCollector("consistency_engine")
         
+        # Initialize Cedar policy engine
+        self.cedar_engine = CedarPolicyEngine()
+        
         # Initialize field mappings and rules
         self._initialize_field_mappings()
         self._initialize_consistency_rules()
@@ -82,7 +86,19 @@ class ConsistencyEngine(consistency_engine_pb2_grpc.ConsistencyEngineServicer):
         # Audit trail storage (in production, this would be a persistent store)
         self.audit_trail: List[AuditTrailEntry] = []
         
+        # Current validation mode
+        self.validation_mode = "strict"
+        
         self.logger.info("Consistency Engine service initialized")
+        
+    async def initialize_cedar_engine(self) -> None:
+        """Initialize the Cedar policy engine."""
+        try:
+            await self.cedar_engine.initialize()
+            self.logger.info("Cedar policy engine initialized successfully")
+        except Exception as e:
+            self.logger.error(f"Failed to initialize Cedar policy engine: {e}")
+            raise
 
     def _initialize_field_mappings(self) -> None:
         """Initialize canonical field mappings for different zones."""
@@ -634,7 +650,149 @@ class ConsistencyEngine(consistency_engine_pb2_grpc.ConsistencyEngineServicer):
         confidence_score = 1.0  # Would be calculated based on checksum validation
         return mismatches, confidence_score
 
-    def _check_cross_references(self, rule: ConsistencyRule, normalized_data: Dict[str, Dict[str, str]]) -> Tuple[List[Any], float]:
+    async def _apply_rule_with_cedar(self, rule: ConsistencyRule, normalized_data: Dict[str, Dict[str, str]], 
+                                   request: Any) -> Any:
+        """Apply a rule using Cedar policy evaluation."""
+        start_rule_time = datetime.now()
+        mismatches = []
+        
+        try:
+            # Check if we have Cedar policies for this rule
+            rule_result = None
+            
+            # For each applicable field and zone combination
+            for field in rule.applicable_fields:
+                for source_zone in rule.source_zones:
+                    for target_zone in rule.target_zones:
+                        if source_zone == target_zone:
+                            continue
+                            
+                        source_value = normalized_data.get(source_zone, {}).get(field, "")
+                        target_value = normalized_data.get(target_zone, {}).get(field, "")
+                        
+                        if not source_value or not target_value:
+                            continue
+                        
+                        # Create validation context for Cedar
+                        cedar_context = ValidationContext(
+                            source_zone=source_zone,
+                            target_zone=target_zone,
+                            field_name=field,
+                            source_value=source_value,
+                            target_value=target_value,
+                            document_type="passport",  # Would be determined from request
+                            issuing_country="USA",     # Would be determined from request
+                            extraction_confidence=0.9, # Would be from zone data
+                            strict_mode=(self.validation_mode == "strict"),
+                            fuzzy_threshold=request.fuzzy_match_threshold if hasattr(request, 'fuzzy_match_threshold') else rule.fuzzy_threshold,
+                            tolerance=0.0
+                        )
+                        
+                        # Evaluate with Cedar
+                        try:
+                            cedar_result = await self.cedar_engine.evaluate_validation_rule(
+                                rule.rule_id, cedar_context
+                            )
+                            
+                            # If Cedar denies, create a mismatch
+                            if cedar_result.decision == "Deny":
+                                mismatch = self._create_field_mismatch(
+                                    field, source_zone, source_value, target_zone, target_value,
+                                    rule, cedar_result.reason
+                                )
+                                mismatches.append(mismatch)
+                                
+                        except Exception as cedar_error:
+                            self.logger.warning(f"Cedar evaluation failed for {rule.rule_id}: {cedar_error}")
+                            # Fall back to traditional rule evaluation
+                            if rule.rule_type == "exact_match":
+                                if source_value != target_value:
+                                    mismatch = self._create_field_mismatch(
+                                        field, source_zone, source_value, target_zone, target_value,
+                                        rule, "Values do not match exactly"
+                                    )
+                                    mismatches.append(mismatch)
+            
+            # Calculate confidence based on results
+            confidence = 1.0 - (len(mismatches) * 0.2)  # Decrease confidence for each mismatch
+            confidence = max(0.0, min(1.0, confidence))
+            
+            # Determine rule status
+            if mismatches:
+                rule_status = consistency_engine_pb2.FAIL if rule.is_critical else consistency_engine_pb2.WARNING
+            else:
+                rule_status = consistency_engine_pb2.PASS
+            
+            # Create rule result
+            rule_result = consistency_engine_pb2.RuleCheckResult()
+            rule_result.rule = getattr(consistency_engine_pb2, rule.rule_id, consistency_engine_pb2.FIELD_EXACT_MATCH)
+            rule_result.rule_description = rule.description
+            rule_result.status = rule_status
+            rule_result.mismatches.extend(mismatches)
+            rule_result.confidence_score = confidence
+            rule_result.confidence_level = self._calculate_confidence_level(confidence)
+            rule_result.explanation = self._generate_rule_explanation(rule, mismatches, confidence)
+            rule_result.checked_at.CopyFrom(self._datetime_to_timestamp(start_rule_time))
+            rule_result.execution_time_ms = int((datetime.now() - start_rule_time).total_seconds() * 1000)
+            
+            return rule_result
+            
+        except Exception as e:
+            self.logger.error(f"Failed to apply rule {rule.rule_id} with Cedar: {e}")
+            return self._create_error_rule_result(rule, str(e), start_rule_time)
+    
+    def _create_field_mismatch(self, field: str, source_zone: str, source_value: str,
+                              target_zone: str, target_value: str, rule: ConsistencyRule, 
+                              explanation: str) -> Any:
+        """Create a field mismatch object."""
+        mismatch = consistency_engine_pb2.FieldMismatch()
+        
+        # Map field name to canonical field enum
+        canonical_field_map = {
+            "DOCUMENT_NUMBER": consistency_engine_pb2.DOCUMENT_NUMBER,
+            "SURNAME": consistency_engine_pb2.SURNAME,
+            "GIVEN_NAMES": consistency_engine_pb2.GIVEN_NAMES,
+            "DATE_OF_BIRTH": consistency_engine_pb2.DATE_OF_BIRTH,
+            "DATE_OF_EXPIRY": consistency_engine_pb2.DATE_OF_EXPIRY,
+            "NATIONALITY": consistency_engine_pb2.NATIONALITY,
+            "GENDER": consistency_engine_pb2.GENDER,
+            "ISSUING_COUNTRY": consistency_engine_pb2.ISSUING_COUNTRY
+        }
+        
+        zone_map = {
+            "VISUAL_OCR": consistency_engine_pb2.VISUAL_OCR,
+            "MRZ": consistency_engine_pb2.MRZ,
+            "BARCODE_1D": consistency_engine_pb2.BARCODE_1D,
+            "BARCODE_2D": consistency_engine_pb2.BARCODE_2D,
+            "RFID_CHIP": consistency_engine_pb2.RFID_CHIP,
+            "MAGNETIC_STRIPE": consistency_engine_pb2.MAGNETIC_STRIPE
+        }
+        
+        mismatch.field = canonical_field_map.get(field, consistency_engine_pb2.CANONICAL_FIELD_UNSPECIFIED)
+        mismatch.field_name = field
+        mismatch.zone_a = zone_map.get(source_zone, consistency_engine_pb2.DOCUMENT_ZONE_UNSPECIFIED)
+        mismatch.value_a = source_value
+        mismatch.zone_b = zone_map.get(target_zone, consistency_engine_pb2.DOCUMENT_ZONE_UNSPECIFIED)
+        mismatch.value_b = target_value
+        mismatch.rule_violated = getattr(consistency_engine_pb2, rule.rule_id, 
+                                       consistency_engine_pb2.FIELD_EXACT_MATCH)
+        mismatch.explanation = explanation
+        mismatch.severity_score = 0.8 if rule.is_critical else 0.5
+        
+        return mismatch
+    
+    def _create_error_rule_result(self, rule: ConsistencyRule, error_msg: str, start_time: datetime) -> Any:
+        """Create an error rule result."""
+        error_result = consistency_engine_pb2.RuleCheckResult()
+        error_result.rule = getattr(consistency_engine_pb2, rule.rule_id, consistency_engine_pb2.FIELD_EXACT_MATCH)
+        error_result.rule_description = rule.description
+        error_result.status = consistency_engine_pb2.ERROR
+        error_result.confidence_score = 0.0
+        error_result.confidence_level = consistency_engine_pb2.VERY_LOW
+        error_result.explanation = f"Rule execution error: {error_msg}"
+        error_result.checked_at.CopyFrom(self._datetime_to_timestamp(start_time))
+        error_result.execution_time_ms = int((datetime.now() - start_time).total_seconds() * 1000)
+        return error_result
         """Check cross-references between document zones."""
         mismatches = []
         
@@ -796,3 +954,245 @@ class ConsistencyEngine(consistency_engine_pb2_grpc.ConsistencyEngineServicer):
         # For brevity, returning empty response
         response = consistency_engine_pb2.GetSupportedRulesResponse()
         return response
+    
+    async def LoadRulePack(
+        self, 
+        request: consistency_engine_pb2.LoadRulePackRequest, 
+        context: grpc.aio.ServicerContext
+    ) -> consistency_engine_pb2.LoadRulePackResponse:
+        """Load a rule pack from file."""
+        try:
+            pack_id = await self.cedar_engine.load_rule_pack(request.file_path)
+            pack_info = self.cedar_engine.get_rule_pack_info(pack_id)
+            
+            response = consistency_engine_pb2.LoadRulePackResponse()
+            response.pack_id = pack_id
+            
+            if pack_info:
+                response.metadata.name = pack_info['metadata'].get('name', '')
+                response.metadata.version = pack_info['metadata'].get('version', '')
+                response.policies_loaded = pack_info['policies_count']
+                response.rules_loaded = pack_info['rules_count']
+            
+            self.logger.info(f"Rule pack loaded: {pack_id}")
+            return response
+            
+        except Exception as e:
+            self.logger.error(f"Failed to load rule pack: {e}", exc_info=True)
+            response = consistency_engine_pb2.LoadRulePackResponse()
+            response.error.message = str(e)
+            return response
+    
+    async def ReloadRulePack(
+        self, 
+        request: consistency_engine_pb2.ReloadRulePackRequest, 
+        context: grpc.aio.ServicerContext
+    ) -> consistency_engine_pb2.ReloadRulePackResponse:
+        """Reload a rule pack."""
+        try:
+            file_path = request.file_path
+            if not file_path and request.pack_id:
+                # Get file path from pack info
+                pack_info = self.cedar_engine.get_rule_pack_info(request.pack_id)
+                file_path = pack_info.get('file_path', '') if pack_info else ''
+            
+            if file_path:
+                await self.cedar_engine.reload_rule_pack(file_path)
+                
+            response = consistency_engine_pb2.ReloadRulePackResponse()
+            response.pack_id = request.pack_id
+            
+            self.logger.info(f"Rule pack reloaded: {request.pack_id}")
+            return response
+            
+        except Exception as e:
+            self.logger.error(f"Failed to reload rule pack: {e}", exc_info=True)
+            response = consistency_engine_pb2.ReloadRulePackResponse()
+            response.error.message = str(e)
+            return response
+    
+    async def GetRulePackInfo(
+        self, 
+        request: consistency_engine_pb2.GetRulePackInfoRequest, 
+        context: grpc.aio.ServicerContext
+    ) -> consistency_engine_pb2.GetRulePackInfoResponse:
+        """Get rule pack information."""
+        try:
+            pack_info = self.cedar_engine.get_rule_pack_info(request.pack_id or None)
+            
+            response = consistency_engine_pb2.GetRulePackInfoResponse()
+            
+            if request.pack_id:
+                # Single pack info
+                if pack_info:
+                    pack_msg = response.packs.add()
+                    pack_msg.pack_id = request.pack_id
+                    pack_msg.metadata.name = pack_info['metadata'].get('name', '')
+                    pack_msg.metadata.version = pack_info['metadata'].get('version', '')
+                    pack_msg.active_policies = pack_info['policies_count']
+                    pack_msg.active_rules = pack_info['rules_count']
+                    pack_msg.file_path = pack_info.get('file_path', '')
+                    pack_msg.is_active = True
+            else:
+                # All packs info
+                for pack_id, info in pack_info.items():
+                    pack_msg = response.packs.add()
+                    pack_msg.pack_id = pack_id
+                    pack_msg.metadata.name = info['metadata'].get('name', '')
+                    pack_msg.metadata.version = info['metadata'].get('version', '')
+                    pack_msg.active_policies = info['policies_count']
+                    pack_msg.active_rules = info['rules_count']
+                    pack_msg.is_active = True
+            
+            return response
+            
+        except Exception as e:
+            self.logger.error(f"Failed to get rule pack info: {e}", exc_info=True)
+            response = consistency_engine_pb2.GetRulePackInfoResponse()
+            response.error.message = str(e)
+            return response
+    
+    async def ListRulePacks(
+        self, 
+        request: consistency_engine_pb2.ListRulePacksRequest, 
+        context: grpc.aio.ServicerContext
+    ) -> consistency_engine_pb2.ListRulePacksResponse:
+        """List available rule packs."""
+        try:
+            all_packs = self.cedar_engine.get_rule_pack_info()
+            
+            response = consistency_engine_pb2.ListRulePacksResponse()
+            
+            for pack_id, info in all_packs.items():
+                # Apply filters if specified
+                if request.document_type_filter:
+                    doc_types = info['metadata'].get('document_types', [])
+                    if not any(dt in doc_types for dt in request.document_type_filter):
+                        continue
+                
+                pack_msg = response.packs.add()
+                pack_msg.pack_id = pack_id
+                pack_msg.metadata.name = info['metadata'].get('name', '')
+                pack_msg.metadata.version = info['metadata'].get('version', '')
+                pack_msg.active_policies = info['policies_count']
+                pack_msg.active_rules = info['rules_count']
+                pack_msg.is_active = True
+            
+            response.total_count = len(response.packs)
+            return response
+            
+        except Exception as e:
+            self.logger.error(f"Failed to list rule packs: {e}", exc_info=True)
+            response = consistency_engine_pb2.ListRulePacksResponse()
+            response.error.message = str(e)
+            return response
+    
+    async def SetValidationMode(
+        self, 
+        request: consistency_engine_pb2.SetValidationModeRequest, 
+        context: grpc.aio.ServicerContext
+    ) -> consistency_engine_pb2.SetValidationModeResponse:
+        """Set validation mode."""
+        try:
+            previous_mode = self.validation_mode
+            
+            # Map from proto enum to string
+            mode_map = {
+                consistency_engine_pb2.STRICT: "strict",
+                consistency_engine_pb2.LENIENT: "lenient", 
+                consistency_engine_pb2.ADAPTIVE: "adaptive"
+            }
+            
+            new_mode = mode_map.get(request.mode, "strict")
+            self.validation_mode = new_mode
+            
+            # Update Cedar engine
+            self.cedar_engine.set_validation_mode(new_mode)
+            
+            response = consistency_engine_pb2.SetValidationModeResponse()
+            response.previous_mode = getattr(consistency_engine_pb2, previous_mode.upper(), 
+                                           consistency_engine_pb2.STRICT)
+            response.current_mode = request.mode
+            
+            self.logger.info(f"Validation mode changed from {previous_mode} to {new_mode}")
+            return response
+            
+        except Exception as e:
+            self.logger.error(f"Failed to set validation mode: {e}", exc_info=True)
+            response = consistency_engine_pb2.SetValidationModeResponse()
+            response.error.message = str(e)
+            return response
+    
+    async def EvaluateCedarPolicy(
+        self, 
+        request: consistency_engine_pb2.EvaluateCedarPolicyRequest, 
+        context: grpc.aio.ServicerContext
+    ) -> consistency_engine_pb2.EvaluateCedarPolicyResponse:
+        """Evaluate Cedar policies."""
+        try:
+            # Convert proto context to Cedar context
+            cedar_context = ValidationContext(
+                source_zone=request.context.source_zone,
+                target_zone=request.context.target_zone,
+                field_name=request.context.field_name,
+                source_value=request.context.source_value,
+                target_value=request.context.target_value,
+                document_type=request.context.document_type,
+                issuing_country=request.context.issuing_country,
+                extraction_confidence=request.context.extraction_confidence,
+                strict_mode=request.context.strict_mode,
+                fuzzy_threshold=request.context.fuzzy_threshold,
+                tolerance=request.context.tolerance,
+                metadata=dict(request.context.metadata)
+            )
+            
+            # Evaluate using Cedar engine
+            result = await self.cedar_engine.evaluate_validation_rule(
+                request.rule_id or request.policy_id,
+                cedar_context
+            )
+            
+            response = consistency_engine_pb2.EvaluateCedarPolicyResponse()
+            
+            # Convert result to proto
+            result_msg = response.results.add()
+            result_msg.policy_id = result.policy_id
+            result_msg.decision = result.decision
+            result_msg.reason = result.reason
+            result_msg.confidence = result.confidence
+            result_msg.diagnostics.extend(result.diagnostics)
+            result_msg.execution_time_ms = int(result.execution_time_ms)
+            
+            response.final_decision = result.decision
+            response.overall_confidence = result.confidence
+            response.total_execution_time_ms = int(result.execution_time_ms)
+            
+            return response
+            
+        except Exception as e:
+            self.logger.error(f"Failed to evaluate Cedar policy: {e}", exc_info=True)
+            response = consistency_engine_pb2.EvaluateCedarPolicyResponse()
+            response.error.message = str(e)
+            return response
+    
+    async def GetActivePolicies(
+        self, 
+        request: consistency_engine_pb2.GetActivePoliciesRequest, 
+        context: grpc.aio.ServicerContext
+    ) -> consistency_engine_pb2.GetActivePoliciesResponse:
+        """Get active Cedar policies."""
+        try:
+            response = consistency_engine_pb2.GetActivePoliciesResponse()
+            response.total_count = self.cedar_engine.get_active_policies_count()
+            
+            # Get active packs
+            pack_info = self.cedar_engine.get_rule_pack_info()
+            response.active_packs.extend(pack_info.keys())
+            
+            return response
+            
+        except Exception as e:
+            self.logger.error(f"Failed to get active policies: {e}", exc_info=True)
+            response = consistency_engine_pb2.GetActivePoliciesResponse()
+            response.error.message = str(e)
+            return response

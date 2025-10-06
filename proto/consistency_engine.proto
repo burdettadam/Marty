@@ -18,6 +18,17 @@ service ConsistencyEngine {
   
   // Get supported consistency rules and their descriptions
   rpc GetSupportedRules(GetSupportedRulesRequest) returns (GetSupportedRulesResponse) {}
+  
+  // Ruleset management operations
+  rpc LoadRulePack(LoadRulePackRequest) returns (LoadRulePackResponse) {}
+  rpc ReloadRulePack(ReloadRulePackRequest) returns (ReloadRulePackResponse) {}
+  rpc GetRulePackInfo(GetRulePackInfoRequest) returns (GetRulePackInfoResponse) {}
+  rpc ListRulePacks(ListRulePacksRequest) returns (ListRulePacksResponse) {}
+  rpc SetValidationMode(SetValidationModeRequest) returns (SetValidationModeResponse) {}
+  
+  // Cedar policy operations
+  rpc EvaluateCedarPolicy(EvaluateCedarPolicyRequest) returns (EvaluateCedarPolicyResponse) {}
+  rpc GetActivePolicies(GetActivePoliciesRequest) returns (GetActivePoliciesResponse) {}
 }
 
 // Enumeration of document zones for data extraction
@@ -225,4 +236,180 @@ message GetSupportedRulesResponse {
   repeated RuleDescription rules = 1;
   int32 total_rules = 2;
   marty.common.v1.ApiError error = 3;
+}
+
+// Validation mode enumeration
+enum ValidationMode {
+  VALIDATION_MODE_UNSPECIFIED = 0;
+  STRICT = 1;     // Strict validation with higher thresholds
+  LENIENT = 2;    // Lenient validation with lower thresholds
+  ADAPTIVE = 3;   // Adaptive validation based on confidence levels
+}
+
+// Rule pack metadata
+message RulePackMetadata {
+  string name = 1;
+  string version = 2;
+  repeated string document_types = 3;
+  ValidationMode validation_mode = 4;
+  repeated string issuing_countries = 5;
+  repeated string tags = 6;
+  string description = 7;
+  google.protobuf.Timestamp created_at = 8;
+  google.protobuf.Timestamp loaded_at = 9;
+}
+
+// Cedar policy definition
+message CedarPolicy {
+  string policy_id = 1;
+  string description = 2;
+  string effect = 3;  // "permit" or "forbid"
+  string principal = 4;
+  string action = 5;
+  string resource = 6;
+  repeated string conditions = 7;
+  map<string, string> annotations = 8;
+}
+
+// Cedar policy evaluation result
+message CedarPolicyResult {
+  string policy_id = 1;
+  string decision = 2;  // "Allow" or "Deny"
+  string reason = 3;
+  float confidence = 4;
+  repeated string diagnostics = 5;
+  int64 execution_time_ms = 6;
+}
+
+// Validation context for Cedar policies
+message ValidationContext {
+  string source_zone = 1;
+  string target_zone = 2;
+  string field_name = 3;
+  string source_value = 4;
+  string target_value = 5;
+  string document_type = 6;
+  string issuing_country = 7;
+  float extraction_confidence = 8;
+  bool strict_mode = 9;
+  float fuzzy_threshold = 10;
+  float tolerance = 11;
+  map<string, string> metadata = 12;
+}
+
+// Load rule pack request
+message LoadRulePackRequest {
+  string file_path = 1;  // Path to rule pack YAML file
+  bool force_reload = 2;  // Force reload even if already loaded
+  map<string, string> context = 3;  // Additional context
+}
+
+// Load rule pack response
+message LoadRulePackResponse {
+  string pack_id = 1;
+  RulePackMetadata metadata = 2;
+  int32 policies_loaded = 3;
+  int32 rules_loaded = 4;
+  int64 load_time_ms = 5;
+  marty.common.v1.ApiError error = 6;
+}
+
+// Reload rule pack request
+message ReloadRulePackRequest {
+  string pack_id = 1;  // Pack ID to reload
+  string file_path = 2;  // Optional: specify file path
+  map<string, string> context = 3;
+}
+
+// Reload rule pack response
+message ReloadRulePackResponse {
+  string pack_id = 1;
+  RulePackMetadata metadata = 2;
+  int32 policies_reloaded = 3;
+  int32 rules_reloaded = 4;
+  int64 reload_time_ms = 5;
+  marty.common.v1.ApiError error = 6;
+}
+
+// Get rule pack info request
+message GetRulePackInfoRequest {
+  string pack_id = 1;  // If empty, return info for all packs
+}
+
+// Get rule pack info response
+message GetRulePackInfoResponse {
+  repeated RulePackInfo packs = 1;
+  marty.common.v1.ApiError error = 2;
+}
+
+// Rule pack information
+message RulePackInfo {
+  string pack_id = 1;
+  RulePackMetadata metadata = 2;
+  int32 active_policies = 3;
+  int32 active_rules = 4;
+  string file_path = 5;
+  bool is_active = 6;
+}
+
+// List rule packs request
+message ListRulePacksRequest {
+  repeated string document_type_filter = 1;  // Filter by document type
+  repeated string country_filter = 2;  // Filter by issuing country
+  repeated string tag_filter = 3;  // Filter by tags
+  bool active_only = 4;  // Only return active rule packs
+}
+
+// List rule packs response
+message ListRulePacksResponse {
+  repeated RulePackInfo packs = 1;
+  int32 total_count = 2;
+  marty.common.v1.ApiError error = 3;
+}
+
+// Set validation mode request
+message SetValidationModeRequest {
+  ValidationMode mode = 1;
+  string pack_id = 2;  // If empty, apply globally
+  map<string, string> overrides = 3;  // Mode-specific overrides
+}
+
+// Set validation mode response
+message SetValidationModeResponse {
+  ValidationMode previous_mode = 1;
+  ValidationMode current_mode = 2;
+  repeated string affected_packs = 3;
+  marty.common.v1.ApiError error = 4;
+}
+
+// Evaluate Cedar policy request
+message EvaluateCedarPolicyRequest {
+  string policy_id = 1;  // Specific policy to evaluate
+  string rule_id = 2;  // Or evaluate policies for this rule
+  ValidationContext context = 3;
+  map<string, string> entities = 4;  // Additional entities for evaluation
+}
+
+// Evaluate Cedar policy response
+message EvaluateCedarPolicyResponse {
+  repeated CedarPolicyResult results = 1;
+  string final_decision = 2;  // Combined decision
+  float overall_confidence = 3;
+  int64 total_execution_time_ms = 4;
+  marty.common.v1.ApiError error = 5;
+}
+
+// Get active policies request
+message GetActivePoliciesRequest {
+  string pack_id = 1;  // Filter by pack ID
+  string rule_type = 2;  // Filter by rule type
+  bool include_inactive = 3;  // Include inactive policies
+}
+
+// Get active policies response
+message GetActivePoliciesResponse {
+  repeated CedarPolicy policies = 1;
+  int32 total_count = 2;
+  repeated string active_packs = 3;
+  marty.common.v1.ApiError error = 4;
 }

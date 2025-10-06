@@ -1,0 +1,300 @@
+---
+metadata:
+  name: "National ID Validation Rules"
+  version: "1.0.0"
+  document_types: [national_id]
+  validation_mode: strict
+  issuing_countries: ["USA", "CAN", "GBR", "DEU", "FRA", "ESP", "ITA", "NLD", "BEL", "SWE", "NOR", "DNK"]
+  tags: ["national_id", "identity_card", "government_issued"]
+  description: "Validation rules for national identity cards and ID documents"
+
+field_mappings:
+  DOCUMENT_NUMBER:
+    canonical_field: "DOCUMENT_NUMBER"
+    zone_mappings:
+      VISUAL_OCR: "id_number"
+      BARCODE_2D: "card_number"
+      RFID_CHIP: "document_number"
+      MAGNETIC_STRIPE: "id_num"
+    data_type: string
+    validation_regex: "^[A-Z0-9\\-]{6,18}$"
+    max_length: 18
+    min_length: 6
+    is_required: true
+
+  SURNAME:
+    canonical_field: "SURNAME"
+    zone_mappings:
+      VISUAL_OCR: "family_name"
+      BARCODE_2D: "surname"
+      RFID_CHIP: "surname"
+    data_type: string
+    validation_regex: "^[A-Z\\s\\-']{1,50}$"
+    max_length: 50
+    is_required: true
+
+  GIVEN_NAMES:
+    canonical_field: "GIVEN_NAMES"
+    zone_mappings:
+      VISUAL_OCR: "given_names"
+      BARCODE_2D: "first_names"
+      RFID_CHIP: "given_names"
+    data_type: string
+    validation_regex: "^[A-Z\\s\\-']{1,50}$"
+    max_length: 50
+    is_required: true
+
+  DATE_OF_BIRTH:
+    canonical_field: "DATE_OF_BIRTH"
+    zone_mappings:
+      VISUAL_OCR: "birth_date"
+      BARCODE_2D: "date_of_birth"
+      RFID_CHIP: "date_of_birth"
+    data_type: date
+    validation_regex: "^\\d{4}-\\d{2}-\\d{2}$|^\\d{8}$|^\\d{2}\\.\\d{2}\\.\\d{4}$"
+    is_required: true
+    format_hint: "YYYY-MM-DD, YYYYMMDD, or DD.MM.YYYY"
+
+  DATE_OF_EXPIRY:
+    canonical_field: "DATE_OF_EXPIRY"
+    zone_mappings:
+      VISUAL_OCR: "expiry_date"
+      BARCODE_2D: "valid_until"
+      RFID_CHIP: "date_of_expiry"
+    data_type: date
+    validation_regex: "^\\d{4}-\\d{2}-\\d{2}$|^\\d{8}$|^\\d{2}\\.\\d{2}\\.\\d{4}$"
+    is_required: true
+    format_hint: "YYYY-MM-DD, YYYYMMDD, or DD.MM.YYYY"
+
+  NATIONALITY:
+    canonical_field: "NATIONALITY"
+    zone_mappings:
+      VISUAL_OCR: "nationality"
+      BARCODE_2D: "citizenship"
+      RFID_CHIP: "nationality"
+    data_type: string
+    validation_regex: "^[A-Z]{3}$"
+    max_length: 3
+    min_length: 3
+    is_required: true
+
+  GENDER:
+    canonical_field: "GENDER"
+    zone_mappings:
+      VISUAL_OCR: "gender"
+      BARCODE_2D: "sex"
+      RFID_CHIP: "gender"
+    data_type: string
+    validation_regex: "^[MFX]$"
+    max_length: 1
+    is_required: true
+
+  PLACE_OF_BIRTH:
+    canonical_field: "PLACE_OF_BIRTH"
+    zone_mappings:
+      VISUAL_OCR: "place_of_birth"
+      BARCODE_2D: "birth_place"
+      RFID_CHIP: "place_of_birth"
+    data_type: string
+    validation_regex: "^[A-Z\\s\\-',]{1,80}$"
+    max_length: 80
+    is_required: false
+
+  ISSUING_AUTHORITY:
+    canonical_field: "ISSUING_AUTHORITY"
+    zone_mappings:
+      VISUAL_OCR: "issued_by"
+      BARCODE_2D: "authority"
+      RFID_CHIP: "issuing_authority"
+    data_type: string
+    validation_regex: "^[A-Z\\s\\-]{1,50}$"
+    max_length: 50
+    is_required: true
+
+validation_rules:
+  - rule_id: "ID_EXACT_MATCH"
+    name: "National ID Exact Match"
+    description: "Critical identity fields must match exactly"
+    rule_type: exact_match
+    applicable_fields: ["DOCUMENT_NUMBER", "NATIONALITY", "GENDER"]
+    sources: ["VISUAL_OCR", "BARCODE_2D", "RFID_CHIP"]
+    targets: ["VISUAL_OCR", "BARCODE_2D", "RFID_CHIP"]
+    severity: critical
+    confidence_threshold: 0.95
+    parameters:
+      case_sensitive: true
+      ignore_whitespace: false
+    is_active: true
+    version: "1.0"
+
+  - rule_id: "ID_NAME_FUZZY_MATCH"
+    name: "National ID Name Fuzzy Match"
+    description: "Names should match within high similarity threshold"
+    rule_type: fuzzy_match
+    applicable_fields: ["SURNAME", "GIVEN_NAMES"]
+    sources: ["VISUAL_OCR", "BARCODE_2D", "RFID_CHIP"]
+    targets: ["VISUAL_OCR", "BARCODE_2D", "RFID_CHIP"]
+    severity: critical
+    confidence_threshold: 0.9
+    parameters:
+      fuzzy_threshold: 0.9
+      case_sensitive: false
+      ignore_whitespace: true
+    strict_mode_overrides:
+      fuzzy_threshold: 0.95
+    lenient_mode_overrides:
+      fuzzy_threshold: 0.85
+    is_active: true
+    version: "1.0"
+
+  - rule_id: "ID_DATE_VALIDATION"
+    name: "National ID Date Validation"
+    description: "Date fields must be valid and consistent"
+    rule_type: date_validation
+    applicable_fields: ["DATE_OF_BIRTH", "DATE_OF_EXPIRY"]
+    sources: ["VISUAL_OCR", "BARCODE_2D", "RFID_CHIP"]
+    targets: ["VISUAL_OCR", "BARCODE_2D", "RFID_CHIP"]
+    severity: critical
+    confidence_threshold: 0.95
+    parameters:
+      date_formats: ["YYYY-MM-DD", "YYYYMMDD", "DD.MM.YYYY", "DD/MM/YYYY"]
+      tolerance: 0  # No tolerance for date mismatches
+    is_active: true
+    version: "1.0"
+
+  - rule_id: "ID_PLACE_FUZZY_MATCH"
+    name: "National ID Place of Birth Match"
+    description: "Place of birth should match with allowance for variations"
+    rule_type: fuzzy_match
+    applicable_fields: ["PLACE_OF_BIRTH"]
+    sources: ["VISUAL_OCR", "BARCODE_2D", "RFID_CHIP"]
+    targets: ["VISUAL_OCR", "BARCODE_2D", "RFID_CHIP"]
+    severity: warning
+    confidence_threshold: 0.7
+    parameters:
+      fuzzy_threshold: 0.75
+      case_sensitive: false
+      ignore_whitespace: true
+    is_active: true
+    version: "1.0"
+
+  - rule_id: "ID_CROSS_REFERENCE"
+    name: "National ID Cross-Reference"
+    description: "Validate logical relationships and constraints"
+    rule_type: cross_reference
+    applicable_fields: ["DATE_OF_BIRTH", "DATE_OF_EXPIRY", "NATIONALITY", "ISSUING_AUTHORITY"]
+    sources: ["VISUAL_OCR", "BARCODE_2D", "RFID_CHIP"]
+    targets: ["VISUAL_OCR", "BARCODE_2D", "RFID_CHIP"]
+    severity: warning
+    confidence_threshold: 0.85
+    parameters:
+      max_age_years: 150
+      min_validity_years: 1
+      max_validity_years: 15
+    is_active: true
+    version: "1.0"
+
+  - rule_id: "ID_RFID_HASH_VALIDATION"
+    name: "National ID RFID Hash Validation"
+    description: "Validate RFID chip data integrity"
+    rule_type: hash_validation
+    applicable_fields: ["DOCUMENT_NUMBER", "SURNAME", "GIVEN_NAMES"]
+    sources: ["RFID_CHIP"]
+    targets: ["RFID_CHIP"]
+    severity: critical
+    confidence_threshold: 1.0
+    parameters:
+      hash_algorithm: "sha256"
+    is_active: true
+    version: "1.0"
+
+cedar_policies:
+  - policy_id: "id_exact_match_policy"
+    description: "Require exact match for critical identity fields"
+    effect: permit
+    principal: 'ValidationRule::"ID_EXACT_MATCH"'
+    action: 'ValidateFieldConsistency'
+    resource: 'ComparisonContext'
+    conditions:
+      - condition: 'resource.source_value == resource.target_value'
+      - condition: 'resource.field.canonical_name in ["DOCUMENT_NUMBER", "NATIONALITY", "GENDER"]'
+      - condition: 'principal.is_active == true'
+    annotations:
+      rule_id: "ID_EXACT_MATCH"
+      severity: "critical"
+
+  - policy_id: "id_exact_mismatch_policy"
+    description: "Forbid when critical fields don't match exactly"
+    effect: forbid
+    principal: 'ValidationRule::"ID_EXACT_MATCH"'
+    action: 'ValidateFieldConsistency'
+    resource: 'ComparisonContext'
+    conditions:
+      - condition: 'resource.source_value != resource.target_value'
+      - condition: 'resource.field.canonical_name in ["DOCUMENT_NUMBER", "NATIONALITY", "GENDER"]'
+      - condition: 'principal.is_active == true'
+    annotations:
+      rule_id: "ID_EXACT_MATCH"
+      severity: "critical"
+
+  - policy_id: "id_name_strict_policy"
+    description: "Apply strict name matching for national IDs"
+    effect: permit
+    principal: 'ValidationRule::"ID_NAME_FUZZY_MATCH"'
+    action: 'ValidateFieldConsistency'
+    resource: 'ComparisonContext'
+    conditions:
+      - condition: 'resource.field.canonical_name in ["SURNAME", "GIVEN_NAMES"]'
+      - condition: 'principal.is_active == true'
+      - condition: 'resource.fuzzy_threshold >= 90'
+    annotations:
+      rule_id: "ID_NAME_FUZZY_MATCH"
+      severity: "critical"
+
+  - policy_id: "id_rfid_priority_policy"
+    description: "Prioritize RFID data for national IDs"
+    effect: permit
+    principal: 'ValidationRule'
+    action: 'ValidateFieldConsistency'
+    resource: 'ComparisonContext'
+    conditions:
+      - condition: 'resource.source_zone.zone_type == "RFID_CHIP" || resource.target_zone.zone_type == "RFID_CHIP"'
+      - condition: 'resource.source_zone.extraction_confidence >= 98 || resource.target_zone.extraction_confidence >= 98'
+    annotations:
+      priority: "highest"
+      data_source: "rfid"
+
+  - policy_id: "id_strict_mode_policy"
+    description: "Apply strict validation by default for national IDs"
+    effect: permit
+    principal: 'ValidationRule'
+    action: 'ApplyStrictMode'
+    resource: 'ComparisonContext'
+    conditions:
+      - condition: 'resource.strict_mode == true'
+      - condition: 'resource.source_zone.extraction_confidence >= 85'
+      - condition: 'resource.target_zone.extraction_confidence >= 85'
+    annotations:
+      mode: "strict"
+      document_type: "national_id"
+
+  - policy_id: "id_hash_validation_policy"
+    description: "Validate RFID hash integrity"
+    effect: permit
+    principal: 'ValidationRule::"ID_RFID_HASH_VALIDATION"'
+    action: 'ValidateHashValue'
+    resource: 'DocumentField'
+    conditions:
+      - condition: 'resource.canonical_name in ["DOCUMENT_NUMBER", "SURNAME", "GIVEN_NAMES"]'
+      - condition: 'principal.is_active == true'
+    annotations:
+      rule_id: "ID_RFID_HASH_VALIDATION"
+      severity: "critical"
+      algorithm: "sha256"
+
+global_settings:
+  default_fuzzy_threshold: 0.9
+  default_confidence_threshold: 0.95
+  enable_hot_reload: true
+  cache_policies: true
+  policy_evaluation_timeout_ms: 4000

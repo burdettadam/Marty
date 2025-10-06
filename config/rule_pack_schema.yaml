@@ -1,0 +1,295 @@
+---
+# Schema for Cross-Zone Consistency Rule Definitions
+# This YAML file defines the structure for loading rules at runtime
+
+version: "1.0"
+metadata:
+  name: "Cross-Zone Consistency Rules Schema"
+  description: "Schema for defining document validation rules using Cedar policies"
+  author: "Marty Consistency Engine"
+  created: "2025-10-06"
+
+# Schema definition for rule pack format
+rule_pack_schema:
+  type: object
+  required:
+    - metadata
+    - field_mappings
+    - validation_rules
+    - cedar_policies
+  properties:
+    metadata:
+      type: object
+      required:
+        - name
+        - version
+        - document_types
+        - validation_mode
+      properties:
+        name:
+          type: string
+          description: "Human-readable name for this rule pack"
+        version:
+          type: string
+          pattern: "^\\d+\\.\\d+\\.\\d+$"
+          description: "Semantic version of the rule pack"
+        document_types:
+          type: array
+          items:
+            type: string
+            enum: [passport, drivers_license, national_id, visa, birth_certificate]
+          description: "Document types this rule pack applies to"
+        validation_mode:
+          type: string
+          enum: [strict, lenient, adaptive]
+          default: strict
+          description: "Default validation mode for rules in this pack"
+        issuing_countries:
+          type: array
+          items:
+            type: string
+            pattern: "^[A-Z]{3}$"
+          description: "ISO 3166-1 alpha-3 country codes this pack supports"
+        tags:
+          type: array
+          items:
+            type: string
+          description: "Tags for organizing and filtering rule packs"
+        
+    field_mappings:
+      type: object
+      description: "Maps canonical fields to zone-specific field names"
+      patternProperties:
+        "^[A-Z_]+$":
+          type: object
+          required:
+            - canonical_field
+            - zone_mappings
+          properties:
+            canonical_field:
+              type: string
+              description: "Canonical field name"
+            zone_mappings:
+              type: object
+              description: "Zone-specific field name mappings"
+              properties:
+                VISUAL_OCR:
+                  type: string
+                MRZ:
+                  type: string
+                BARCODE_1D:
+                  type: string
+                BARCODE_2D:
+                  type: string
+                RFID_CHIP:
+                  type: string
+                MAGNETIC_STRIPE:
+                  type: string
+            data_type:
+              type: string
+              enum: [string, date, number, boolean, hash]
+              default: string
+            validation_regex:
+              type: string
+              description: "Regular expression for field validation"
+            max_length:
+              type: integer
+              minimum: 1
+            min_length:
+              type: integer
+              minimum: 0
+            is_required:
+              type: boolean
+              default: false
+            format_hint:
+              type: string
+              description: "Format hint for date/number fields"
+
+    validation_rules:
+      type: array
+      description: "List of validation rules"
+      items:
+        type: object
+        required:
+          - rule_id
+          - name
+          - rule_type
+          - applicable_fields
+          - sources
+          - targets
+        properties:
+          rule_id:
+            type: string
+            pattern: "^[A-Z0-9_]+$"
+            description: "Unique identifier for the rule"
+          name:
+            type: string
+            description: "Human-readable rule name"
+          description:
+            type: string
+            description: "Detailed rule description"
+          rule_type:
+            type: string
+            enum: 
+              - exact_match
+              - fuzzy_match
+              - date_validation
+              - checksum_validation
+              - hash_validation
+              - cross_reference
+              - encoding_consistency
+              - length_validation
+              - pattern_validation
+            description: "Type of validation rule"
+          applicable_fields:
+            type: array
+            items:
+              type: string
+            description: "List of canonical fields this rule applies to"
+          sources:
+            type: array
+            items:
+              type: string
+              enum: [VISUAL_OCR, MRZ, BARCODE_1D, BARCODE_2D, RFID_CHIP, MAGNETIC_STRIPE]
+            description: "Source zones for comparison"
+          targets:
+            type: array
+            items:
+              type: string
+              enum: [VISUAL_OCR, MRZ, BARCODE_1D, BARCODE_2D, RFID_CHIP, MAGNETIC_STRIPE]
+            description: "Target zones for comparison"
+          severity:
+            type: string
+            enum: [critical, warning, info]
+            default: warning
+            description: "Severity level of rule violations"
+          confidence_threshold:
+            type: number
+            minimum: 0.0
+            maximum: 1.0
+            default: 0.8
+            description: "Minimum confidence threshold for rule application"
+          parameters:
+            type: object
+            description: "Rule-specific parameters"
+            properties:
+              fuzzy_threshold:
+                type: number
+                minimum: 0.0
+                maximum: 1.0
+                description: "Similarity threshold for fuzzy matching"
+              tolerance:
+                type: number
+                description: "Tolerance value for numeric comparisons"
+              case_sensitive:
+                type: boolean
+                default: true
+                description: "Whether string comparisons are case-sensitive"
+              ignore_whitespace:
+                type: boolean
+                default: false
+                description: "Whether to ignore whitespace in comparisons"
+              date_formats:
+                type: array
+                items:
+                  type: string
+                description: "Accepted date formats"
+          strict_mode_overrides:
+            type: object
+            description: "Overrides for strict mode"
+            properties:
+              fuzzy_threshold:
+                type: number
+                minimum: 0.0
+                maximum: 1.0
+              tolerance:
+                type: number
+          lenient_mode_overrides:
+            type: object
+            description: "Overrides for lenient mode"
+            properties:
+              fuzzy_threshold:
+                type: number
+                minimum: 0.0
+                maximum: 1.0
+              tolerance:
+                type: number
+          is_active:
+            type: boolean
+            default: true
+            description: "Whether this rule is currently active"
+          version:
+            type: string
+            description: "Version of this specific rule"
+
+    cedar_policies:
+      type: array
+      description: "Cedar policy definitions for validation logic"
+      items:
+        type: object
+        required:
+          - policy_id
+          - effect
+          - principal
+          - action
+          - resource
+        properties:
+          policy_id:
+            type: string
+            description: "Unique identifier for the Cedar policy"
+          description:
+            type: string
+            description: "Human-readable description of the policy"
+          effect:
+            type: string
+            enum: [permit, forbid]
+            description: "Policy effect"
+          principal:
+            type: string
+            description: "Principal entity specification"
+          action:
+            type: string
+            description: "Action specification"
+          resource:
+            type: string
+            description: "Resource specification"
+          conditions:
+            type: array
+            description: "Policy conditions"
+            items:
+              type: object
+              properties:
+                condition:
+                  type: string
+                  description: "Cedar condition expression"
+          annotations:
+            type: object
+            description: "Policy annotations for metadata"
+            additionalProperties:
+              type: string
+
+    # Optional configuration overrides
+    global_settings:
+      type: object
+      description: "Global settings that apply to all rules in this pack"
+      properties:
+        default_fuzzy_threshold:
+          type: number
+          minimum: 0.0
+          maximum: 1.0
+          default: 0.8
+        default_confidence_threshold:
+          type: number
+          minimum: 0.0
+          maximum: 1.0
+          default: 0.85
+        enable_hot_reload:
+          type: boolean
+          default: true
+        cache_policies:
+          type: boolean
+          default: true
+        policy_evaluation_timeout_ms:
+          type: integer
+          minimum: 100
+          default: 5000

@@ -1,0 +1,258 @@
+---
+metadata:
+  name: "Driver's License Validation Rules"
+  version: "1.0.0"
+  document_types: [drivers_license]
+  validation_mode: lenient
+  issuing_countries: ["USA", "CAN"]
+  tags: ["drivers_license", "identity_document", "barcode"]
+  description: "Validation rules for driver's licenses with barcode and visual zones"
+
+field_mappings:
+  DOCUMENT_NUMBER:
+    canonical_field: "DOCUMENT_NUMBER"
+    zone_mappings:
+      VISUAL_OCR: "license_number"
+      BARCODE_1D: "dl_number"
+      BARCODE_2D: "document_id"
+      MAGNETIC_STRIPE: "license_id"
+    data_type: string
+    validation_regex: "^[A-Z0-9\\-]{5,20}$"
+    max_length: 20
+    min_length: 5
+    is_required: true
+
+  SURNAME:
+    canonical_field: "SURNAME"
+    zone_mappings:
+      VISUAL_OCR: "last_name"
+      BARCODE_2D: "surname"
+      MAGNETIC_STRIPE: "lastname"
+    data_type: string
+    validation_regex: "^[A-Z\\s\\-']{1,40}$"
+    max_length: 40
+    is_required: true
+
+  GIVEN_NAMES:
+    canonical_field: "GIVEN_NAMES"
+    zone_mappings:
+      VISUAL_OCR: "first_name"
+      BARCODE_2D: "given_names"
+      MAGNETIC_STRIPE: "firstname"
+    data_type: string
+    validation_regex: "^[A-Z\\s\\-']{1,40}$"
+    max_length: 40
+    is_required: true
+
+  DATE_OF_BIRTH:
+    canonical_field: "DATE_OF_BIRTH"
+    zone_mappings:
+      VISUAL_OCR: "date_of_birth"
+      BARCODE_2D: "dob"
+      MAGNETIC_STRIPE: "birth_date"
+    data_type: date
+    validation_regex: "^\\d{4}-\\d{2}-\\d{2}$|^\\d{8}$"
+    is_required: true
+    format_hint: "YYYY-MM-DD or YYYYMMDD"
+
+  DATE_OF_EXPIRY:
+    canonical_field: "DATE_OF_EXPIRY"
+    zone_mappings:
+      VISUAL_OCR: "expiration_date"
+      BARCODE_2D: "exp_date"
+      MAGNETIC_STRIPE: "expiry_date"
+    data_type: date
+    validation_regex: "^\\d{4}-\\d{2}-\\d{2}$|^\\d{8}$"
+    is_required: true
+    format_hint: "YYYY-MM-DD or YYYYMMDD"
+
+  GENDER:
+    canonical_field: "GENDER"
+    zone_mappings:
+      VISUAL_OCR: "sex"
+      BARCODE_2D: "gender"
+      MAGNETIC_STRIPE: "sex"
+    data_type: string
+    validation_regex: "^[MFX]$"
+    max_length: 1
+    is_required: true
+
+  ADDRESS:
+    canonical_field: "ADDRESS"
+    zone_mappings:
+      VISUAL_OCR: "address"
+      BARCODE_2D: "full_address"
+      MAGNETIC_STRIPE: "addr"
+    data_type: string
+    validation_regex: "^[A-Z0-9\\s\\-\\.,#]{10,100}$"
+    max_length: 100
+    is_required: false
+
+  ISSUING_AUTHORITY:
+    canonical_field: "ISSUING_AUTHORITY"
+    zone_mappings:
+      VISUAL_OCR: "state"
+      BARCODE_2D: "issuing_state"
+      MAGNETIC_STRIPE: "state_code"
+    data_type: string
+    validation_regex: "^[A-Z]{2,3}$"
+    max_length: 3
+    is_required: true
+
+validation_rules:
+  - rule_id: "DL_EXACT_MATCH"
+    name: "Driver's License Exact Match"
+    description: "Core identification fields must match exactly"
+    rule_type: exact_match
+    applicable_fields: ["DOCUMENT_NUMBER", "GENDER", "ISSUING_AUTHORITY"]
+    sources: ["VISUAL_OCR", "BARCODE_2D", "MAGNETIC_STRIPE"]
+    targets: ["VISUAL_OCR", "BARCODE_2D", "MAGNETIC_STRIPE"]
+    severity: critical
+    confidence_threshold: 0.85
+    parameters:
+      case_sensitive: true
+      ignore_whitespace: false
+    is_active: true
+    version: "1.0"
+
+  - rule_id: "DL_NAME_FUZZY_MATCH"
+    name: "Driver's License Name Fuzzy Match"
+    description: "Names should match with allowance for OCR variations"
+    rule_type: fuzzy_match
+    applicable_fields: ["SURNAME", "GIVEN_NAMES"]
+    sources: ["VISUAL_OCR", "BARCODE_2D", "MAGNETIC_STRIPE"]
+    targets: ["VISUAL_OCR", "BARCODE_2D", "MAGNETIC_STRIPE"]
+    severity: warning
+    confidence_threshold: 0.75
+    parameters:
+      fuzzy_threshold: 0.8
+      case_sensitive: false
+      ignore_whitespace: true
+    strict_mode_overrides:
+      fuzzy_threshold: 0.9
+    lenient_mode_overrides:
+      fuzzy_threshold: 0.7
+    is_active: true
+    version: "1.0"
+
+  - rule_id: "DL_DATE_VALIDATION"
+    name: "Driver's License Date Validation"
+    description: "Date fields must be valid with format flexibility"
+    rule_type: date_validation
+    applicable_fields: ["DATE_OF_BIRTH", "DATE_OF_EXPIRY"]
+    sources: ["VISUAL_OCR", "BARCODE_2D", "MAGNETIC_STRIPE"]
+    targets: ["VISUAL_OCR", "BARCODE_2D", "MAGNETIC_STRIPE"]
+    severity: warning
+    confidence_threshold: 0.8
+    parameters:
+      date_formats: ["YYYY-MM-DD", "YYYYMMDD", "MM/DD/YYYY"]
+      tolerance: 1  # Allow 1 day tolerance for date variations
+    is_active: true
+    version: "1.0"
+
+  - rule_id: "DL_ADDRESS_FUZZY_MATCH"
+    name: "Driver's License Address Fuzzy Match"
+    description: "Address should match with high tolerance for variations"
+    rule_type: fuzzy_match
+    applicable_fields: ["ADDRESS"]
+    sources: ["VISUAL_OCR", "BARCODE_2D", "MAGNETIC_STRIPE"]
+    targets: ["VISUAL_OCR", "BARCODE_2D", "MAGNETIC_STRIPE"]
+    severity: info
+    confidence_threshold: 0.6
+    parameters:
+      fuzzy_threshold: 0.6
+      case_sensitive: false
+      ignore_whitespace: true
+    is_active: true
+    version: "1.0"
+
+  - rule_id: "DL_CROSS_REFERENCE"
+    name: "Driver's License Cross-Reference"
+    description: "Validate logical relationships between fields"
+    rule_type: cross_reference
+    applicable_fields: ["DATE_OF_BIRTH", "DATE_OF_EXPIRY", "ISSUING_AUTHORITY"]
+    sources: ["VISUAL_OCR", "BARCODE_2D", "MAGNETIC_STRIPE"]
+    targets: ["VISUAL_OCR", "BARCODE_2D", "MAGNETIC_STRIPE"]
+    severity: warning
+    confidence_threshold: 0.7
+    parameters:
+      min_driving_age: 16
+      max_validity_years: 10
+    is_active: true
+    version: "1.0"
+
+cedar_policies:
+  - policy_id: "dl_exact_match_policy"
+    description: "Allow when core fields match exactly"
+    effect: permit
+    principal: 'ValidationRule::"DL_EXACT_MATCH"'
+    action: 'ValidateFieldConsistency'
+    resource: 'ComparisonContext'
+    conditions:
+      - condition: 'resource.source_value == resource.target_value'
+      - condition: 'resource.field.canonical_name in ["DOCUMENT_NUMBER", "GENDER", "ISSUING_AUTHORITY"]'
+      - condition: 'principal.is_active == true'
+    annotations:
+      rule_id: "DL_EXACT_MATCH"
+      severity: "critical"
+
+  - policy_id: "dl_name_fuzzy_policy"
+    description: "Allow name variations within threshold"
+    effect: permit
+    principal: 'ValidationRule::"DL_NAME_FUZZY_MATCH"'
+    action: 'ValidateFieldConsistency'
+    resource: 'ComparisonContext'
+    conditions:
+      - condition: 'resource.field.canonical_name in ["SURNAME", "GIVEN_NAMES"]'
+      - condition: 'principal.is_active == true'
+      - condition: 'resource.fuzzy_threshold >= 70'
+    annotations:
+      rule_id: "DL_NAME_FUZZY_MATCH"
+      severity: "warning"
+
+  - policy_id: "dl_date_tolerance_policy"
+    description: "Allow date variations within tolerance"
+    effect: permit
+    principal: 'ValidationRule::"DL_DATE_VALIDATION"'
+    action: 'ValidateDateFormat'
+    resource: 'DocumentField'
+    conditions:
+      - condition: 'resource.canonical_name in ["DATE_OF_BIRTH", "DATE_OF_EXPIRY"]'
+      - condition: 'resource.data_type == "date"'
+      - condition: 'principal.is_active == true'
+    annotations:
+      rule_id: "DL_DATE_VALIDATION"
+      severity: "warning"
+      tolerance_days: "1"
+
+  - policy_id: "dl_lenient_mode_default"
+    description: "Apply lenient validation by default for driver's licenses"
+    effect: permit
+    principal: 'ValidationRule'
+    action: 'ApplyLenientMode'
+    resource: 'ComparisonContext'
+    conditions:
+      - condition: 'resource.source_zone.extraction_confidence >= 60 || resource.target_zone.extraction_confidence >= 60'
+    annotations:
+      mode: "lenient"
+      document_type: "drivers_license"
+
+  - policy_id: "dl_barcode_priority_policy"
+    description: "Prioritize barcode data for accuracy"
+    effect: permit
+    principal: 'ValidationRule'
+    action: 'ValidateFieldConsistency'
+    resource: 'ComparisonContext'
+    conditions:
+      - condition: 'resource.source_zone.zone_type == "BARCODE_2D" || resource.target_zone.zone_type == "BARCODE_2D"'
+      - condition: 'resource.source_zone.extraction_confidence >= 95 || resource.target_zone.extraction_confidence >= 95'
+    annotations:
+      priority: "high"
+      data_source: "barcode"
+
+global_settings:
+  default_fuzzy_threshold: 0.75
+  default_confidence_threshold: 0.8
+  enable_hot_reload: true
+  cache_policies: true
+  policy_evaluation_timeout_ms: 2000

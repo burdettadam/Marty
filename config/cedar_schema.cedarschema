@@ -1,0 +1,186 @@
+{
+  "MartyConsistency": {
+    "entityTypes": {
+      "DocumentZone": {
+        "shape": {
+          "type": "Record",
+          "attributes": {
+            "zone_type": {
+              "type": "String"
+            },
+            "extraction_confidence": {
+              "type": "Long"
+            },
+            "extraction_method": {
+              "type": "String"
+            },
+            "metadata": {
+              "type": "Set",
+              "element": {
+                "type": "String"
+              }
+            }
+          }
+        }
+      },
+      "DocumentField": {
+        "shape": {
+          "type": "Record",
+          "attributes": {
+            "canonical_name": {
+              "type": "String"
+            },
+            "data_type": {
+              "type": "String"
+            },
+            "is_required": {
+              "type": "Boolean"
+            },
+            "max_length": {
+              "type": "Long",
+              "required": false
+            },
+            "validation_pattern": {
+              "type": "String",
+              "required": false
+            }
+          }
+        }
+      },
+      "DocumentType": {
+        "shape": {
+          "type": "Record",
+          "attributes": {
+            "document_type": {
+              "type": "String"
+            },
+            "issuing_country": {
+              "type": "String"
+            },
+            "version": {
+              "type": "String"
+            },
+            "supported_zones": {
+              "type": "Set",
+              "element": {
+                "type": "Entity",
+                "name": "DocumentZone"
+              }
+            }
+          }
+        }
+      },
+      "ValidationRule": {
+        "shape": {
+          "type": "Record",
+          "attributes": {
+            "rule_id": {
+              "type": "String"
+            },
+            "rule_type": {
+              "type": "String"
+            },
+            "name": {
+              "type": "String"
+            },
+            "description": {
+              "type": "String"
+            },
+            "severity": {
+              "type": "String"
+            },
+            "confidence_threshold": {
+              "type": "Long"
+            },
+            "version": {
+              "type": "String"
+            },
+            "is_active": {
+              "type": "Boolean"
+            }
+          }
+        }
+      },
+      "ComparisonContext": {
+        "shape": {
+          "type": "Record",
+          "attributes": {
+            "source_zone": {
+              "type": "Entity",
+              "name": "DocumentZone"
+            },
+            "target_zone": {
+              "type": "Entity",
+              "name": "DocumentZone"
+            },
+            "field": {
+              "type": "Entity",
+              "name": "DocumentField"
+            },
+            "source_value": {
+              "type": "String"
+            },
+            "target_value": {
+              "type": "String"
+            },
+            "fuzzy_threshold": {
+              "type": "Long",
+              "required": false
+            },
+            "strict_mode": {
+              "type": "Boolean"
+            },
+            "tolerance": {
+              "type": "Long",
+              "required": false
+            }
+          }
+        }
+      }
+    },
+    "actions": {
+      "ValidateFieldConsistency": {
+        "appliesTo": {
+          "principalTypes": ["ValidationRule"],
+          "resourceTypes": ["ComparisonContext"]
+        }
+      },
+      "CheckCrossZoneMatch": {
+        "appliesTo": {
+          "principalTypes": ["ValidationRule"],
+          "resourceTypes": ["ComparisonContext"]
+        }
+      },
+      "ValidateChecksum": {
+        "appliesTo": {
+          "principalTypes": ["ValidationRule"],
+          "resourceTypes": ["DocumentField"]
+        }
+      },
+      "ValidateDateFormat": {
+        "appliesTo": {
+          "principalTypes": ["ValidationRule"],
+          "resourceTypes": ["DocumentField"]
+        }
+      },
+      "ValidateHashValue": {
+        "appliesTo": {
+          "principalTypes": ["ValidationRule"],
+          "resourceTypes": ["DocumentField"]
+        }
+      },
+      "ApplyLenientMode": {
+        "appliesTo": {
+          "principalTypes": ["ValidationRule"],
+          "resourceTypes": ["ComparisonContext"]
+        }
+      },
+      "ApplyStrictMode": {
+        "appliesTo": {
+          "principalTypes": ["ValidationRule"],
+          "resourceTypes": ["ComparisonContext"]
+        }
+      }
+    }
+  }
+}
