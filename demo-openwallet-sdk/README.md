@@ -32,18 +32,21 @@ All services run in a Kubernetes cluster managed by Kind, with ingress routing a
 ## Features
 
 ### Issuer Service
+
 - **Credential Issuance**: Creates ISO 18013-5 compliant mDL credentials
 - **Document Types**: Supports driving licenses, ID cards, and custom documents
 - **Security**: Uses secure random generation for credential IDs
 - **Standards Compliance**: Implements mso_mdoc format with proper cryptographic signatures
 
 ### Verifier Service
+
 - **Presentation Verification**: Validates mDoc presentations using OpenID4VP
 - **Proximity Verification**: Supports ISO 18013-5 proximity presentation via BLE
 - **Selective Disclosure**: Verifies only requested attributes
 - **Security Validation**: Checks cryptographic signatures and certificate chains
 
 ### Wallet Service
+
 - **Credential Management**: Stores and organizes multiple credentials
 - **Selective Disclosure**: Allows users to share only required information
 - **Secure Storage**: Implements secure area storage for sensitive data
@@ -52,30 +55,35 @@ All services run in a Kubernetes cluster managed by Kind, with ingress routing a
 ## Enhanced Features
 
 ### 🛡️ Age Verification with Selective Disclosure
+
 - **Privacy-Preserving**: Verify age without disclosing birth date
 - **Multiple Use Cases**: Alcohol purchase, voting, senior discounts, employment
 - **Zero-Knowledge Proofs**: Demonstrate age thresholds without revealing exact age
 - **Policy-Based**: Context-aware verification with privacy level reporting
 
 ### 📱 Offline QR Code Verification
+
 - **Network-Free**: Verify credentials without internet connectivity
 - **Cryptographic Security**: ECDSA signatures with CBOR encoding
 - **Single-Use**: QR codes with built-in replay protection
 - **Compact**: Optimized for mobile QR code display and scanning
 
 ### 🔒 Certificate Lifecycle Monitoring
+
 - **mDL DSC Tracking**: Monitor Document Signer Certificate expiry
 - **Proactive Alerts**: Early warning system for certificate renewals
 - **Renewal Simulation**: Automated certificate renewal workflows
 - **Dashboard**: Comprehensive certificate health monitoring
 
 ### 📋 Policy-Based Selective Disclosure
+
 - **Context-Aware**: Intelligent attribute sharing based on verification context
 - **Trust Levels**: Verifier trust assessment and appropriate disclosure
 - **Privacy Controls**: User consent and attribute sensitivity classification
 - **Integration**: Uses Marty's authorization engine for policy decisions
 
 ### Demo UI
+
 - **Interactive Testing**: Web interface for all demo scenarios
 - **QR Code Generation**: For mobile wallet integration and offline verification
 - **Real-time Updates**: Live status updates during credential flows
@@ -86,6 +94,7 @@ All services run in a Kubernetes cluster managed by Kind, with ingress routing a
 ## Quick Start
 
 ### 1. Build and Deploy
+
 ```bash
 # Clone and navigate to demo directory
 cd demo-openwallet-sdk
@@ -101,6 +110,7 @@ open http://localhost
 ```
 
 ### 2. Explore Enhanced Features
+
 - **Basic Demo**: Use the Issuer, Verifier, and Wallet tabs for standard mDoc/mDL operations
 - **Enhanced Demo**: Click the "Enhanced" tab to explore advanced features:
   - Age verification without birth date disclosure
@@ -116,6 +126,7 @@ open http://localhost
 - **Node.js** (optional): For UI development
 
 ### macOS Installation
+
 ```bash
 # Install using Homebrew
 brew install kind kubectl
@@ -125,6 +136,7 @@ brew install kind kubectl
 ```
 
 ### Ubuntu/Debian Installation
+
 ```bash
 # Install kubectl
 curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
@@ -145,20 +157,23 @@ sudo usermod -aG docker $USER
 ## Quick Start
 
 1. **Build the demo containers:**
+
    ```bash
    ./build.sh
    ```
 
 2. **Deploy to Kind cluster:**
+
    ```bash
    ./deploy-k8s.sh
    ```
 
 3. **Access the demo:**
-   - Demo UI: http://localhost/
-   - API Health Checks: http://localhost/health
+   - Demo UI: <http://localhost/>
+   - API Health Checks: <http://localhost/health>
 
 4. **Clean up when done:**
+
    ```bash
    ./cleanup.sh
    ```
@@ -174,6 +189,7 @@ The build script creates Docker images for all services:
 ```
 
 This will:
+
 - Check prerequisites (Docker, Kind, kubectl)
 - Build Docker images for issuer, verifier, wallet, and UI services
 - Tag images for local registry use
@@ -188,6 +204,7 @@ The deployment script sets up a complete Kubernetes environment:
 ```
 
 This will:
+
 - Create a Kind cluster with ingress support
 - Install NGINX Ingress Controller
 - Load Docker images into the cluster
@@ -198,7 +215,7 @@ This will:
 
 ### Using the Demo
 
-1. **Navigate to http://localhost/** in your browser
+1. **Navigate to <http://localhost/>** in your browser
 
 2. **Issuer Demo:**
    - Click "Issuer Demo" to access credential issuance
@@ -221,17 +238,20 @@ This will:
 ### API Endpoints
 
 #### Issuer Service (Port 8080)
+
 - `POST /issue` - Issue new mDL credential
 - `GET /health` - Health check
 - `GET /docs` - OpenAPI documentation
 
 #### Verifier Service (Port 8081)
+
 - `POST /verify` - Verify mDoc presentation
 - `POST /request` - Create verification request
 - `GET /health` - Health check
 - `GET /docs` - OpenAPI documentation
 
 #### Wallet Service (Port 8082)
+
 - `POST /store` - Store credential in wallet
 - `GET /credentials` - List stored credentials
 - `POST /present` - Create presentation
@@ -253,6 +273,7 @@ The demo supports the following environment variables:
 ### Database Configuration
 
 PostgreSQL is configured with:
+
 - Database: `openwallet_demo`
 - Username: `demo_user`
 - Password: `demo_password`
@@ -261,6 +282,7 @@ PostgreSQL is configured with:
 ### Kubernetes Resources
 
 Each service is allocated:
+
 - CPU: 100m (request) / 500m (limit)
 - Memory: 128Mi (request) / 512Mi (limit)
 - Replicas: 1 (can be scaled)
@@ -272,6 +294,7 @@ Each service is allocated:
 For development outside Kubernetes:
 
 1. **Start PostgreSQL:**
+
    ```bash
    docker run --name postgres-dev \
      -e POSTGRES_DB=openwallet_demo \
@@ -281,12 +304,14 @@ For development outside Kubernetes:
    ```
 
 2. **Install Python dependencies:**
+
    ```bash
    cd src
    pip install -r requirements.txt
    ```
 
 3. **Run services:**
+
    ```bash
    # Terminal 1 - Issuer
    uvicorn issuer_service:app --host 0.0.0.0 --port 8080 --reload
@@ -299,6 +324,7 @@ For development outside Kubernetes:
    ```
 
 4. **Run UI (optional):**
+
    ```bash
    cd ui
    npm install
@@ -318,7 +344,7 @@ DOCUMENT_TYPES = {
         "required_fields": ["family_name", "given_name", "birth_date", "issue_date", "expiry_date"]
     },
     "identity_card": {
-        "namespace": "org.iso.18013.5.1.mID", 
+        "namespace": "org.iso.18013.5.1.mID",
         "required_fields": ["family_name", "given_name", "birth_date", "nationality"]
     }
 }
@@ -346,43 +372,47 @@ VERIFICATION_POLICIES = {
 ### Common Issues
 
 1. **Port conflicts:**
+
    ```bash
    # Check what's using port 80
    lsof -i :80
-   
+
    # Kill conflicting processes or change ingress port
    kubectl patch service ingress-nginx-controller -n ingress-nginx -p '{"spec":{"ports":[{"port":8080,"targetPort":80}]}}'
    ```
 
 2. **Images not loading:**
+
    ```bash
    # Verify images exist
    docker images | grep openwallet
-   
+
    # Rebuild if missing
    ./build.sh
-   
+
    # Load into Kind manually
    kind load docker-image localhost:5001/openwallet-issuer:latest --name openwallet-demo
    ```
 
 3. **Pods not starting:**
+
    ```bash
    # Check pod logs
    kubectl logs -f deployment/issuer-service -n openwallet-demo
-   
+
    # Check resource usage
    kubectl top pods -n openwallet-demo
-   
+
    # Describe pod for events
    kubectl describe pod <pod-name> -n openwallet-demo
    ```
 
 4. **Database connection issues:**
+
    ```bash
    # Check PostgreSQL pod
    kubectl logs -f deployment/postgres -n openwallet-demo
-   
+
    # Test database connection
    kubectl exec -it deployment/postgres -n openwallet-demo -- psql -U demo_user -d openwallet_demo
    ```
@@ -390,6 +420,7 @@ VERIFICATION_POLICIES = {
 ### Logs and Monitoring
 
 View service logs:
+
 ```bash
 # All services
 kubectl logs -f -l app=issuer-service -n openwallet-demo
@@ -402,6 +433,7 @@ kubectl logs -f --selector=tier=backend -n openwallet-demo
 ```
 
 Monitor resource usage:
+
 ```bash
 # Pod resource usage
 kubectl top pods -n openwallet-demo

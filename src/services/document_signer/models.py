@@ -5,18 +5,19 @@ from __future__ import annotations
 from datetime import datetime, timezone
 from typing import Any
 
-from sqlalchemy import JSON, DateTime, String, Text, Boolean, Integer
+from sqlalchemy import JSON, Boolean, DateTime, Integer, String, Text
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 
 
 class Base(DeclarativeBase):
     """Base class for all document_signer service models."""
+
     pass
 
 
 class DocumentSignerOutbox(Base):
     """Outbox pattern implementation for document_signer service events."""
-    
+
     __tablename__ = "document_signer_outbox"
 
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
@@ -37,16 +38,14 @@ class DocumentSignerOutbox(Base):
 
 class CredentialOffer(Base):
     """Credential offers managed by the document_signer service."""
-    
+
     __tablename__ = "credential_offers"
 
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
     offer_id: Mapped[str] = mapped_column(String(96), unique=True, nullable=False, index=True)
     subject_id: Mapped[str] = mapped_column(String(128), nullable=False, index=True)
     credential_type: Mapped[str] = mapped_column(String(128), nullable=False)
-    status: Mapped[str] = mapped_column(
-        String(32), nullable=False, default="CREATED", index=True
-    )
+    status: Mapped[str] = mapped_column(String(32), nullable=False, default="CREATED", index=True)
     offer_payload: Mapped[dict[str, Any]] = mapped_column(JSON, nullable=False)
     base_claims: Mapped[dict[str, Any]] = mapped_column(JSON, nullable=False)
     selective_disclosures: Mapped[dict[str, Any]] = mapped_column(JSON, nullable=False)
@@ -73,7 +72,7 @@ class CredentialOffer(Base):
 
 class AccessToken(Base):
     """Access tokens for OIDC4VCI flow managed by document_signer."""
-    
+
     __tablename__ = "access_tokens"
 
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
@@ -103,7 +102,7 @@ class AccessToken(Base):
 
 class IssuedCredentialAudit(Base):
     """Audit log for issued credentials from document_signer service."""
-    
+
     __tablename__ = "issued_credential_audit"
 
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
@@ -113,14 +112,18 @@ class IssuedCredentialAudit(Base):
     credential_type: Mapped[str] = mapped_column(String(128), nullable=False, index=True)
     issuer: Mapped[str] = mapped_column(String(256), nullable=False)
     status: Mapped[str] = mapped_column(String(32), nullable=False, index=True)
-    action: Mapped[str] = mapped_column(String(64), nullable=False)  # ISSUED, REVOKED, SUSPENDED, etc.
+    action: Mapped[str] = mapped_column(
+        String(64), nullable=False
+    )  # ISSUED, REVOKED, SUSPENDED, etc.
     reason: Mapped[str | None] = mapped_column(String(512), nullable=True)
     credential_location: Mapped[str | None] = mapped_column(String(512), nullable=True)
     disclosures_location: Mapped[str | None] = mapped_column(String(512), nullable=True)
     signature_data: Mapped[dict[str, Any] | None] = mapped_column(JSON, nullable=True)
     wallet_attestation: Mapped[dict[str, Any] | None] = mapped_column(JSON, nullable=True)
     extra_metadata: Mapped[dict[str, Any] | None] = mapped_column(JSON, nullable=True)
-    performed_by: Mapped[str | None] = mapped_column(String(128), nullable=True)  # User/system that performed action
+    performed_by: Mapped[str | None] = mapped_column(
+        String(128), nullable=True
+    )  # User/system that performed action
     performed_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), default=lambda: datetime.now(timezone.utc), nullable=False
     )

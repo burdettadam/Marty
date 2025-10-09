@@ -28,7 +28,7 @@ RUN pip install --no-cache-dir -r requirements.txt
 COPY app/ app/
 
 # Add the Marty source code for MRZ utilities
-# Copy from the parent src directory 
+# Copy from the parent src directory
 COPY ../marty_common/ marty_common/
 
 # Create a non-root user

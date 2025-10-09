@@ -42,22 +42,22 @@ grpc:
   tls:
     # Enable TLS for gRPC connections
     enabled: true
-    
+
     # mTLS configuration
     mtls: true
     require_client_auth: true
-    
+
     # Server certificate configuration
     server_cert: "/etc/tls/server/tls.crt"
     server_key: "/etc/tls/server/tls.key"
-    
+
     # Client CA for mTLS (when require_client_auth or mtls is true)
     client_ca: "/etc/tls/ca/ca.crt"
-    
+
     # Client certificate configuration (for outbound connections)
     client_cert: "/etc/tls/client/tls.crt"
     client_key: "/etc/tls/client/tls.key"
-    
+
     # Secret names for TLS certificates
     secrets:
       server:
@@ -78,7 +78,7 @@ security:
   auth:
     # Require authentication for all endpoints (except health checks)
     required: true
-    
+
     # JWT configuration
     jwt:
       enabled: true
@@ -87,13 +87,13 @@ security:
       public_key: ""  # For RS256/ES256 (or path to public key file)
       secret_name: "marty-jwt-secret"  # Kubernetes secret name
       secret_key: "jwt-secret"  # Key in the secret
-    
+
     # Client certificate authentication
     client_cert:
       enabled: true  # ALWAYS enabled for security
       extract_subject: true  # Extract identity from certificate subject
-  
-  # Authorization configuration  
+
+  # Authorization configuration
   authz:
     enabled: true
     policy_config: "/etc/config/policy.yaml"

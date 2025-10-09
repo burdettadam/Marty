@@ -16,6 +16,7 @@ python scripts/resilience_demo.py
 ## 📦 Key Components
 
 ### 1. Circuit Breakers
+
 Prevent cascading failures by temporarily blocking requests to failing services:
 
 ```python
@@ -31,6 +32,7 @@ def call_external_service():
 ```
 
 ### 2. Advanced Retries
+
 Intelligent retry mechanisms with multiple backoff strategies:
 
 ```python
@@ -52,6 +54,7 @@ result = await retry_manager.retry_async(my_async_function)
 ```
 
 ### 3. gRPC Interceptors
+
 Automatic resilience for gRPC client and server calls:
 
 ```python
@@ -63,7 +66,7 @@ from marty_common.resilience import (
 # Client interceptor
 channel = grpc.insecure_channel('localhost:50051')
 intercepted_channel = grpc.intercept_channel(
-    channel, 
+    channel,
     ResilienceClientInterceptor()
 )
 
@@ -75,6 +78,7 @@ server = grpc.server(
 ```
 
 ### 4. Monitoring & Health Checks
+
 Monitor all resilience components in real-time:
 
 ```python
@@ -90,16 +94,19 @@ report = monitor.generate_health_report()
 ### Environment-Specific Configs
 
 **Development** (`config/development.yaml`):
+
 - Lower thresholds for testing
 - Failure injection enabled
 - Detailed logging
 
 **Production** (`config/production.yaml`):
+
 - Higher thresholds for stability
 - Failure injection disabled
 - Performance-optimized
 
 **Testing** (`config/testing.yaml`):
+
 - Aggressive failure scenarios
 - Comprehensive metrics collection
 
@@ -147,6 +154,7 @@ with orchestrator.failure_injection(scenario):
 ### Metrics Collection
 
 All resilience patterns automatically collect metrics:
+
 - Success/failure rates
 - Latency distributions
 - Circuit breaker state changes
@@ -155,6 +163,7 @@ All resilience patterns automatically collect metrics:
 ### Health Checks
 
 Built-in health checks for:
+
 - Circuit breaker states
 - Retry manager performance
 - Overall system health
@@ -206,6 +215,7 @@ register_retry_manager_for_monitoring("my_retry", retry_manager)
 ## 📖 Documentation
 
 For comprehensive documentation, see:
+
 - [Full Implementation Guide](docs/RESILIENCE_IMPLEMENTATION_GUIDE.md)
 - [API Reference](src/marty_common/resilience/__init__.py)
 - [Configuration Reference](config/)

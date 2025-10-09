@@ -3,7 +3,7 @@
   "dockerComposeFile": "../docker/docker-compose.yml",
   "service": "development",
   "workspaceFolder": "/workspace",
-  
+
   // Features to add to the dev container
   "features": {
     "ghcr.io/devcontainers/features/docker-in-docker:2": {},
@@ -18,7 +18,7 @@
       "userGid": "1000"
     }
   },
-  
+
   // VS Code settings for the container
   "customizations": {
     "vscode": {
@@ -52,12 +52,12 @@
       ]
     }
   },
-  
+
   // Lifecycle scripts
   "onCreateCommand": "bash .devcontainer/setup.sh",
   "updateContentCommand": "uv sync --dev",
   "postStartCommand": "git config --global --add safe.directory ${containerWorkspaceFolder}",
-  
+
   // Port forwarding for development services
   "forwardPorts": [
     8080, 8081, 8082, 8083, 8084, 8085, 8086, 8087, 8088, 8090,  // Marty services
@@ -67,15 +67,15 @@
     5044, 5000,  // Logstash
     3000, 9090  // Grafana, Prometheus
   ],
-  
+
   // Container user
   "remoteUser": "vscode",
-  
+
   // Mount the Docker socket for Docker-in-Docker
   "mounts": [
     "source=/var/run/docker.sock,target=/var/run/docker.sock,type=bind"
   ],
-  
+
   // Container environment variables
   "containerEnv": {
     "PYTHONPATH": "/workspace/src",

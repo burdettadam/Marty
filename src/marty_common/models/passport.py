@@ -770,6 +770,7 @@ class CMCTD1MRZData(BaseModel):
         # Import here to avoid circular imports
         try:
             from src.marty_common.utils.mrz_utils import MRZFormatter
+
             return MRZFormatter.generate_td1_mrz(self)
         except ImportError:
             # Fallback implementation if MRZFormatter doesn't exist yet
@@ -805,8 +806,12 @@ class CMCData(BaseModel):
     crew_id: str | None = Field(None, description="Crew member identification number")
 
     # Security and validation fields
-    security_model: CMCSecurityModel = Field(CMCSecurityModel.CHIP_LDS, description="Security model used")
-    background_check_verified: bool = Field(False, description="Annex 9 background check completion")
+    security_model: CMCSecurityModel = Field(
+        CMCSecurityModel.CHIP_LDS, description="Security model used"
+    )
+    background_check_verified: bool = Field(
+        False, description="Annex 9 background check completion"
+    )
     face_image: str | bytes | None = None  # Face image if chip present (DG2)
 
     model_config = {
@@ -922,7 +927,9 @@ class VDSNCBarcode(BaseModel):
     signature_algorithm: str = Field("ES256", description="Signature algorithm")
     certificate_reference: str = Field(..., description="Certificate reference")
     signature_creation_date: str = Field(..., description="Signature creation date (YYMMDD)")
-    signature_creation_time: str | None = Field(None, description="Signature creation time (HHMMSS)")
+    signature_creation_time: str | None = Field(
+        None, description="Signature creation time (HHMMSS)"
+    )
     cmc_data: dict = Field(..., description="CMC dataset payload")
     signature: str = Field(..., description="Digital signature")
 
@@ -960,6 +967,7 @@ class VDSNCBarcode(BaseModel):
         # This would implement the actual VDS-NC encoding
         # For now, return a placeholder
         import json
+
         return base64.b64encode(json.dumps(self.model_dump()).encode()).decode()
 
     def verify_signature(self, public_key: bytes) -> bool:
@@ -974,7 +982,7 @@ class VDSNCBarcode(BaseModel):
                 canonical_data.encode(),
                 base64.b64decode(self.signature),
                 public_key,
-                self.signature_algorithm
+                self.signature_algorithm,
             )
         except ImportError:
             # Fallback if crypto module not available
@@ -1161,7 +1169,9 @@ class CMCCertificate(BaseModel):
             snake_case_data["cmc_data"] = CMCData.from_dict(snake_case_data["cmc_data"])
 
         if snake_case_data.get("vds_nc_barcode"):
-            snake_case_data["vds_nc_barcode"] = VDSNCBarcode(**camel_to_snake_dict(snake_case_data["vds_nc_barcode"]))
+            snake_case_data["vds_nc_barcode"] = VDSNCBarcode(
+                **camel_to_snake_dict(snake_case_data["vds_nc_barcode"])
+            )
 
         if "data_groups" in snake_case_data:
             data_groups = {}

@@ -4,11 +4,13 @@ Standardized error handling utilities to eliminate duplicate exception patterns.
 This module provides common exception classes and error handling patterns
 to reduce code duplication across services.
 """
+
 from __future__ import annotations
 
 import functools
 import logging
-from typing import Any, Callable, TypeVar
+from collections.abc import Callable
+from typing import Any, TypeVar
 
 F = TypeVar("F", bound=Callable[..., Any])
 
@@ -71,6 +73,7 @@ class ErrorHandler:
         Returns:
             Decorated function
         """
+
         def decorator(func: F) -> F:
             @functools.wraps(func)
             def wrapper(*args: Any, **kwargs: Any) -> Any:
@@ -108,7 +111,9 @@ class ErrorHandler:
                     if reraise:
                         raise MartyServiceError(error_msg) from e
                     return None
+
             return wrapper  # type: ignore
+
         return decorator
 
     @staticmethod
@@ -209,6 +214,7 @@ class ErrorHandler:
         Returns:
             Decorated function
         """
+
         def decorator(func: F) -> F:
             @functools.wraps(func)
             def wrapper(*args: Any, **kwargs: Any) -> Any:
@@ -224,15 +230,22 @@ class ErrorHandler:
                         if attempt < max_attempts - 1:
                             log.warning(
                                 "Attempt %d/%d failed for %s: %s. Retrying in %.2f seconds.",
-                                attempt + 1, max_attempts, func.__name__, e, current_delay
+                                attempt + 1,
+                                max_attempts,
+                                func.__name__,
+                                e,
+                                current_delay,
                             )
                             import time
+
                             time.sleep(current_delay)
                             current_delay *= backoff_multiplier
                         else:
                             log.error(
                                 "All %d attempts failed for %s. Final error: %s",
-                                max_attempts, func.__name__, e
+                                max_attempts,
+                                func.__name__,
+                                e,
                             )
 
                 # If we get here, all attempts failed
@@ -244,6 +257,7 @@ class ErrorHandler:
                     raise MartyServiceError(f"Function {func.__name__} failed unexpectedly")
 
             return wrapper  # type: ignore
+
         return decorator
 
 
@@ -282,19 +296,27 @@ class ErrorContext:
         elif issubclass(exc_type, (ConnectionError, TimeoutError)):
             self.logger.error("Network error in %s: %s", self.operation_name, exc_value)
             if self.reraise:
-                raise MartyNetworkError(f"Network error in {self.operation_name}: {exc_value}") from exc_value
+                raise MartyNetworkError(
+                    f"Network error in {self.operation_name}: {exc_value}"
+                ) from exc_value
         elif issubclass(exc_type, (ValueError, TypeError)):
             self.logger.error("Validation error in %s: %s", self.operation_name, exc_value)
             if self.reraise:
-                raise MartyValidationError(f"Validation error in {self.operation_name}: {exc_value}") from exc_value
+                raise MartyValidationError(
+                    f"Validation error in {self.operation_name}: {exc_value}"
+                ) from exc_value
         elif issubclass(exc_type, (FileNotFoundError, PermissionError)):
             self.logger.error("Configuration error in %s: %s", self.operation_name, exc_value)
             if self.reraise:
-                raise MartyConfigurationError(f"Configuration error in {self.operation_name}: {exc_value}") from exc_value
+                raise MartyConfigurationError(
+                    f"Configuration error in {self.operation_name}: {exc_value}"
+                ) from exc_value
         else:
             self.logger.exception("Unexpected error in %s", self.operation_name)
             if self.reraise:
-                raise MartyServiceError(f"Unexpected error in {self.operation_name}: {exc_value}") from exc_value
+                raise MartyServiceError(
+                    f"Unexpected error in {self.operation_name}: {exc_value}"
+                ) from exc_value
 
         return not self.reraise  # Suppress exception if not reraising
 
@@ -303,14 +325,13 @@ class ErrorContext:
 def handle_grpc_errors(func: F) -> F:
     """Decorator specifically for gRPC service error handling."""
     return ErrorHandler.handle_common_exceptions(
-        logger_instance=logger,
-        reraise=True,
-        default_message="gRPC service error"
+        logger_instance=logger, reraise=True, default_message="gRPC service error"
     )(func)
 
 
 def handle_database_errors(func: F) -> F:
     """Decorator specifically for database operation error handling."""
+
     @functools.wraps(func)
     def wrapper(*args: Any, **kwargs: Any) -> Any:
         try:
@@ -318,11 +339,13 @@ def handle_database_errors(func: F) -> F:
         except Exception as e:
             logger.exception("Database error in %s", func.__name__)
             raise MartyDatabaseError(f"Database operation failed: {e}") from e
+
     return wrapper  # type: ignore
 
 
 def handle_certificate_errors(func: F) -> F:
     """Decorator specifically for certificate operation error handling."""
+
     @functools.wraps(func)
     def wrapper(*args: Any, **kwargs: Any) -> Any:
         try:
@@ -330,4 +353,5 @@ def handle_certificate_errors(func: F) -> F:
         except Exception as e:
             logger.exception("Certificate error in %s", func.__name__)
             raise MartyCertificateError(f"Certificate operation failed: {e}") from e
+
     return wrapper  # type: ignore

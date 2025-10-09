@@ -130,7 +130,7 @@ scrape_configs:
   # Health check endpoints
   - job_name: 'marty-services-health'
     static_configs:
-      - targets: 
+      - targets:
           - 'trust-svc-demo:8080'
           - 'issuer-api-demo:8000'
           - 'ui-app-demo:8000'

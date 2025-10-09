@@ -5,18 +5,19 @@ from __future__ import annotations
 from datetime import datetime, timezone
 from typing import Any
 
-from sqlalchemy import JSON, DateTime, String, Text, Boolean, Integer, LargeBinary
+from sqlalchemy import JSON, Boolean, DateTime, Integer, LargeBinary, String, Text
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 
 
 class Base(DeclarativeBase):
     """Base class for all passport_engine service models."""
+
     pass
 
 
 class PassportEngineOutbox(Base):
     """Outbox pattern implementation for passport_engine service events."""
-    
+
     __tablename__ = "passport_engine_outbox"
 
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
@@ -37,7 +38,7 @@ class PassportEngineOutbox(Base):
 
 class PassportValidationRequest(Base):
     """Passport validation requests processed by passport_engine."""
-    
+
     __tablename__ = "passport_validation_requests"
 
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
@@ -47,7 +48,9 @@ class PassportValidationRequest(Base):
     document_type: Mapped[str] = mapped_column(String(32), nullable=False, index=True)
     mrz_data: Mapped[dict[str, Any] | None] = mapped_column(JSON, nullable=True)
     rfid_data: Mapped[dict[str, Any] | None] = mapped_column(JSON, nullable=True)
-    validation_status: Mapped[str] = mapped_column(String(32), nullable=False, default="PENDING", index=True)
+    validation_status: Mapped[str] = mapped_column(
+        String(32), nullable=False, default="PENDING", index=True
+    )
     validation_result: Mapped[dict[str, Any] | None] = mapped_column(JSON, nullable=True)
     validation_errors: Mapped[list[str] | None] = mapped_column(JSON, nullable=True)
     signature_valid: Mapped[bool | None] = mapped_column(Boolean, nullable=True)
@@ -55,7 +58,9 @@ class PassportValidationRequest(Base):
     document_security_valid: Mapped[bool | None] = mapped_column(Boolean, nullable=True)
     biometric_valid: Mapped[bool | None] = mapped_column(Boolean, nullable=True)
     requested_by: Mapped[str | None] = mapped_column(String(128), nullable=True)
-    request_source: Mapped[str] = mapped_column(String(64), nullable=False)  # API, BATCH, INSPECTION, etc.
+    request_source: Mapped[str] = mapped_column(
+        String(64), nullable=False
+    )  # API, BATCH, INSPECTION, etc.
     processing_time_ms: Mapped[int | None] = mapped_column(Integer, nullable=True)
     extra_metadata: Mapped[dict[str, Any] | None] = mapped_column(JSON, nullable=True)
     created_at: Mapped[datetime] = mapped_column(
@@ -71,7 +76,7 @@ class PassportValidationRequest(Base):
 
 class PassportValidationCache(Base):
     """Cache for passport validation results to avoid redundant processing."""
-    
+
     __tablename__ = "passport_validation_cache"
 
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)

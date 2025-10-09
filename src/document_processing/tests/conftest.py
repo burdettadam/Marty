@@ -37,9 +37,7 @@ def sample_mrz_base64() -> str:
     """
     Sample base64 encoded image with MRZ (minimal 1x1 pixel PNG) - standardized
     """
-    return (
-        "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg=="
-    )
+    return "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg=="
 
 
 @pytest.fixture

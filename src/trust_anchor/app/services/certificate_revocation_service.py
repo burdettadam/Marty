@@ -46,11 +46,11 @@ class CertificateRevocationService:
         """
         self.openxpki_service = openxpki_service
         self.cache_ttl_hours = cache_ttl_hours
-        
+
         # Initialize shared utilities
         self.config_manager = get_config_manager("trust-anchor")
         self.cert_processor = CertificateProcessor()
-        
+
         # Use ConfigurationManager for path resolution
         data_dir = self.config_manager.get_env_path("DATA_DIR") or Path("data")
         default_cache_path = data_dir / "trust" / "revocation_cache.json"

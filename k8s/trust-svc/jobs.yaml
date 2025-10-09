@@ -82,7 +82,7 @@ spec:
           - name: trust-svc-refresh
             image: marty/trust-svc:latest
             command: ["python", "-c"]
-            args: 
+            args:
             - |
               import asyncio
               import aiohttp

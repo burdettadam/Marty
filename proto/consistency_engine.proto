@@ -9,23 +9,23 @@ import "google/protobuf/timestamp.proto";
 service ConsistencyEngine {
   // Perform comprehensive consistency checks across all document zones
   rpc CheckConsistency(ConsistencyCheckRequest) returns (ConsistencyCheckResponse) {}
-  
+
   // Get detailed audit history for a specific consistency check
   rpc GetAuditHistory(AuditHistoryRequest) returns (AuditHistoryResponse) {}
-  
+
   // Validate specific field mappings (for testing/debugging)
   rpc ValidateFieldMapping(FieldMappingRequest) returns (FieldMappingResponse) {}
-  
+
   // Get supported consistency rules and their descriptions
   rpc GetSupportedRules(GetSupportedRulesRequest) returns (GetSupportedRulesResponse) {}
-  
+
   // Ruleset management operations
   rpc LoadRulePack(LoadRulePackRequest) returns (LoadRulePackResponse) {}
   rpc ReloadRulePack(ReloadRulePackRequest) returns (ReloadRulePackResponse) {}
   rpc GetRulePackInfo(GetRulePackInfoRequest) returns (GetRulePackInfoResponse) {}
   rpc ListRulePacks(ListRulePacksRequest) returns (ListRulePacksResponse) {}
   rpc SetValidationMode(SetValidationModeRequest) returns (SetValidationModeResponse) {}
-  
+
   // Cedar policy operations
   rpc EvaluateCedarPolicy(EvaluateCedarPolicyRequest) returns (EvaluateCedarPolicyResponse) {}
   rpc GetActivePolicies(GetActivePoliciesRequest) returns (GetActivePoliciesResponse) {}

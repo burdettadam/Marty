@@ -8,25 +8,25 @@ import "common_services.proto";
 service DTCEngine {
   // Create a new Digital Travel Credential from passport data
   rpc CreateDTC(CreateDTCRequest) returns (CreateDTCResponse) {}
-  
+
   // Get an existing DTC by ID
   rpc GetDTC(GetDTCRequest) returns (DTCResponse) {}
-  
+
   // Sign a DTC using the Document Signer service
   rpc SignDTC(SignDTCRequest) returns (SignDTCResponse) {}
-  
+
   // Revoke a DTC
   rpc RevokeDTC(RevokeDTCRequest) returns (RevokeDTCResponse) {}
-  
+
   // Generate QR code for offline verification of a DTC
   rpc GenerateDTCQRCode(GenerateDTCQRCodeRequest) returns (GenerateDTCQRCodeResponse) {}
-  
+
   // Transfer a DTC to a mobile device
   rpc TransferDTCToDevice(TransferDTCToDeviceRequest) returns (TransferDTCToDeviceResponse) {}
-  
+
   // Verify a DTC
   rpc VerifyDTC(VerifyDTCRequest) returns (VerifyDTCResponse) {}
-  
+
   // Link a DTC to a physical passport
   rpc LinkDTCToPassport(LinkDTCToPassportRequest) returns (LinkDTCToPassportResponse) {}
 }

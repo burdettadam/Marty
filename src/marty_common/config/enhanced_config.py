@@ -4,6 +4,7 @@ Enhanced configuration management utilities to eliminate duplicate configuration
 This module extends the existing config_manager with common patterns used across services
 to reduce code duplication in environment variable handling and service configuration.
 """
+
 from __future__ import annotations
 
 import os
@@ -24,9 +25,7 @@ class EnhancedServiceConfig(ServiceConfig):
     data_dir: str = field(default_factory=lambda: os.environ.get("DATA_DIR", "/app/data"))
 
     # Certificate and trust management
-    trust_store_path: str | None = field(
-        default_factory=lambda: os.environ.get("TRUST_STORE_PATH")
-    )
+    trust_store_path: str | None = field(default_factory=lambda: os.environ.get("TRUST_STORE_PATH"))
     cert_notification_days: list[int] = field(default_factory=list)
     cert_check_interval_days: int = field(
         default_factory=lambda: int(os.environ.get("CERT_CHECK_INTERVAL_DAYS", "1"))
@@ -36,17 +35,13 @@ class EnhancedServiceConfig(ServiceConfig):
     )
 
     # Service-specific ports (commonly used patterns)
-    postgres_port: int = field(
-        default_factory=lambda: int(os.environ.get("POSTGRES_PORT", "5432"))
-    )
+    postgres_port: int = field(default_factory=lambda: int(os.environ.get("POSTGRES_PORT", "5432")))
 
     # Common timeout configurations
     connection_timeout: int = field(
         default_factory=lambda: int(os.environ.get("CONNECTION_TIMEOUT", "30"))
     )
-    read_timeout: int = field(
-        default_factory=lambda: int(os.environ.get("READ_TIMEOUT", "60"))
-    )
+    read_timeout: int = field(default_factory=lambda: int(os.environ.get("READ_TIMEOUT", "60")))
 
     # SSL/TLS configuration
     verify_ssl: bool = field(
@@ -95,9 +90,7 @@ class ConfigurationManager:
         return Path(value) if value else None
 
     @staticmethod
-    def get_env_list(
-        key: str, separator: str = ",", default: list[str] | None = None
-    ) -> list[str]:
+    def get_env_list(key: str, separator: str = ",", default: list[str] | None = None) -> list[str]:
         """Get list of strings from environment with separator."""
         value = os.environ.get(key)
         if not value:
@@ -204,9 +197,7 @@ class ConfigurationManager:
         """Get standard database configuration."""
         return {
             "url": ConfigurationManager.resolve_secret(
-                "DATABASE_URL",
-                "DATABASE_URL_FILE",
-                required=True
+                "DATABASE_URL", "DATABASE_URL_FILE", required=True
             ),
             "pool_size": ConfigurationManager.get_env_int("DB_POOL_SIZE", 5),
             "max_overflow": ConfigurationManager.get_env_int("DB_MAX_OVERFLOW", 10),
@@ -220,14 +211,10 @@ class ConfigurationManager:
         return {
             "base_url": os.environ.get("OPENXPKI_BASE_URL", "https://localhost:8443/api/v2"),
             "username": ConfigurationManager.resolve_secret(
-                "OPENXPKI_USERNAME",
-                "OPENXPKI_USERNAME_FILE",
-                required=True
+                "OPENXPKI_USERNAME", "OPENXPKI_USERNAME_FILE", required=True
             ),
             "password": ConfigurationManager.resolve_secret(
-                "OPENXPKI_PASSWORD",
-                "OPENXPKI_PASSWORD_FILE",
-                required=True
+                "OPENXPKI_PASSWORD", "OPENXPKI_PASSWORD_FILE", required=True
             ),
             "realm": os.environ.get("OPENXPKI_REALM", "marty"),
             "connection_timeout": ConfigurationManager.get_env_int("OPENXPKI_CONN_TIMEOUT", 30),
@@ -264,7 +251,7 @@ def create_enhanced_config(service_name: str, **overrides: object) -> EnhancedSe
     config_data = {
         "service_name": service_name,
         "grpc_port": ConfigurationManager.get_service_port(service_name, 50051),
-        **overrides
+        **overrides,
     }
 
     return EnhancedServiceConfig(**config_data)

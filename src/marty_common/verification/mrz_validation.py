@@ -12,25 +12,26 @@ from datetime import datetime, timezone
 from enum import Enum
 from typing import Any
 
-from src.shared.logging_config import get_logger
-
 from src.marty_common.utils.mrz_utils import MRZParser
 from src.marty_common.verification.document_detection import DocumentClass
+from src.shared.logging_config import get_logger
 
 logger = get_logger(__name__)
 
 
 class MRZValidationLevel(Enum):
     """MRZ validation thoroughness levels."""
-    BASIC = "basic"           # Structure only
-    STANDARD = "standard"     # + check digits
+
+    BASIC = "basic"  # Structure only
+    STANDARD = "standard"  # + check digits
     COMPREHENSIVE = "comprehensive"  # + cross-field validation
-    STRICT = "strict"         # + ICAO compliance checks
+    STRICT = "strict"  # + ICAO compliance checks
 
 
 @dataclass
 class MRZValidationResult:
     """Result of MRZ validation check."""
+
     check_name: str
     passed: bool
     details: str = ""
@@ -51,7 +52,7 @@ class MRZValidationResult:
             "details": self.details,
             "error_code": self.error_code,
             "metadata": self.metadata,
-            "timestamp": self.timestamp.isoformat()
+            "timestamp": self.timestamp.isoformat(),
         }
 
 
@@ -66,7 +67,7 @@ class MRZValidator:
         self,
         mrz_data: str,
         document_class: DocumentClass,
-        validation_level: MRZValidationLevel = MRZValidationLevel.STANDARD
+        validation_level: MRZValidationLevel = MRZValidationLevel.STANDARD,
     ) -> list[MRZValidationResult]:
         """
         Validate MRZ data comprehensively.
@@ -93,7 +94,7 @@ class MRZValidator:
         if validation_level in [
             MRZValidationLevel.STANDARD,
             MRZValidationLevel.COMPREHENSIVE,
-            MRZValidationLevel.STRICT
+            MRZValidationLevel.STRICT,
         ]:
             check_digit_results = self._validate_check_digits(mrz_data, document_class)
             results.extend(check_digit_results)
@@ -120,9 +121,9 @@ class MRZValidator:
         lines = [line.strip() for line in mrz_data.strip().split("\n") if line.strip()]
 
         if not lines:
-            results.append(MRZValidationResult(
-                "MRZ Structure", False, "No MRZ lines found", "NO_LINES"
-            ))
+            results.append(
+                MRZValidationResult("MRZ Structure", False, "No MRZ lines found", "NO_LINES")
+            )
             return results
 
         # Validate based on document class
@@ -135,9 +136,14 @@ class MRZValidator:
         elif document_class in [DocumentClass.TRAVEL_DOCUMENT, DocumentClass.RESIDENCE]:
             results.extend(self._validate_flexible_structure(lines))
         else:
-            results.append(MRZValidationResult(
-                "MRZ Structure", False, f"Unknown document class: {document_class}", "UNKNOWN_CLASS"
-            ))
+            results.append(
+                MRZValidationResult(
+                    "MRZ Structure",
+                    False,
+                    f"Unknown document class: {document_class}",
+                    "UNKNOWN_CLASS",
+                )
+            )
 
         return results
 
@@ -147,29 +153,37 @@ class MRZValidator:
 
         # Check line count
         if len(lines) != 2:
-            results.append(MRZValidationResult(
-                "TD-3 Line Count", False,
-                f"Expected 2 lines, found {len(lines)}", "WRONG_LINE_COUNT",
-                {"expected": 2, "actual": len(lines)}
-            ))
+            results.append(
+                MRZValidationResult(
+                    "TD-3 Line Count",
+                    False,
+                    f"Expected 2 lines, found {len(lines)}",
+                    "WRONG_LINE_COUNT",
+                    {"expected": 2, "actual": len(lines)},
+                )
+            )
             return results
 
-        results.append(MRZValidationResult(
-            "TD-3 Line Count", True, "Correct number of lines (2)"
-        ))
+        results.append(MRZValidationResult("TD-3 Line Count", True, "Correct number of lines (2)"))
 
         # Check line lengths
         for i, line in enumerate(lines, 1):
             if len(line) != 44:
-                results.append(MRZValidationResult(
-                    f"TD-3 Line {i} Length", False,
-                    f"Expected 44 characters, found {len(line)}", "WRONG_LINE_LENGTH",
-                    {"line": i, "expected": 44, "actual": len(line)}
-                ))
+                results.append(
+                    MRZValidationResult(
+                        f"TD-3 Line {i} Length",
+                        False,
+                        f"Expected 44 characters, found {len(line)}",
+                        "WRONG_LINE_LENGTH",
+                        {"line": i, "expected": 44, "actual": len(line)},
+                    )
+                )
             else:
-                results.append(MRZValidationResult(
-                    f"TD-3 Line {i} Length", True, f"Line {i} has correct length (44)"
-                ))
+                results.append(
+                    MRZValidationResult(
+                        f"TD-3 Line {i} Length", True, f"Line {i} has correct length (44)"
+                    )
+                )
 
         # Validate character set
         for i, line in enumerate(lines, 1):
@@ -184,29 +198,37 @@ class MRZValidator:
 
         # Check line count
         if len(lines) != 3:
-            results.append(MRZValidationResult(
-                "TD-1 Line Count", False,
-                f"Expected 3 lines, found {len(lines)}", "WRONG_LINE_COUNT",
-                {"expected": 3, "actual": len(lines)}
-            ))
+            results.append(
+                MRZValidationResult(
+                    "TD-1 Line Count",
+                    False,
+                    f"Expected 3 lines, found {len(lines)}",
+                    "WRONG_LINE_COUNT",
+                    {"expected": 3, "actual": len(lines)},
+                )
+            )
             return results
 
-        results.append(MRZValidationResult(
-            "TD-1 Line Count", True, "Correct number of lines (3)"
-        ))
+        results.append(MRZValidationResult("TD-1 Line Count", True, "Correct number of lines (3)"))
 
         # Check line lengths
         for i, line in enumerate(lines, 1):
             if len(line) != 30:
-                results.append(MRZValidationResult(
-                    f"TD-1 Line {i} Length", False,
-                    f"Expected 30 characters, found {len(line)}", "WRONG_LINE_LENGTH",
-                    {"line": i, "expected": 30, "actual": len(line)}
-                ))
+                results.append(
+                    MRZValidationResult(
+                        f"TD-1 Line {i} Length",
+                        False,
+                        f"Expected 30 characters, found {len(line)}",
+                        "WRONG_LINE_LENGTH",
+                        {"line": i, "expected": 30, "actual": len(line)},
+                    )
+                )
             else:
-                results.append(MRZValidationResult(
-                    f"TD-1 Line {i} Length", True, f"Line {i} has correct length (30)"
-                ))
+                results.append(
+                    MRZValidationResult(
+                        f"TD-1 Line {i} Length", True, f"Line {i} has correct length (30)"
+                    )
+                )
 
         # Validate character set
         for i, line in enumerate(lines, 1):
@@ -221,29 +243,37 @@ class MRZValidator:
 
         # Check line count
         if len(lines) != 2:
-            results.append(MRZValidationResult(
-                "TD-2 Line Count", False,
-                f"Expected 2 lines, found {len(lines)}", "WRONG_LINE_COUNT",
-                {"expected": 2, "actual": len(lines)}
-            ))
+            results.append(
+                MRZValidationResult(
+                    "TD-2 Line Count",
+                    False,
+                    f"Expected 2 lines, found {len(lines)}",
+                    "WRONG_LINE_COUNT",
+                    {"expected": 2, "actual": len(lines)},
+                )
+            )
             return results
 
-        results.append(MRZValidationResult(
-            "TD-2 Line Count", True, "Correct number of lines (2)"
-        ))
+        results.append(MRZValidationResult("TD-2 Line Count", True, "Correct number of lines (2)"))
 
         # Check line lengths
         for i, line in enumerate(lines, 1):
             if len(line) != 36:
-                results.append(MRZValidationResult(
-                    f"TD-2 Line {i} Length", False,
-                    f"Expected 36 characters, found {len(line)}", "WRONG_LINE_LENGTH",
-                    {"line": i, "expected": 36, "actual": len(line)}
-                ))
+                results.append(
+                    MRZValidationResult(
+                        f"TD-2 Line {i} Length",
+                        False,
+                        f"Expected 36 characters, found {len(line)}",
+                        "WRONG_LINE_LENGTH",
+                        {"line": i, "expected": 36, "actual": len(line)},
+                    )
+                )
             else:
-                results.append(MRZValidationResult(
-                    f"TD-2 Line {i} Length", True, f"Line {i} has correct length (36)"
-                ))
+                results.append(
+                    MRZValidationResult(
+                        f"TD-2 Line {i} Length", True, f"Line {i} has correct length (36)"
+                    )
+                )
 
         # Validate character set
         for i, line in enumerate(lines, 1):
@@ -258,29 +288,41 @@ class MRZValidator:
 
         # More lenient validation for various formats
         if len(lines) < 2:
-            results.append(MRZValidationResult(
-                "Flexible Structure", False,
-                f"At least 2 lines required, found {len(lines)}", "INSUFFICIENT_LINES",
-                {"minimum": 2, "actual": len(lines)}
-            ))
+            results.append(
+                MRZValidationResult(
+                    "Flexible Structure",
+                    False,
+                    f"At least 2 lines required, found {len(lines)}",
+                    "INSUFFICIENT_LINES",
+                    {"minimum": 2, "actual": len(lines)},
+                )
+            )
             return results
 
-        results.append(MRZValidationResult(
-            "Flexible Structure", True, f"Sufficient lines found ({len(lines)})"
-        ))
+        results.append(
+            MRZValidationResult(
+                "Flexible Structure", True, f"Sufficient lines found ({len(lines)})"
+            )
+        )
 
         # Check minimum line length
         for i, line in enumerate(lines, 1):
             if len(line) < 30:
-                results.append(MRZValidationResult(
-                    f"Flexible Line {i} Length", False,
-                    f"Minimum 30 characters required, found {len(line)}", "LINE_TOO_SHORT",
-                    {"line": i, "minimum": 30, "actual": len(line)}
-                ))
+                results.append(
+                    MRZValidationResult(
+                        f"Flexible Line {i} Length",
+                        False,
+                        f"Minimum 30 characters required, found {len(line)}",
+                        "LINE_TOO_SHORT",
+                        {"line": i, "minimum": 30, "actual": len(line)},
+                    )
+                )
             else:
-                results.append(MRZValidationResult(
-                    f"Flexible Line {i} Length", True, f"Line {i} meets minimum length"
-                ))
+                results.append(
+                    MRZValidationResult(
+                        f"Flexible Line {i} Length", True, f"Line {i} meets minimum length"
+                    )
+                )
 
         return results
 
@@ -292,14 +334,14 @@ class MRZValidator:
 
         if invalid_chars:
             return MRZValidationResult(
-                f"{context} Characters", False,
-                f"Invalid characters found: {set(invalid_chars)}", "INVALID_CHARACTERS",
-                {"invalid_chars": list(set(invalid_chars)), "total_invalid": len(invalid_chars)}
+                f"{context} Characters",
+                False,
+                f"Invalid characters found: {set(invalid_chars)}",
+                "INVALID_CHARACTERS",
+                {"invalid_chars": list(set(invalid_chars)), "total_invalid": len(invalid_chars)},
             )
 
-        return MRZValidationResult(
-            f"{context} Characters", True, "All characters valid"
-        )
+        return MRZValidationResult(f"{context} Characters", True, "All characters valid")
 
     def _validate_check_digits(
         self, mrz_data: str, document_class: DocumentClass
@@ -313,19 +355,26 @@ class MRZValidator:
             elif document_class == DocumentClass.CMC:
                 results.extend(self._validate_td1_check_digits(mrz_data))
             elif document_class in [
-                DocumentClass.VISA, DocumentClass.ID_CARD, DocumentClass.TD2_MISC
+                DocumentClass.VISA,
+                DocumentClass.ID_CARD,
+                DocumentClass.TD2_MISC,
             ]:
                 results.extend(self._validate_td2_check_digits(mrz_data))
             else:
-                results.append(MRZValidationResult(
-                    "Check Digits", True,
-                    "Check digit validation not implemented for this document type"
-                ))
+                results.append(
+                    MRZValidationResult(
+                        "Check Digits",
+                        True,
+                        "Check digit validation not implemented for this document type",
+                    )
+                )
 
         except Exception as e:
-            results.append(MRZValidationResult(
-                "Check Digits", False, f"Check digit validation error: {e}", "CHECK_DIGIT_ERROR"
-            ))
+            results.append(
+                MRZValidationResult(
+                    "Check Digits", False, f"Check digit validation error: {e}", "CHECK_DIGIT_ERROR"
+                )
+            )
 
         return results
 
@@ -336,24 +385,32 @@ class MRZValidator:
         try:
             # Use existing MRZ parser if available
             from src.marty_common.utils.mrz_utils import parse_td3_mrz
+
             parsed = parse_td3_mrz(mrz_data)
 
             if parsed and parsed.get("check_digits_valid", False):
-                results.append(MRZValidationResult(
-                    "TD-3 Check Digits", True, "All check digits valid"
-                ))
+                results.append(
+                    MRZValidationResult("TD-3 Check Digits", True, "All check digits valid")
+                )
             else:
-                results.append(MRZValidationResult(
-                    "TD-3 Check Digits", False,
-                    "Check digit validation failed", "CHECK_DIGIT_INVALID"
-                ))
+                results.append(
+                    MRZValidationResult(
+                        "TD-3 Check Digits",
+                        False,
+                        "Check digit validation failed",
+                        "CHECK_DIGIT_INVALID",
+                    )
+                )
 
         except ImportError:
             # Fallback validation
-            results.append(MRZValidationResult(
-                "TD-3 Check Digits", True,
-                "Check digit validation placeholder (parser not available)"
-            ))
+            results.append(
+                MRZValidationResult(
+                    "TD-3 Check Digits",
+                    True,
+                    "Check digit validation placeholder (parser not available)",
+                )
+            )
 
         return results
 
@@ -364,24 +421,32 @@ class MRZValidator:
         try:
             # Use existing MRZ parser if available
             from src.marty_common.utils.mrz_utils import parse_td1_mrz
+
             parsed = parse_td1_mrz(mrz_data)
 
             if parsed and parsed.get("check_digits_valid", False):
-                results.append(MRZValidationResult(
-                    "TD-1 Check Digits", True, "All check digits valid"
-                ))
+                results.append(
+                    MRZValidationResult("TD-1 Check Digits", True, "All check digits valid")
+                )
             else:
-                results.append(MRZValidationResult(
-                    "TD-1 Check Digits", False,
-                    "Check digit validation failed", "CHECK_DIGIT_INVALID"
-                ))
+                results.append(
+                    MRZValidationResult(
+                        "TD-1 Check Digits",
+                        False,
+                        "Check digit validation failed",
+                        "CHECK_DIGIT_INVALID",
+                    )
+                )
 
         except ImportError:
             # Fallback validation
-            results.append(MRZValidationResult(
-                "TD-1 Check Digits", True,
-                "Check digit validation placeholder (parser not available)"
-            ))
+            results.append(
+                MRZValidationResult(
+                    "TD-1 Check Digits",
+                    True,
+                    "Check digit validation placeholder (parser not available)",
+                )
+            )
 
         return results
 
@@ -392,17 +457,22 @@ class MRZValidator:
         try:
             # Use existing MRZ parser if available
             from src.marty_common.utils.mrz_utils import parse_td2_mrz
+
             parsed = parse_td2_mrz(mrz_data)
 
             if parsed and parsed.get("check_digits_valid", False):
-                results.append(MRZValidationResult(
-                    "TD-2 Check Digits", True, "All check digits valid"
-                ))
+                results.append(
+                    MRZValidationResult("TD-2 Check Digits", True, "All check digits valid")
+                )
             else:
-                results.append(MRZValidationResult(
-                    "TD-2 Check Digits", False,
-                    "Check digit validation failed", "CHECK_DIGIT_INVALID"
-                ))
+                results.append(
+                    MRZValidationResult(
+                        "TD-2 Check Digits",
+                        False,
+                        "Check digit validation failed",
+                        "CHECK_DIGIT_INVALID",
+                    )
+                )
 
         except ImportError:
             # Fallback validation using manual calculation
@@ -416,10 +486,14 @@ class MRZValidator:
 
         lines = mrz_data.strip().split("\n")
         if len(lines) < 2:
-            results.append(MRZValidationResult(
-                "TD-2 Check Digits", False,
-                "Insufficient lines for check digit validation", "INSUFFICIENT_DATA"
-            ))
+            results.append(
+                MRZValidationResult(
+                    "TD-2 Check Digits",
+                    False,
+                    "Insufficient lines for check digit validation",
+                    "INSUFFICIENT_DATA",
+                )
+            )
             return results
 
         # Basic check digit validation using MRZParser
@@ -432,15 +506,20 @@ class MRZValidator:
                 calculated_check = self.parser.calculate_check_digit(doc_number)
 
                 if expected_check == calculated_check:
-                    results.append(MRZValidationResult(
-                        "TD-2 Document Number Check", True, "Document number check digit valid"
-                    ))
+                    results.append(
+                        MRZValidationResult(
+                            "TD-2 Document Number Check", True, "Document number check digit valid"
+                        )
+                    )
                 else:
-                    results.append(MRZValidationResult(
-                        "TD-2 Document Number Check", False,
-                        f"Expected {expected_check}, calculated {calculated_check}",
-                        "DOC_NUM_CHECK_INVALID"
-                    ))
+                    results.append(
+                        MRZValidationResult(
+                            "TD-2 Document Number Check",
+                            False,
+                            f"Expected {expected_check}, calculated {calculated_check}",
+                            "DOC_NUM_CHECK_INVALID",
+                        )
+                    )
 
             # Date of birth check digit (position 6 in line 2)
             line2 = lines[1]
@@ -450,21 +529,30 @@ class MRZValidator:
                 calculated_check = self.parser.calculate_check_digit(dob)
 
                 if expected_check == calculated_check:
-                    results.append(MRZValidationResult(
-                        "TD-2 Date of Birth Check", True, "Date of birth check digit valid"
-                    ))
+                    results.append(
+                        MRZValidationResult(
+                            "TD-2 Date of Birth Check", True, "Date of birth check digit valid"
+                        )
+                    )
                 else:
-                    results.append(MRZValidationResult(
-                        "TD-2 Date of Birth Check", False,
-                        f"Expected {expected_check}, calculated {calculated_check}",
-                        "DOB_CHECK_INVALID"
-                    ))
+                    results.append(
+                        MRZValidationResult(
+                            "TD-2 Date of Birth Check",
+                            False,
+                            f"Expected {expected_check}, calculated {calculated_check}",
+                            "DOB_CHECK_INVALID",
+                        )
+                    )
 
         except Exception as e:
-            results.append(MRZValidationResult(
-                "TD-2 Check Digits", False,
-                f"Manual validation error: {e}", "MANUAL_VALIDATION_ERROR"
-            ))
+            results.append(
+                MRZValidationResult(
+                    "TD-2 Check Digits",
+                    False,
+                    f"Manual validation error: {e}",
+                    "MANUAL_VALIDATION_ERROR",
+                )
+            )
 
         return results
 
@@ -481,9 +569,11 @@ class MRZValidator:
         # - Country code validity
         # - Name field consistency
 
-        results.append(MRZValidationResult(
-            "Cross-Field Validation", True, "Cross-field validation placeholder"
-        ))
+        results.append(
+            MRZValidationResult(
+                "Cross-Field Validation", True, "Cross-field validation placeholder"
+            )
+        )
 
         return results
 
@@ -500,9 +590,9 @@ class MRZValidator:
         # - Character transliteration rules
         # - Date format compliance
 
-        results.append(MRZValidationResult(
-            "ICAO Compliance", True, "ICAO compliance validation placeholder"
-        ))
+        results.append(
+            MRZValidationResult("ICAO Compliance", True, "ICAO compliance validation placeholder")
+        )
 
         return results
 

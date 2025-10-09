@@ -7,16 +7,16 @@ package marty.storage.v1;
 service StoragePolicyEngine {
   // Validate data against minimal storage requirements
   rpc ValidateDataCompliance (DataComplianceRequest) returns (DataComplianceResponse);
-  
+
   // Apply storage constraints to data
   rpc ApplyStorageConstraints (StorageConstraintRequest) returns (StorageConstraintResponse);
-  
+
   // Mask/redact sensitive data not required for verification
   rpc MaskSensitiveData (DataMaskingRequest) returns (DataMaskingResponse);
-  
+
   // Audit stored data for compliance violations
   rpc AuditStoredData (StorageAuditRequest) returns (StorageAuditResponse);
-  
+
   // Purge data beyond retention periods
   rpc PurgeExpiredData (DataPurgeRequest) returns (DataPurgeResponse);
 }
@@ -47,7 +47,7 @@ enum DataCategory {
   SIGNATURE_MATERIAL = 5;
   SOD_PAYLOAD = 6;
   VDS_PAYLOAD = 7;
-  
+
   // Restricted categories (should not be stored)
   FULL_FACIAL_IMAGE = 8;
   FINGERPRINT_DATA = 9;

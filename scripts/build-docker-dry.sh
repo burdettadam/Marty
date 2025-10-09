@@ -83,10 +83,10 @@ warning() {
 
 build_base_image() {
     log "Building base image: $BASE_TAG"
-    
+
     if docker build -f docker/base.Dockerfile -t "$BASE_TAG" .; then
         success "Base image built successfully"
-        
+
         if [ "$PUSH" = true ] && [ -n "$REGISTRY" ]; then
             REGISTRY_TAG="${REGISTRY}/marty-base:latest"
             docker tag "$BASE_TAG" "$REGISTRY_TAG"
@@ -104,22 +104,22 @@ build_dry_service() {
     local service_spec=$1
     local service_name=$(echo "$service_spec" | cut -d: -f1)
     local service_port=$(echo "$service_spec" | cut -d: -f2)
-    
+
     local image_name="marty-${service_name}:latest"
     if [ -n "$REGISTRY" ]; then
         image_name="${REGISTRY}/marty-${service_name}:latest"
     fi
-    
+
     log "Building DRY service: $service_name (port $service_port)"
-    
+
     # Use the DRY Dockerfile for this service
     local dockerfile="docker/${service_name}.Dockerfile"
-    
+
     if [ ! -f "$dockerfile" ]; then
         error "Dockerfile not found: $dockerfile"
         return 1
     fi
-    
+
     if docker build \
         --build-arg BASE_IMAGE="$BASE_TAG" \
         --build-arg SERVICE_NAME="$service_name" \
@@ -128,7 +128,7 @@ build_dry_service() {
         -t "$image_name" \
         .; then
         success "Built $service_name successfully"
-        
+
         if [ "$PUSH" = true ]; then
             log "Pushing $service_name to registry"
             docker push "$image_name"
@@ -143,24 +143,24 @@ build_dry_service() {
 build_legacy_service() {
     local service_spec=$1
     local service_name=$(echo "$service_spec" | cut -d: -f1)
-    
+
     local image_name="marty-${service_name}:latest"
     if [ -n "$REGISTRY" ]; then
         image_name="${REGISTRY}/marty-${service_name}:latest"
     fi
-    
+
     log "Building legacy service: $service_name"
-    
+
     local dockerfile="docker/${service_name}.Dockerfile"
-    
+
     if [ ! -f "$dockerfile" ]; then
         error "Dockerfile not found: $dockerfile"
         return 1
     fi
-    
+
     if docker build -f "$dockerfile" -t "$image_name" .; then
         success "Built $service_name successfully"
-        
+
         if [ "$PUSH" = true ]; then
             log "Pushing $service_name to registry"
             docker push "$image_name"
@@ -179,7 +179,7 @@ list_services() {
         service_port=$(echo "$service" | cut -d: -f2)
         echo "  - $service_name (port $service_port)"
     done
-    
+
     echo
     echo "Legacy Services (individual Dockerfiles):"
     for service in "${LEGACY_SERVICES[@]}"; do
@@ -289,7 +289,7 @@ failed_services=()
 
 for service_spec in "${SERVICES_TO_BUILD[@]}"; do
     service_name=$(echo "$service_spec" | cut -d: -f1)
-    
+
     # Check if this is a DRY service
     is_dry=false
     for dry_service in "${DRY_SERVICES[@]}"; do
@@ -298,7 +298,7 @@ for service_spec in "${SERVICES_TO_BUILD[@]}"; do
             break
         fi
     done
-    
+
     if [ "$is_dry" = true ]; then
         if [ "$LEGACY_ONLY" = false ]; then
             if ! build_dry_service "$service_spec"; then

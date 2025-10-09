@@ -16,9 +16,11 @@ Intended usage (example):
 
 The call factory must produce either an awaitable or a direct response when invoked.
 """
+
 from __future__ import annotations
 
-from typing import Any, Awaitable, Callable, TypeVar
+from collections.abc import Awaitable, Callable
+from typing import Any, TypeVar
 
 from .circuit_breaker import CircuitBreaker
 from .retry import retry_async
@@ -70,5 +72,6 @@ async def async_call_with_resilience(
             breaker.record_success()
 
     return await _attempt()
+
 
 __all__ = ["async_call_with_resilience"]

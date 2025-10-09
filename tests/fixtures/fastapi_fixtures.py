@@ -38,7 +38,7 @@ def setup_service_path(service_name: str) -> None:
 
 def create_fastapi_client_fixture(
     app: FastAPI, api_key: str = "test_api_key"
-) -> Generator[TestClient, None, None]:
+) -> Generator[TestClient]:
     """
     Create a standardized FastAPI test client fixture.
 
@@ -61,9 +61,7 @@ def sample_mrz_base64() -> str:
     """
     Sample base64 encoded image with MRZ (minimal 1x1 pixel PNG).
     """
-    return (
-        "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg=="
-    )
+    return "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg=="
 
 
 @pytest.fixture
@@ -78,20 +76,17 @@ def sample_process_request() -> dict:
     Sample process request for document processing testing.
     """
     return {
-        "processParam": {
-            "scenario": "Mrz",
-            "resultTypeOutput": ["MrzText", "MrzFields"]
-        },
+        "processParam": {"scenario": "Mrz", "resultTypeOutput": ["MrzText", "MrzFields"]},
         "List": [
             {
                 "ImageSource": {
                     "SourceType": "base64",
                     "SourceData": (
                         "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg=="
-                    )
+                    ),
                 }
             }
-        ]
+        ],
     }
 
 
@@ -102,7 +97,7 @@ def test_database_config() -> dict:
     return {
         "url": "postgresql://test:test@localhost:5432/test_martydb",
         "echo": True,
-        "pool_pre_ping": True
+        "pool_pre_ping": True,
     }
 
 
@@ -123,7 +118,7 @@ def setup_test_environment(env_vars: dict | None = None) -> dict:
     standard_vars = {
         "MARTY_ENV": "testing",
         "MARTY_LOG_LEVEL": "DEBUG",
-        "MARTY_DATABASE_URL": "postgresql://test:test@localhost:5432/test_martydb"
+        "MARTY_DATABASE_URL": "postgresql://test:test@localhost:5432/test_martydb",
     }
 
     # Apply standard variables

@@ -114,22 +114,22 @@ if check_demo_status; then
 else
     echo -e "${YELLOW}⚠️  Demo is not running at $BASE_URL${NC}"
     echo -e "${YELLOW}💡 Start the demo with: cd $DEMO_DIR && ./deploy-k8s.sh${NC}"
-    
+
     read -p "Would you like to start the demo now? (y/N): " -n 1 -r
     echo
     if [[ $REPLY =~ ^[Yy]$ ]]; then
         print_step "Starting demo..."
         cd "$DEMO_DIR"
-        
+
         echo "🏗️  Building demo services..."
         ./build.sh
-        
+
         echo "🚀 Deploying to Kind cluster..."
         ./deploy-k8s.sh
-        
+
         echo "⏳ Waiting for demo to be ready..."
         timeout 300 bash -c "until curl -f $BASE_URL > /dev/null 2>&1; do sleep 5; done"
-        
+
         echo -e "${GREEN}✅ Demo is now running!${NC}"
         cd "$TEST_DIR"
     else
@@ -159,7 +159,7 @@ echo -e "${BLUE}🏃 Running tests with: $TEST_CMD${NC}"
 # Run tests
 if eval "$TEST_CMD"; then
     echo -e "\n${GREEN}🎉 All tests passed!${NC}"
-    
+
     # Show test report
     if [ -f "playwright-report/index.html" ]; then
         echo -e "${BLUE}📊 Test report available at: playwright-report/index.html${NC}"
@@ -167,17 +167,17 @@ if eval "$TEST_CMD"; then
     fi
 else
     echo -e "\n${RED}❌ Some tests failed${NC}"
-    
+
     # Show failure information
     if [ -d "test-results" ]; then
         echo -e "${YELLOW}📁 Test results saved to: test-results/${NC}"
         echo -e "${YELLOW}🖼️  Screenshots saved to: test-results/screenshots/${NC}"
     fi
-    
+
     if [ -f "playwright-report/index.html" ]; then
         echo -e "${BLUE}📊 Detailed report: npx playwright show-report${NC}"
     fi
-    
+
     exit 1
 fi
 

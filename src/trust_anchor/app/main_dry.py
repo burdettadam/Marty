@@ -13,7 +13,7 @@ from src.trust_anchor.app.grpc_service import TrustAnchorService
 def main() -> None:
     """
     Run Trust Anchor service using the new gRPC Service Factory.
-    
+
     This replaces ~40 lines of server setup code with just 8 lines
     while providing the same functionality plus additional features:
     - Automatic health checks
@@ -32,7 +32,7 @@ def main() -> None:
         reflection_enabled=True,
         debug=True,
     )
-    
+
     # Register the Trust Anchor service
     factory.register_service(
         name="trust_anchor",

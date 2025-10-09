@@ -152,17 +152,17 @@ class DeploymentConfig:
             if self.environment == "production":
                 self.resources = {
                     "requests": {"cpu": "500m", "memory": "1Gi"},
-                    "limits": {"cpu": "2000m", "memory": "4Gi"}
+                    "limits": {"cpu": "2000m", "memory": "4Gi"},
                 }
             elif self.environment == "staging":
                 self.resources = {
                     "requests": {"cpu": "250m", "memory": "512Mi"},
-                    "limits": {"cpu": "1000m", "memory": "2Gi"}
+                    "limits": {"cpu": "1000m", "memory": "2Gi"},
                 }
             else:  # development
                 self.resources = {
                     "requests": {"cpu": "100m", "memory": "256Mi"},
-                    "limits": {"cpu": "500m", "memory": "1Gi"}
+                    "limits": {"cpu": "500m", "memory": "1Gi"},
                 }
 
 
@@ -210,7 +210,9 @@ class ServiceConfig(BaseModel):
             security=SecurityConfig(
                 encryption_key=os.getenv("ENCRYPTION_KEY", ""),
                 jwt_secret=os.getenv("JWT_SECRET", ""),
-                cors_origins=os.getenv("CORS_ORIGINS", "").split(",") if os.getenv("CORS_ORIGINS") else [],
+                cors_origins=(
+                    os.getenv("CORS_ORIGINS", "").split(",") if os.getenv("CORS_ORIGINS") else []
+                ),
             ),
             pkd=PKDConfig(
                 base_url=os.getenv("PKD_BASE_URL", "http://localhost:8000"),

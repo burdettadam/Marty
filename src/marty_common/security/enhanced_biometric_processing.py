@@ -34,6 +34,12 @@ from typing import Any
 import numpy as np
 from PIL import Image
 
+# Optional OpenCV dependency (guarded)
+try:  # pragma: no cover - optional dependency
+    import cv2  # type: ignore
+except Exception:  # noqa: BLE001 - broad to handle any import/runtime issue
+    cv2 = None  # type: ignore
+
 logger = logging.getLogger(__name__)
 
 
@@ -193,7 +199,7 @@ class FaceTemplate:
             issues = []
 
             # 1. Sharpness (Laplacian variance)
-            laplacian = cv2.Laplacian(img_array, cv2.CV_64F) if "cv2" in globals() else None
+            laplacian = cv2.Laplacian(img_array, cv2.CV_64F) if cv2 is not None else None
             if laplacian is not None:
                 sharpness = laplacian.var()
                 scores["sharpness"] = min(int(sharpness / 100), 100)
@@ -358,9 +364,9 @@ class FingerprintTemplate:
                     "x": x,
                     "y": y,
                     "angle": (angle_type & 0xFF00) >> 8,
-                    "type": "ridge_ending"
-                    if (angle_type & 0x00C0) == 0x0040
-                    else "ridge_bifurcation",
+                    "type": (
+                        "ridge_ending" if (angle_type & 0x00C0) == 0x0040 else "ridge_bifurcation"
+                    ),
                     "quality": (angle_type & 0x003F) * 100 // 63,
                 }
                 minutiae.append(minutia)
@@ -472,9 +478,9 @@ class IrisTemplate:
                 "iris_radius": self.iris_radius,
                 "pupil_radius": self.pupil_radius,
                 "rotation_angle": self.rotation_angle,
-                "pupil_iris_ratio": self.pupil_radius / self.iris_radius
-                if self.iris_radius > 0
-                else 0,
+                "pupil_iris_ratio": (
+                    self.pupil_radius / self.iris_radius if self.iris_radius > 0 else 0
+                ),
                 "template_size": len(self.template_data),
                 "capture_device": self.capture_device_id,
             }
@@ -562,7 +568,9 @@ class IrisTemplate:
 class PassportBiometricProcessor:
     """Enhanced biometric processor for passport data groups"""
 
-    def __init__(self, enable_quality_assessment: bool = True, security_validation: bool = True) -> None:
+    def __init__(
+        self, enable_quality_assessment: bool = True, security_validation: bool = True
+    ) -> None:
         """
         Initialize biometric processor
 
@@ -868,9 +876,9 @@ class PassportBiometricProcessor:
 
     def _detect_image_format(self, image_data: bytes) -> FaceImageFormat:
         """Detect image format from header bytes"""
-        if image_data.startswith(b"\xFF\xD8\xFF"):
+        if image_data.startswith(b"\xff\xd8\xff"):
             return FaceImageFormat.JPEG
-        if image_data.startswith(b"\x00\x00\x00\x0C\x6A\x50\x20\x20"):
+        if image_data.startswith(b"\x00\x00\x00\x0c\x6a\x50\x20\x20"):
             return FaceImageFormat.JPEG2000
         if image_data.startswith(b"\x89PNG"):
             return FaceImageFormat.PNG
@@ -890,7 +898,7 @@ class PassportBiometricProcessor:
 
     def _detect_fingerprint_format(self, template_data: bytes) -> FingerprintFormat:
         """Detect fingerprint template format"""
-        if template_data.startswith(b"\xFF\xA0"):  # WSQ marker
+        if template_data.startswith(b"\xff\xa0"):  # WSQ marker
             return FingerprintFormat.WSQ
         if len(template_data) >= 4:
             format_id = struct.unpack(">I", template_data[:4])[0]
@@ -1004,9 +1012,9 @@ class PassportBiometricProcessor:
             "quality_assessment_enabled": self.enable_quality_assessment,
             "security_validation_enabled": self.security_validation,
             "template_types": list(self.processed_templates.keys()),
-            "last_processing": self.processing_log[-1]["timestamp"]
-            if self.processing_log
-            else None,
+            "last_processing": (
+                self.processing_log[-1]["timestamp"] if self.processing_log else None
+            ),
         }
 
 
@@ -1034,12 +1042,12 @@ class MockBiometricData:
 
         # Minimal JPEG header for testing
         jpeg_data = (
-            b"\xFF\xD8\xFF\xE0\x00\x10JFIF\x00\x01\x01\x01\x00H\x00H\x00\x00"
-            b"\xFF\xDB\x00C\x00\x08\x06\x06\x07\x06\x05\x08\x07\x07\x07\t\t"
-            b"\x08\n\x0C\x14\r\x0C\x0b\x0b\x0C\x19\x12\x13\x0f\x14\x1d\x1a"
+            b"\xff\xd8\xff\xe0\x00\x10JFIF\x00\x01\x01\x01\x00H\x00H\x00\x00"
+            b"\xff\xdb\x00C\x00\x08\x06\x06\x07\x06\x05\x08\x07\x07\x07\t\t"
+            b"\x08\n\x0c\x14\r\x0c\x0b\x0b\x0c\x19\x12\x13\x0f\x14\x1d\x1a"
             b"\x1f\x1e\x1d\x1a\x1c\x1c $.' \",#\x1c\x1c(7),01444\x1f'9=82<.342"
-            b'\xFF\xC0\x00\x11\x08\x01\xe0\x02\x80\x03\x01"\x00\x02\x11\x01\x03\x11\x01'
-            b"\xFF\xD9"
+            b'\xff\xc0\x00\x11\x08\x01\xe0\x02\x80\x03\x01"\x00\x02\x11\x01\x03\x11\x01'
+            b"\xff\xd9"
         )
 
         return header + jpeg_data

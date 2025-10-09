@@ -2,6 +2,7 @@
 """
 Protocol buffer compilation script for Marty gRPC services.
 """
+
 import logging
 import subprocess
 import sys

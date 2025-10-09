@@ -7,25 +7,25 @@ package marty.lifecycle.v1;
 service DataLifecycleManager {
   // Configure retention periods for different data types
   rpc ConfigureRetentionPolicy (RetentionPolicyRequest) returns (RetentionPolicyResponse);
-  
+
   // Schedule automated archival processes
   rpc ScheduleArchival (ArchivalScheduleRequest) returns (ArchivalScheduleResponse);
-  
+
   // Execute data archival
   rpc ArchiveData (DataArchivalRequest) returns (DataArchivalResponse);
-  
+
   // Schedule automated deletion processes
   rpc ScheduleDeletion (DeletionScheduleRequest) returns (DeletionScheduleResponse);
-  
+
   // Execute data deletion (with approval workflow)
   rpc DeleteData (DataDeletionRequest) returns (DataDeletionResponse);
-  
+
   // Monitor retention compliance
   rpc MonitorRetentionCompliance (RetentionMonitoringRequest) returns (RetentionMonitoringResponse);
-  
+
   // Extend retention periods (exceptional cases)
   rpc ExtendRetentionPeriod (RetentionExtensionRequest) returns (RetentionExtensionResponse);
-  
+
   // Retrieve data for legal holds or audits
   rpc PlaceLegalHold (LegalHoldRequest) returns (LegalHoldResponse);
 }

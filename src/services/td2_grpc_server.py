@@ -60,12 +60,13 @@ class TD2ServiceGRPC:
 
             # Create document
             document = await self.td2_service.create_document(
-                create_request,
-                created_by=context.auth_context().get("user_id")
+                create_request, created_by=context.auth_context().get("user_id")
             )
 
             # Convert to gRPC response
-            response = self._convert_create_response(document, True, "Document created successfully")
+            response = self._convert_create_response(
+                document, True, "Document created successfully"
+            )
 
             logger.info(f"TD-2 document created via gRPC: {document.document_id}")
         except TD2IssueError as e:
@@ -86,8 +87,7 @@ class TD2ServiceGRPC:
 
             # Issue document
             document = await self.td2_service.issue_document(
-                request.document_id,
-                generate_chip_data=request.generate_chip_data
+                request.document_id, generate_chip_data=request.generate_chip_data
             )
 
             # Convert to gRPC response
@@ -125,7 +125,9 @@ class TD2ServiceGRPC:
                     pass  # Document not found, continue with verification result only
 
             # Convert to gRPC response
-            response = self._convert_verify_response(result, document, True, "Verification completed")
+            response = self._convert_verify_response(
+                result, document, True, "Verification completed"
+            )
 
             logger.info(f"TD-2 verification completed via gRPC: valid={result.is_valid}")
         except TD2VerificationError as e:
@@ -191,20 +193,22 @@ class TD2ServiceGRPC:
     async def UpdateTD2DocumentStatus(self, request, context):
         """Update TD-2 document status."""
         try:
-            logger.info(f"gRPC UpdateTD2DocumentStatus called: {request.document_id} -> {request.new_status}")
+            logger.info(
+                f"gRPC UpdateTD2DocumentStatus called: {request.document_id} -> {request.new_status}"
+            )
 
             # Convert status enum
             new_status = self._convert_status_from_grpc(request.new_status)
 
             # Update status
             document = await self.td2_service.update_status(
-                request.document_id,
-                new_status,
-                getattr(request, "reason", None)
+                request.document_id, new_status, getattr(request, "reason", None)
             )
 
             # Convert to gRPC response
-            response = self._convert_update_status_response(document, True, "Status updated successfully")
+            response = self._convert_update_status_response(
+                document, True, "Status updated successfully"
+            )
 
             logger.info(f"TD-2 document status updated via gRPC: {document.document_id}")
         except TD2ServiceError as e:
@@ -225,12 +229,13 @@ class TD2ServiceGRPC:
 
             # Revoke document
             document = await self.td2_service.revoke_document(
-                request.document_id,
-                getattr(request, "reason", "No reason provided")
+                request.document_id, getattr(request, "reason", "No reason provided")
             )
 
             # Convert to gRPC response
-            response = self._convert_revoke_response(document, True, "Document revoked successfully")
+            response = self._convert_revoke_response(
+                document, True, "Document revoked successfully"
+            )
 
             logger.info(f"TD-2 document revoked via gRPC: {document.document_id}")
         except TD2ServiceError as e:
@@ -255,13 +260,13 @@ class TD2ServiceGRPC:
             # Convert policy constraints if provided
             updated_constraints = None
             if hasattr(request, "updated_constraints") and request.updated_constraints:
-                updated_constraints = self._convert_policy_constraints_from_grpc(request.updated_constraints)
+                updated_constraints = self._convert_policy_constraints_from_grpc(
+                    request.updated_constraints
+                )
 
             # Renew document
             document = await self.td2_service.renew_document(
-                request.document_id,
-                new_expiry_date,
-                updated_constraints
+                request.document_id, new_expiry_date, updated_constraints
             )
 
             # Convert to gRPC response
@@ -317,17 +322,21 @@ class TD2ServiceGRPC:
                 documents = [d for d in documents if d.document_data.document_type == doc_type]
 
             if hasattr(request, "issuing_state") and request.issuing_state:
-                documents = [d for d in documents if d.document_data.issuing_state == request.issuing_state]
+                documents = [
+                    d for d in documents if d.document_data.issuing_state == request.issuing_state
+                ]
 
             # Apply pagination
             limit = getattr(request, "limit", 100)
             offset = getattr(request, "offset", 0)
-            paginated_documents = documents[offset:offset + limit]
+            paginated_documents = documents[offset : offset + limit]
 
             # Convert to gRPC response
             response = self._convert_expiring_response(paginated_documents, len(documents))
 
-            logger.info(f"TD-2 expiring documents retrieved via gRPC: {len(paginated_documents)} results")
+            logger.info(
+                f"TD-2 expiring documents retrieved via gRPC: {len(paginated_documents)} results"
+            )
         except Exception as e:
             logger.exception(f"Unexpected error in GetExpiringTD2Documents: {e}")
             context.set_code(StatusCode.INTERNAL)
@@ -344,22 +353,20 @@ class TD2ServiceGRPC:
         # For now, return a mock request
         return TD2DocumentCreateRequest(
             personal_data=PersonalData(
-                primary_identifier="TEST",
-                nationality="USA",
-                date_of_birth=date.today(),
-                gender="M"
+                primary_identifier="TEST", nationality="USA", date_of_birth=date.today(), gender="M"
             ),
             document_data=TD2DocumentData(
                 document_type=TD2DocumentType.ID,
                 document_number="TEST123",
                 issuing_state="USA",
                 date_of_issue=date.today(),
-                date_of_expiry=date.today()
-            )
+                date_of_expiry=date.today(),
+            ),
         )
 
     def _convert_create_response(self, document, success, message, errors=None):
         """Convert internal create response to gRPC response."""
+
         # Mock response object
         class CreateResponse:
             def __init__(self, document, success, message, errors) -> None:
@@ -377,11 +384,12 @@ class TD2ServiceGRPC:
             document_id=getattr(grpc_request, "document_id", None),
             verify_chip=getattr(grpc_request, "verify_chip", False),
             verify_policies=getattr(grpc_request, "verify_policies", True),
-            context=getattr(grpc_request, "context", {})
+            context=getattr(grpc_request, "context", {}),
         )
 
     def _convert_verify_response(self, result, document, success, message):
         """Convert internal verify response to gRPC response."""
+
         class VerifyResponse:
             def __init__(self, result, document, success, message) -> None:
                 self.result = result
@@ -393,6 +401,7 @@ class TD2ServiceGRPC:
 
     def _convert_get_response(self, document, success, message):
         """Convert internal get response to gRPC response."""
+
         class GetResponse:
             def __init__(self, document, success, message) -> None:
                 self.document = document
@@ -408,11 +417,12 @@ class TD2ServiceGRPC:
             document_type=getattr(grpc_request, "document_type", None),
             status=getattr(grpc_request, "status", None),
             limit=getattr(grpc_request, "limit", 100),
-            offset=getattr(grpc_request, "offset", 0)
+            offset=getattr(grpc_request, "offset", 0),
         )
 
     def _convert_search_response(self, search_response):
         """Convert internal search response to gRPC response."""
+
         class SearchResponse:
             def __init__(self, documents, total_count, success, message) -> None:
                 self.documents = documents
@@ -424,11 +434,12 @@ class TD2ServiceGRPC:
             search_response.documents,
             search_response.total_count,
             search_response.success,
-            search_response.message
+            search_response.message,
         )
 
     def _convert_search_response_error(self, error_message):
         """Convert search error to gRPC response."""
+
         class SearchResponse:
             def __init__(self, error) -> None:
                 self.documents = []
@@ -442,13 +453,13 @@ class TD2ServiceGRPC:
         """Convert gRPC status enum to internal status."""
         # This would map protobuf enum values to internal enum
         status_map = {
-            0: TD2Status.DRAFT,      # TD2_STATUS_UNSPECIFIED -> DRAFT
-            1: TD2Status.DRAFT,      # DRAFT
-            2: TD2Status.ISSUED,     # ISSUED
-            3: TD2Status.ACTIVE,     # ACTIVE
-            4: TD2Status.EXPIRED,    # EXPIRED
-            5: TD2Status.REVOKED,    # REVOKED
-            6: TD2Status.SUSPENDED   # SUSPENDED
+            0: TD2Status.DRAFT,  # TD2_STATUS_UNSPECIFIED -> DRAFT
+            1: TD2Status.DRAFT,  # DRAFT
+            2: TD2Status.ISSUED,  # ISSUED
+            3: TD2Status.ACTIVE,  # ACTIVE
+            4: TD2Status.EXPIRED,  # EXPIRED
+            5: TD2Status.REVOKED,  # REVOKED
+            6: TD2Status.SUSPENDED,  # SUSPENDED
         }
         return status_map.get(grpc_status, TD2Status.DRAFT)
 
@@ -463,7 +474,7 @@ class TD2ServiceGRPC:
             5: TD2DocumentType.IF,  # IF
             6: TD2DocumentType.IP,  # IP
             7: TD2DocumentType.IR,  # IR
-            8: TD2DocumentType.IV   # IV
+            8: TD2DocumentType.IV,  # IV
         }
         return type_map.get(grpc_type, TD2DocumentType.ID)
 
@@ -474,11 +485,12 @@ class TD2ServiceGRPC:
             study_authorization=getattr(grpc_constraints, "study_authorization", []),
             travel_restrictions=getattr(grpc_constraints, "travel_restrictions", []),
             max_stay_duration=getattr(grpc_constraints, "max_stay_duration", None),
-            renewable=getattr(grpc_constraints, "renewable", True)
+            renewable=getattr(grpc_constraints, "renewable", True),
         )
 
     def _convert_update_status_response(self, document, success, message):
         """Convert internal update status response to gRPC response."""
+
         class UpdateStatusResponse:
             def __init__(self, document, success, message) -> None:
                 self.document = document
@@ -489,6 +501,7 @@ class TD2ServiceGRPC:
 
     def _convert_issue_response(self, document, success, message, errors=None):
         """Convert internal issue response to gRPC response."""
+
         class IssueResponse:
             def __init__(self, document, success, message, errors) -> None:
                 self.document = document
@@ -500,6 +513,7 @@ class TD2ServiceGRPC:
 
     def _convert_revoke_response(self, document, success, message):
         """Convert internal revoke response to gRPC response."""
+
         class RevokeResponse:
             def __init__(self, document, success, message) -> None:
                 self.document = document
@@ -510,6 +524,7 @@ class TD2ServiceGRPC:
 
     def _convert_renew_response(self, document, success, message):
         """Convert internal renew response to gRPC response."""
+
         class RenewResponse:
             def __init__(self, document, success, message) -> None:
                 self.document = document
@@ -520,6 +535,7 @@ class TD2ServiceGRPC:
 
     def _convert_statistics_response(self, stats):
         """Convert internal statistics to gRPC response."""
+
         class StatisticsResponse:
             def __init__(self, stats) -> None:
                 self.total_documents = stats["total_documents"]
@@ -534,6 +550,7 @@ class TD2ServiceGRPC:
 
     def _convert_expiring_response(self, documents, total_count):
         """Convert internal expiring documents to gRPC response."""
+
         class ExpiringResponse:
             def __init__(self, documents, total_count) -> None:
                 self.documents = documents

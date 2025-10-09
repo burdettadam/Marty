@@ -79,7 +79,7 @@ print_success "Port forwarding processes stopped"
 # Delete Kubernetes resources
 if command -v kubectl >/dev/null 2>&1; then
     print_status "Deleting Kubernetes resources..."
-    
+
     # Check if namespace exists
     if kubectl get namespace ${NAMESPACE} >/dev/null 2>&1; then
         kubectl delete namespace ${NAMESPACE} --ignore-not-found=true
@@ -94,7 +94,7 @@ fi
 # Delete kind cluster
 if command -v kind >/dev/null 2>&1; then
     print_status "Deleting kind cluster..."
-    
+
     # Check if cluster exists
     if kind get clusters 2>/dev/null | grep -q "^${CLUSTER_NAME}$"; then
         kind delete cluster --name ${CLUSTER_NAME}

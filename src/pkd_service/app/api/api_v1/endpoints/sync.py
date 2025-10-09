@@ -1,6 +1,7 @@
 """
 PKD Synchronization API endpoints
 """
+
 from __future__ import annotations
 
 from app.api.deps import get_sync_service, verify_api_key

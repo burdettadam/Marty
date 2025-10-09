@@ -95,11 +95,13 @@ brew install --cask visual-studio-code
 ### Environment Setup
 
 1. **Initialize environment**:
+
    ```bash
    make setup-env
    ```
 
 2. **Customize configuration** (optional):
+
    ```bash
    cp config/.env.template config/.env.demo
    # Edit config/.env.demo with your settings
@@ -133,6 +135,7 @@ make test-endpoints
 ```
 
 **Features:**
+
 - Minimal dependencies
 - Fast startup
 - Local PostgreSQL
@@ -154,6 +157,7 @@ make test-workflow
 ```
 
 **Features:**
+
 - Complete service stack
 - PostgreSQL + MinIO + Vault
 - Traefik reverse proxy
@@ -176,6 +180,7 @@ make k8s-logs
 ```
 
 **Features:**
+
 - Kind cluster or existing K8s
 - Production-ready manifests
 - Service discovery
@@ -197,6 +202,7 @@ make setup-vscode
 ```
 
 **Features:**
+
 - Public HTTPS URLs
 - Mobile device access
 - Microsoft Authenticator compatible
@@ -311,6 +317,7 @@ make k8s-cleanup        # Cleanup Kubernetes resources
 ### Common Issues
 
 **Services not starting:**
+
 ```bash
 # Check prerequisites
 make validate-setup
@@ -324,6 +331,7 @@ lsof -i :8001
 ```
 
 **API not accessible:**
+
 ```bash
 # Test connectivity
 make test-endpoints
@@ -336,6 +344,7 @@ make docker-restart
 ```
 
 **Microsoft Authenticator not working:**
+
 - Ensure URLs are HTTPS (not HTTP)
 - Verify URLs are accessible from mobile device
 - Check QR code generation
@@ -459,6 +468,7 @@ make help                              # Show detailed demo commands
 ### Scripts
 
 All scripts are in `scripts/` and include:
+
 - Comprehensive error handling
 - Colored output for clarity
 - Help documentation
@@ -489,6 +499,7 @@ Your demo is working correctly when:
 This consolidated structure replaces the previous scattered approach:
 
 **Old** → **New**
+
 - `scripts/setup-microsoft-*.sh` → `src/microsoft_demo/scripts/`
 - `docker/docker-compose.demo-microsoft*.yml` → `src/microsoft_demo/config/`  
 - `k8s/microsoft-demo.yaml` → `src/microsoft_demo/k8s/demo.yaml`

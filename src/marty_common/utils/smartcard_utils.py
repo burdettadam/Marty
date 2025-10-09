@@ -4,6 +4,7 @@ Smart card utilities for Marty services.
 This module provides utilities for working with smart cards and RFID chips
 commonly used in e-passports, leveraging the pyscard library.
 """
+
 from __future__ import annotations
 
 import logging

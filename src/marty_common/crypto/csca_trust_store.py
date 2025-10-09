@@ -358,7 +358,6 @@ class CSCATrustStore:
                 trust_level in [TrustLevel.FULL_TRUST, TrustLevel.CONDITIONAL_TRUST]
                 and cert_id in self._certificates
             ):
-
                 metadata = self._metadata[cert_id]
                 if metadata.is_valid:
                     trusted_certs.append(self._certificates[cert_id])

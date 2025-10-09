@@ -4,6 +4,7 @@ Notification system for Marty services.
 Provides a unified interface for sending notifications via email, webhook, and Slack.
 Used primarily by the certificate lifecycle monitor for alerting.
 """
+
 from __future__ import annotations
 
 import json
@@ -55,7 +56,7 @@ class EmailNotifier:
 
         if not self.recipients or not self.smtp_server or not self.sender_email:
             raise ValueError("Email configuration missing required fields")
-        
+
         # Ensure required fields are strings
         if not isinstance(self.smtp_server, str) or not isinstance(self.sender_email, str):
             raise ValueError("SMTP server and sender email must be strings")
@@ -196,7 +197,7 @@ class SlackNotifier:
 
         if not self.webhook_url:
             raise ValueError("Slack webhook URL is required")
-        
+
         # Ensure webhook URL is a string
         if not isinstance(self.webhook_url, str):
             raise ValueError("Slack webhook URL must be a string")
@@ -340,7 +341,9 @@ class NotificationManager:
         else:
             level = "INFO"
 
-        subject = f"Certificate Expiring in {days_remaining} day{'s' if days_remaining != 1 else ''}"
+        subject = (
+            f"Certificate Expiring in {days_remaining} day{'s' if days_remaining != 1 else ''}"
+        )
         message = (
             f"Certificate ID: {certificate_id}\n"
             f"Subject: {subject_name}\n"

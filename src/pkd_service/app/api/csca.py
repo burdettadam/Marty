@@ -1,6 +1,7 @@
 """
 API endpoints for CSCA & Master List Management
 """
+
 from __future__ import annotations
 
 import logging

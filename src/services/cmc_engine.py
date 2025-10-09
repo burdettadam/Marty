@@ -17,11 +17,8 @@ import uuid
 from datetime import datetime, timedelta, timezone
 
 import grpc
-from marty_common.event_bus.event_bus import EventBus
-from marty_common.services.document_signer import DocumentSigner
-from marty_common.storage.storage_interface import StorageInterface
-from shared.logging_config import get_logger
 
+from marty_common.event_bus.event_bus import EventBus
 from marty_common.models.passport import (
     CMCCertificate,
     CMCData,
@@ -29,12 +26,12 @@ from marty_common.models.passport import (
     CMCTD1MRZData,
     VDSNCBarcode,
 )
-from marty_common.policies.annex9_policies import (
-    VisaFreeEntryStatus,
-    get_policy_manager,
-)
+from marty_common.policies.annex9_policies import VisaFreeEntryStatus, get_policy_manager
+from marty_common.services.document_signer import DocumentSigner
+from marty_common.storage.storage_interface import StorageInterface
 from marty_common.utils.mrz_utils import generate_td1_mrz
 from proto import cmc_engine_pb2, cmc_engine_pb2_grpc
+from shared.logging_config import get_logger
 
 logger = get_logger(__name__)
 
@@ -81,8 +78,7 @@ class CMCEngineServicer(cmc_engine_pb2_grpc.CMCEngineServicer):
             validation_error = self._validate_create_request(request)
             if validation_error:
                 return cmc_engine_pb2.CreateCMCResponse(
-                    success=False,
-                    error_message=validation_error
+                    success=False, error_message=validation_error
                 )
 
             # Generate unique CMC ID
@@ -144,7 +140,7 @@ class CMCEngineServicer(cmc_engine_pb2_grpc.CMCEngineServicer):
                     "issuing_country": request.issuing_country,
                     "security_model": request.security_model,
                     "created_at": cmc_certificate.created_at.isoformat(),
-                }
+                },
             )
 
             logger.info(f"CMC created successfully: {cmc_id}")
@@ -160,8 +156,7 @@ class CMCEngineServicer(cmc_engine_pb2_grpc.CMCEngineServicer):
         except Exception as e:
             logger.exception(f"Error creating CMC: {e!s}")
             return cmc_engine_pb2.CreateCMCResponse(
-                success=False,
-                error_message=f"Internal error: {e!s}"
+                success=False, error_message=f"Internal error: {e!s}"
             )
 
     async def GetCMC(
@@ -188,8 +183,7 @@ class CMCEngineServicer(cmc_engine_pb2_grpc.CMCEngineServicer):
                 logger.info(f"Retrieving CMC by document number: {request.document_number}")
             else:
                 return cmc_engine_pb2.CMCResponse(
-                    success=False,
-                    error_message="Either cmc_id or document_number must be provided"
+                    success=False, error_message="Either cmc_id or document_number must be provided"
                 )
 
             # Retrieve CMC from storage
@@ -198,23 +192,17 @@ class CMCEngineServicer(cmc_engine_pb2_grpc.CMCEngineServicer):
             if not cmc_certificate:
                 return cmc_engine_pb2.CMCResponse(
                     success=False,
-                    error_message=f"CMC not found for {lookup_key[0]}: {lookup_key[1]}"
+                    error_message=f"CMC not found for {lookup_key[0]}: {lookup_key[1]}",
                 )
 
             # Convert to protobuf message
             cmc_pb = self._convert_cmc_to_protobuf(cmc_certificate)
 
-            return cmc_engine_pb2.CMCResponse(
-                success=True,
-                cmc=cmc_pb
-            )
+            return cmc_engine_pb2.CMCResponse(success=True, cmc=cmc_pb)
 
         except Exception as e:
             logger.exception(f"Error retrieving CMC: {e!s}")
-            return cmc_engine_pb2.CMCResponse(
-                success=False,
-                error_message=f"Internal error: {e!s}"
-            )
+            return cmc_engine_pb2.CMCResponse(success=False, error_message=f"Internal error: {e!s}")
 
     async def SignCMC(
         self,
@@ -237,23 +225,18 @@ class CMCEngineServicer(cmc_engine_pb2_grpc.CMCEngineServicer):
             cmc_certificate = await self.storage.get_cmc("cmc_id", request.cmc_id)
             if not cmc_certificate:
                 return cmc_engine_pb2.SignCMCResponse(
-                    success=False,
-                    error_message=f"CMC not found: {request.cmc_id}"
+                    success=False, error_message=f"CMC not found: {request.cmc_id}"
                 )
 
             # Sign the CMC based on security model
             if cmc_certificate.security_model == CMCSecurityModel.CHIP_LDS:
-                signature_info = await self._sign_chip_lds_cmc(
-                    cmc_certificate, request.signer_id
-                )
+                signature_info = await self._sign_chip_lds_cmc(cmc_certificate, request.signer_id)
             elif cmc_certificate.security_model == CMCSecurityModel.VDS_NC:
-                signature_info = await self._sign_vds_nc_cmc(
-                    cmc_certificate, request.signer_id
-                )
+                signature_info = await self._sign_vds_nc_cmc(cmc_certificate, request.signer_id)
             else:
                 return cmc_engine_pb2.SignCMCResponse(
                     success=False,
-                    error_message=f"Unsupported security model: {cmc_certificate.security_model}"
+                    error_message=f"Unsupported security model: {cmc_certificate.security_model}",
                 )
 
             # Update CMC status to ACTIVE
@@ -269,21 +252,17 @@ class CMCEngineServicer(cmc_engine_pb2_grpc.CMCEngineServicer):
                     "signer_id": request.signer_id,
                     "security_model": cmc_certificate.security_model.value,
                     "signed_at": datetime.utcnow().isoformat(),
-                }
+                },
             )
 
             logger.info(f"CMC signed successfully: {request.cmc_id}")
 
-            return cmc_engine_pb2.SignCMCResponse(
-                success=True,
-                signature_info=signature_info
-            )
+            return cmc_engine_pb2.SignCMCResponse(success=True, signature_info=signature_info)
 
         except Exception as e:
             logger.exception(f"Error signing CMC: {e!s}")
             return cmc_engine_pb2.SignCMCResponse(
-                success=False,
-                error_message=f"Internal error: {e!s}"
+                success=False, error_message=f"Internal error: {e!s}"
             )
 
     async def GenerateVDSNCBarcode(
@@ -307,15 +286,14 @@ class CMCEngineServicer(cmc_engine_pb2_grpc.CMCEngineServicer):
             cmc_certificate = await self.storage.get_cmc("cmc_id", request.cmc_id)
             if not cmc_certificate:
                 return cmc_engine_pb2.GenerateVDSNCResponse(
-                    success=False,
-                    error_message=f"CMC not found: {request.cmc_id}"
+                    success=False, error_message=f"CMC not found: {request.cmc_id}"
                 )
 
             # Generate VDS-NC barcode
             vds_nc_barcode = await self._generate_vds_nc_barcode(
                 cmc_certificate,
                 request.certificate_reference,
-                request.signature_algorithm or "ES256"
+                request.signature_algorithm or "ES256",
             )
 
             # Convert to protobuf
@@ -323,16 +301,12 @@ class CMCEngineServicer(cmc_engine_pb2_grpc.CMCEngineServicer):
 
             logger.info(f"VDS-NC barcode generated for CMC: {request.cmc_id}")
 
-            return cmc_engine_pb2.GenerateVDSNCResponse(
-                success=True,
-                vds_nc_barcode=vds_nc_pb
-            )
+            return cmc_engine_pb2.GenerateVDSNCResponse(success=True, vds_nc_barcode=vds_nc_pb)
 
         except Exception as e:
             logger.exception(f"Error generating VDS-NC barcode: {e!s}")
             return cmc_engine_pb2.GenerateVDSNCResponse(
-                success=False,
-                error_message=f"Internal error: {e!s}"
+                success=False, error_message=f"Internal error: {e!s}"
             )
 
     async def VerifyCMC(
@@ -376,14 +350,12 @@ class CMCEngineServicer(cmc_engine_pb2_grpc.CMCEngineServicer):
 
             else:
                 return cmc_engine_pb2.VerifyCMCResponse(
-                    success=False,
-                    error_message="No verification data provided"
+                    success=False, error_message="No verification data provided"
                 )
 
             if not cmc_certificate:
                 return cmc_engine_pb2.VerifyCMCResponse(
-                    success=False,
-                    error_message="CMC certificate not found or invalid"
+                    success=False, error_message="CMC certificate not found or invalid"
                 )
 
             # Additional verification checks
@@ -412,14 +384,13 @@ class CMCEngineServicer(cmc_engine_pb2_grpc.CMCEngineServicer):
                 success=True,
                 is_valid=is_valid,
                 cmc=cmc_pb,
-                verification_results=verification_results_pb
+                verification_results=verification_results_pb,
             )
 
         except Exception as e:
             logger.exception(f"Error verifying CMC: {e!s}")
             return cmc_engine_pb2.VerifyCMCResponse(
-                success=False,
-                error_message=f"Internal error: {e!s}"
+                success=False, error_message=f"Internal error: {e!s}"
             )
 
     def _validate_create_request(self, request: cmc_engine_pb2.CreateCMCRequest) -> str | None:
@@ -433,9 +404,11 @@ class CMCEngineServicer(cmc_engine_pb2_grpc.CMCEngineServicer):
         """
         validation_errors = {
             not request.document_number: "Document number is required",
-            not request.issuing_country or len(request.issuing_country) != 3: "Valid 3-letter issuing country code is required",
+            not request.issuing_country
+            or len(request.issuing_country) != 3: "Valid 3-letter issuing country code is required",
             not request.surname: "Surname is required",
-            not request.nationality or len(request.nationality) != 3: "Valid 3-letter nationality code is required",
+            not request.nationality
+            or len(request.nationality) != 3: "Valid 3-letter nationality code is required",
             not request.date_of_birth: "Date of birth is required",
             request.gender not in ["M", "F", "X"]: "Gender must be M, F, or X",
             not request.date_of_expiry: "Date of expiry is required",
@@ -488,7 +461,7 @@ class CMCEngineServicer(cmc_engine_pb2_grpc.CMCEngineServicer):
                 signer_id=signer_id,
                 signature=b"lds_sod_signature",
                 algorithm="RSA-PSS",
-                is_valid=True
+                is_valid=True,
             )
 
         except Exception:
@@ -500,7 +473,7 @@ class CMCEngineServicer(cmc_engine_pb2_grpc.CMCEngineServicer):
                 signer_id=signer_id,
                 signature=b"error_signature",
                 algorithm="RSA-PSS",
-                is_valid=False
+                is_valid=False,
             )
 
     async def _sign_vds_nc_cmc(
@@ -528,14 +501,11 @@ class CMCEngineServicer(cmc_engine_pb2_grpc.CMCEngineServicer):
             signer_id=signer_id,
             signature=b"mock_vds_nc_signature",
             algorithm="ES256",
-            is_valid=True
+            is_valid=True,
         )
 
     async def _generate_vds_nc_barcode(
-        self,
-        cmc_certificate: CMCCertificate,
-        certificate_reference: str,
-        signature_algorithm: str
+        self, cmc_certificate: CMCCertificate, certificate_reference: str, signature_algorithm: str
     ) -> VDSNCBarcode:
         """Generate VDS-NC barcode for CMC.
 
@@ -558,7 +528,7 @@ class CMCEngineServicer(cmc_engine_pb2_grpc.CMCEngineServicer):
             signature_creation_time=datetime.utcnow().strftime("%H%M%S"),
             cmc_payload="mock_payload",
             signature="mock_signature",
-            barcode_data="mock_barcode_data"
+            barcode_data="mock_barcode_data",
         )
 
     def _convert_cmc_to_protobuf(self, cmc: CMCCertificate) -> cmc_engine_pb2.CMCCertificate:
@@ -589,7 +559,7 @@ class CMCEngineServicer(cmc_engine_pb2_grpc.CMCEngineServicer):
         return cmc_engine_pb2.VerificationResult(
             check_name=result["check_name"],
             passed=result["passed"],
-            details=result.get("details", "")
+            details=result.get("details", ""),
         )
 
     async def _verify_from_td1_mrz(self, td1_mrz: str) -> tuple[CMCCertificate | None, list[dict]]:
@@ -598,29 +568,47 @@ class CMCEngineServicer(cmc_engine_pb2_grpc.CMCEngineServicer):
 
         try:
             verification_protocol = get_verification_protocol()
-            is_valid, cmc_certificate, results = verification_protocol.verify_cmc_from_td1_mrz(td1_mrz)
+            is_valid, cmc_certificate, results = verification_protocol.verify_cmc_from_td1_mrz(
+                td1_mrz
+            )
 
             verification_dicts = [result.to_dict() for result in results]
 
         except Exception:
-            return None, [{"check_name": "TD-1 MRZ Verification", "passed": False,
-                          "details": "Verification failed", "error_code": "VERIFICATION_ERROR"}]
+            return None, [
+                {
+                    "check_name": "TD-1 MRZ Verification",
+                    "passed": False,
+                    "details": "Verification failed",
+                    "error_code": "VERIFICATION_ERROR",
+                }
+            ]
         else:
             return cmc_certificate, verification_dicts
 
-    async def _verify_from_vds_nc_barcode(self, barcode_data: str) -> tuple[CMCCertificate | None, list[dict]]:
+    async def _verify_from_vds_nc_barcode(
+        self, barcode_data: str
+    ) -> tuple[CMCCertificate | None, list[dict]]:
         """Verify CMC from VDS-NC barcode."""
         from marty_common.verification.cmc_verification import get_verification_protocol
 
         try:
             verification_protocol = get_verification_protocol()
-            is_valid, cmc_certificate, results = verification_protocol.verify_cmc_from_vds_nc_barcode(barcode_data)
+            is_valid, cmc_certificate, results = (
+                verification_protocol.verify_cmc_from_vds_nc_barcode(barcode_data)
+            )
 
             verification_dicts = [result.to_dict() for result in results]
 
         except Exception:
-            return None, [{"check_name": "VDS-NC Verification", "passed": False,
-                          "details": "Verification failed", "error_code": "VERIFICATION_ERROR"}]
+            return None, [
+                {
+                    "check_name": "VDS-NC Verification",
+                    "passed": False,
+                    "details": "Verification failed",
+                    "error_code": "VERIFICATION_ERROR",
+                }
+            ]
         else:
             return cmc_certificate, verification_dicts
 
@@ -635,16 +623,18 @@ class CMCEngineServicer(cmc_engine_pb2_grpc.CMCEngineServicer):
             return [result.to_dict() for result in results]
 
         except Exception:
-            return [{"check_name": "CMC Verification", "passed": False,
-                     "details": "Verification failed", "error_code": "VERIFICATION_ERROR"}]
+            return [
+                {
+                    "check_name": "CMC Verification",
+                    "passed": False,
+                    "details": "Verification failed",
+                    "error_code": "VERIFICATION_ERROR",
+                }
+            ]
 
     async def _check_revocation_status(self, cmc: CMCCertificate) -> dict:
         """Check CMC revocation status."""
-        return {
-            "check_name": "Revocation Status",
-            "passed": True,
-            "details": "Not revoked"
-        }
+        return {"check_name": "Revocation Status", "passed": True, "details": "Not revoked"}
 
     async def _validate_background_check(self, cmc: CMCCertificate) -> dict:
         """Validate background check (Annex 9 compliance)."""
@@ -657,7 +647,7 @@ class CMCEngineServicer(cmc_engine_pb2_grpc.CMCEngineServicer):
         return {
             "check_name": "Background Check",
             "passed": background_compliant,
-            "details": compliance_result["checks"]["background_verification"]["details"]
+            "details": compliance_result["checks"]["background_verification"]["details"],
         }
 
     async def CheckBackgroundVerification(
@@ -686,8 +676,13 @@ class CMCEngineServicer(cmc_engine_pb2_grpc.CMCEngineServicer):
             await policy_manager.initiate_background_check(
                 cmc_id=request.cmc_id,
                 check_authority=request.check_authority,
-                check_scope=["criminal_history", "employment_history", "identity_verification",
-                           "security_clearance", "aviation_experience"]
+                check_scope=[
+                    "criminal_history",
+                    "employment_history",
+                    "identity_verification",
+                    "security_clearance",
+                    "aviation_experience",
+                ],
             )
 
             return cmc_engine_pb2.BackgroundCheckResponse(
@@ -701,9 +696,7 @@ class CMCEngineServicer(cmc_engine_pb2_grpc.CMCEngineServicer):
         except Exception as e:
             logger.exception("Error processing background check")
             return cmc_engine_pb2.BackgroundCheckResponse(
-                success=False,
-                check_passed=False,
-                error_message=f"Internal error: {e!s}"
+                success=False, check_passed=False, error_message=f"Internal error: {e!s}"
             )
 
     async def UpdateVisaFreeStatus(
@@ -718,14 +711,16 @@ class CMCEngineServicer(cmc_engine_pb2_grpc.CMCEngineServicer):
 
             # Convert request status to our enum
             status = (
-                VisaFreeEntryStatus.ELIGIBLE if request.visa_free_eligible
+                VisaFreeEntryStatus.ELIGIBLE
+                if request.visa_free_eligible
                 else VisaFreeEntryStatus.NOT_ELIGIBLE
             )
 
             # Update visa-free status
             valid_until = (
                 datetime.now(timezone.utc) + timedelta(days=365)
-                if request.visa_free_eligible else None
+                if request.visa_free_eligible
+                else None
             )
 
             await policy_manager.manage_visa_free_status(
@@ -733,7 +728,7 @@ class CMCEngineServicer(cmc_engine_pb2_grpc.CMCEngineServicer):
                 status=status,
                 granting_authority=request.authority,
                 reason=request.reason,
-                valid_until=valid_until
+                valid_until=valid_until,
             )
 
             # Update CMC certificate record
@@ -752,7 +747,5 @@ class CMCEngineServicer(cmc_engine_pb2_grpc.CMCEngineServicer):
         except Exception as e:
             logger.exception("Error updating visa-free status")
             return cmc_engine_pb2.VisaFreeStatusResponse(
-                success=False,
-                visa_free_eligible=False,
-                error_message=f"Internal error: {e!s}"
+                success=False, visa_free_eligible=False, error_message=f"Internal error: {e!s}"
             )

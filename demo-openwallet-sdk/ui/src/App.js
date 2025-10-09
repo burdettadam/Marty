@@ -34,11 +34,11 @@ function App() {
             </Typography>
           </Toolbar>
         </AppBar>
-        
+
         <Container maxWidth="lg">
           <Box sx={{ my: 4 }}>
             <Navigation />
-            
+
             <Routes>
               <Route path="/" element={<Home />} />
               <Route path="/issuer" element={<IssuerDemo />} />

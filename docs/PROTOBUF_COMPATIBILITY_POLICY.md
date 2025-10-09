@@ -197,7 +197,7 @@ message SignRequest {
   string document_data = 1;
   string document_type = 2;
   string signing_algorithm = 3;
-  
+
   // New optional field - safe to add
   string request_id = 4;
 }
@@ -209,10 +209,10 @@ message SignRequest {
 message SignRequest {
   string document_data = 1;
   string document_type = 2;
-  
+
   // Deprecated field - will be removed in v2
   string signing_algorithm = 3 [deprecated = true];
-  
+
   // New field replacing the deprecated one
   SigningAlgorithm algorithm = 4;
 }

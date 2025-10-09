@@ -19,19 +19,21 @@ logger = get_logger(__name__)
 
 class DocumentClass(Enum):
     """Document classes based on MRZ document codes."""
-    CMC = "C"           # Crew Member Certificate
-    VISA = "V"          # Visa
-    PASSPORT = "P"      # Passport
+
+    CMC = "C"  # Crew Member Certificate
+    VISA = "V"  # Visa
+    PASSPORT = "P"  # Passport
     TRAVEL_DOCUMENT = "A"  # Travel Document
-    ID_CARD = "I"       # ID Card
-    RESIDENCE = "R"     # Residence Document
-    TD2_MISC = "ID"     # TD-2 Miscellaneous
-    UNKNOWN = "?"       # Unknown/Invalid
+    ID_CARD = "I"  # ID Card
+    RESIDENCE = "R"  # Residence Document
+    TD2_MISC = "ID"  # TD-2 Miscellaneous
+    UNKNOWN = "?"  # Unknown/Invalid
 
 
 @dataclass
 class DetectionResult:
     """Result of document class detection."""
+
     document_class: DocumentClass
     confidence: float  # 0.0 to 1.0
     details: str
@@ -53,7 +55,7 @@ class DocumentClassDetector:
             "format": "TD-1",
             "lines": 3,
             "line_length": 30,
-            "pattern": r"^C[A-Z]{3}[A-Z0-9<]{26}$"
+            "pattern": r"^C[A-Z]{3}[A-Z0-9<]{26}$",
         },
         "V": {
             "class": DocumentClass.VISA,
@@ -61,7 +63,7 @@ class DocumentClassDetector:
             "format": "TD-2/MRV",
             "lines": 2,
             "line_length": 36,
-            "pattern": r"^V[A-Z<]{35}$"
+            "pattern": r"^V[A-Z<]{35}$",
         },
         "P": {
             "class": DocumentClass.PASSPORT,
@@ -69,7 +71,7 @@ class DocumentClassDetector:
             "format": "TD-3",
             "lines": 2,
             "line_length": 44,
-            "pattern": r"^P[A-Z<]{43}$"
+            "pattern": r"^P[A-Z<]{43}$",
         },
         "A": {
             "class": DocumentClass.TRAVEL_DOCUMENT,
@@ -77,7 +79,7 @@ class DocumentClassDetector:
             "format": "TD-3",
             "lines": 2,
             "line_length": 44,
-            "pattern": r"^A[A-Z<]{43}$"
+            "pattern": r"^A[A-Z<]{43}$",
         },
         "I": {
             "class": DocumentClass.ID_CARD,
@@ -85,7 +87,7 @@ class DocumentClassDetector:
             "format": "TD-2",
             "lines": 2,
             "line_length": 36,
-            "pattern": r"^I[A-Z<]{35}$"
+            "pattern": r"^I[A-Z<]{35}$",
         },
         "R": {
             "class": DocumentClass.RESIDENCE,
@@ -93,8 +95,8 @@ class DocumentClassDetector:
             "format": "TD-2",
             "lines": 2,
             "line_length": 36,
-            "pattern": r"^R[A-Z<]{35}$"
-        }
+            "pattern": r"^R[A-Z<]{35}$",
+        },
     }
 
     def detect_document_class(self, mrz_data: str) -> DetectionResult:
@@ -112,7 +114,7 @@ class DocumentClassDetector:
                 document_class=DocumentClass.UNKNOWN,
                 confidence=0.0,
                 details="No MRZ data provided",
-                metadata={"error": "EMPTY_MRZ"}
+                metadata={"error": "EMPTY_MRZ"},
             )
 
         # Normalize and validate MRZ structure
@@ -123,7 +125,7 @@ class DocumentClassDetector:
                 document_class=DocumentClass.UNKNOWN,
                 confidence=0.0,
                 details="Invalid MRZ format",
-                metadata={"error": "INVALID_FORMAT", "raw_length": len(mrz_data)}
+                metadata={"error": "INVALID_FORMAT", "raw_length": len(mrz_data)},
             )
 
         # Extract document type code
@@ -133,7 +135,7 @@ class DocumentClassDetector:
                 document_class=DocumentClass.UNKNOWN,
                 confidence=0.0,
                 details="MRZ too short to contain document type",
-                metadata={"error": "INSUFFICIENT_LENGTH", "line_length": len(first_line)}
+                metadata={"error": "INSUFFICIENT_LENGTH", "line_length": len(first_line)},
             )
 
         # Handle special TD-2 format case
@@ -160,9 +162,7 @@ class DocumentClassDetector:
         expected_lines = 2
         expected_length = 36
 
-        confidence = self._calculate_structure_confidence(
-            lines, expected_lines, expected_length
-        )
+        confidence = self._calculate_structure_confidence(lines, expected_lines, expected_length)
 
         if confidence > 0.7:
             return DetectionResult(
@@ -173,8 +173,8 @@ class DocumentClassDetector:
                     "format": "TD-2",
                     "lines": len(lines),
                     "expected_lines": expected_lines,
-                    "line_lengths": [len(line) for line in lines]
-                }
+                    "line_lengths": [len(line) for line in lines],
+                },
             )
 
         return DetectionResult(
@@ -184,8 +184,8 @@ class DocumentClassDetector:
             metadata={
                 "error": "STRUCTURE_MISMATCH",
                 "lines": len(lines),
-                "expected_lines": expected_lines
-            }
+                "expected_lines": expected_lines,
+            },
         )
 
     def _detect_by_code(self, doc_code: str, lines: list[str]) -> DetectionResult:
@@ -198,8 +198,8 @@ class DocumentClassDetector:
                 metadata={
                     "error": "UNKNOWN_CODE",
                     "document_code": doc_code,
-                    "available_codes": list(self.DOCUMENT_PATTERNS.keys())
-                }
+                    "available_codes": list(self.DOCUMENT_PATTERNS.keys()),
+                },
             )
 
         pattern_info = self.DOCUMENT_PATTERNS[doc_code]
@@ -225,15 +225,12 @@ class DocumentClassDetector:
                 "lines": len(lines),
                 "expected_lines": pattern_info["lines"],
                 "line_lengths": [len(line) for line in lines],
-                "pattern_match": confidence > 0.8
-            }
+                "pattern_match": confidence > 0.8,
+            },
         )
 
     def _calculate_structure_confidence(
-        self,
-        lines: list[str],
-        expected_lines: int,
-        expected_length: int
+        self, lines: list[str], expected_lines: int, expected_length: int
     ) -> float:
         """Calculate confidence based on MRZ structure."""
         confidence = 0.0
@@ -277,16 +274,11 @@ class DocumentClassDetector:
                     "format": pattern_info["format"],
                     "lines": pattern_info["lines"],
                     "line_length": pattern_info["line_length"],
-                    "name": pattern_info["name"]
+                    "name": pattern_info["name"],
                 }
 
         if document_class == DocumentClass.TD2_MISC:
-            return {
-                "format": "TD-2",
-                "lines": 2,
-                "line_length": 36,
-                "name": "TD-2 Miscellaneous"
-            }
+            return {"format": "TD-2", "lines": 2, "line_length": 36, "name": "TD-2 Miscellaneous"}
 
         return None
 

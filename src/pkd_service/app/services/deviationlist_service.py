@@ -1,6 +1,7 @@
 """
 Service for handling Deviation List operations
 """
+
 from __future__ import annotations
 
 import logging

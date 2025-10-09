@@ -52,13 +52,13 @@ const WalletDemo = () => {
     try {
       const response = await fetch('/api/wallet/credentials');
       const data = await response.json();
-      
+
       if (data.success) {
         setCredentials(data.credentials || []);
       }
     } catch (error) {
       console.error('Failed to load credentials:', error);
-      
+
       // Mock credentials for demo
       setCredentials([
         {
@@ -113,7 +113,7 @@ const WalletDemo = () => {
         const response = await fetch(`/api/wallet/credentials/${credentialId}`, {
           method: 'DELETE'
         });
-        
+
         if (response.ok) {
           setCredentials(prev => prev.filter(cred => cred.id !== credentialId));
         }
@@ -132,7 +132,7 @@ const WalletDemo = () => {
     }
 
     setLoading(true);
-    
+
     try {
       const response = await fetch('/api/wallet/create-presentation', {
         method: 'POST',
@@ -145,9 +145,9 @@ const WalletDemo = () => {
           holder_id: 'demo_holder'
         })
       });
-      
+
       const result = await response.json();
-      
+
       if (result.success) {
         alert('Presentation created successfully!');
         setShareDialogOpen(false);
@@ -181,7 +181,7 @@ const WalletDemo = () => {
         age_over_21: true
       }
     };
-    
+
     setCredentials(prev => [...prev, newCredential]);
   };
 
@@ -205,9 +205,9 @@ const WalletDemo = () => {
           <WalletIcon sx={{ fontSize: 48, mr: 2, verticalAlign: 'middle' }} />
           Digital Wallet Demo
         </Typography>
-        
+
         <Typography variant="body1" color="text.secondary" paragraph align="center">
-          Manage your mobile driving license (mDL) credentials securely. Store, view, and share 
+          Manage your mobile driving license (mDL) credentials securely. Store, view, and share
           your digital credentials using the OpenWallet Foundation SDK.
         </Typography>
 
@@ -220,7 +220,7 @@ const WalletDemo = () => {
           >
             Add Demo Credential
           </Button>
-          
+
           <Button
             variant="outlined"
             onClick={loadCredentials}
@@ -251,24 +251,24 @@ const WalletDemo = () => {
                         size="small"
                       />
                     </Box>
-                    
+
                     <Typography color="text.secondary" gutterBottom>
                       Issued by: {credential.issuer}
                     </Typography>
-                    
+
                     <Typography variant="body2">
                       <strong>Holder:</strong> {credential.subject_data.given_name} {credential.subject_data.family_name}
                     </Typography>
-                    
+
                     <Typography variant="body2">
                       <strong>Document:</strong> {credential.subject_data.document_number}
                     </Typography>
-                    
+
                     <Typography variant="body2">
                       <strong>Expires:</strong> {credential.expiry_date}
                     </Typography>
                   </CardContent>
-                  
+
                   <CardActions>
                     <Button
                       size="small"
@@ -320,8 +320,8 @@ const WalletDemo = () => {
                   </Grid>
                   <Grid item xs={6}>
                     <Typography variant="body2" color="text.secondary">Status</Typography>
-                    <Chip 
-                      label={selectedCredential.status} 
+                    <Chip
+                      label={selectedCredential.status}
                       color={getStatusColor(selectedCredential.status)}
                       size="small"
                     />
@@ -371,7 +371,7 @@ const WalletDemo = () => {
             <Typography variant="body2" color="text.secondary" paragraph>
               Enter a presentation request to create a verifiable presentation from this credential.
             </Typography>
-            
+
             <TextField
               fullWidth
               multiline
@@ -382,9 +382,9 @@ const WalletDemo = () => {
               placeholder='{"requested_attributes": ["given_name", "age_over_21"], "purpose": "age_verification"}'
               sx={{ mb: 2 }}
             />
-            
+
             <Alert severity="info">
-              This will create a verifiable presentation containing only the requested attributes 
+              This will create a verifiable presentation containing only the requested attributes
               from your credential, protecting your privacy through selective disclosure.
             </Alert>
           </DialogContent>

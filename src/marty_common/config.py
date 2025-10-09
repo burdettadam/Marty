@@ -53,13 +53,13 @@ class Config:
     def database(self, service_name: str | None = None) -> DatabaseConfig:
         """
         Get database configuration for a specific service.
-        
+
         Args:
             service_name: The name of the service (required for per-service databases)
-            
+
         Returns:
             DatabaseConfig for the specified service
-            
+
         Raises:
             ValueError: If service_name is not provided or service config not found
         """
@@ -68,20 +68,20 @@ class Config:
                 "service_name is required for database configuration. "
                 "Each service must use its own dedicated database."
             )
-        
+
         database_config = self._config.get("database", {})
-        
+
         # Ensure we have per-service configuration
         if not isinstance(database_config, dict):
             raise ValueError("Database configuration must be a dictionary with per-service configs")
-        
+
         # Check if service-specific config exists
         if service_name not in database_config:
             raise ValueError(
                 f"No database configuration found for service '{service_name}'. "
                 f"Available services: {list(database_config.keys())}"
             )
-        
+
         service_db_config = database_config[service_name]
         if isinstance(service_db_config, dict):
             return DatabaseConfig.from_dict(service_db_config)

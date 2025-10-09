@@ -7,7 +7,9 @@ The Service Template Generator is the final piece of the Marty DRY implementatio
 ## Code Reduction Achieved
 
 ### Traditional Service Creation (Before)
+
 Creating a new service traditionally required:
+
 - ~50 lines of server setup code
 - ~85 lines of configuration code  
 - ~94 lines of test setup code
@@ -16,7 +18,9 @@ Creating a new service traditionally required:
 - **Total: ~259 lines of boilerplate per service**
 
 ### DRY Template Generation (After)
+
 Using the service generator, new services get:
+
 - ~8 lines of server setup (uses gRPC Service Factory)
 - ~30 lines of configuration (inherits from Base Configuration Classes)
 - ~20 lines of test setup (uses DRY Test Infrastructure)
@@ -29,6 +33,7 @@ Using the service generator, new services get:
 ## Available Templates
 
 ### 1. gRPC Service Template (`grpc`)
+
 - **Purpose**: Pure gRPC services with protocol buffers
 - **Configuration**: Inherits from `GRPCServiceConfig`
 - **Server Setup**: Uses gRPC Service Factory
@@ -41,6 +46,7 @@ Using the service generator, new services get:
   - `Dockerfile` - Container configuration
 
 ### 2. FastAPI Service Template (`fastapi`)
+
 - **Purpose**: HTTP REST API services
 - **Configuration**: Inherits from `FastAPIServiceConfig`
 - **Server Setup**: Standard FastAPI with DRY middleware
@@ -55,6 +61,7 @@ Using the service generator, new services get:
   - `Dockerfile` - Container configuration
 
 ### 3. Hybrid Service Template (`hybrid`)
+
 - **Purpose**: Services exposing both gRPC and HTTP interfaces
 - **Configuration**: Inherits from `HybridServiceConfig`
 - **Server Setup**: Concurrent FastAPI and gRPC servers
@@ -69,6 +76,7 @@ Using the service generator, new services get:
   - `Dockerfile` - Container configuration
 
 ### 4. Minimal Service Template (`minimal`)
+
 - **Purpose**: Lightweight utility services
 - **Configuration**: Inherits from `BaseServiceConfig`
 - **Server Setup**: Basic service patterns only
@@ -82,16 +90,19 @@ Using the service generator, new services get:
 ## Usage Examples
 
 ### Basic gRPC Service
+
 ```bash
 python scripts/generate_service.py grpc document-validator
 ```
 
 ### FastAPI Service with Custom Port
+
 ```bash
 python scripts/generate_service.py fastapi user-management --http-port 8080
 ```
 
 ### Hybrid Service with Custom Configuration
+
 ```bash
 python scripts/generate_service.py hybrid payment-processor \
   --grpc-port 50052 \
@@ -100,6 +111,7 @@ python scripts/generate_service.py hybrid payment-processor \
 ```
 
 ### Minimal Utility Service
+
 ```bash
 python scripts/generate_service.py minimal config-validator
 ```
@@ -144,16 +156,18 @@ The generator uses these variables for customization:
 ## DRY Patterns Automatically Included
 
 ### 1. Configuration Inheritance
+
 ```python
 class DocumentValidatorConfig(GRPCServiceConfig):
     """Service configuration inheriting all DRY patterns."""
-    
+
     # Only service-specific fields needed
     max_document_size: int = Field(default=10485760)
     validation_timeout: int = Field(default=30)
 ```
 
 ### 2. gRPC Service Factory Usage
+
 ```python
 def main() -> None:
     """8-line service setup replacing 50+ lines."""
@@ -161,21 +175,22 @@ def main() -> None:
         service_name="document-validator",
         config_type="grpc",
     )
-    
+
     factory.register_service(
         name="document_validator_service",
         servicer_factory=lambda **_: DocumentValidatorService(),
         registration_func=add_DocumentValidatorServicer_to_server,
     )
-    
+
     factory.serve()
 ```
 
 ### 3. DRY Test Infrastructure
+
 ```python
 class TestDocumentValidatorService:
     """Tests using DRY patterns - 78% code reduction."""
-    
+
     @pytest.fixture
     def service_config(self) -> GRPCServiceTestConfig:
         return GRPCServiceTestConfig(
@@ -187,6 +202,7 @@ class TestDocumentValidatorService:
 ```
 
 ### 4. Docker Base Image Usage
+
 ```dockerfile
 # Uses shared base image with all dependencies
 FROM marty-base:latest
@@ -204,27 +220,32 @@ CMD ["python", "main.py"]
 The generated services automatically integrate with all established DRY patterns:
 
 ### Base Configuration Classes
+
 - Inherits from appropriate base config (GRPCServiceConfig, FastAPIServiceConfig, etc.)
 - Gets all common configuration fields automatically
 - Service-specific fields are minimal and focused
 
 ### gRPC Service Factory
+
 - Server setup reduced from ~50 lines to ~8 lines
 - Automatic health checks, logging streamer, reflection
 - Signal handling and graceful shutdown
 - TLS support ready
 
 ### DRY Test Infrastructure
+
 - Test setup reduced from ~94 lines to ~20 lines
 - Automatic mock dependencies and test data
 - Consistent test patterns across all services
 
 ### Docker Base Images
+
 - Container configuration reduced from ~30 lines to ~15 lines
 - All common dependencies pre-installed
 - Consistent build and deployment patterns
 
 ### Shared Logging
+
 - Automatic logging setup using marty_common.logging_config
 - Consistent log formatting and levels
 - Service-specific loggers with proper naming
@@ -232,12 +253,15 @@ The generated services automatically integrate with all established DRY patterns
 ## Development Workflow
 
 ### 1. Generate Service
+
 ```bash
 python scripts/generate_service.py grpc my-new-service
 ```
 
 ### 2. Customize Configuration
+
 Edit `app/core/config.py` to add service-specific fields:
+
 ```python
 class MyNewServiceConfig(GRPCServiceConfig):
     # Add your custom configuration
@@ -246,7 +270,9 @@ class MyNewServiceConfig(GRPCServiceConfig):
 ```
 
 ### 3. Implement Business Logic
+
 Edit `app/services/my_new_service_service.py`:
+
 ```python
 def ProcessRequest(self, request, context):
     """Implement your gRPC method."""
@@ -255,7 +281,9 @@ def ProcessRequest(self, request, context):
 ```
 
 ### 4. Define Protocol (gRPC services)
+
 Edit `my_new_service.proto`:
+
 ```protobuf
 service MyNewService {
   rpc ProcessRequest(ProcessRequest) returns (ProcessResponse);
@@ -263,7 +291,9 @@ service MyNewService {
 ```
 
 ### 5. Add Tests
+
 Edit `tests/test_my_new_service_service.py`:
+
 ```python
 def test_process_request(self, my_new_service_service):
     """Test your business logic."""
@@ -272,6 +302,7 @@ def test_process_request(self, my_new_service_service):
 ```
 
 ### 6. Build and Deploy
+
 ```bash
 # Build using DRY Docker patterns
 docker build -f src/my_new_service/Dockerfile -t my-new-service .

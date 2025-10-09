@@ -4,6 +4,7 @@ Automated key rotation system for Marty services.
 Provides automated key lifecycle management including creation, rotation,
 distribution, and revocation of cryptographic keys across all services.
 """
+
 from __future__ import annotations
 
 import json
@@ -12,11 +13,12 @@ import threading
 import time
 import uuid
 from abc import ABC, abstractmethod
+from collections.abc import Callable
 from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta
 from enum import Enum
-from typing import Any, Callable
+from typing import Any
 
 from src.marty_common.security.hsm import HSMInterface, create_hsm_service
 

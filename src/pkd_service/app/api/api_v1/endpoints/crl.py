@@ -1,6 +1,7 @@
 """
 Certificate Revocation List (CRL) API endpoints
 """
+
 from __future__ import annotations
 
 import io

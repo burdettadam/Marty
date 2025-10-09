@@ -39,11 +39,13 @@ class VDSNCProcessor:
     Implements complete Doc 9303 Part 13 VDS-NC processing workflow.
     """
 
-    def __init__(self,
-                 private_key_pem: str | None = None,
-                 public_keys: dict[str, str] | None = None,
-                 signer_id: str = "TESTSGN",
-                 certificate_reference: str = "TESTCERT001") -> None:
+    def __init__(
+        self,
+        private_key_pem: str | None = None,
+        public_keys: dict[str, str] | None = None,
+        signer_id: str = "TESTSGN",
+        certificate_reference: str = "TESTCERT001",
+    ) -> None:
         """
         Initialize VDS-NC processor.
 
@@ -58,12 +60,14 @@ class VDSNCProcessor:
         self.signer_id = signer_id
         self.certificate_reference = certificate_reference
 
-    def create_vds_nc_document(self,
-                              doc_type: DocumentType,
-                              issuing_country: str,
-                              document_data: dict[str, Any],
-                              signature_algorithm: SignatureAlgorithm = SignatureAlgorithm.ES256,
-                              preferred_barcode_format: BarcodeFormat | None = None) -> VDSNCDocument:
+    def create_vds_nc_document(
+        self,
+        doc_type: DocumentType,
+        issuing_country: str,
+        document_data: dict[str, Any],
+        signature_algorithm: SignatureAlgorithm = SignatureAlgorithm.ES256,
+        preferred_barcode_format: BarcodeFormat | None = None,
+    ) -> VDSNCDocument:
         """
         Create complete VDS-NC document with signature and barcode.
 
@@ -93,7 +97,7 @@ class VDSNCProcessor:
             doc_type=doc_type,
             issuing_country=issuing_country,
             signer_id=self.signer_id,
-            certificate_reference=self.certificate_reference
+            certificate_reference=self.certificate_reference,
         )
 
         # Create signature info
@@ -101,9 +105,7 @@ class VDSNCProcessor:
 
         # Create payload
         payload = VDSNCPayload(
-            header=header,
-            message=json.loads(canonical_message),
-            signature_info=signature_info
+            header=header, message=json.loads(canonical_message), signature_info=signature_info
         )
 
         # Sign the payload
@@ -124,13 +126,15 @@ class VDSNCProcessor:
             signature=signature,
             barcode_format=barcode_format,
             error_correction=error_correction,
-            barcode_data=barcode_data
+            barcode_data=barcode_data,
         )
 
-    def verify_vds_nc_document(self,
-                              barcode_data: str,
-                              printed_values: dict[str, Any] | None = None,
-                              verify_signature: bool = True) -> VDSNCVerificationResult:
+    def verify_vds_nc_document(
+        self,
+        barcode_data: str,
+        printed_values: dict[str, Any] | None = None,
+        verify_signature: bool = True,
+    ) -> VDSNCVerificationResult:
         """
         Complete VDS-NC verification protocol.
 
@@ -195,10 +199,10 @@ class VDSNCProcessor:
 
             # Overall validation
             result.is_valid = (
-                result.canonicalization_ok and
-                result.signature_valid and
-                result.field_consistency_valid and
-                result.temporal_validity_ok
+                result.canonicalization_ok
+                and result.signature_valid
+                and result.field_consistency_valid
+                and result.temporal_validity_ok
             )
 
         except Exception as e:
@@ -215,8 +219,7 @@ class VDSNCProcessor:
 
             # Load private key
             private_key = serialization.load_pem_private_key(
-                self.private_key_pem.encode(),
-                password=None
+                self.private_key_pem.encode(), password=None
             )
 
             # Get signature data
@@ -239,7 +242,9 @@ class VDSNCProcessor:
             msg = f"Signing failed: {e}"
             raise SignatureError(msg) from e
 
-    def _create_barcode_data(self, payload: VDSNCPayload, signature: str, format_type: BarcodeFormat) -> str:
+    def _create_barcode_data(
+        self, payload: VDSNCPayload, signature: str, format_type: BarcodeFormat
+    ) -> str:
         """Create barcode data string."""
         # VDS-NC format: header~payload~signature (simplified)
         header_str = payload.header.to_canonical_string()
@@ -275,13 +280,15 @@ class VDSNCProcessor:
                     doc_type=DocumentType.E_VISA,  # Would be parsed from header
                     issuing_country="USA",  # Would be parsed from header
                     signer_id="TESTSGN",  # Would be parsed from header
-                    certificate_reference="TESTCERT001"
+                    certificate_reference="TESTCERT001",
                 ),
                 message=json.loads(message_str),
-                signature_info=VDSNCSignatureInfo(algorithm=SignatureAlgorithm.ES256)
+                signature_info=VDSNCSignatureInfo(algorithm=SignatureAlgorithm.ES256),
             ),
             signature=signature,
             barcode_format=BarcodeFormat.QR_CODE,  # Would be determined from context
-            error_correction=VDSNCBarcodeSelector.get_recommended_error_correction(DocumentType.E_VISA),
-            barcode_data=barcode_data
+            error_correction=VDSNCBarcodeSelector.get_recommended_error_correction(
+                DocumentType.E_VISA
+            ),
+            barcode_data=barcode_data,
         )

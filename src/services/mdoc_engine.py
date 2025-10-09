@@ -1,4 +1,5 @@
 """mDoc engine service implementation."""
+
 from __future__ import annotations
 
 # --- BEGIN Standard Library Imports ---
@@ -469,7 +470,7 @@ class MDocEngineServicer(mdoc_engine_pb2_grpc.MDocEngineServicer):
         """Establish ISO 18013-5 session for mDoc presentation"""
         session_id = str(uuid.uuid4())
         self.logger.info(f"🔄 Starting session establishment: {session_id}")
-        
+
         try:
             # Validate engagement method
             valid_methods = ["QR_CODE", "NFC", "BLUETOOTH", "WIFI_AWARE"]
@@ -480,7 +481,7 @@ class MDocEngineServicer(mdoc_engine_pb2_grpc.MDocEngineServicer):
                 return mdoc_engine_pb2.EstablishSessionResponse(
                     session_id="",
                     success=False,
-                    error_message=f"Invalid engagement method: {request.engagement_method}"
+                    error_message=f"Invalid engagement method: {request.engagement_method}",
                 )
 
             # Validate transport protocol
@@ -488,18 +489,20 @@ class MDocEngineServicer(mdoc_engine_pb2_grpc.MDocEngineServicer):
             if request.transport_protocol not in valid_transports:
                 self.logger.error(f"❌ Invalid transport protocol: {request.transport_protocol}")
                 context.set_code(grpc.StatusCode.INVALID_ARGUMENT)
-                context.set_details(f"Invalid transport protocol. Must be one of: {valid_transports}")
+                context.set_details(
+                    f"Invalid transport protocol. Must be one of: {valid_transports}"
+                )
                 return mdoc_engine_pb2.EstablishSessionResponse(
                     session_id="",
                     success=False,
-                    error_message=f"Invalid transport protocol: {request.transport_protocol}"
+                    error_message=f"Invalid transport protocol: {request.transport_protocol}",
                 )
 
             # Generate device engagement data
             engagement_data = self._generate_device_engagement_data(
                 session_id, request.engagement_method, request.transport_protocol
             )
-            
+
             # Generate session establishment data
             session_establishment = {
                 "session_id": session_id,
@@ -511,21 +514,21 @@ class MDocEngineServicer(mdoc_engine_pb2_grpc.MDocEngineServicer):
                 "security_context": {
                     "encryption": "ECDHE-ECDSA-AES256-GCM-SHA384",
                     "key_agreement": "ECDH-ES",
-                    "signature_algorithm": "ES256"
-                }
+                    "signature_algorithm": "ES256",
+                },
             }
 
             # Log success with visual indicator
-            self.logger.info(f"✓ Session established successfully")
+            self.logger.info("✓ Session established successfully")
             self.logger.info(f"  - Session ID: {session_id}")
             self.logger.info(f"  - Method: {request.engagement_method}")
             self.logger.info(f"  - Transport: {request.transport_protocol}")
-            
+
             return mdoc_engine_pb2.EstablishSessionResponse(
                 session_id=session_id,
                 success=True,
-                device_engagement=json.dumps(engagement_data).encode('utf-8'),
-                session_establishment=json.dumps(session_establishment).encode('utf-8')
+                device_engagement=json.dumps(engagement_data).encode("utf-8"),
+                session_establishment=json.dumps(session_establishment).encode("utf-8"),
             )
 
         except Exception as e:
@@ -533,41 +536,37 @@ class MDocEngineServicer(mdoc_engine_pb2_grpc.MDocEngineServicer):
             context.set_code(grpc.StatusCode.INTERNAL)
             context.set_details(f"Session establishment failed: {e}")
             return mdoc_engine_pb2.EstablishSessionResponse(
-                session_id="",
-                success=False,
-                error_message=f"Session establishment failed: {e}"
+                session_id="", success=False, error_message=f"Session establishment failed: {e}"
             )
 
     def ProcessMDocRequest(self, request, context):
         """Process mDoc data request within established session"""
         self.logger.info(f"🔄 Processing mDoc request for session: {request.session_id}")
-        
+
         try:
             if not request.session_id:
                 self.logger.error("❌ Session ID is required")
                 context.set_code(grpc.StatusCode.INVALID_ARGUMENT)
                 context.set_details("session_id is required")
                 return mdoc_engine_pb2.ProcessMDocRequestResponse(
-                    success=False,
-                    error_message="session_id is required"
+                    success=False, error_message="session_id is required"
                 )
 
             # Parse the request data
             try:
-                request_data = json.loads(request.request_data.decode('utf-8'))
+                request_data = json.loads(request.request_data.decode("utf-8"))
             except (json.JSONDecodeError, UnicodeDecodeError) as e:
                 self.logger.error(f"❌ Invalid request data format: {e}")
                 context.set_code(grpc.StatusCode.INVALID_ARGUMENT)
                 context.set_details("Invalid request_data format")
                 return mdoc_engine_pb2.ProcessMDocRequestResponse(
-                    success=False,
-                    error_message=f"Invalid request_data format: {e}"
+                    success=False, error_message=f"Invalid request_data format: {e}"
                 )
 
             # Apply disclosure policy
             disclosure_policy = self._get_disclosure_policy(request_data.get("doc_type", "default"))
             filtered_data = self._apply_disclosure_policy(request_data, disclosure_policy)
-            
+
             # Generate mDoc response
             mdoc_response = {
                 "session_id": request.session_id,
@@ -576,35 +575,31 @@ class MDocEngineServicer(mdoc_engine_pb2_grpc.MDocEngineServicer):
                     "org.iso.18013.5.1": filtered_data,
                     "org.iso.18013.5.1.aamva": {
                         "resident_address": "123 Main St, City, State",
-                        "organ_donor": True
-                    }
+                        "organ_donor": True,
+                    },
                 },
                 "device_signed": {
                     "name_spaces": {},
                     "device_auth": {
                         "device_signature": "mock_device_signature",
-                        "device_mac": "mock_device_mac"
-                    }
+                        "device_mac": "mock_device_mac",
+                    },
                 },
                 "issuer_signed": {
                     "name_spaces": {},
-                    "issuer_auth": {
-                        "x5chain": ["mock_issuer_cert"],
-                        "algorithm": "ES256"
-                    }
+                    "issuer_auth": {"x5chain": ["mock_issuer_cert"], "algorithm": "ES256"},
                 },
-                "status": 0
+                "status": 0,
             }
 
             # Log success with visual indicators
-            self.logger.info(f"✓ mDoc request processed successfully")
+            self.logger.info("✓ mDoc request processed successfully")
             self.logger.info(f"  - Session: {request.session_id}")
             self.logger.info(f"  - Document type: {mdoc_response['doc_type']}")
             self.logger.info(f"  - Disclosed fields: {len(filtered_data)} items")
-            
+
             return mdoc_engine_pb2.ProcessMDocRequestResponse(
-                success=True,
-                response_data=json.dumps(mdoc_response).encode('utf-8')
+                success=True, response_data=json.dumps(mdoc_response).encode("utf-8")
             )
 
         except Exception as e:
@@ -612,11 +607,12 @@ class MDocEngineServicer(mdoc_engine_pb2_grpc.MDocEngineServicer):
             context.set_code(grpc.StatusCode.INTERNAL)
             context.set_details(f"Request processing failed: {e}")
             return mdoc_engine_pb2.ProcessMDocRequestResponse(
-                success=False,
-                error_message=f"Request processing failed: {e}"
+                success=False, error_message=f"Request processing failed: {e}"
             )
 
-    def _generate_device_engagement_data(self, session_id: str, method: str, transport: str) -> dict:
+    def _generate_device_engagement_data(
+        self, session_id: str, method: str, transport: str
+    ) -> dict:
         """Generate device engagement data based on method"""
         base_engagement = {
             "session_id": session_id,
@@ -624,39 +620,39 @@ class MDocEngineServicer(mdoc_engine_pb2_grpc.MDocEngineServicer):
             "device_retrieval_methods": {
                 transport.lower(): {
                     "supported_data_types": ["org.iso.18013.5.1.mDL"],
-                    "connection_methods": []
+                    "connection_methods": [],
                 }
-            }
+            },
         }
 
         if method == "QR_CODE":
             qr_data = self._generate_qr_code_data(session_id, transport)
             base_engagement["qr_code"] = qr_data
-            self.logger.info(f"✓ Generated QR code engagement data")
-            
+            self.logger.info("✓ Generated QR code engagement data")
+
         elif method == "NFC":
             nfc_data = self._generate_nfc_data(session_id, transport)
             base_engagement["nfc"] = nfc_data
-            self.logger.info(f"✓ Generated NFC engagement data")
-            
+            self.logger.info("✓ Generated NFC engagement data")
+
         elif method == "BLUETOOTH":
             ble_data = {
                 "peripheral_server_mode": True,
                 "central_client_mode": False,
                 "service_uuid": f"mdoc-{session_id[:8]}",
-                "characteristic_uuid": "mdoc-char"
+                "characteristic_uuid": "mdoc-char",
             }
             base_engagement["device_retrieval_methods"]["ble"] = ble_data
-            self.logger.info(f"✓ Generated Bluetooth engagement data")
-            
+            self.logger.info("✓ Generated Bluetooth engagement data")
+
         elif method == "WIFI_AWARE":
             wifi_data = {
                 "service_name": f"mdoc-{session_id[:8]}",
                 "service_info": b"mDoc presentation service",
-                "passphrase": f"mdoc{session_id[-6:]}"
+                "passphrase": f"mdoc{session_id[-6:]}",
             }
             base_engagement["device_retrieval_methods"]["wifi_aware"] = wifi_data
-            self.logger.info(f"✓ Generated WiFi Aware engagement data")
+            self.logger.info("✓ Generated WiFi Aware engagement data")
 
         return base_engagement
 
@@ -667,7 +663,7 @@ class MDocEngineServicer(mdoc_engine_pb2_grpc.MDocEngineServicer):
             "data": f"mdoc://{session_id}?transport={transport}",
             "encoding": "UTF-8",
             "error_correction": "M",
-            "size": "256x256"
+            "size": "256x256",
         }
 
     def _generate_nfc_data(self, session_id: str, transport: str) -> dict:
@@ -676,7 +672,7 @@ class MDocEngineServicer(mdoc_engine_pb2_grpc.MDocEngineServicer):
             "aid": "A0000002471001",  # ISO 18013-5 AID
             "command": f"SELECT mdoc {session_id}",
             "max_command_size": 261,
-            "max_response_size": 256
+            "max_response_size": 256,
         }
 
     def _get_disclosure_policy(self, doc_type: str) -> dict:
@@ -685,12 +681,9 @@ class MDocEngineServicer(mdoc_engine_pb2_grpc.MDocEngineServicer):
             "org.iso.18013.5.1.mDL": {
                 "age_verification": ["birth_date", "age_over_18", "age_over_21"],
                 "identity_verification": ["family_name", "given_name", "portrait"],
-                "full_disclosure": ["*"]  # All fields
+                "full_disclosure": ["*"],  # All fields
             },
-            "default": {
-                "basic": ["family_name", "given_name"],
-                "full": ["*"]
-            }
+            "default": {"basic": ["family_name", "given_name"], "full": ["*"]},
         }
         return policies.get(doc_type, policies["default"])
 
@@ -698,9 +691,9 @@ class MDocEngineServicer(mdoc_engine_pb2_grpc.MDocEngineServicer):
         """Apply disclosure policy to filter requested data"""
         requested_elements = request_data.get("requested_elements", [])
         disclosure_level = request_data.get("disclosure_level", "basic")
-        
+
         allowed_fields = policy.get(disclosure_level, policy.get("basic", []))
-        
+
         if "*" in allowed_fields:
             # Full disclosure allowed
             filtered_data = {
@@ -712,27 +705,27 @@ class MDocEngineServicer(mdoc_engine_pb2_grpc.MDocEngineServicer):
                 "portrait": "base64_encoded_image_data",
                 "driving_privileges": [],
                 "document_number": "DL123456789",
-                "expiry_date": "2030-01-01"
+                "expiry_date": "2030-01-01",
             }
         else:
             # Selective disclosure
             all_data = {
                 "family_name": "Doe",
-                "given_name": "Jane", 
+                "given_name": "Jane",
                 "birth_date": "1990-01-01",
                 "age_over_18": True,
                 "age_over_21": True,
-                "portrait": "base64_encoded_image_data"
+                "portrait": "base64_encoded_image_data",
             }
             filtered_data = {
-                field: all_data[field] 
-                for field in allowed_fields 
+                field: all_data[field]
+                for field in allowed_fields
                 if field in all_data and (not requested_elements or field in requested_elements)
             }
-            
+
         self.logger.info(f"✓ Applied disclosure policy: {disclosure_level}")
         self.logger.info(f"  - Allowed fields: {len(filtered_data)} of {len(allowed_fields)}")
-        
+
         return filtered_data
 
 

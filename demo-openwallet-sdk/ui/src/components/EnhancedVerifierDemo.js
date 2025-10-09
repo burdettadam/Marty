@@ -73,7 +73,7 @@ const EnhancedVerifierDemo = () => {
 
   const handleAgeVerificationRequest = async () => {
     setAgeVerificationState(prev => ({ ...prev, loading: true }));
-    
+
     try {
       const response = await fetch('/api/verifier/age-verification/request', {
         method: 'POST',
@@ -84,9 +84,9 @@ const EnhancedVerifierDemo = () => {
           purpose: `Enhanced demo for ${ageVerificationUseCases[ageVerificationState.useCase]}`
         })
       });
-      
+
       const data = await response.json();
-      
+
       if (data.success) {
         setAgeVerificationState(prev => ({
           ...prev,
@@ -104,9 +104,9 @@ const EnhancedVerifierDemo = () => {
 
   const simulateAgeVerification = async () => {
     if (!ageVerificationState.request) return;
-    
+
     setAgeVerificationState(prev => ({ ...prev, loading: true }));
-    
+
     try {
       // Simulate credential presentation
       const mockPresentation = {
@@ -122,7 +122,7 @@ const EnhancedVerifierDemo = () => {
           expirationDate: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString()
         }]
       };
-      
+
       const response = await fetch('/api/verifier/age-verification/verify', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -131,9 +131,9 @@ const EnhancedVerifierDemo = () => {
           presentation: mockPresentation
         })
       });
-      
+
       const data = await response.json();
-      
+
       setAgeVerificationState(prev => ({
         ...prev,
         result: data,
@@ -147,7 +147,7 @@ const EnhancedVerifierDemo = () => {
 
   const handleCreateOfflineQR = async () => {
     setOfflineQRState(prev => ({ ...prev, loading: true }));
-    
+
     try {
       const mockMDLData = {
         given_name: 'Jane',
@@ -160,7 +160,7 @@ const EnhancedVerifierDemo = () => {
         issuing_country: 'XX',
         issuing_authority: 'Demo DMV'
       };
-      
+
       const response = await fetch('/api/verifier/offline-qr/create', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -174,9 +174,9 @@ const EnhancedVerifierDemo = () => {
           expires_in_minutes: 60
         })
       });
-      
+
       const data = await response.json();
-      
+
       if (data.success) {
         setOfflineQRState(prev => ({
           ...prev,
@@ -194,9 +194,9 @@ const EnhancedVerifierDemo = () => {
 
   const handleVerifyOfflineQR = async () => {
     if (!offlineQRState.qrCode) return;
-    
+
     setOfflineQRState(prev => ({ ...prev, loading: true }));
-    
+
     try {
       const response = await fetch('/api/verifier/offline-qr/verify', {
         method: 'POST',
@@ -209,9 +209,9 @@ const EnhancedVerifierDemo = () => {
           }
         })
       });
-      
+
       const data = await response.json();
-      
+
       setOfflineQRState(prev => ({
         ...prev,
         verificationResult: data.verification_result,
@@ -225,11 +225,11 @@ const EnhancedVerifierDemo = () => {
 
   const loadCertificateDashboard = async () => {
     setCertificateState(prev => ({ ...prev, loading: true }));
-    
+
     try {
       const response = await fetch('/api/verifier/certificates/dashboard');
       const data = await response.json();
-      
+
       setCertificateState(prev => ({
         ...prev,
         dashboard: data,
@@ -247,7 +247,7 @@ const EnhancedVerifierDemo = () => {
         method: 'POST'
       });
       const data = await response.json();
-      
+
       if (data.renewal_successful) {
         // Reload dashboard
         await loadCertificateDashboard();
@@ -260,11 +260,11 @@ const EnhancedVerifierDemo = () => {
 
   const loadPolicySummary = async () => {
     setPolicyState(prev => ({ ...prev, loading: true }));
-    
+
     try {
       const response = await fetch('/api/verifier/policy/summary');
       const data = await response.json();
-      
+
       setPolicyState(prev => ({
         ...prev,
         policies: data,
@@ -278,7 +278,7 @@ const EnhancedVerifierDemo = () => {
 
   const evaluatePolicy = async () => {
     setPolicyState(prev => ({ ...prev, loading: true }));
-    
+
     try {
       const mockEvaluation = {
         presentation_request: {
@@ -299,15 +299,15 @@ const EnhancedVerifierDemo = () => {
           urgency: 'routine'
         }
       };
-      
+
       const response = await fetch('/api/verifier/policy/evaluate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(mockEvaluation)
       });
-      
+
       const data = await response.json();
-      
+
       setPolicyState(prev => ({
         ...prev,
         evaluation: data,
@@ -338,12 +338,12 @@ const EnhancedVerifierDemo = () => {
           Verify age without disclosing birth date using selective disclosure and zero-knowledge proofs.
         </Typography>
       </Grid>
-      
+
       <Grid item xs={12} md={6}>
         <Card>
           <CardContent>
             <Typography variant="h6">1. Create Verification Request</Typography>
-            
+
             <FormControl fullWidth sx={{ mt: 2 }}>
               <InputLabel>Use Case</InputLabel>
               <Select
@@ -355,7 +355,7 @@ const EnhancedVerifierDemo = () => {
                 ))}
               </Select>
             </FormControl>
-            
+
             <Button
               variant="contained"
               onClick={handleAgeVerificationRequest}
@@ -368,18 +368,18 @@ const EnhancedVerifierDemo = () => {
           </CardContent>
         </Card>
       </Grid>
-      
+
       <Grid item xs={12} md={6}>
         <Card>
           <CardContent>
             <Typography variant="h6">2. Simulate Verification</Typography>
-            
+
             {ageVerificationState.request && (
               <Box sx={{ mt: 2 }}>
                 <Alert severity="info" sx={{ mb: 2 }}>
                   Request created for: {ageVerificationUseCases[ageVerificationState.useCase]}
                 </Alert>
-                
+
                 <Button
                   variant="contained"
                   onClick={simulateAgeVerification}
@@ -393,27 +393,27 @@ const EnhancedVerifierDemo = () => {
           </CardContent>
         </Card>
       </Grid>
-      
+
       {ageVerificationState.result && (
         <Grid item xs={12}>
           <Card>
             <CardContent>
               <Typography variant="h6">Verification Result</Typography>
-              
+
               <Box sx={{ mt: 2 }}>
                 <Chip
                   label={ageVerificationState.result.verification_result.verified ? 'VERIFIED' : 'FAILED'}
                   color={ageVerificationState.result.verification_result.verified ? 'success' : 'error'}
                   icon={ageVerificationState.result.verification_result.verified ? <VerifiedIcon /> : <ErrorIcon />}
                 />
-                
+
                 <Chip
                   label={`Privacy: ${ageVerificationState.result.privacy_report.privacy_level.toUpperCase()}`}
                   color={ageVerificationState.result.privacy_report.privacy_level === 'high' ? 'success' : 'warning'}
                   sx={{ ml: 1 }}
                 />
               </Box>
-              
+
               <Accordion sx={{ mt: 2 }}>
                 <AccordionSummary expandIcon={<ExpandMoreIcon />}>
                   <Typography>Privacy Report</Typography>
@@ -440,12 +440,12 @@ const EnhancedVerifierDemo = () => {
           Create and verify QR codes that work without network connectivity.
         </Typography>
       </Grid>
-      
+
       <Grid item xs={12} md={6}>
         <Card>
           <CardContent>
             <Typography variant="h6">1. Create Offline QR Code</Typography>
-            
+
             <Button
               variant="contained"
               onClick={handleCreateOfflineQR}
@@ -455,13 +455,13 @@ const EnhancedVerifierDemo = () => {
             >
               Generate Offline QR
             </Button>
-            
+
             {offlineQRState.qrCode && (
               <Box sx={{ mt: 2 }}>
                 <Alert severity="success">
                   QR Code created! Size: {offlineQRState.qrCode.size_bytes} bytes
                 </Alert>
-                
+
                 <img
                   src={`data:image/png;base64,${offlineQRState.qrCode.qr_code_image}`}
                   alt="Offline QR Code"
@@ -472,12 +472,12 @@ const EnhancedVerifierDemo = () => {
           </CardContent>
         </Card>
       </Grid>
-      
+
       <Grid item xs={12} md={6}>
         <Card>
           <CardContent>
             <Typography variant="h6">2. Verify Offline</Typography>
-            
+
             <Button
               variant="contained"
               onClick={handleVerifyOfflineQR}
@@ -487,7 +487,7 @@ const EnhancedVerifierDemo = () => {
             >
               Verify Offline QR
             </Button>
-            
+
             {offlineQRState.verificationResult && (
               <Box sx={{ mt: 2 }}>
                 <Chip
@@ -495,7 +495,7 @@ const EnhancedVerifierDemo = () => {
                   color={offlineQRState.verificationResult.verified ? 'success' : 'error'}
                   icon={offlineQRState.verificationResult.verified ? <VerifiedIcon /> : <ErrorIcon />}
                 />
-                
+
                 <Accordion sx={{ mt: 2 }}>
                   <AccordionSummary expandIcon={<ExpandMoreIcon />}>
                     <Typography>Verification Details</Typography>
@@ -531,7 +531,7 @@ const EnhancedVerifierDemo = () => {
           Monitor mDL Document Signer Certificate expiry and manage renewals.
         </Typography>
       </Grid>
-      
+
       {certificateState.dashboard && (
         <>
           <Grid item xs={12}>
@@ -575,7 +575,7 @@ const EnhancedVerifierDemo = () => {
               </CardContent>
             </Card>
           </Grid>
-          
+
           <Grid item xs={12}>
             <Card>
               <CardContent>
@@ -624,12 +624,12 @@ const EnhancedVerifierDemo = () => {
           Context-aware attribute sharing using Marty's authorization engine.
         </Typography>
       </Grid>
-      
+
       <Grid item xs={12} md={6}>
         <Card>
           <CardContent>
             <Typography variant="h6">Available Policies</Typography>
-            
+
             {policyState.policies && (
               <List>
                 {Object.entries(policyState.policies.policies).map(([id, policy]) => (
@@ -642,7 +642,7 @@ const EnhancedVerifierDemo = () => {
                 ))}
               </List>
             )}
-            
+
             <Button
               variant="outlined"
               onClick={loadPolicySummary}
@@ -655,12 +655,12 @@ const EnhancedVerifierDemo = () => {
           </CardContent>
         </Card>
       </Grid>
-      
+
       <Grid item xs={12} md={6}>
         <Card>
           <CardContent>
             <Typography variant="h6">Policy Evaluation</Typography>
-            
+
             <Button
               variant="contained"
               onClick={evaluatePolicy}
@@ -670,14 +670,14 @@ const EnhancedVerifierDemo = () => {
             >
               Evaluate Demo Policy
             </Button>
-            
+
             {policyState.evaluation && (
               <Box sx={{ mt: 2 }}>
                 <Chip
                   label={policyState.evaluation.recommended_action.replace('_', ' ').toUpperCase()}
                   color={policyState.evaluation.recommended_action === 'approve' ? 'success' : 'warning'}
                 />
-                
+
                 <Accordion sx={{ mt: 2 }}>
                   <AccordionSummary expandIcon={<ExpandMoreIcon />}>
                     <Typography>Evaluation Details</Typography>
@@ -700,12 +700,12 @@ const EnhancedVerifierDemo = () => {
         <Typography variant="h4" component="h1" gutterBottom>
           Enhanced mDoc/mDL Verifier Demo
         </Typography>
-        
+
         <Typography variant="body1" color="text.secondary" paragraph>
           Explore advanced mDoc/mDL verification capabilities including age verification with selective disclosure,
           offline verification, certificate lifecycle management, and policy-based attribute sharing.
         </Typography>
-        
+
         <Box sx={{ mb: 3 }}>
           <Button
             variant={selectedFeature === 'age-verification' ? 'contained' : 'outlined'}
@@ -736,7 +736,7 @@ const EnhancedVerifierDemo = () => {
             Policy Engine
           </Button>
         </Box>
-        
+
         {selectedFeature === 'age-verification' && renderAgeVerificationDemo()}
         {selectedFeature === 'offline-qr' && renderOfflineQRDemo()}
         {selectedFeature === 'certificates' && renderCertificateMonitoring()}

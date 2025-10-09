@@ -4,6 +4,7 @@ Certificate models for X.509 PKI infrastructure.
 Models complying with RFC 5280 for X.509 certificates used in the
 ICAO PKI for ePassports, including CSCA and Document Signer certificates.
 """
+
 from __future__ import annotations
 
 from dataclasses import dataclass, field

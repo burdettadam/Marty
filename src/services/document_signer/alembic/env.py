@@ -17,6 +17,7 @@ sys.path.insert(0, str(project_root / "src"))
 sys.path.insert(0, str(project_root / "scripts"))
 
 from migration_config import get_database_url
+
 from services.document_signer.models import Base
 
 # This is the Alembic Config object, which provides
@@ -68,7 +69,7 @@ def run_migrations_online() -> None:
     """
     configuration = config.get_section(config.config_ini_section, {})
     configuration["sqlalchemy.url"] = get_url()
-    
+
     connectable = create_engine(
         configuration["sqlalchemy.url"],
         poolclass=pool.NullPool,

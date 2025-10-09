@@ -183,28 +183,28 @@ Each test follows a consistent pattern:
 async def test_complete_mdoc_openid4vp_flow(self):
     # Step 1: Create mDoc via gRPC service
     mdoc_data = await self._create_test_mdoc()
-    
+
     # Step 2: Sign the mDoc to make it active
     signed_mdoc = await self._sign_mdoc(mdoc_data["mdoc_id"])
-    
+
     # Step 3: Create OpenID4VP presentation request
     presentation_request = await self._create_presentation_request(
         requested_credentials=["driver_license"],
         requested_claims=["given_name", "family_name", "birth_date"]
     )
-    
+
     # Step 4: Process presentation request as holder
     presentation_response = await self._process_presentation_request(
         mdoc_data["mdoc_id"],
         presentation_request
     )
-    
+
     # Step 5: Verify presentation response as verifier
     verification_result = await self._verify_presentation_response(
         presentation_response,
         presentation_request
     )
-    
+
     # Step 6: Validate results
     assert verification_result["valid"]
     assert verification_result["credential_verified"]
@@ -219,7 +219,7 @@ async def test_complete_mdoc_openid4vp_flow(self):
 {
   "base_url": "http://localhost:8000",
   "mdoc_service_url": "localhost:8081",
-  "mdl_service_url": "localhost:8085", 
+  "mdl_service_url": "localhost:8085",
   "timeout": 60
 }
 ```
@@ -231,7 +231,7 @@ async def test_complete_mdoc_openid4vp_flow(self):
 markers = [
     "integration: Integration tests requiring external services",
     "openid4vp: OpenID4VP protocol tests",
-    "mdoc_presentation: mDoc presentation tests", 
+    "mdoc_presentation: mDoc presentation tests",
     "mdl_presentation: mDL presentation tests"
 ]
 ```

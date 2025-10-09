@@ -8,7 +8,7 @@ import "common_services.proto";
 service CscaService {
   // Existing method
   rpc GetCscaData (CscaRequest) returns (CscaResponse);
-  
+
   // Certificate lifecycle management methods
   rpc CreateCertificate (CreateCertificateRequest) returns (CreateCertificateResponse);
   rpc RenewCertificate (RenewCertificateRequest) returns (CreateCertificateResponse);
@@ -83,7 +83,7 @@ message ListCertificatesRequest {
 message CertificateSummary {
   string certificate_id = 1;
   string subject = 2;
-  string status = 3;           // VALID, EXPIRED, REVOKED 
+  string status = 3;           // VALID, EXPIRED, REVOKED
   string not_before = 4;       // Certificate validity start date (ISO format)
   string not_after = 5;        // Certificate expiry date (ISO format)
   string revocation_reason = 6; // Present only if status is REVOKED

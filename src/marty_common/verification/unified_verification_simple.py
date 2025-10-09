@@ -21,36 +21,38 @@ from datetime import datetime, timezone
 from enum import Enum
 from typing import Any
 
-from src.shared.logging_config import get_logger
-
 from src.marty_common.utils.mrz_utils import MRZParser
+from src.shared.logging_config import get_logger
 
 logger = get_logger(__name__)
 
 
 class DocumentClass(Enum):
     """Document classes based on MRZ document codes."""
-    CMC = "C"           # Crew Member Certificate
-    VISA = "V"          # Visa
-    PASSPORT = "P"      # Passport
+
+    CMC = "C"  # Crew Member Certificate
+    VISA = "V"  # Visa
+    PASSPORT = "P"  # Passport
     TRAVEL_DOCUMENT = "A"  # Travel Document
-    ID_CARD = "I"       # ID Card
-    RESIDENCE = "R"     # Residence Document
-    TD2_MISC = "ID"     # TD-2 Miscellaneous
-    UNKNOWN = "?"       # Unknown/Invalid
+    ID_CARD = "I"  # ID Card
+    RESIDENCE = "R"  # Residence Document
+    TD2_MISC = "ID"  # TD-2 Miscellaneous
+    UNKNOWN = "?"  # Unknown/Invalid
 
 
 class VerificationLevel(Enum):
     """Verification thoroughness levels."""
-    BASIC = "basic"           # MRZ + document detection only
-    STANDARD = "standard"     # + authenticity verification
+
+    BASIC = "basic"  # MRZ + document detection only
+    STANDARD = "standard"  # + authenticity verification
     COMPREHENSIVE = "comprehensive"  # + semantics + trust verification
-    MAXIMUM = "maximum"       # All checks + advanced policy validation
+    MAXIMUM = "maximum"  # All checks + advanced policy validation
 
 
 @dataclass
 class VerificationResult:
     """Individual verification check result."""
+
     check_name: str
     passed: bool
     details: str = ""
@@ -69,13 +71,14 @@ class VerificationResult:
             "details": self.details,
             "error_code": self.error_code,
             "metadata": self.metadata,
-            "timestamp": self.timestamp.isoformat()
+            "timestamp": self.timestamp.isoformat(),
         }
 
 
 @dataclass
 class DocumentVerificationResult:
     """Complete end-to-end verification result."""
+
     document_class: DocumentClass
     verification_level: VerificationLevel
     overall_valid: bool
@@ -101,11 +104,11 @@ class DocumentVerificationResult:
     def all_results(self) -> list[VerificationResult]:
         """Get all verification results in order."""
         return (
-            self.detection_results +
-            self.mrz_results +
-            self.authenticity_results +
-            self.semantics_results +
-            self.trust_results
+            self.detection_results
+            + self.mrz_results
+            + self.authenticity_results
+            + self.semantics_results
+            + self.trust_results
         )
 
     def to_dict(self) -> dict[str, Any]:
@@ -125,7 +128,7 @@ class DocumentVerificationResult:
             "semantics_valid": self.semantics_valid,
             "trust_established": self.trust_established,
             "verification_notes": self.verification_notes,
-            "processing_time_ms": self.processing_time_ms
+            "processing_time_ms": self.processing_time_ms,
         }
 
 
@@ -156,18 +159,20 @@ class DocumentClassDetector:
         results = []
 
         if not mrz_data or not mrz_data.strip():
-            results.append(VerificationResult(
-                "MRZ Detection", False, "No MRZ data provided", "EMPTY_MRZ"
-            ))
+            results.append(
+                VerificationResult("MRZ Detection", False, "No MRZ data provided", "EMPTY_MRZ")
+            )
             return DocumentClass.UNKNOWN, results
 
         # Normalize MRZ data
         lines = [line.strip() for line in mrz_data.strip().split("\n") if line.strip()]
 
         if not lines or len(lines[0]) < 1:
-            results.append(VerificationResult(
-                "Document Type Detection", False, "Invalid MRZ format", "INVALID_MRZ_FORMAT"
-            ))
+            results.append(
+                VerificationResult(
+                    "Document Type Detection", False, "Invalid MRZ format", "INVALID_MRZ_FORMAT"
+                )
+            )
             return DocumentClass.UNKNOWN, results
 
         # Extract document code
@@ -187,15 +192,23 @@ class DocumentClassDetector:
         structure_valid = cls._validate_mrz_structure(lines, detected_class)
 
         if structure_valid and detected_class != DocumentClass.UNKNOWN:
-            results.append(VerificationResult(
-                "Document Class Detection", True, details,
-                metadata={"document_code": doc_code, "mrz_lines": len(lines)}
-            ))
+            results.append(
+                VerificationResult(
+                    "Document Class Detection",
+                    True,
+                    details,
+                    metadata={"document_code": doc_code, "mrz_lines": len(lines)},
+                )
+            )
         else:
-            results.append(VerificationResult(
-                "Document Class Detection", False,
-                f"{details} but MRZ structure invalid", "INVALID_MRZ_STRUCTURE"
-            ))
+            results.append(
+                VerificationResult(
+                    "Document Class Detection",
+                    False,
+                    f"{details} but MRZ structure invalid",
+                    "INVALID_MRZ_STRUCTURE",
+                )
+            )
             detected_class = DocumentClass.UNKNOWN
 
         return detected_class, results
@@ -244,7 +257,7 @@ class UnifiedVerificationProtocol:
         self,
         document_data: str | dict[str, Any] | Any,
         verification_level: VerificationLevel = VerificationLevel.STANDARD,
-        options: dict[str, Any] | None = None
+        options: dict[str, Any] | None = None,
     ) -> DocumentVerificationResult:
         """
         Execute comprehensive document verification.
@@ -266,7 +279,7 @@ class UnifiedVerificationProtocol:
         result = DocumentVerificationResult(
             document_class=DocumentClass.UNKNOWN,
             verification_level=verification_level,
-            overall_valid=False
+            overall_valid=False,
         )
 
         try:
@@ -277,7 +290,9 @@ class UnifiedVerificationProtocol:
             result.document_detected = any(r.passed for r in result.detection_results)
 
             if not result.document_detected:
-                result.verification_notes.append("Document class detection failed - stopping verification")
+                result.verification_notes.append(
+                    "Document class detection failed - stopping verification"
+                )
                 return result
 
             logger.info(f"Detected document class: {result.document_class.value}")
@@ -287,11 +302,17 @@ class UnifiedVerificationProtocol:
             result.mrz_valid = all(r.passed for r in result.mrz_results)
 
             if not result.mrz_valid and verification_level != VerificationLevel.BASIC:
-                result.verification_notes.append("MRZ validation failed - skipping advanced verification")
+                result.verification_notes.append(
+                    "MRZ validation failed - skipping advanced verification"
+                )
                 return result
 
             # Phase 3: Authenticity Layer (if requested)
-            if verification_level in [VerificationLevel.STANDARD, VerificationLevel.COMPREHENSIVE, VerificationLevel.MAXIMUM]:
+            if verification_level in [
+                VerificationLevel.STANDARD,
+                VerificationLevel.COMPREHENSIVE,
+                VerificationLevel.MAXIMUM,
+            ]:
                 result.authenticity_results = await self._verify_authenticity_layer(
                     document_data, result.document_class, options
                 )
@@ -332,44 +353,45 @@ class UnifiedVerificationProtocol:
         return result
 
     async def _detect_document_class(
-        self,
-        document_data: str | dict[str, Any] | Any
+        self, document_data: str | dict[str, Any] | Any
     ) -> tuple[DocumentClass, list[VerificationResult]]:
         """Phase 1: Document class detection."""
         mrz_data = self._extract_mrz_from_input(document_data)
 
         if not mrz_data:
-            return DocumentClass.UNKNOWN, [VerificationResult(
-                "MRZ Extraction", False, "No MRZ data found in input", "NO_MRZ_DATA"
-            )]
+            return DocumentClass.UNKNOWN, [
+                VerificationResult(
+                    "MRZ Extraction", False, "No MRZ data found in input", "NO_MRZ_DATA"
+                )
+            ]
 
         return self.detector.detect_from_mrz(mrz_data)
 
     async def _verify_mrz_layer(
-        self,
-        document_data: str | dict[str, Any] | Any,
-        doc_class: DocumentClass
+        self, document_data: str | dict[str, Any] | Any, doc_class: DocumentClass
     ) -> list[VerificationResult]:
         """Phase 2: MRZ structure and check digit validation."""
         results = []
 
         mrz_data = self._extract_mrz_from_input(document_data)
         if not mrz_data:
-            results.append(VerificationResult(
-                "MRZ Data", False, "No MRZ data available", "NO_MRZ"
-            ))
+            results.append(VerificationResult("MRZ Data", False, "No MRZ data available", "NO_MRZ"))
             return results
 
         # Basic structure validation
-        results.append(VerificationResult(
-            "MRZ Structure", True, "MRZ parsed successfully",
-            metadata={"format": doc_class.value}
-        ))
+        results.append(
+            VerificationResult(
+                "MRZ Structure",
+                True,
+                "MRZ parsed successfully",
+                metadata={"format": doc_class.value},
+            )
+        )
 
         # Check digit validation (placeholder for now)
-        results.append(VerificationResult(
-            "Check Digits", True, "Check digit validation placeholder"
-        ))
+        results.append(
+            VerificationResult("Check Digits", True, "Check digit validation placeholder")
+        )
 
         return results
 
@@ -377,7 +399,7 @@ class UnifiedVerificationProtocol:
         self,
         document_data: str | dict[str, Any] | Any,
         doc_class: DocumentClass,
-        options: dict[str, Any]
+        options: dict[str, Any],
     ) -> list[VerificationResult]:
         """Phase 3: Authenticity verification (chip/VDS-NC)."""
         results = []
@@ -388,20 +410,23 @@ class UnifiedVerificationProtocol:
 
         if has_chip:
             logger.info("Attempting chip-based authenticity verification")
-            results.append(VerificationResult(
-                "Chip Authentication", True, "Chip verification placeholder"
-            ))
+            results.append(
+                VerificationResult("Chip Authentication", True, "Chip verification placeholder")
+            )
         elif has_vds_nc:
             logger.info("Attempting VDS-NC authenticity verification")
-            results.append(VerificationResult(
-                "VDS-NC Authentication", True, "VDS-NC verification placeholder"
-            ))
+            results.append(
+                VerificationResult("VDS-NC Authentication", True, "VDS-NC verification placeholder")
+            )
         else:
-            results.append(VerificationResult(
-                "Authenticity Data", False,
-                "No chip or VDS-NC data available for authenticity verification",
-                "NO_AUTHENTICITY_DATA"
-            ))
+            results.append(
+                VerificationResult(
+                    "Authenticity Data",
+                    False,
+                    "No chip or VDS-NC data available for authenticity verification",
+                    "NO_AUTHENTICITY_DATA",
+                )
+            )
 
         return results
 
@@ -409,25 +434,23 @@ class UnifiedVerificationProtocol:
         self,
         document_data: str | dict[str, Any] | Any,
         doc_class: DocumentClass,
-        options: dict[str, Any]
+        options: dict[str, Any],
     ) -> list[VerificationResult]:
         """Phase 4: Semantic validation (validity windows, constraints)."""
         results = []
 
         # Date validation placeholder
-        results.append(VerificationResult(
-            "Date Constraints", True, "Date validation placeholder"
-        ))
+        results.append(VerificationResult("Date Constraints", True, "Date validation placeholder"))
 
         # Category validation placeholder
-        results.append(VerificationResult(
-            "Category Constraints", True, "Category validation placeholder"
-        ))
+        results.append(
+            VerificationResult("Category Constraints", True, "Category validation placeholder")
+        )
 
         # Policy validation placeholder
-        results.append(VerificationResult(
-            "Policy Constraints", True, "Policy validation placeholder"
-        ))
+        results.append(
+            VerificationResult("Policy Constraints", True, "Policy validation placeholder")
+        )
 
         return results
 
@@ -435,49 +458,51 @@ class UnifiedVerificationProtocol:
         self,
         document_data: str | dict[str, Any] | Any,
         doc_class: DocumentClass,
-        options: dict[str, Any]
+        options: dict[str, Any],
     ) -> list[VerificationResult]:
         """Phase 5: Trust chain and PKD verification."""
         results = []
 
         # PKD verification placeholder
-        results.append(VerificationResult(
-            "PKD Resolution", True, "PKD verification placeholder"
-        ))
+        results.append(VerificationResult("PKD Resolution", True, "PKD verification placeholder"))
 
         # Trust chain verification placeholder
-        results.append(VerificationResult(
-            "Trust Chain", True, "Trust chain verification placeholder"
-        ))
+        results.append(
+            VerificationResult("Trust Chain", True, "Trust chain verification placeholder")
+        )
 
         return results
 
     def _calculate_overall_validity(
-        self,
-        result: DocumentVerificationResult,
-        level: VerificationLevel
+        self, result: DocumentVerificationResult, level: VerificationLevel
     ) -> bool:
         """Calculate overall document validity based on verification level."""
         if level == VerificationLevel.BASIC:
             return result.document_detected and result.mrz_valid
 
         if level == VerificationLevel.STANDARD:
-            return (result.document_detected and
-                   result.mrz_valid and
-                   (result.authenticity_verified or not result.authenticity_results))
+            return (
+                result.document_detected
+                and result.mrz_valid
+                and (result.authenticity_verified or not result.authenticity_results)
+            )
 
         if level == VerificationLevel.COMPREHENSIVE:
-            return (result.document_detected and
-                   result.mrz_valid and
-                   (result.authenticity_verified or not result.authenticity_results) and
-                   result.semantics_valid)
+            return (
+                result.document_detected
+                and result.mrz_valid
+                and (result.authenticity_verified or not result.authenticity_results)
+                and result.semantics_valid
+            )
 
         # MAXIMUM level
-        return (result.document_detected and
-               result.mrz_valid and
-               (result.authenticity_verified or not result.authenticity_results) and
-               result.semantics_valid and
-               result.trust_established)
+        return (
+            result.document_detected
+            and result.mrz_valid
+            and (result.authenticity_verified or not result.authenticity_results)
+            and result.semantics_valid
+            and result.trust_established
+        )
 
     def _extract_mrz_from_input(self, document_data: str | dict[str, Any] | Any) -> str | None:
         """Extract MRZ string from various input formats."""
@@ -486,7 +511,14 @@ class UnifiedVerificationProtocol:
 
         if isinstance(document_data, dict):
             # Try common MRZ field names
-            mrz_fields = ["mrz", "mrz_data", "machine_readable_zone", "td1_mrz", "td2_mrz", "td3_mrz"]
+            mrz_fields = [
+                "mrz",
+                "mrz_data",
+                "machine_readable_zone",
+                "td1_mrz",
+                "td2_mrz",
+                "td3_mrz",
+            ]
             for field in mrz_fields:
                 if field in document_data:
                     return str(document_data[field])
@@ -510,7 +542,9 @@ class UnifiedVerificationProtocol:
     def _has_vds_nc_data(self, document_data: str | dict[str, Any] | Any) -> bool:
         """Check if document contains VDS-NC data."""
         if isinstance(document_data, dict):
-            return any(key in document_data for key in ["vds_nc_data", "vds_nc_barcode", "barcode_data"])
+            return any(
+                key in document_data for key in ["vds_nc_data", "vds_nc_barcode", "barcode_data"]
+            )
         return any(hasattr(document_data, attr) for attr in ["vds_nc_data", "vds_nc_barcode"])
 
 
@@ -527,25 +561,33 @@ def get_unified_verification_protocol() -> UnifiedVerificationProtocol:
 
 
 # Convenience functions for common verification scenarios
-async def verify_document_basic(document_data: str | dict[str, Any] | Any) -> DocumentVerificationResult:
+async def verify_document_basic(
+    document_data: str | dict[str, Any] | Any,
+) -> DocumentVerificationResult:
     """Quick document verification (detection + MRZ only)."""
     protocol = get_unified_verification_protocol()
     return await protocol.verify_document(document_data, VerificationLevel.BASIC)
 
 
-async def verify_document_standard(document_data: str | dict[str, Any] | Any) -> DocumentVerificationResult:
+async def verify_document_standard(
+    document_data: str | dict[str, Any] | Any,
+) -> DocumentVerificationResult:
     """Standard document verification (+ authenticity)."""
     protocol = get_unified_verification_protocol()
     return await protocol.verify_document(document_data, VerificationLevel.STANDARD)
 
 
-async def verify_document_comprehensive(document_data: str | dict[str, Any] | Any) -> DocumentVerificationResult:
+async def verify_document_comprehensive(
+    document_data: str | dict[str, Any] | Any,
+) -> DocumentVerificationResult:
     """Comprehensive document verification (+ semantics)."""
     protocol = get_unified_verification_protocol()
     return await protocol.verify_document(document_data, VerificationLevel.COMPREHENSIVE)
 
 
-async def verify_document_maximum(document_data: str | dict[str, Any] | Any) -> DocumentVerificationResult:
+async def verify_document_maximum(
+    document_data: str | dict[str, Any] | Any,
+) -> DocumentVerificationResult:
     """Maximum document verification (all layers)."""
     protocol = get_unified_verification_protocol()
     return await protocol.verify_document(document_data, VerificationLevel.MAXIMUM)

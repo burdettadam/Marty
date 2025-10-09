@@ -43,7 +43,7 @@ class VDSNCBarcodeSelector:
     def select_optimal_format(
         payload_size: int,
         error_correction: ErrorCorrectionLevel = ErrorCorrectionLevel.MEDIUM,
-        preferred_format: BarcodeFormat | None = None
+        preferred_format: BarcodeFormat | None = None,
     ) -> BarcodeFormat:
         """
         Select optimal barcode format based on payload size and requirements.

@@ -12,10 +12,10 @@ import socket
 import ssl
 import threading
 from abc import ABC, abstractmethod
+from collections.abc import Callable
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from enum import Enum
-from typing import Callable
 
 from cryptography import x509
 from cryptography.hazmat.backends import default_backend

@@ -1,6 +1,7 @@
 """
 Service for handling CSCA Master List operations
 """
+
 from __future__ import annotations
 
 import logging

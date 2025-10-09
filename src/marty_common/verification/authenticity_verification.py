@@ -12,24 +12,25 @@ from datetime import datetime, timezone
 from enum import Enum
 from typing import Any
 
-from src.shared.logging_config import get_logger
-
 from src.marty_common.verification.document_detection import DocumentClass
+from src.shared.logging_config import get_logger
 
 logger = get_logger(__name__)
 
 
 class AuthenticityMethod(Enum):
     """Supported authenticity verification methods."""
-    CHIP_SOD = "chip_sod"         # Chip with Security Object Document
-    CHIP_DSC = "chip_dsc"         # Chip with Document Signing Certificate
-    VDS_NC = "vds_nc"             # VDS-NC barcode signature
-    NONE = "none"                 # No authenticity data available
+
+    CHIP_SOD = "chip_sod"  # Chip with Security Object Document
+    CHIP_DSC = "chip_dsc"  # Chip with Document Signing Certificate
+    VDS_NC = "vds_nc"  # VDS-NC barcode signature
+    NONE = "none"  # No authenticity data available
 
 
 @dataclass
 class AuthenticityResult:
     """Result of authenticity verification."""
+
     method: AuthenticityMethod
     passed: bool
     confidence: float  # 0.0 to 1.0
@@ -52,7 +53,7 @@ class AuthenticityResult:
             "details": self.details,
             "error_code": self.error_code,
             "metadata": self.metadata,
-            "timestamp": self.timestamp.isoformat()
+            "timestamp": self.timestamp.isoformat(),
         }
 
 
@@ -66,7 +67,7 @@ class AuthenticityVerifier:
         self,
         document_data: dict[str, Any] | Any,
         document_class: DocumentClass,
-        options: dict[str, Any] | None = None
+        options: dict[str, Any] | None = None,
     ) -> list[AuthenticityResult]:
         """
         Verify document authenticity using available methods.
@@ -86,13 +87,15 @@ class AuthenticityVerifier:
         available_methods = self._detect_available_methods(document_data)
 
         if not available_methods:
-            results.append(AuthenticityResult(
-                method=AuthenticityMethod.NONE,
-                passed=False,
-                confidence=0.0,
-                details="No authenticity data available",
-                error_code="NO_AUTHENTICITY_DATA"
-            ))
+            results.append(
+                AuthenticityResult(
+                    method=AuthenticityMethod.NONE,
+                    passed=False,
+                    confidence=0.0,
+                    details="No authenticity data available",
+                    error_code="NO_AUTHENTICITY_DATA",
+                )
+            )
             return results
 
         # Try chip-based verification first (higher security)
@@ -119,7 +122,9 @@ class AuthenticityVerifier:
 
         return results
 
-    def _detect_available_methods(self, document_data: dict[str, Any] | Any) -> list[AuthenticityMethod]:
+    def _detect_available_methods(
+        self, document_data: dict[str, Any] | Any
+    ) -> list[AuthenticityMethod]:
         """Detect available authenticity verification methods."""
         methods = []
 
@@ -140,7 +145,7 @@ class AuthenticityVerifier:
         self,
         document_data: dict[str, Any] | Any,
         document_class: DocumentClass,
-        options: dict[str, Any]
+        options: dict[str, Any],
     ) -> AuthenticityResult:
         """Verify chip authenticity using Security Object Document (SOD)."""
         try:
@@ -153,7 +158,7 @@ class AuthenticityVerifier:
                     passed=False,
                     confidence=0.0,
                     details="SOD data not found",
-                    error_code="SOD_NOT_FOUND"
+                    error_code="SOD_NOT_FOUND",
                 )
 
             # Validate SOD structure
@@ -164,7 +169,7 @@ class AuthenticityVerifier:
                     passed=False,
                     confidence=0.2,
                     details="SOD structure validation failed",
-                    error_code="SOD_STRUCTURE_INVALID"
+                    error_code="SOD_STRUCTURE_INVALID",
                 )
 
             # Verify SOD signature
@@ -175,7 +180,7 @@ class AuthenticityVerifier:
                     passed=False,
                     confidence=0.3,
                     details="SOD signature verification failed",
-                    error_code="SOD_SIGNATURE_INVALID"
+                    error_code="SOD_SIGNATURE_INVALID",
                 )
 
             # Verify data group hashes
@@ -189,15 +194,15 @@ class AuthenticityVerifier:
                     details="SOD verification successful - all checks passed",
                     metadata={
                         "sod_size": len(sod_data.get("raw_data", "")),
-                        "data_groups_verified": dg_valid
-                    }
+                        "data_groups_verified": dg_valid,
+                    },
                 )
             return AuthenticityResult(
                 method=AuthenticityMethod.CHIP_SOD,
                 passed=False,
                 confidence=0.4,
                 details="Data group hash verification failed",
-                error_code="DG_HASH_MISMATCH"
+                error_code="DG_HASH_MISMATCH",
             )
 
         except Exception as e:
@@ -206,14 +211,14 @@ class AuthenticityVerifier:
                 passed=False,
                 confidence=0.0,
                 details=f"SOD verification error: {e}",
-                error_code="SOD_VERIFICATION_ERROR"
+                error_code="SOD_VERIFICATION_ERROR",
             )
 
     def _verify_chip_dsc(
         self,
         document_data: dict[str, Any] | Any,
         document_class: DocumentClass,
-        options: dict[str, Any]
+        options: dict[str, Any],
     ) -> AuthenticityResult:
         """Verify chip authenticity using Document Signing Certificate (DSC)."""
         try:
@@ -226,7 +231,7 @@ class AuthenticityVerifier:
                     passed=False,
                     confidence=0.0,
                     details="DSC data not found",
-                    error_code="DSC_NOT_FOUND"
+                    error_code="DSC_NOT_FOUND",
                 )
 
             # Validate DSC certificate
@@ -240,15 +245,15 @@ class AuthenticityVerifier:
                     details="DSC verification successful",
                     metadata={
                         "dsc_issuer": dsc_data.get("issuer", "unknown"),
-                        "dsc_serial": dsc_data.get("serial", "unknown")
-                    }
+                        "dsc_serial": dsc_data.get("serial", "unknown"),
+                    },
                 )
             return AuthenticityResult(
                 method=AuthenticityMethod.CHIP_DSC,
                 passed=False,
                 confidence=0.2,
                 details="DSC certificate validation failed",
-                error_code="DSC_INVALID"
+                error_code="DSC_INVALID",
             )
 
         except Exception as e:
@@ -257,14 +262,14 @@ class AuthenticityVerifier:
                 passed=False,
                 confidence=0.0,
                 details=f"DSC verification error: {e}",
-                error_code="DSC_VERIFICATION_ERROR"
+                error_code="DSC_VERIFICATION_ERROR",
             )
 
     def _verify_vds_nc(
         self,
         document_data: dict[str, Any] | Any,
         document_class: DocumentClass,
-        options: dict[str, Any]
+        options: dict[str, Any],
     ) -> AuthenticityResult:
         """Verify authenticity using VDS-NC barcode signature."""
         try:
@@ -277,7 +282,7 @@ class AuthenticityVerifier:
                     passed=False,
                     confidence=0.0,
                     details="VDS-NC data not found",
-                    error_code="VDS_NC_NOT_FOUND"
+                    error_code="VDS_NC_NOT_FOUND",
                 )
 
             # Verify VDS-NC signature
@@ -289,7 +294,7 @@ class AuthenticityVerifier:
                     passed=False,
                     confidence=0.1,
                     details="VDS-NC signature verification failed",
-                    error_code="VDS_NC_SIGNATURE_INVALID"
+                    error_code="VDS_NC_SIGNATURE_INVALID",
                 )
 
             # Verify printed vs payload data match
@@ -303,15 +308,15 @@ class AuthenticityVerifier:
                     details="VDS-NC verification successful - signature and data match",
                     metadata={
                         "barcode_format": vds_data.get("format", "unknown"),
-                        "signature_algorithm": vds_data.get("algorithm", "unknown")
-                    }
+                        "signature_algorithm": vds_data.get("algorithm", "unknown"),
+                    },
                 )
             return AuthenticityResult(
                 method=AuthenticityMethod.VDS_NC,
                 passed=False,
                 confidence=0.3,
                 details="Printed data does not match VDS-NC payload",
-                error_code="VDS_NC_DATA_MISMATCH"
+                error_code="VDS_NC_DATA_MISMATCH",
             )
 
         except Exception as e:
@@ -320,7 +325,7 @@ class AuthenticityVerifier:
                 passed=False,
                 confidence=0.0,
                 details=f"VDS-NC verification error: {e}",
-                error_code="VDS_NC_VERIFICATION_ERROR"
+                error_code="VDS_NC_VERIFICATION_ERROR",
             )
 
     # Data detection methods
@@ -345,7 +350,9 @@ class AuthenticityVerifier:
     def _has_vds_nc_data(self, document_data: dict[str, Any] | Any) -> bool:
         """Check if document contains VDS-NC data."""
         if isinstance(document_data, dict):
-            return any(key in document_data for key in ["vds_nc_data", "vds_nc_barcode", "barcode_data"])
+            return any(
+                key in document_data for key in ["vds_nc_data", "vds_nc_barcode", "barcode_data"]
+            )
         return any(hasattr(document_data, attr) for attr in ["vds_nc_data", "vds_nc_barcode"])
 
     # Data extraction methods
@@ -401,7 +408,9 @@ class AuthenticityVerifier:
         # In real implementation, would check against CSCA certificates
         return True  # Simplified for now
 
-    def _verify_data_group_hashes(self, document_data: dict[str, Any] | Any, sod_data: dict[str, Any]) -> bool:
+    def _verify_data_group_hashes(
+        self, document_data: dict[str, Any] | Any, sod_data: dict[str, Any]
+    ) -> bool:
         """Verify data group hashes match SOD."""
         # Placeholder - would compute and compare DG hashes
         # In real implementation, would hash DG1, DG2, etc. and compare to SOD
@@ -426,7 +435,9 @@ class AuthenticityVerifier:
             raw_data = vds_data.get("raw_data")
             return raw_data is not None and len(str(raw_data)) > 50
 
-    def _verify_printed_vs_payload(self, document_data: dict[str, Any] | Any, vds_data: dict[str, Any]) -> bool:
+    def _verify_printed_vs_payload(
+        self, document_data: dict[str, Any] | Any, vds_data: dict[str, Any]
+    ) -> bool:
         """Verify printed document data matches VDS-NC payload."""
         # Placeholder - would extract and compare key fields
         # In real implementation, would decode VDS-NC payload and compare
@@ -435,7 +446,9 @@ class AuthenticityVerifier:
 
 
 # Convenience functions
-def verify_chip_authenticity(document_data: dict[str, Any] | Any, document_class: DocumentClass) -> AuthenticityResult | None:
+def verify_chip_authenticity(
+    document_data: dict[str, Any] | Any, document_class: DocumentClass
+) -> AuthenticityResult | None:
     """Quick chip authenticity verification."""
     verifier = AuthenticityVerifier()
     results = verifier.verify_authenticity(document_data, document_class)
@@ -448,7 +461,9 @@ def verify_chip_authenticity(document_data: dict[str, Any] | Any, document_class
     return None
 
 
-def verify_vds_nc_authenticity(document_data: dict[str, Any] | Any, document_class: DocumentClass) -> AuthenticityResult | None:
+def verify_vds_nc_authenticity(
+    document_data: dict[str, Any] | Any, document_class: DocumentClass
+) -> AuthenticityResult | None:
     """Quick VDS-NC authenticity verification."""
     verifier = AuthenticityVerifier()
     results = verifier.verify_authenticity(document_data, document_class)

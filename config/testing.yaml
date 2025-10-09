@@ -12,7 +12,7 @@ security:
     client_ca: "/etc/tls/ca/ca.crt"
     client_cert: "/etc/tls/client/tls.crt"
     client_key: "/etc/tls/client/tls.key"
-  
+
   auth:
     required: true  # ALWAYS required
     jwt:
@@ -21,7 +21,7 @@ security:
       secret: "test_jwt_secret_for_testing_environment_only"
     client_cert:
       enabled: true
-  
+
   authz:
     enabled: true  # ALWAYS enabled
     default_action: "deny"  # ALWAYS deny
@@ -111,7 +111,7 @@ database:
     user: dev_user
     password: dev_password
     name: marty_document_signer
-  
+
   csca:
     url: "${CSCA_DATABASE_URL:-postgresql+asyncpg://dev_user:dev_password@localhost:5432/marty_csca}"
     host: localhost
@@ -119,7 +119,7 @@ database:
     user: dev_user
     password: dev_password
     name: marty_csca
-  
+
   pkd_service:
     url: "${PKD_SERVICE_DATABASE_URL:-postgresql+asyncpg://dev_user:dev_password@localhost:5432/marty_pkd}"
     host: localhost
@@ -127,7 +127,7 @@ database:
     user: dev_user
     password: dev_password
     name: marty_pkd
-  
+
   passport_engine:
     url: "${PASSPORT_ENGINE_DATABASE_URL:-postgresql+asyncpg://dev_user:dev_password@localhost:5432/marty_passport_engine}"
     host: localhost
@@ -192,42 +192,42 @@ services:
     startup_delay: 15  # Postgres needs more time to initialize
     health_check_retries: 10
     required_for: ["integration", "e2e"]
-  
+
   trust-anchor:
     startup_delay: 5
     dependencies: ["postgres"]
     required_for: ["integration", "e2e"]
-  
+
   csca-service:
     startup_delay: 5
     dependencies: ["postgres", "trust-anchor"]
     required_for: ["integration", "e2e"]
-  
+
   document-signer:
     startup_delay: 5
     dependencies: ["postgres", "trust-anchor"]
     required_for: ["e2e"]
-  
+
   inspection-system:
     startup_delay: 5
     dependencies: ["postgres", "csca-service"]
     required_for: ["e2e"]
-  
+
   passport-engine:
     startup_delay: 5
     dependencies: ["postgres", "document-signer"]
     required_for: ["e2e"]
-  
+
   mdl-engine:
     startup_delay: 5
     dependencies: ["postgres"]
     required_for: ["e2e"]
-  
+
   mdoc-engine:
     startup_delay: 5
     dependencies: ["postgres"]
     required_for: ["e2e"]
-  
+
   dtc-engine:
     startup_delay: 5
     dependencies: ["postgres"]
@@ -239,20 +239,20 @@ test_modes:
     description: "Unit tests with no service dependencies"
     services_required: []
     parallel_execution: true
-    
+
   mock:
     description: "Tests with mocked services"
     services_required: []
     parallel_execution: true
-    
+
   integration:
     description: "Integration tests with core services"
     services_required: ["postgres", "trust-anchor", "csca-service"]
     parallel_execution: false
-    
+
   e2e:
     description: "End-to-end tests with full service stack"
-    services_required: ["postgres", "zookeeper", "kafka", "trust-anchor", "csca-service", "document-signer", 
+    services_required: ["postgres", "zookeeper", "kafka", "trust-anchor", "csca-service", "document-signer",
                        "inspection-system", "passport-engine", "mdl-engine", "mdoc-engine", "dtc-engine", "credential-ledger"]
     parallel_execution: false
 

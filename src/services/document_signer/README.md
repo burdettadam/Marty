@@ -18,35 +18,46 @@ document_signer/
 ## Modules Overview
 
 ### `document_signer.py`
+
 The main service class that implements the gRPC DocumentSignerServicer. It coordinates between the other modules and handles the core business logic for document signing and SD-JWT credential issuance.
 
 ### `certificate_manager.py`
+
 Handles certificate-related operations:
+
 - Loading and creating document signer certificates
 - Managing certificate chains for x5c headers
 - Caching certificate data
 
 ### `sd_jwt_manager.py`
+
 Manages SD-JWT credential operations:
+
 - Creating credential offers
 - Redeeming pre-authorized codes
 - Issuing SD-JWT credentials
 - Managing OIDC sessions
 
 ### `storage_manager.py`
+
 Handles object storage operations:
+
 - Storing SD-JWT tokens and disclosures
 - Storing document signatures
 - Managing storage keys and paths
 
 ### `utils.py`
+
 Contains utility functions:
+
 - Time calculations (`seconds_until`)
 - Event payload building
 - Common helper functions
 
 ### `errors.py`
+
 Contains error handling utilities (created but not yet used):
+
 - Standardized error creation functions
 - Common error types for the service
 

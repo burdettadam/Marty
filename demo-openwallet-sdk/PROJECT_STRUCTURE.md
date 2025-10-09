@@ -61,7 +61,7 @@ demo-openwallet-sdk/
 
 1. `./build.sh` - Build all Docker images
 2. `./deploy-k8s.sh` - Deploy to Kind cluster
-3. Open http://localhost/ - Access demo UI
+3. Open <http://localhost/> - Access demo UI
 4. `./cleanup.sh` - Clean up when done
 
 ### Technologies Used

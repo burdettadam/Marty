@@ -9,6 +9,7 @@ Models for ISO/IEC 14443 Proximity Card Protocol used for RFID communication wit
 
 These models comply with ISO/IEC 14443 standard for contactless smart cards.
 """
+
 from __future__ import annotations
 
 import base64

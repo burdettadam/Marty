@@ -50,7 +50,7 @@ def main() -> None:
             service_module_path="src.services.mdl_engine",
             grpc_port=config_manager.get_env_int("GRPC_PORT", 8085),
             grpc_max_workers=10,
-            reflection_enabled=True
+            reflection_enabled=True,
         )
 
     except Exception:
@@ -67,14 +67,12 @@ from pathlib import Path
 # Ensure we can import from the parent directory
 sys.path.append(str(Path(__file__).resolve().parents[3]))
 
-# Import ultra-DRY auto-service utilities
-from marty_common.grpc_service_factory import serve_auto_service
 from marty_common.config import ConfigurationManager
+
+# Import ultra-DRY auto-service utilities
 from marty_common.logging_config import get_logger
-from marty_common.database import create_service_database_tables
 
 # Import database utility
-from src.shared.database import Base, engine
 
 # Get configuration and logger
 config_manager = ConfigurationManager()
@@ -84,7 +82,7 @@ logger = get_logger(__name__)
 def main() -> None:
     """
     Run MDL Engine gRPC service using Ultra-DRY Auto-Service pattern.
-    
+
     This achieves 85% code reduction by automatically:
     - Discovering and registering MDLEngineServicer
     - Finding add_MDLEngineServicer_to_server function
@@ -107,9 +105,9 @@ def main() -> None:
             service_module_path="src.services.mdl_engine",
             grpc_port=config_manager.get_env_int("GRPC_PORT", 8085),
             grpc_max_workers=10,
-            reflection_enabled=True
+            reflection_enabled=True,
         )
-        
+
     except Exception:
         logger.exception("Error starting MDL Engine service")
         sys.exit(1)
@@ -129,14 +127,12 @@ sys.path.append(str(Path(__file__).resolve().parents[3]))
 from marty_common.config import ConfigurationManager
 from marty_common.grpc_service_factory import create_grpc_service_factory
 from marty_common.logging_config import get_logger
-from marty_common.database import create_service_database_tables
 
 # Import the MDL Engine service implementation
 from src.proto.mdl_engine_pb2_grpc import add_MDLEngineServicer_to_server
 from src.services.mdl_engine import MDLEngineServicer
 
 # Import database utility
-from src.shared.database import Base, engine
 
 # Get configuration and logger
 config_manager = ConfigurationManager()
@@ -146,7 +142,7 @@ logger = get_logger(__name__)
 def main() -> None:
     """
     Run MDL Engine gRPC service using DRY Service Factory pattern.
-    
+
     This replaces ~50 lines of boilerplate with ~8 lines while providing:
     - Automatic health checks and reflection
     - Built-in logging streamer
@@ -176,24 +172,23 @@ def main() -> None:
             config_type="grpc",
             grpc_port=config_manager.get_env_int("GRPC_PORT", 8085),
             grpc_max_workers=10,
-            reflection_enabled=True
+            reflection_enabled=True,
         )
-        
+
         # Register the MDL Engine service
         # Note: MDLEngineServicer requires dependencies parameter
         factory.register_service(
             name="mdl_engine",
             servicer_factory=lambda dependencies=None, **_: MDLEngineServicer(
-                channels={}, 
-                dependencies=dependencies
+                channels={}, dependencies=dependencies
             ),
             registration_func=add_MDLEngineServicer_to_server,
             health_service_name="mdl.MDLEngine",
         )
-        
+
         # Start the server with all DRY patterns
         factory.serve()
-        
+
     except Exception:
         logger.exception("Error starting MDL Engine service")
         sys.exit(1)

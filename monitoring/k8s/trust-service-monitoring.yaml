@@ -21,16 +21,16 @@ data:
       external_labels:
         cluster: 'trust-service-cluster'
         region: 'us-east-1'
-    
+
     rule_files:
       - "alert_rules.yml"
-    
+
     alerting:
       alertmanagers:
         - static_configs:
             - targets:
               - alertmanager:9093
-    
+
     scrape_configs:
       # Trust Service metrics
       - job_name: 'trust-service'
@@ -43,7 +43,7 @@ data:
         honor_labels: true
         params:
           format: ['prometheus']
-      
+
       # Kubernetes API server
       - job_name: 'kubernetes-apiservers'
         kubernetes_sd_configs:
@@ -56,7 +56,7 @@ data:
           - source_labels: [__meta_kubernetes_namespace, __meta_kubernetes_service_name, __meta_kubernetes_endpoint_port_name]
             action: keep
             regex: default;kubernetes;https
-      
+
       # Kubernetes nodes
       - job_name: 'kubernetes-nodes'
         kubernetes_sd_configs:
@@ -74,7 +74,7 @@ data:
             regex: (.+)
             target_label: __metrics_path__
             replacement: /api/v1/nodes/${1}/proxy/metrics
-      
+
       # Kubernetes pods
       - job_name: 'kubernetes-pods'
         kubernetes_sd_configs:
@@ -100,26 +100,26 @@ data:
           - source_labels: [__meta_kubernetes_pod_name]
             action: replace
             target_label: kubernetes_pod_name
-      
+
       # Database (PostgreSQL) metrics
       - job_name: 'postgresql'
         static_configs:
           - targets: ['postgres-exporter:9187']
         scrape_interval: 10s
-        
+
       # Redis metrics
       - job_name: 'redis'
         static_configs:
           - targets: ['redis-exporter:9121']
         scrape_interval: 10s
-      
+
       # gRPC metrics
       - job_name: 'grpc-gateway'
         static_configs:
           - targets: ['grpc-gateway:8080']
         metrics_path: /metrics
         scrape_interval: 5s
-      
+
       # Node exporter for system metrics
       - job_name: 'node-exporter'
         kubernetes_sd_configs:
@@ -128,7 +128,7 @@ data:
           - source_labels: [__meta_kubernetes_endpoints_name]
             regex: 'node-exporter'
             action: keep
-      
+
       # cAdvisor for container metrics
       - job_name: 'cadvisor'
         kubernetes_sd_configs:
@@ -201,14 +201,14 @@ data:
     global:
       smtp_smarthost: 'localhost:587'
       smtp_from: 'alerts@marty.com'
-    
+
     route:
       group_by: ['alertname']
       group_wait: 10s
       group_interval: 10s
       repeat_interval: 1h
       receiver: 'web.hook'
-    
+
     receivers:
       - name: 'web.hook'
         webhook_configs:

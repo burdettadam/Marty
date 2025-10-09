@@ -1,6 +1,7 @@
 """
 Controller for managing CSCA and Master List operations
 """
+
 from __future__ import annotations
 
 import asyncio

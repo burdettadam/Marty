@@ -18,6 +18,7 @@ This implementation provides a comprehensive observability solution for the Mart
 - **Utility functions**: Easy span creation, trace ID extraction, exception recording
 
 **Key Environment Variables**:
+
 ```bash
 OTEL_TRACING_ENABLED=true|false          # Master toggle
 OTEL_SERVICE_NAME=your-service           # Service identification
@@ -35,6 +36,7 @@ OTEL_CONSOLE_EXPORT=true|false          # Debug output
 - **No code changes required**: Existing services automatically traced
 
 **Implementation**:
+
 ```python
 # Initialize tracing with service-specific name
 init_tracing(service.name)
@@ -53,6 +55,7 @@ instrument_grpc()
 - **OpenTelemetry integration**: Uses current span context automatically
 
 **JSON Log Format**:
+
 ```json
 {
   "timestamp": "2025-01-04T10:30:45.123456",
@@ -69,7 +72,8 @@ instrument_grpc()
 
 ### 4. Local Development Tracing Backend ✅
 
-**Files**: 
+**Files**:
+
 - `monitoring/jaeger/docker-compose.yml`
 - `monitoring/jaeger/otel-collector.yml`
 - `monitoring/jaeger/README.md`
@@ -81,6 +85,7 @@ instrument_grpc()
 - **Documentation**: Complete setup and usage guide
 
 **Quick Start**:
+
 ```bash
 cd monitoring/jaeger
 docker-compose up -d
@@ -100,6 +105,7 @@ docker-compose up -d
 **File**: `pyproject.toml` (Already included!)
 
 Required OpenTelemetry packages are already present:
+
 - `opentelemetry-distro>=0.45b0`
 - `opentelemetry-exporter-otlp-proto-grpc>=1.24.0`
 - `opentelemetry-instrumentation-grpc>=0.45b0`
@@ -107,26 +113,31 @@ Required OpenTelemetry packages are already present:
 ## Key Benefits
 
 ### 1. **Distributed Tracing**
+
 - Track requests across all Marty microservices
 - Identify performance bottlenecks and failures
 - Understand service dependencies and call patterns
 
 ### 2. **Correlated Observability**
+
 - Every log message includes trace context
 - Easy correlation between logs, traces, and metrics
 - Single pane of glass for debugging
 
 ### 3. **Zero Code Changes**
+
 - Existing services automatically get tracing
 - Configuration-driven observability
 - No modification to business logic required
 
 ### 4. **Production Ready**
+
 - Environment-based configuration
 - Efficient OTLP export to any backend
 - Configurable sampling and resource limits
 
 ### 5. **Developer Friendly**
+
 - Local Jaeger setup for immediate feedback
 - Console export for debugging
 - Comprehensive documentation
@@ -207,7 +218,7 @@ helm upgrade --install marty ./helm \
 
 1. **Start local development**: Use `docker-compose up -d` in monitoring/jaeger
 2. **Test trace generation**: Run services with `OTEL_TRACING_ENABLED=true`
-3. **Explore Jaeger UI**: Visit http://localhost:16686 to see traces
+3. **Explore Jaeger UI**: Visit <http://localhost:16686> to see traces
 4. **Add custom spans**: Instrument business logic with domain-specific spans
 5. **Production deployment**: Configure OTLP endpoint for your production tracing backend
 

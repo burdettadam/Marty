@@ -5,14 +5,8 @@ from __future__ import annotations
 import logging
 import os
 import sys
-fro    console_handler = logging.StreamHandler(sys.stdout)
-    # Always use JSON logging for structured observability
-    formatter = MartyJSONFormatter()
-    console_handler.setFormatter(formatter)
 
-    # Add filters to the handler
-    console_handler.addFilter(ServiceNameFilter(service_name))
-    console_handler.addFilter(TraceContextFilter())emetry import trace
+from opentelemetry import trace
 
 # Custom log format with service name
 DEFAULT_LOG_FORMAT = (

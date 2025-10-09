@@ -17,11 +17,13 @@ The performance testing framework provides:
 ### Prerequisites
 
 1. **Install Dependencies**:
+
    ```bash
    uv add --dev aiohttp prometheus-client
    ```
 
 2. **Start Services**: Ensure the services you want to test are running
+
    ```bash
    make run-pkd-service     # Port 8088
    make run-document-processing  # Port 8080  
@@ -31,11 +33,13 @@ The performance testing framework provides:
 ### Running Tests
 
 #### Quick Test (All Services)
+
 ```bash
 make perf-test-quick
 ```
 
 #### Load Test (Single Service)
+
 ```bash
 # Using make
 make perf-test-load SERVICE=pkd_service USERS=10 DURATION=60
@@ -45,11 +49,13 @@ make perf-test-load SERVICE=pkd_service USERS=10 DURATION=60
 ```
 
 #### Stress Test
+
 ```bash
 make perf-test-stress SERVICE=pkd_service MAX_USERS=100 RAMP_UP=300
 ```
 
 #### Comprehensive Testing
+
 ```bash
 make perf-test-all
 ```
@@ -57,26 +63,32 @@ make perf-test-all
 ## Test Types
 
 ### Load Testing
+
 Tests service performance under normal expected load with a constant number of concurrent users.
 
 **Parameters**:
+
 - `concurrent_users`: Number of simultaneous virtual users (default: 10)
 - `duration_seconds`: Test duration in seconds (default: 60)
 - `requests_per_second`: Optional RPS limit
 
 **Example**:
+
 ```bash
 ./scripts/run_perf_test.sh document_processing load 20 120
 ```
 
 ### Stress Testing
+
 Gradually increases load to find the breaking point of the service.
 
 **Parameters**:
+
 - `max_users`: Maximum number of concurrent users (default: 100)
 - `ramp_up_time`: Time to reach max users in seconds (default: 300)
 
 **Example**:
+
 ```bash
 uv run python scripts/performance_test.py stress ui_app --max-users 50 --ramp-up 180
 ```
@@ -86,17 +98,20 @@ uv run python scripts/performance_test.py stress ui_app --max-users 50 --ramp-up
 The framework collects and reports the following metrics:
 
 ### Response Time Metrics
+
 - **Average Response Time**: Mean response time across all requests
 - **Median Response Time**: 50th percentile response time
 - **95th Percentile**: 95% of requests completed within this time
 - **99th Percentile**: 99% of requests completed within this time
 
 ### Throughput Metrics
+
 - **Requests per Second (RPS)**: Average request rate
 - **Total Requests**: Total number of requests made
 - **Successful Requests**: Number of successful requests (2xx, 3xx status codes)
 
 ### Error Metrics
+
 - **Error Rate**: Percentage of failed requests
 - **Failed Requests**: Number of failed requests
 - **Error Types**: Breakdown of error types (timeouts, connection errors, etc.)
@@ -115,6 +130,7 @@ The framework uses the following performance thresholds:
 ## Reports and Output
 
 ### Directory Structure
+
 ```
 reports/performance/
 ├── load_test_pkd_service_20231201_143022/
@@ -140,6 +156,7 @@ reports/performance/
    - Response size
 
 2. **metrics.json**: Aggregated performance metrics:
+
    ```json
    {
      "total_requests": 1200,
@@ -171,17 +188,20 @@ The framework exposes metrics to Prometheus:
 ### Grafana Dashboard
 
 Set up monitoring dashboard:
+
 ```bash
 python scripts/performance_monitoring.py --setup
 ```
 
 This creates:
+
 - Grafana dashboard configuration (`monitoring/grafana/dashboards/performance-testing.json`)
 - Prometheus alerting rules (`monitoring/prometheus/rules/performance-alerts.yml`)
 
 ### Real-time Monitoring
 
 Start metrics server during testing:
+
 ```bash
 # Metrics available at http://localhost:9090/metrics
 uv run python scripts/performance_test.py load pkd_service --metrics-port 9090
@@ -192,6 +212,7 @@ uv run python scripts/performance_test.py load pkd_service --metrics-port 9090
 The framework includes pre-configured test scenarios for each Marty service:
 
 ### PKD Service (Port 8088)
+
 - Root endpoint (`/`)
 - API documentation (`/docs`)
 - Master list endpoint (`/v1/masterlist`)
@@ -199,12 +220,14 @@ The framework includes pre-configured test scenarios for each Marty service:
 - CRL endpoint (`/v1/crl`)
 
 ### Document Processing (Port 8080)
+
 - Root endpoint (`/`)
 - Health check (`/api/health`)
 - Ping endpoint (`/api/ping`)
 - API documentation (`/docs`)
 
 ### UI Application (Port 8000)
+
 - Root endpoint (`/`)
 - Health check (`/health`)
 - API documentation (`/docs`)
@@ -214,11 +237,12 @@ The framework includes pre-configured test scenarios for each Marty service:
 ### GitHub Actions
 
 Add to your workflow:
+
 ```yaml
 - name: Run Performance Tests
   run: |
     make perf-test-quick
-    
+
 - name: Upload Performance Reports
   uses: actions/upload-artifact@v3
   with:
@@ -264,7 +288,7 @@ async def custom_test():
             ],
             "auth_header": {"Authorization": "Bearer token"}
         }
-        
+
         # Run custom test
         results = await framework.load_test("custom_service", 15, 90)
         metrics = framework.calculate_metrics(results)
@@ -274,6 +298,7 @@ async def custom_test():
 ### Performance Regression Testing
 
 Compare results across test runs:
+
 ```bash
 python scripts/performance_monitoring.py --summary reports/performance/
 ```
@@ -283,9 +308,11 @@ python scripts/performance_monitoring.py --summary reports/performance/
 ### Common Issues
 
 1. **Service Not Running**
+
    ```
    ❌ Service pkd_service is not running on port 8088
    ```
+
    **Solution**: Start the service first: `make run-pkd-service`
 
 2. **High Error Rates**

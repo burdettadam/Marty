@@ -9,6 +9,7 @@ This document describes the implementation of a unified verification protocol th
 The verification protocol implements a **5-layer hierarchical approach** with strict order of precedence:
 
 ### 1. Document Class Detection
+
 - **Purpose**: Identify document type from MRZ document codes
 - **Implementation**: Pattern matching against first line of MRZ
 - **Patterns**:
@@ -19,6 +20,7 @@ The verification protocol implements a **5-layer hierarchical approach** with st
   - `I` + country code → ID cards (TD-1/TD-2)
 
 ### 2. MRZ Validation
+
 - **Purpose**: Structural validation and check digit verification
 - **Checks**:
   - Line count validation (document-specific)
@@ -27,6 +29,7 @@ The verification protocol implements a **5-layer hierarchical approach** with st
   - Character set validation (A-Z, 0-9, `<`)
 
 ### 3. Authenticity Layer
+
 - **Purpose**: Cryptographic verification of document authenticity
 - **Logic**: Hierarchical fallback approach
   1. **If chip present** → SOD/DSC verification → DG hash match
@@ -34,6 +37,7 @@ The verification protocol implements a **5-layer hierarchical approach** with st
   3. **Else** → authenticity verification unavailable
 
 ### 4. Semantics Validation
+
 - **Purpose**: Business rule and policy validation
 - **Checks**:
   - Validity windows (issue/expiry dates)
@@ -42,6 +46,7 @@ The verification protocol implements a **5-layer hierarchical approach** with st
   - Cross-field consistency
 
 ### 5. Trust Verification
+
 - **Purpose**: Certificate chain and trust anchor validation
 - **Process**:
   - PKD (Public Key Directory) resolution
@@ -134,6 +139,7 @@ class VerificationResult:
 ## Document Flow Examples
 
 ### CMC with Chip
+
 ```
 1. Detection: C[country] → CMC class
 2. MRZ: 3 lines × 30 chars validation
@@ -143,6 +149,7 @@ class VerificationResult:
 ```
 
 ### Visa with VDS-NC
+
 ```
 1. Detection: V[country] → Visa class
 2. MRZ: 2 lines × 36 chars validation  
@@ -152,6 +159,7 @@ class VerificationResult:
 ```
 
 ### Passport (Basic)
+
 ```
 1. Detection: P[country] → Passport class
 2. MRZ: 2 lines × 44 chars + check digits

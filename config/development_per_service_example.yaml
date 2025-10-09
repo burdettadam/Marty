@@ -38,7 +38,7 @@ security:
     enabled: false  # Disabled for development
     mtls: false
     require_client_auth: false
-  
+
   auth:
     required: false  # Optional authentication in development
     jwt:
@@ -47,7 +47,7 @@ security:
       secret: "dev_jwt_secret_123456789012345678901234"
     client_cert:
       enabled: false
-  
+
   authz:
     enabled: false  # Disabled for development
 
@@ -93,7 +93,7 @@ database:
     pool_timeout: 30
     pool_recycle: 3600
 
-  # PKD service database  
+  # PKD service database
   pkd_service:
     url: "${MARTY_PKD_DB_URL:-postgresql+asyncpg://dev_user:dev_password@localhost:5432/marty_pkd}"
     host: localhost

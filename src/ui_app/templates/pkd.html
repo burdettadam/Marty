@@ -5,11 +5,11 @@
     <header>
       <h2>PKD & Master List Management</h2>
     </header>
-    
+
     <!-- Master List Management Section -->
     <details open>
       <summary>Master List Management</summary>
-      
+
       <!-- Upload Master List -->
       <div class="upload-section">
         <h4>Upload Master List</h4>
@@ -17,17 +17,17 @@
           <div class="form-row">
             <div class="form-group">
               <label for="masterlist_file">Master List File:</label>
-              <input type="file" id="masterlist_file" name="masterlist_file" 
+              <input type="file" id="masterlist_file" name="masterlist_file"
                      accept=".ldif,.xml,.json" required>
               <small class="help-text">Supported formats: LDIF, XML, JSON</small>
             </div>
-            
+
             <div class="form-group">
               <label for="source_name">Source Name:</label>
-              <input type="text" id="source_name" name="source_name" 
+              <input type="text" id="source_name" name="source_name"
                      placeholder="ICAO PKD, National PKD, etc." required>
             </div>
-            
+
             <div class="form-group">
               <label for="format_type">Format Type:</label>
               <select id="format_type" name="format_type" required>
@@ -38,7 +38,7 @@
               </select>
             </div>
           </div>
-          
+
           <div class="form-row">
             <div class="form-group">
               <label class="checkbox-label">
@@ -46,7 +46,7 @@
                 Validate certificate signatures
               </label>
             </div>
-            
+
             <div class="form-group">
               <label class="checkbox-label">
                 <input type="checkbox" name="update_existing" value="true">
@@ -54,10 +54,10 @@
               </label>
             </div>
           </div>
-          
+
           <button type="submit" class="button button-primary">Upload Master List</button>
         </form>
-        
+
         {% if upload_result %}
           <div class="result-section">
             <h5>Upload Result</h5>
@@ -86,7 +86,7 @@
           </div>
         {% endif %}
       </div>
-      
+
       <!-- Download Master List -->
       <div class="download-section">
         <h4>Download Master List</h4>
@@ -98,47 +98,47 @@
             <option value="JSON">JSON</option>
             <option value="PEM">PEM Bundle</option>
           </select>
-          
+
           <select name="filter">
             <option value="">All certificates</option>
             <option value="ACTIVE_ONLY">Active only</option>
             <option value="NON_EXPIRED">Non-expired only</option>
             <option value="RECENT">Recent (30 days)</option>
           </select>
-          
+
           <button type="submit" class="button">Download</button>
         </form>
       </div>
     </details>
-    
+
     <!-- Certificate Store Browser -->
     <details>
       <summary>Certificate Store Browser</summary>
-      
+
       <!-- Search and Filter -->
       <div class="search-section">
         <form method="get" action="/pkd" class="search-form">
           <div class="form-row">
             <div class="form-group">
               <label for="search_query">Search:</label>
-              <input type="text" id="search_query" name="search" 
-                     placeholder="Country code, subject, issuer..." 
+              <input type="text" id="search_query" name="search"
+                     placeholder="Country code, subject, issuer..."
                      value="{{ search_query }}">
             </div>
-            
+
             <div class="form-group">
               <label for="country_filter">Country:</label>
               <select id="country_filter" name="country">
                 <option value="">All countries</option>
                 {% for country in countries %}
-                  <option value="{{ country.code }}" 
+                  <option value="{{ country.code }}"
                           {% if country_filter == country.code %}selected{% endif %}>
                     {{ country.code }} - {{ country.name }}
                   </option>
                 {% endfor %}
               </select>
             </div>
-            
+
             <div class="form-group">
               <label for="status_filter">Status:</label>
               <select id="status_filter" name="status">
@@ -150,7 +150,7 @@
               </select>
             </div>
           </div>
-          
+
           <div class="search-actions">
             <button type="submit" class="button">Search</button>
             <button type="button" class="button" onclick="clearSearch()">Clear</button>
@@ -158,7 +158,7 @@
           </div>
         </form>
       </div>
-      
+
       <!-- Certificate List -->
       {% if certificates %}
         <div class="certificates-section">
@@ -170,7 +170,7 @@
               {% endif %}
             </div>
           </div>
-          
+
           <div class="table-container">
             <table class="certificates-table">
               <thead>
@@ -211,14 +211,14 @@
               </tbody>
             </table>
           </div>
-          
+
           <!-- Batch Actions -->
           <div class="batch-actions">
             <button class="button" onclick="downloadSelected()">Download Selected</button>
             <button class="button" onclick="validateSelected()">Validate Selected</button>
             <button class="button button-danger" onclick="deleteSelected()">Delete Selected</button>
           </div>
-          
+
           <!-- Pagination -->
           {% if pagination %}
             <div class="pagination">
@@ -238,11 +238,11 @@
         </div>
       {% endif %}
     </details>
-    
+
     <!-- Synchronization Management -->
     <details open>
       <summary>Synchronization Management</summary>
-      
+
       <!-- Sync Status -->
       <div class="sync-status">
         <h4>Synchronization Status</h4>
@@ -269,7 +269,7 @@
             {% endfor %}
           </div>
         {% endif %}
-        
+
         <!-- Manual Sync Controls -->
         <div class="sync-controls">
           <form method="post" action="/pkd/sync" class="inline-form">
@@ -281,16 +281,16 @@
                 {% endfor %}
               {% endif %}
             </select>
-            
+
             <label class="checkbox-label">
               <input type="checkbox" name="force_sync" value="true">
               Force full sync
             </label>
-            
+
             <button type="submit" class="button button-primary">Start Synchronization</button>
           </form>
         </div>
-        
+
         {% if sync_result %}
           <div class="result-section sync-result pkd-result result-panel status-panel">
             <h5>Synchronization Result</h5>
@@ -308,11 +308,11 @@
         {% endif %}
       </div>
     </details>
-    
+
     <!-- Statistics and Health -->
     <details>
       <summary>Statistics & Health</summary>
-      
+
       <div class="stats-grid">
         <div class="stat-card">
           <h6>Certificate Statistics</h6>
@@ -323,7 +323,7 @@
             <dt>Revoked:</dt><dd>{{ statistics.revoked_certificates or 0 }}</dd>
           </dl>
         </div>
-        
+
         <div class="stat-card">
           <h6>Country Distribution</h6>
           <dl class="stat-list">
@@ -332,7 +332,7 @@
             {% endfor %}
           </dl>
         </div>
-        
+
         <div class="stat-card">
           <h6>Expiry Alerts</h6>
           <dl class="stat-list">
@@ -341,7 +341,7 @@
             <dt>Expired today:</dt><dd class="alert-count critical">{{ statistics.expired_today or 0 }}</dd>
           </dl>
         </div>
-        
+
         <div class="stat-card">
           <h6>System Health</h6>
           <dl class="stat-list">
@@ -351,7 +351,7 @@
           </dl>
         </div>
       </div>
-      
+
       <div class="health-actions">
         <button class="button" onclick="refreshStats()">Refresh Statistics</button>
         <button class="button" onclick="performHealthCheck()">Perform Health Check</button>
@@ -411,11 +411,11 @@ function downloadSelected() {
     alert('Please select certificates to download');
     return;
   }
-  
+
   const form = document.createElement('form');
   form.method = 'POST';
   form.action = '/pkd/certificates/download';
-  
+
   selected.forEach(certId => {
     const input = document.createElement('input');
     input.type = 'hidden';
@@ -423,7 +423,7 @@ function downloadSelected() {
     input.value = certId;
     form.appendChild(input);
   });
-  
+
   document.body.appendChild(form);
   form.submit();
   document.body.removeChild(form);
@@ -435,7 +435,7 @@ function validateSelected() {
     alert('Please select certificates to validate');
     return;
   }
-  
+
   // Validate selected certificates
   alert(`Validating ${selected.length} certificates...`);
 }
@@ -446,7 +446,7 @@ function deleteSelected() {
     alert('Please select certificates to delete');
     return;
   }
-  
+
   if (confirm(`Are you sure you want to delete ${selected.length} certificates?`)) {
     // Delete selected certificates
     alert('Delete functionality - to be implemented');
@@ -458,12 +458,12 @@ function syncSource(sourceId) {
   const form = document.createElement('form');
   form.method = 'POST';
   form.action = '/pkd/sync';
-  
+
   const input = document.createElement('input');
   input.type = 'hidden';
   input.name = 'source_id';
   input.value = sourceId;
-  
+
   form.appendChild(input);
   document.body.appendChild(form);
   form.submit();

@@ -3,6 +3,7 @@
 Provides a single source of truth for the document processing service base URL
 and port. Override with environment variable DOC_PROCESSING_PORT if needed.
 """
+
 from __future__ import annotations
 
 import os

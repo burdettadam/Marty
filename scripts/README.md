@@ -5,11 +5,13 @@ This directory contains scripts for setting up a complete Microsoft Authenticato
 ## 🚀 Quick Start
 
 ### Complete Automated Setup
+
 ```bash
 ./scripts/setup-microsoft-demo-complete.sh
 ```
 
 This single script will:
+
 - ✅ Check all prerequisites (kubectl, kind, Docker)
 - ✅ Create a kind cluster with proper host path mounts
 - ✅ Deploy the Microsoft demo APIs to Kubernetes
@@ -17,11 +19,13 @@ This single script will:
 - ✅ Test all endpoints and provide VS Code integration instructions
 
 ### Check Status
+
 ```bash
 ./scripts/check-microsoft-demo-status.sh
 ```
 
 ### Cleanup
+
 ```bash
 ./scripts/cleanup-microsoft-demo.sh
 ```
@@ -39,6 +43,7 @@ The setup script will check for these automatically:
 ### Installing Prerequisites
 
 **kubectl:**
+
 ```bash
 # macOS
 brew install kubectl
@@ -49,6 +54,7 @@ sudo install -o root -g root -m 0755 kubectl /usr/local/bin/kubectl
 ```
 
 **kind:**
+
 ```bash
 # macOS
 brew install kind
@@ -60,22 +66,25 @@ sudo mv ./kind /usr/local/bin/kind
 ```
 
 **Docker:**
-- macOS: Download Docker Desktop from https://docker.com
-- Linux: Follow instructions at https://docs.docker.com/engine/install/
+
+- macOS: Download Docker Desktop from <https://docker.com>
+- Linux: Follow instructions at <https://docs.docker.com/engine/install/>
 
 ## 🎯 What Gets Created
 
 ### Kubernetes Resources
+
 - **Cluster**: `marty-microsoft-demo` (kind cluster)
 - **Namespace**: `marty-microsoft-demo`
-- **Deployments**: 
+- **Deployments**:
   - `issuer-api-microsoft-demo` (port 8000)
   - `verifier-api-microsoft-demo` (port 8001)
 - **Services**: ClusterIP services for both APIs
 - **ConfigMaps**: Configuration for demo environment
 
 ### Local Access
-- **Port Forwarding**: 
+
+- **Port Forwarding**:
   - Issuer API: `http://localhost:8000`
   - Verifier API: `http://localhost:8001`
 
@@ -85,7 +94,7 @@ After running the setup script:
 
 1. **Open VS Code** in this workspace
 2. **Open Ports Panel**: View → Terminal → Ports
-3. **Make Ports Public**: 
+3. **Make Ports Public**:
    - Right-click on port 8000 → "Change Port Visibility" → "Public"
    - Right-click on port 8001 → "Change Port Visibility" → "Public"
 4. **Get HTTPS URLs**: VS Code will generate URLs like:
@@ -97,6 +106,7 @@ After running the setup script:
 ### Credential Issuance Flow
 
 1. **Create Credential Offer**:
+
    ```bash
    curl -X POST https://your-issuer-url/credential-offer \
      -H "Content-Type: application/json" \
@@ -147,23 +157,27 @@ After running the setup script:
 ## 🛠️ Management Commands
 
 ### Restart APIs
+
 ```bash
 kubectl rollout restart deployment/issuer-api-microsoft-demo -n marty-microsoft-demo
 kubectl rollout restart deployment/verifier-api-microsoft-demo -n marty-microsoft-demo
 ```
 
 ### View Logs
+
 ```bash
 kubectl logs -f deployment/issuer-api-microsoft-demo -n marty-microsoft-demo
 kubectl logs -f deployment/verifier-api-microsoft-demo -n marty-microsoft-demo
 ```
 
 ### Scale APIs
+
 ```bash
 kubectl scale deployment/issuer-api-microsoft-demo --replicas=2 -n marty-microsoft-demo
 ```
 
 ### Port Forward Manually
+
 ```bash
 kubectl port-forward -n marty-microsoft-demo service/issuer-api-microsoft-demo 8000:8000 &
 kubectl port-forward -n marty-microsoft-demo service/verifier-api-microsoft-demo 8001:8001 &
@@ -174,6 +188,7 @@ kubectl port-forward -n marty-microsoft-demo service/verifier-api-microsoft-demo
 ### Common Issues
 
 **Port forwarding fails:**
+
 ```bash
 # Check if ports are in use
 lsof -i :8000
@@ -185,6 +200,7 @@ pkill -f "kubectl port-forward.*8001"
 ```
 
 **APIs not starting:**
+
 ```bash
 # Check pod status
 kubectl get pods -n marty-microsoft-demo
@@ -194,6 +210,7 @@ kubectl logs -f deployment/issuer-api-microsoft-demo -n marty-microsoft-demo
 ```
 
 **Cluster issues:**
+
 ```bash
 # Recreate cluster
 kind delete cluster --name marty-microsoft-demo
@@ -203,6 +220,7 @@ kind delete cluster --name marty-microsoft-demo
 ### Script Outputs
 
 Each script provides colored output:
+
 - 🔵 **[INFO]** - Informational messages
 - 🟢 **[SUCCESS]** - Successful operations
 - 🟡 **[WARNING]** - Warnings (non-fatal)
@@ -237,6 +255,7 @@ src/microsoft_demo/
 ## 🎉 Success Indicators
 
 When everything is working correctly, you should see:
+
 - ✅ Kind cluster created and accessible
 - ✅ All pods in `Running` state with `1/1` ready
 - ✅ Both APIs responding to health checks

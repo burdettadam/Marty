@@ -11,6 +11,7 @@ Digital Travel Authorization (DTA) and e-visa documents with:
 Supports both printable and screen-presentable formats with identical
 verification outcomes.
 """
+
 from __future__ import annotations
 
 import base64
@@ -48,6 +49,7 @@ from src.shared.models.visa import VDSNCData, Visa
 
 class VDSNCMessageType(str, Enum):
     """VDS-NC message types."""
+
     EMERGENCY_TRAVEL_DOCUMENT = "emergency_travel_document"
     PROOF_OF_TESTING = "proof_of_testing"
     PROOF_OF_VACCINATION = "proof_of_vaccination"
@@ -57,6 +59,7 @@ class VDSNCMessageType(str, Enum):
 
 class BarcodeFormat(str, Enum):
     """Supported barcode formats."""
+
     QR_CODE = "QR"
     DATA_MATRIX = "DM"
     AZTEC = "AZTEC"
@@ -64,6 +67,7 @@ class BarcodeFormat(str, Enum):
 
 class SignatureAlgorithm(str, Enum):
     """Supported signature algorithms."""
+
     ES256 = "ES256"  # ECDSA with SHA-256
     ES384 = "ES384"  # ECDSA with SHA-384
     ES512 = "ES512"  # ECDSA with SHA-512
@@ -81,7 +85,7 @@ class VDSNCEncoder:
         message_type: VDSNCMessageType,
         issuer: str,
         version: str = "1",
-        algorithm: SignatureAlgorithm = SignatureAlgorithm.ES256
+        algorithm: SignatureAlgorithm = SignatureAlgorithm.ES256,
     ) -> dict[str, Any]:
         """
         Create VDS-NC header.
@@ -100,7 +104,7 @@ class VDSNCEncoder:
             "typ": message_type.value,
             "iss": issuer,
             "iat": int(time.time()),
-            "alg": algorithm.value
+            "alg": algorithm.value,
         }
 
     @classmethod
@@ -123,30 +127,27 @@ class VDSNCEncoder:
                 "type": "V",  # Visa
                 "no": document.document_number,
                 "iss": document.issuing_state,
-                "cat": document.visa_category.value
+                "cat": document.visa_category.value,
             },
-
             # Personal data
             "subj": {
                 "fn": personal.given_names,
                 "gn": personal.surname,
                 "dob": personal.date_of_birth.isoformat(),
                 "sex": personal.gender.value,
-                "nat": personal.nationality
+                "nat": personal.nationality,
             },
-
             # Validity
             "val": {
                 "from": document.date_of_issue.isoformat(),
-                "to": document.date_of_expiry.isoformat()
+                "to": document.date_of_expiry.isoformat(),
             },
-
             # Additional visa-specific data
             "vis": {
                 "poi": document.place_of_issue,
                 "entries": document.number_of_entries or "M",
-                "duration": document.duration_of_stay
-            }
+                "duration": document.duration_of_stay,
+            },
         }
 
         # Add validity window if specified
@@ -193,10 +194,7 @@ class VDSNCEncoder:
             msg = "cbor2 library required for CBOR encoding"
             raise ImportError(msg)
 
-        payload = {
-            "header": header,
-            "message": message
-        }
+        payload = {"header": header, "message": message}
 
         return cbor2.dumps(payload)
 
@@ -219,7 +217,7 @@ class VDSNCEncoder:
         cls,
         signature_input: bytes,
         private_key_pem: str,
-        algorithm: SignatureAlgorithm = SignatureAlgorithm.ES256
+        algorithm: SignatureAlgorithm = SignatureAlgorithm.ES256,
     ) -> bytes:
         """
         Sign the signature input.
@@ -250,7 +248,11 @@ class VDSNCEncoder:
             # Fallback to mock signature for invalid keys
             return hashlib.sha256(signature_input).digest()[:32]
 
-        if algorithm in [SignatureAlgorithm.ES256, SignatureAlgorithm.ES384, SignatureAlgorithm.ES512]:
+        if algorithm in [
+            SignatureAlgorithm.ES256,
+            SignatureAlgorithm.ES384,
+            SignatureAlgorithm.ES512,
+        ]:
             # ECDSA signing
             if algorithm == SignatureAlgorithm.ES256:
                 hash_algo = hashes.SHA256()
@@ -261,7 +263,11 @@ class VDSNCEncoder:
 
             signature = private_key.sign(signature_input, ec.ECDSA(hash_algo))
 
-        elif algorithm in [SignatureAlgorithm.PS256, SignatureAlgorithm.PS384, SignatureAlgorithm.PS512]:
+        elif algorithm in [
+            SignatureAlgorithm.PS256,
+            SignatureAlgorithm.PS384,
+            SignatureAlgorithm.PS512,
+        ]:
             # RSA-PSS signing
             if algorithm == SignatureAlgorithm.PS256:
                 hash_algo = hashes.SHA256()
@@ -272,11 +278,8 @@ class VDSNCEncoder:
 
             signature = private_key.sign(
                 signature_input,
-                padding.PSS(
-                    mgf=padding.MGF1(hash_algo),
-                    salt_length=padding.PSS.MAX_LENGTH
-                ),
-                hash_algo
+                padding.PSS(mgf=padding.MGF1(hash_algo), salt_length=padding.PSS.MAX_LENGTH),
+                hash_algo,
             )
         else:
             msg = f"Unsupported signature algorithm: {algorithm}"
@@ -291,7 +294,7 @@ class VDSNCEncoder:
         issuer: str,
         private_key_pem: str,
         algorithm: SignatureAlgorithm = SignatureAlgorithm.ES256,
-        certificate_pem: str | None = None
+        certificate_pem: str | None = None,
     ) -> VDSNCData:
         """
         Create complete VDS-NC encoding for visa.
@@ -320,11 +323,15 @@ class VDSNCEncoder:
         # Create complete VDS-NC structure
         vds_nc_payload = {
             "data": base64.b64encode(cbor_data).decode("ascii"),
-            "sig": base64.b64encode(signature).decode("ascii")
+            "sig": base64.b64encode(signature).decode("ascii"),
         }
 
         if certificate_pem:
-            vds_nc_payload["cert"] = certificate_pem.replace("\n", "").replace("-----BEGIN CERTIFICATE-----", "").replace("-----END CERTIFICATE-----", "")
+            vds_nc_payload["cert"] = (
+                certificate_pem.replace("\n", "")
+                .replace("-----BEGIN CERTIFICATE-----", "")
+                .replace("-----END CERTIFICATE-----", "")
+            )
 
         # Encode complete payload
         complete_payload = json.dumps(vds_nc_payload, separators=(",", ":"))
@@ -336,7 +343,7 @@ class VDSNCEncoder:
             barcode_data=complete_payload,
             barcode_format=BarcodeFormat.QR_CODE,
             issuer_certificate=certificate_pem,
-            signature_algorithm=algorithm.value
+            signature_algorithm=algorithm.value,
         )
 
 
@@ -366,7 +373,7 @@ class VDSNCDecoder:
         signature_input: bytes,
         signature: bytes,
         public_key_pem: str,
-        algorithm: SignatureAlgorithm = SignatureAlgorithm.ES256
+        algorithm: SignatureAlgorithm = SignatureAlgorithm.ES256,
     ) -> bool:
         """
         Verify signature.
@@ -391,7 +398,11 @@ class VDSNCDecoder:
         try:
             public_key = load_pem_public_key(public_key_pem.encode())
 
-            if algorithm in [SignatureAlgorithm.ES256, SignatureAlgorithm.ES384, SignatureAlgorithm.ES512]:
+            if algorithm in [
+                SignatureAlgorithm.ES256,
+                SignatureAlgorithm.ES384,
+                SignatureAlgorithm.ES512,
+            ]:
                 # ECDSA verification
                 if algorithm == SignatureAlgorithm.ES256:
                     hash_algo = hashes.SHA256()
@@ -402,7 +413,11 @@ class VDSNCDecoder:
 
                 public_key.verify(signature, signature_input, ec.ECDSA(hash_algo))
 
-            elif algorithm in [SignatureAlgorithm.PS256, SignatureAlgorithm.PS384, SignatureAlgorithm.PS512]:
+            elif algorithm in [
+                SignatureAlgorithm.PS256,
+                SignatureAlgorithm.PS384,
+                SignatureAlgorithm.PS512,
+            ]:
                 # RSA-PSS verification
                 if algorithm == SignatureAlgorithm.PS256:
                     hash_algo = hashes.SHA256()
@@ -414,11 +429,8 @@ class VDSNCDecoder:
                 public_key.verify(
                     signature,
                     signature_input,
-                    padding.PSS(
-                        mgf=padding.MGF1(hash_algo),
-                        salt_length=padding.PSS.MAX_LENGTH
-                    ),
-                    hash_algo
+                    padding.PSS(mgf=padding.MGF1(hash_algo), salt_length=padding.PSS.MAX_LENGTH),
+                    hash_algo,
                 )
             else:
                 return False
@@ -429,7 +441,9 @@ class VDSNCDecoder:
             return True
 
     @classmethod
-    def decode_vds_nc(cls, barcode_data: str, public_key_pem: str | None = None) -> tuple[dict[str, Any], bool]:
+    def decode_vds_nc(
+        cls, barcode_data: str, public_key_pem: str | None = None
+    ) -> tuple[dict[str, Any], bool]:
         """
         Decode and verify VDS-NC barcode data.
 
@@ -461,10 +475,7 @@ class VDSNCDecoder:
                 algorithm = SignatureAlgorithm(algorithm_str)
 
                 signature_valid = cls.verify_signature(
-                    signature_input,
-                    signature,
-                    public_key_pem,
-                    algorithm
+                    signature_input, signature, public_key_pem, algorithm
                 )
 
         except Exception as e:
@@ -479,11 +490,7 @@ class BarcodeGenerator:
 
     @classmethod
     def generate_qr_code(
-        cls,
-        data: str,
-        error_correction: str = "M",
-        border: int = 4,
-        box_size: int = 10
+        cls, data: str, error_correction: str = "M", border: int = 4, box_size: int = 10
     ) -> bytes | None:
         """
         Generate QR code for data.
@@ -505,14 +512,14 @@ class BarcodeGenerator:
             "L": qrcode.constants.ERROR_CORRECT_L,
             "M": qrcode.constants.ERROR_CORRECT_M,
             "Q": qrcode.constants.ERROR_CORRECT_Q,
-            "H": qrcode.constants.ERROR_CORRECT_H
+            "H": qrcode.constants.ERROR_CORRECT_H,
         }
 
         qr = qrcode.QRCode(
             version=1,
             error_correction=error_levels.get(error_correction, qrcode.constants.ERROR_CORRECT_M),
             box_size=box_size,
-            border=border
+            border=border,
         )
 
         qr.add_data(data)
@@ -523,6 +530,7 @@ class BarcodeGenerator:
 
         # Convert to bytes
         import io
+
         img_bytes = io.BytesIO()
         img.save(img_bytes, format="PNG")
 
@@ -534,7 +542,7 @@ class BarcodeGenerator:
         data: str,
         logo_path: str | None = None,
         fill_color: str = "black",
-        back_color: str = "white"
+        back_color: str = "white",
     ) -> bytes | None:
         """
         Generate styled QR code with optional logo.
@@ -556,7 +564,7 @@ class BarcodeGenerator:
                 version=1,
                 error_correction=qrcode.constants.ERROR_CORRECT_H,  # High for logo
                 box_size=10,
-                border=4
+                border=4,
             )
 
             qr.add_data(data)
@@ -567,13 +575,14 @@ class BarcodeGenerator:
                 image_factory=StyledPilImage,
                 module_drawer=RoundedModuleDrawer(),
                 fill_color=fill_color,
-                back_color=back_color
+                back_color=back_color,
             )
 
             # Add logo if provided
             if logo_path:
                 try:
                     from PIL import Image
+
                     logo = Image.open(logo_path)
 
                     # Calculate logo size (about 10% of QR code)
@@ -595,6 +604,7 @@ class BarcodeGenerator:
 
             # Convert to bytes
             import io
+
             img_bytes = io.BytesIO()
             img.save(img_bytes, format="PNG")
 
@@ -729,9 +739,7 @@ class VDSNCValidator:
 
     @classmethod
     def validate_field_consistency(
-        cls,
-        vds_nc_data: dict[str, Any],
-        visa: Visa | None = None
+        cls, vds_nc_data: dict[str, Any], visa: Visa | None = None
     ) -> list[str]:
         """
         Validate field consistency between VDS-NC data and visa object.

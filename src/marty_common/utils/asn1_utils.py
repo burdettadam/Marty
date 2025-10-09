@@ -4,6 +4,7 @@ ASN.1 utilities for Marty services.
 This module provides utilities for working with ASN.1 structures commonly used in e-passports,
 leveraging the asn1crypto library for efficient and robust handling.
 """
+
 from __future__ import annotations
 
 import base64

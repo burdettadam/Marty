@@ -5,6 +5,7 @@ This directory contains Kubernetes manifests for deploying the Trust Services mi
 ## Overview
 
 The Trust Services deployment includes:
+
 - **Deployment**: Main application pods with health checks and resource limits
 - **Service**: Internal and external service definitions
 - **ConfigMap**: Configuration settings
@@ -17,28 +18,33 @@ The Trust Services deployment includes:
 ## Quick Start
 
 1. **Create namespace**:
+
    ```bash
    kubectl create namespace marty
    ```
 
 2. **Update secrets** in `secret.yaml`:
+
    ```bash
    # Update database-password and kms-key-id with actual values
    kubectl apply -f secret.yaml
    ```
 
 3. **Deploy all resources**:
+
    ```bash
    kubectl apply -f .
    ```
 
 4. **Verify deployment**:
+
    ```bash
    kubectl get pods -n marty -l app=trust-svc
    kubectl logs -n marty -l app=trust-svc
    ```
 
 5. **Run initialization job**:
+
    ```bash
    kubectl apply -f jobs.yaml
    kubectl logs -n marty job/trust-svc-init
@@ -71,6 +77,7 @@ Key environment variables in the deployment:
 ### Resource Requirements
 
 Default resource allocation:
+
 - **Requests**: 256Mi memory, 100m CPU
 - **Limits**: 1Gi memory, 500m CPU
 
@@ -79,6 +86,7 @@ Adjust based on your workload requirements.
 ### Storage
 
 The deployment uses a PersistentVolumeClaim for data storage:
+
 - **Size**: 10Gi (adjustable)
 - **Access Mode**: ReadWriteOnce
 - **Storage Class**: gp2 (AWS EBS, adjust for your provider)
@@ -88,6 +96,7 @@ The deployment uses a PersistentVolumeClaim for data storage:
 The service exposes Prometheus metrics on port 8080 at `/metrics`.
 
 Service annotations for Prometheus scraping:
+
 ```yaml
 prometheus.io/scrape: "true"
 prometheus.io/port: "8080"
@@ -109,6 +118,7 @@ All probes use the `/api/v1/admin/status` endpoint.
 ### Initialization Job
 
 The `trust-svc-init` job loads initial synthetic data:
+
 - Runs once after deployment
 - Creates 1000 synthetic certificates across 10 countries
 - Auto-cleans up after 1 hour
@@ -116,6 +126,7 @@ The `trust-svc-init` job loads initial synthetic data:
 ### Scheduled Refresh Job
 
 The `trust-svc-refresh` CronJob runs every 6 hours to:
+
 - Refresh CRL data from external sources
 - Create new trust snapshots
 - Update metrics
@@ -125,6 +136,7 @@ The `trust-svc-refresh` CronJob runs every 6 hours to:
 ### Ingress
 
 The ingress configuration provides external access via:
+
 - **Host**: trust.marty.example.com (update with your domain)
 - **TLS**: Automatic certificate management with cert-manager
 - **Rate Limiting**: 100 requests per minute
@@ -132,6 +144,7 @@ The ingress configuration provides external access via:
 ### Load Balancer
 
 Alternatively, use the LoadBalancer service for direct access:
+
 ```bash
 kubectl get svc trust-svc-external -n marty
 ```
@@ -141,12 +154,14 @@ kubectl get svc trust-svc-external -n marty
 ### RBAC
 
 The service account has minimal required permissions:
+
 - Read access to Secrets and ConfigMaps
 - Pod listing for service discovery
 
 ### Security Context
 
 Containers run with security hardening:
+
 - Non-root user (UID 1000)
 - Read-only root filesystem where possible
 - Security contexts applied
@@ -194,21 +209,24 @@ kubectl autoscale deployment trust-svc -n marty --cpu-percent=70 --min=2 --max=1
 ### Common Issues
 
 1. **Pod not starting**:
+
    ```bash
    kubectl describe pod -n marty -l app=trust-svc
    kubectl logs -n marty -l app=trust-svc
    ```
 
 2. **Database connection issues**:
+
    ```bash
    # Check if postgres is running
    kubectl get pods -n marty -l app=postgres
-   
+
    # Verify secret
    kubectl get secret trust-svc-secrets -n marty -o yaml
    ```
 
 3. **Health check failures**:
+
    ```bash
    # Check service endpoint
    kubectl port-forward -n marty svc/trust-svc 8080:8080
@@ -216,6 +234,7 @@ kubectl autoscale deployment trust-svc -n marty --cpu-percent=70 --min=2 --max=1
    ```
 
 4. **Storage issues**:
+
    ```bash
    kubectl get pvc -n marty
    kubectl describe pvc trust-svc-data -n marty
@@ -247,6 +266,7 @@ kubectl delete pvc trust-svc-data -n marty
 ```
 
 Or with kustomize:
+
 ```bash
 kubectl delete -k .
 ```

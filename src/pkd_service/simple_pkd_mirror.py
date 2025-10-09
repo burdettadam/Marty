@@ -5,6 +5,7 @@ This module implements a simplified version of the PKD Mirror Service
 that doesn't rely on external dependencies. It's meant for demonstration
 purposes only.
 """
+
 from __future__ import annotations
 
 import logging
@@ -12,7 +13,7 @@ import os
 import sys
 import threading
 import time
-from datetime import datetime
+from datetime import datetime, timezone
 
 # Configure logging
 logging.basicConfig(
@@ -186,7 +187,8 @@ def main() -> None:
 
     # Create a PKD Mirror Service instance
     pkd_mirror = SimplePKDMirrorService(
-        pkd_url="https://pkddownloadsg.icao.int", sync_interval=3600  # 1 hour
+        pkd_url="https://pkddownloadsg.icao.int",
+        sync_interval=3600,  # 1 hour
     )
 
     # Print the service configuration

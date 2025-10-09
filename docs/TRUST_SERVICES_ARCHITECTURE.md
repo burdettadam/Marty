@@ -1,6 +1,7 @@
 # Trust Services Architecture Design
 
 ## Overview
+
 The Trust Services microservice provides centralized trust management for Marty, including PKD ingestion, revocation processing, and immutable trust snapshots.
 
 ## Components
@@ -8,6 +9,7 @@ The Trust Services microservice provides centralized trust management for Marty,
 ### 1. PostgreSQL Trust Database Schema
 
 #### Core Tables
+
 ```sql
 -- Trust anchors (CSCA certificates)
 CREATE TABLE trust_anchors (
@@ -100,6 +102,7 @@ CREATE TABLE trust_snapshots (
 ```
 
 #### Indexes and Constraints
+
 ```sql
 CREATE INDEX idx_trust_anchors_country ON trust_anchors(country_code);
 CREATE INDEX idx_trust_anchors_hash ON trust_anchors(certificate_hash);
@@ -115,6 +118,7 @@ CREATE INDEX idx_snapshots_time ON trust_snapshots(snapshot_time);
 ### 2. Service Architecture
 
 #### Core Services
+
 - **PKD Ingestion Service**: Fetch and parse master lists from production/synthetic sources
 - **Revocation Processor**: Parse CRLs, check OCSP, update DSC status
 - **Trust Snapshot Service**: Create immutable trust views with signatures
@@ -122,6 +126,7 @@ CREATE INDEX idx_snapshots_time ON trust_snapshots(snapshot_time);
 - **API Service**: REST endpoints for verifiers
 
 #### Job Scheduler
+
 - **Master List Sync**: Periodic job to fetch updated master lists
 - **CRL Refresh**: Fetch and process CRLs based on distribution points
 - **OCSP Check**: Validate individual DSC status via OCSP
@@ -131,6 +136,7 @@ CREATE INDEX idx_snapshots_time ON trust_snapshots(snapshot_time);
 ### 3. API Endpoints
 
 #### Trust Query API
+
 ```
 GET /api/v1/trust/status/{certificate_hash}
 GET /api/v1/trust/anchors/{country_code}
@@ -140,6 +146,7 @@ GET /api/v1/trust/snapshot/latest
 ```
 
 #### Administrative API
+
 ```
 POST /api/v1/admin/masterlist/upload
 POST /api/v1/admin/crl/refresh
@@ -148,6 +155,7 @@ GET /api/v1/admin/status
 ```
 
 #### Metrics Endpoint
+
 ```
 GET /metrics
 ```
@@ -176,18 +184,21 @@ job_last_success_timestamp{job="crl_refresh"} 1696345200
 ### 5. Storage Strategy
 
 #### Database Storage (PostgreSQL)
+
 - Trust anchors and metadata
 - DSC certificates and revocation status
 - CRL cache and revoked certificate lists
 - Trust snapshots and signatures
 
 #### Object Storage (S3/MinIO)
+
 - Raw PKD artifacts (master lists, CRLs)
 - Large certificate bundles
 - Backup snapshots
 - Audit logs
 
 #### Immutability Controls
+
 - `immutable_flag` on critical records
 - Write-once object storage for raw artifacts
 - Cryptographic signatures on trust snapshots
@@ -196,6 +207,7 @@ job_last_success_timestamp{job="crl_refresh"} 1696345200
 ### 6. Development Job Design
 
 #### One-shot Development Job
+
 ```bash
 # Load synthetic master list and print statistics
 trust-svc dev-load --synthetic --country=DEV --output=json
@@ -203,7 +215,7 @@ trust-svc dev-load --synthetic --country=DEV --output=json
 # Expected output:
 {
   "master_list": {
-    "country": "DEV", 
+    "country": "DEV",
     "certificates": 25,
     "valid_certificates": 23,
     "expired_certificates": 2
@@ -216,7 +228,7 @@ trust-svc dev-load --synthetic --country=DEV --output=json
     "loaded": 18,
     "revocation_status": {
       "good": 15,
-      "bad": 1, 
+      "bad": 1,
       "unknown": 2
     }
   }
@@ -224,6 +236,7 @@ trust-svc dev-load --synthetic --country=DEV --output=json
 ```
 
 #### Grafana Dashboard Panel
+
 - Certificate count by country
 - Revocation status distribution
 - Master list freshness
@@ -233,16 +246,19 @@ trust-svc dev-load --synthetic --country=DEV --output=json
 ### 7. Security Considerations
 
 #### KMS Integration
+
 - Sign trust snapshots with AWS KMS or external HSM
 - Encrypt sensitive certificate data at rest
 - Rotate signing keys periodically
 
 #### Access Controls
+
 - Role-based API access (viewer, operator, admin)
 - Service-to-service authentication via mTLS
 - Audit logging for all trust operations
 
 #### Data Integrity
+
 - Cryptographic hashes for all stored artifacts
 - Signature verification on master lists
 - Immutable storage for audit trails

@@ -9,22 +9,22 @@ import "google/protobuf/empty.proto";
 service TrustService {
   // Get service status and health information
   rpc GetTrustStatus(GetTrustStatusRequest) returns (TrustStatusResponse);
-  
+
   // Get trust anchors (CSCAs) with filtering
   rpc GetTrustAnchors(GetTrustAnchorsRequest) returns (GetTrustAnchorsResponse);
-  
+
   // Get trust snapshot
   rpc GetTrustSnapshot(GetTrustSnapshotRequest) returns (GetTrustSnapshotResponse);
-  
+
   // Validate certificate chain
   rpc ValidateCertificate(ValidateCertificateRequest) returns (ValidateCertificateResponse);
-  
+
   // Check certificate revocation status
   rpc CheckRevocationStatus(CheckRevocationStatusRequest) returns (CheckRevocationStatusResponse);
-  
+
   // Stream PKD data updates
   rpc StreamPKDUpdates(StreamPKDUpdatesRequest) returns (stream PKDUpdateEvent);
-  
+
   // Administrative operations
   rpc RefreshPKDData(RefreshPKDDataRequest) returns (RefreshPKDDataResponse);
   rpc GetDataSources(GetDataSourcesRequest) returns (GetDataSourcesResponse);
@@ -64,7 +64,7 @@ message GetTrustAnchorsRequest {
   optional string country_code = 1;
   optional TrustLevel trust_level = 2;
   optional CertificateStatus status = 3;
-  
+
   // Pagination
   int32 page_size = 4; // Default: 100, Max: 1000
   string page_token = 5; // For pagination

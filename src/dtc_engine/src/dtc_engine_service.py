@@ -380,9 +380,7 @@ class DTCEngineService(dtc_engine_pb2_grpc.DTCEngineServicer):
 
         except Exception:
             self.logger.exception("Failed to sign DTC")
-            return dtc_engine_pb2.SignDTCResponse(
-                success=False, error_message="Failed to sign DTC"
-            )
+            return dtc_engine_pb2.SignDTCResponse(success=False, error_message="Failed to sign DTC")
 
     def RevokeDTC(
         self, request: dtc_engine_pb2.RevokeDTCRequest, context: grpc.ServicerContext
@@ -665,7 +663,7 @@ class DTCEngineService(dtc_engine_pb2_grpc.DTCEngineServicer):
                 success=True, error_message="", verification_result=self._vr("VALID")
             )
 
-        except Exception:
+        except Exception as e:
             self.logger.exception("Failed to verify DTC")
             return SimpleNamespace(
                 success=False,

@@ -189,7 +189,7 @@ class SecureMessaging:
 
         mac_input = ssc_bytes + protected_header + do87 + do97
         mac = self._retail_mac(self.session_keys.k_s_mac, mac_input)
-        do8e = b"\x8E\x08" + mac
+        do8e = b"\x8e\x08" + mac
 
         protected_data = do87 + do97 + do8e
         lc = self._encode_length(len(protected_data))

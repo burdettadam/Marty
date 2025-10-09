@@ -388,9 +388,11 @@ class DTCEngineServicer(dtc_engine_pb2_grpc.DTCEngineServicer):
             verification_results=verification_checks,
             dtc_data=dtc_response,
             verification_result=result_enum,
-            error_message=""
-            if overall_valid
-            else "; ".join(check.details for check in verification_checks if not check.passed),
+            error_message=(
+                ""
+                if overall_valid
+                else "; ".join(check.details for check in verification_checks if not check.passed)
+            ),
         )
 
     async def LinkDTCToPassport(self, request, context):
@@ -508,9 +510,9 @@ class DTCEngineServicer(dtc_engine_pb2_grpc.DTCEngineServicer):
             ],
             "dtc_type": dtc_engine_pb2.DTCType.Name(request.dtc_type),
             "access_control": dtc_engine_pb2.AccessControl.Name(request.access_control),
-            "access_key_hash": self._hash_access_key(request.access_key)
-            if request.access_key
-            else None,
+            "access_key_hash": (
+                self._hash_access_key(request.access_key) if request.access_key else None
+            ),
             "dtc_valid_from": valid_from,
             "dtc_valid_until": valid_until,
             "created_at": datetime.now(timezone.utc).isoformat(),
@@ -526,12 +528,12 @@ class DTCEngineServicer(dtc_engine_pb2_grpc.DTCEngineServicer):
             gender=personal.get("gender", ""),
             nationality=personal.get("nationality", ""),
             place_of_birth=personal.get("place_of_birth", ""),
-            portrait=bytes.fromhex(personal.get("portrait", ""))
-            if personal.get("portrait")
-            else b"",
-            signature=bytes.fromhex(personal.get("signature", ""))
-            if personal.get("signature")
-            else b"",
+            portrait=(
+                bytes.fromhex(personal.get("portrait", "")) if personal.get("portrait") else b""
+            ),
+            signature=(
+                bytes.fromhex(personal.get("signature", "")) if personal.get("signature") else b""
+            ),
             other_names=personal.get("other_names", []),
         )
 

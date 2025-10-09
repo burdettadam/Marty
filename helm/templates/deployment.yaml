@@ -64,7 +64,7 @@ spec:
             - name: {{ $key }}
               value: {{ $value | quote }}
             {{- end }}
-            
+
             # Database configuration
             - name: DATABASE_DSN
               value: {{ .Values.database.dsn | quote }}
@@ -87,7 +87,7 @@ spec:
               value: {{ .Values.database.pool.max_size | quote }}
             - name: DATABASE_POOL_MAX_OVERFLOW
               value: {{ .Values.database.pool.max_overflow | quote }}
-            
+
             # gRPC TLS Configuration
             - name: GRPC_TLS_ENABLED
               value: {{ .Values.grpc.tls.enabled | quote }}
@@ -107,7 +107,7 @@ spec:
             - name: GRPC_TLS_CLIENT_KEY
               value: {{ .Values.grpc.tls.client_key | quote }}
             {{- end }}
-            
+
             # Object Storage configuration
             {{- if .Values.objectStorage.enabled }}
             - name: OBJECT_STORAGE_ENDPOINT
@@ -129,7 +129,7 @@ spec:
                   name: {{ .Values.objectStorage.credentialsSecret.name }}
                   key: {{ .Values.objectStorage.credentialsSecret.secret_key_key }}
             {{- end }}
-            
+
             # Key Vault configuration
             {{- if .Values.keyVault.enabled }}
             - name: KEY_VAULT_TYPE
@@ -165,7 +165,7 @@ spec:
                   key: {{ .Values.keyVault.azure.credentialsSecret.client_secret_key }}
             {{- end }}
             {{- end }}
-            
+
             # Event Bus configuration
             - name: EVENT_BUS_TYPE
               value: {{ .Values.eventBus.type | quote }}
@@ -231,7 +231,7 @@ spec:
                   name: {{ .Values.eventBus.rabbitmq.credentialsSecret.name }}
                   key: {{ .Values.eventBus.rabbitmq.credentialsSecret.password_key }}
             {{- end }}
-            
+
             # Service mesh configuration - disable internal TLS when mesh mTLS is enabled
             {{- if and .Values.serviceMesh.enabled .Values.grpc.tls.enabled }}
             - name: SERVICE_MESH_MTLS_ENABLED
@@ -239,7 +239,7 @@ spec:
             - name: INTERNAL_TLS_DISABLED
               value: "true"
             {{- end }}
-            
+
           {{- if .Values.livenessProbe }}
           livenessProbe:
             {{- toYaml .Values.livenessProbe | nindent 12 }}
@@ -262,7 +262,7 @@ spec:
             initialDelaySeconds: 5
             periodSeconds: 5
           {{- end }}
-          
+
           # Volume mounts
           volumeMounts:
           {{- if .Values.grpc.tls.enabled }}
@@ -280,10 +280,10 @@ spec:
           - name: data
             mountPath: /app/data
           {{- end }}
-          
+
           resources:
             {{- toYaml .Values.resources | nindent 12 }}
-      
+
       # Volumes
       volumes:
       {{- if .Values.grpc.tls.enabled }}
@@ -315,7 +315,7 @@ spec:
         persistentVolumeClaim:
           claimName: {{ include "marty-service.fullname" . }}-data
       {{- end }}
-      
+
       {{- with .Values.nodeSelector }}
       nodeSelector:
         {{- toYaml . | nindent 8 }}

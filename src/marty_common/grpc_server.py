@@ -10,9 +10,10 @@ from __future__ import annotations
 import logging
 import os
 import signal
+from collections.abc import Callable
 from concurrent import futures
 from types import FrameType
-from typing import Any, Callable, Protocol
+from typing import Any, Protocol
 
 import grpc
 from grpc_health.v1 import health_pb2_grpc
@@ -79,9 +80,7 @@ class MartyGrpcServer:
         self._services.append(service)
 
     def add_servicer_to_server(
-        self,
-        servicer: object,
-        add_servicer_func: Callable[[object, grpc.Server], None]
+        self, servicer: object, add_servicer_func: Callable[[object, grpc.Server], None]
     ) -> None:
         """Add a servicer using the generated add_servicer_to_server function."""
         if self.server is None:
@@ -97,16 +96,12 @@ class MartyGrpcServer:
         logger.info(f"Starting {self.config.service_name} gRPC server...")
 
         # Create server
-        self.server = grpc.server(
-            futures.ThreadPoolExecutor(max_workers=self.config.max_workers)
-        )
+        self.server = grpc.server(futures.ThreadPoolExecutor(max_workers=self.config.max_workers))
 
         # Add health check service
         if self.config.enable_health_check:
             self.health_servicer = HealthServicer()
-            health_pb2_grpc.add_HealthServicer_to_server(
-                self.health_servicer, self.server
-            )
+            health_pb2_grpc.add_HealthServicer_to_server(self.health_servicer, self.server)
             logger.info("Added HealthServicer to gRPC server")
 
         # Add logging streamer service
@@ -133,7 +128,9 @@ class MartyGrpcServer:
             raise ServerNotInitializedError
 
         self.server.start()
-        logger.info(f"{self.config.service_name} server started successfully on port {self.config.port}")
+        logger.info(
+            f"{self.config.service_name} server started successfully on port {self.config.port}"
+        )
 
         # Set up signal handlers for graceful shutdown
         signal.signal(signal.SIGINT, self._signal_handler)
@@ -173,7 +170,7 @@ def create_standard_server(
     servicer_class: type,
     add_servicer_func: Callable[[object, grpc.Server], None],
     servicer_kwargs: dict[str, Any] | None = None,
-    **config_kwargs: Any
+    **config_kwargs: Any,
 ) -> MartyGrpcServer:
     """
     Create a standard gRPC server with minimal configuration.
@@ -205,7 +202,7 @@ def run_grpc_service(
     servicer_class: type,
     add_servicer_func: Callable[[object, grpc.Server], None],
     servicer_kwargs: dict[str, Any] | None = None,
-    **config_kwargs: Any
+    **config_kwargs: Any,
 ) -> None:
     """
     Run a gRPC service with standard configuration.
@@ -216,6 +213,6 @@ def run_grpc_service(
         servicer_class=servicer_class,
         add_servicer_func=add_servicer_func,
         servicer_kwargs=servicer_kwargs,
-        **config_kwargs
+        **config_kwargs,
     )
     server.serve()

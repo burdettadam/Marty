@@ -221,9 +221,7 @@ def get_certificate_validator() -> MacOSCompatibleCertValidator:
     return _global_validator
 
 
-def validate_certificate(
-    certificate_data: bytes, trust_roots: list[bytes] | None = None
-) -> bool:
+def validate_certificate(certificate_data: bytes, trust_roots: list[bytes] | None = None) -> bool:
     """
     Convenience function to validate a certificate.
 

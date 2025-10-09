@@ -3,6 +3,7 @@
 Implements ISO 7816-4 APDU commands for smart card communication.
 Supports both short and extended APDU formats.
 """
+
 from __future__ import annotations
 
 import logging

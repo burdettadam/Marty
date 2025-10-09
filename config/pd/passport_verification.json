@@ -1,6 +1,6 @@
 {
   "id": "passport_verification",
-  "name": "Passport Document Verification", 
+  "name": "Passport Document Verification",
   "purpose": "Verify passport document authenticity and extract travel document information",
   "input_descriptors": [
     {

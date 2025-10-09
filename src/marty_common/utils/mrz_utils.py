@@ -279,7 +279,9 @@ class MRZParser:
 
         # Validate document number check digit
         if not cls.validate_check_digit(document_number_field, doc_check_digit):
-            msg = f"Invalid document number check digit: {document_number_field} -> {doc_check_digit}"
+            msg = (
+                f"Invalid document number check digit: {document_number_field} -> {doc_check_digit}"
+            )
             raise MRZException(msg)
 
         document_number = document_number_field.replace("<", "")
@@ -307,10 +309,13 @@ class MRZParser:
 
         # Validate composite check digit
         composite_string = (
-            document_number_field + doc_check_digit +
-            birth_date + birth_check_digit +
-            expiry_date + expiry_check_digit +
-            optional_data_field
+            document_number_field
+            + doc_check_digit
+            + birth_date
+            + birth_check_digit
+            + expiry_date
+            + expiry_check_digit
+            + optional_data_field
         )
 
         if not cls.validate_check_digit(composite_string, composite_check_digit):
@@ -412,11 +417,11 @@ class MRZParser:
         document_type = line1[0]
         issuing_country = line1[1:4]
         document_number_part1 = line1[4:14]  # First part of document number
-        optional_data_line1 = line1[14:30]   # Optional data on line 1
+        optional_data_line1 = line1[14:30]  # Optional data on line 1
 
         # Line 2: DOCUMENT_NUMBER_PART2 + CHECK_DIGIT + NATIONALITY + DOB + CHECK + GENDER + DOE + CHECK + OPTIONAL
         line2 = lines[1]
-        document_number_part2 = line2[0:5]   # Continuation of document number
+        document_number_part2 = line2[0:5]  # Continuation of document number
         doc_check_digit = line2[5]
         nationality = line2[6:9]
         date_of_birth = line2[9:15]
@@ -424,12 +429,12 @@ class MRZParser:
         gender_char = line2[16]
         date_of_expiry = line2[17:23]
         doe_check_digit = line2[23]
-        optional_data_line2 = line2[24:30]   # Optional data on line 2
+        optional_data_line2 = line2[24:30]  # Optional data on line 2
 
         # Line 3: OPTIONAL_DATA + SURNAME + GIVEN_NAMES
         line3 = lines[2]
-        optional_data_line3 = line3[0:14]    # Optional data on line 3
-        surname_given = line3[14:30]         # Surname and given names
+        optional_data_line3 = line3[0:14]  # Optional data on line 3
+        surname_given = line3[14:30]  # Surname and given names
 
         # Construct full document number from parts
         full_doc_number = (document_number_part1 + document_number_part2).rstrip("<")
@@ -437,7 +442,9 @@ class MRZParser:
         # Validate document number check digit
         doc_number_for_check = (document_number_part1 + document_number_part2).ljust(15, "<")[:15]
         if not cls.validate_check_digit(doc_number_for_check, doc_check_digit):
-            msg = f"Invalid document number check digit: {doc_number_for_check} -> {doc_check_digit}"
+            msg = (
+                f"Invalid document number check digit: {doc_number_for_check} -> {doc_check_digit}"
+            )
             raise MRZException(msg)
 
         # Validate dates
@@ -481,7 +488,7 @@ class MRZParser:
         optional_data_parts = [
             optional_data_line1.rstrip("<"),
             optional_data_line2.rstrip("<"),
-            optional_data_line3.rstrip("<")
+            optional_data_line3.rstrip("<"),
         ]
         optional_data = "".join(part for part in optional_data_parts if part)
         personal_number = optional_data if optional_data else None
@@ -653,14 +660,24 @@ class MRZFormatter:
         dob_check = MRZParser.calculate_check_digit(date_of_birth)
         doe_check = MRZParser.calculate_check_digit(date_of_expiry)
 
-        gender_char = gender.value if hasattr(gender, "value") else str(gender)[:1] if gender else "X"
+        gender_char = (
+            gender.value if hasattr(gender, "value") else str(gender)[:1] if gender else "X"
+        )
 
-        line2 = (doc_number_line2 + doc_check_digit + nationality +
-                date_of_birth + dob_check + gender_char + date_of_expiry + doe_check)
+        line2 = (
+            doc_number_line2
+            + doc_check_digit
+            + nationality
+            + date_of_birth
+            + dob_check
+            + gender_char
+            + date_of_expiry
+            + doe_check
+        )
 
         # Fill remaining space on line 2 with optional data or fillers
         remaining_space = 30 - len(line2)
-        optional_line2 = optional_data[16:16+remaining_space].ljust(remaining_space, "<")
+        optional_line2 = optional_data[16 : 16 + remaining_space].ljust(remaining_space, "<")
         line2 += optional_line2
         line2 = line2[:30]
 
@@ -669,7 +686,7 @@ class MRZFormatter:
         given_names = MRZParser.clean_name(getattr(data, "given_names", ""))
 
         # Reserve 14 chars for optional data, 16 for names
-        optional_line3 = optional_data[16+remaining_space:].ljust(14, "<")[:14]
+        optional_line3 = optional_data[16 + remaining_space :].ljust(14, "<")[:14]
         line3 = optional_line3
 
         # Add surname and given names

@@ -30,9 +30,9 @@ class CredentialOfferGrant:
     def to_dict(self) -> dict[str, Any]:
         grants: dict[str, Any] = {}
         if self.pre_authorized_code is not None:
-            grants[
-                "urn:ietf:params:oauth:grant-type:pre-authorized_code"
-            ] = self.pre_authorized_code.to_dict()
+            grants["urn:ietf:params:oauth:grant-type:pre-authorized_code"] = (
+                self.pre_authorized_code.to_dict()
+            )
         return grants
 
 

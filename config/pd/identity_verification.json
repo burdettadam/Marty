@@ -18,7 +18,7 @@
           },
           {
             "path": ["$.vc.credentialSubject.family_name", "$.family_name"],
-            "purpose": "Last name verification", 
+            "purpose": "Last name verification",
             "filter": {
               "type": "string"
             }
@@ -32,7 +32,7 @@
             }
           },
           {
-            "path": ["$.vc.credentialSubject.email", "$.email"], 
+            "path": ["$.vc.credentialSubject.email", "$.email"],
             "purpose": "Email verification",
             "optional": true,
             "filter": {

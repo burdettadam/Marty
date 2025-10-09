@@ -55,12 +55,12 @@ start_port_forwarding() {
     local service=$1
     local local_port=$2
     local remote_port=$3
-    
+
     print_status "Starting port forwarding for ${service}..."
     kubectl port-forward -n ${NAMESPACE} service/${service} ${local_port}:${remote_port} >/dev/null 2>&1 &
     local pid=$!
     sleep 2
-    
+
     if kill -0 $pid 2>/dev/null; then
         print_success "✅ Port forwarding started for ${service} (PID: $pid)"
         return 0
@@ -92,7 +92,7 @@ print_status "Checking kind cluster..."
 if command -v kind >/dev/null 2>&1; then
     if kind get clusters 2>/dev/null | grep -q "^${CLUSTER_NAME}$"; then
         print_success "✅ Kind cluster '${CLUSTER_NAME}' exists"
-        
+
         # Check if cluster is accessible
         if kubectl cluster-info --context kind-${CLUSTER_NAME} >/dev/null 2>&1; then
             print_success "✅ Cluster is accessible"

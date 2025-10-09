@@ -35,7 +35,7 @@ function Home() {
       <Typography variant="h3" component="h1" gutterBottom>
         OpenWallet Foundation mDoc/mDL Demo
       </Typography>
-      
+
       <Typography variant="h6" color="text.secondary" paragraph>
         A comprehensive demonstration of mDoc/mDL credential issuance, storage, and verification
         using the OpenWallet Foundation's Multipaz SDK in a Kubernetes environment.

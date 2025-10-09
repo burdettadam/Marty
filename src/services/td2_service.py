@@ -108,7 +108,7 @@ class TD2Service:
                 status=TD2Status.DRAFT,
                 created_at=datetime.utcnow(),
                 updated_at=datetime.utcnow(),
-                version="1.0"
+                version="1.0",
             )
 
             # Generate MRZ
@@ -207,16 +207,18 @@ class TD2Service:
                 "verify_chip": getattr(request, "verify_chip", False),
                 "check_policy": getattr(request, "verify_policies", True),
                 "online_verification": getattr(request, "online_verification", False),
-                "trust_anchors": getattr(request, "trust_anchors", None)
+                "trust_anchors": getattr(request, "trust_anchors", None),
             }
 
             # Perform comprehensive verification
             result = await self._execute_td2_verification_protocol(document, verification_options)
 
             # Log verification outcome
-            logger.info(f"TD-2 verification completed - Valid: {result.is_valid}, "
-                       f"MRZ: {result.mrz_valid}, Chip: {result.chip_valid}, "
-                       f"Dates: {result.dates_valid}, Policy: {result.policy_valid}")
+            logger.info(
+                f"TD-2 verification completed - Valid: {result.is_valid}, "
+                f"MRZ: {result.mrz_valid}, Chip: {result.chip_valid}, "
+                f"Dates: {result.dates_valid}, Policy: {result.policy_valid}"
+            )
         except TD2VerificationError:
             raise
         except Exception as e:
@@ -246,6 +248,7 @@ class TD2Service:
         if hasattr(request, "mrz_line1") and hasattr(request, "mrz_line2"):
             if request.mrz_line1 and request.mrz_line2:
                 from src.shared.utils.td2_mrz import TD2MRZParser
+
                 parser = TD2MRZParser()
                 parsed_data = parser.parse_td2_mrz(request.mrz_line1, request.mrz_line2)
                 return await self._create_minimal_document_from_parsed_mrz(parsed_data)
@@ -254,9 +257,7 @@ class TD2Service:
         raise TD2VerificationError(error_msg)
 
     async def _execute_td2_verification_protocol(
-        self,
-        document: TD2Document,
-        options: dict[str, Any]
+        self, document: TD2Document, options: dict[str, Any]
     ) -> VerificationResult:
         """
         Execute the complete TD-2 verification protocol.
@@ -275,7 +276,7 @@ class TD2Service:
             document,
             verify_chip=False,  # Start without chip verification
             check_policy=False,  # Start without policy checks
-            online_verification=False
+            online_verification=False,
         )
 
         # If MRZ fails basic validation, stop here
@@ -292,21 +293,23 @@ class TD2Service:
 
         # Final validation - all phases must pass
         result.is_valid = (
-            result.mrz_valid and
-            result.dates_valid and
-            result.policy_valid and
-            (not result.chip_present or result.chip_valid) and
-            len(result.errors) == 0
+            result.mrz_valid
+            and result.dates_valid
+            and result.policy_valid
+            and (not result.chip_present or result.chip_valid)
+            and len(result.errors) == 0
         )
 
-        result.warnings.extend([
-            "TD-2 verification protocol completed",
-            f"MRZ: {'PASS' if result.mrz_valid else 'FAIL'}",
-            f"Chip: {'PASS' if result.chip_valid else 'FAIL' if result.chip_present else 'N/A'}",
-            f"Dates: {'PASS' if result.dates_valid else 'FAIL'}",
-            f"Policy: {'PASS' if result.policy_valid else 'FAIL'}",
-            f"Overall: {'PASS' if result.is_valid else 'FAIL'}"
-        ])
+        result.warnings.extend(
+            [
+                "TD-2 verification protocol completed",
+                f"MRZ: {'PASS' if result.mrz_valid else 'FAIL'}",
+                f"Chip: {'PASS' if result.chip_valid else 'FAIL' if result.chip_present else 'N/A'}",
+                f"Dates: {'PASS' if result.dates_valid else 'FAIL'}",
+                f"Policy: {'PASS' if result.policy_valid else 'FAIL'}",
+                f"Overall: {'PASS' if result.is_valid else 'FAIL'}",
+            ]
+        )
 
         return result
 
@@ -320,10 +323,7 @@ class TD2Service:
             return
         logger.info("Executing TD-2 chip verification (SOD/DG hashes)")
         chip_result = await self.verification_engine.verify_document(
-            document,
-            verify_chip=True,
-            check_policy=False,
-            online_verification=False
+            document, verify_chip=True, check_policy=False, online_verification=False
         )
         # Merge relevant fields
         result.chip_valid = chip_result.chip_valid
@@ -344,10 +344,7 @@ class TD2Service:
             return
         logger.info("Executing TD-2 policy constraint validation")
         policy_result = await self.verification_engine.verify_document(
-            document,
-            verify_chip=False,
-            check_policy=True,
-            online_verification=False
+            document, verify_chip=False, check_policy=True, online_verification=False
         )
         result.policy_valid = policy_result.policy_valid
         if policy_result.errors:
@@ -402,9 +399,7 @@ class TD2Service:
         )
 
     async def _verify_against_issuer_database(
-        self,
-        document: TD2Document,
-        options: dict[str, Any]
+        self, document: TD2Document, options: dict[str, Any]
     ) -> dict[str, Any]:
         """Verify document against issuer's database."""
         result = {"errors": [], "warnings": []}
@@ -431,9 +426,7 @@ class TD2Service:
         return result
 
     async def _verify_trust_chain(
-        self,
-        document: TD2Document,
-        trust_anchors: list[Any]
+        self, document: TD2Document, trust_anchors: list[Any]
     ) -> dict[str, Any]:
         """Verify certificate trust chain against provided trust anchors."""
         result = {"errors": [], "warnings": []}
@@ -507,13 +500,13 @@ class TD2Service:
             # Apply pagination
             offset = getattr(request, "offset", 0)
             limit = getattr(request, "limit", 100)
-            paginated_documents = filtered_documents[offset:offset + limit]
+            paginated_documents = filtered_documents[offset : offset + limit]
 
             response = TD2DocumentSearchResponse(
                 documents=paginated_documents,
                 total_count=len(filtered_documents),
                 success=True,
-                message=f"Found {len(filtered_documents)} documents"
+                message=f"Found {len(filtered_documents)} documents",
             )
 
             logger.info(f"TD-2 search completed: {len(paginated_documents)} results")
@@ -587,7 +580,7 @@ class TD2Service:
         self,
         document_id: str,
         new_expiry_date: date,
-        updated_constraints: PolicyConstraints | None = None
+        updated_constraints: PolicyConstraints | None = None,
     ) -> TD2Document:
         """
         Renew a TD-2 document.
@@ -655,15 +648,15 @@ class TD2Service:
             Statistics dictionary
         """
         total_documents = len(self.document_storage)
-        active_documents = len([
-            d for d in self.document_storage.values() if d.status == TD2Status.ACTIVE
-        ])
-        expired_documents = len([
-            d for d in self.document_storage.values() if d.status == TD2Status.EXPIRED
-        ])
-        revoked_documents = len([
-            d for d in self.document_storage.values() if d.status == TD2Status.REVOKED
-        ])
+        active_documents = len(
+            [d for d in self.document_storage.values() if d.status == TD2Status.ACTIVE]
+        )
+        expired_documents = len(
+            [d for d in self.document_storage.values() if d.status == TD2Status.EXPIRED]
+        )
+        revoked_documents = len(
+            [d for d in self.document_storage.values() if d.status == TD2Status.REVOKED]
+        )
 
         # Count by document type
         by_document_type = {}
@@ -684,7 +677,7 @@ class TD2Service:
             "revoked_documents": revoked_documents,
             "by_document_type": by_document_type,
             "by_issuing_state": by_issuing_state,
-            "generated_at": datetime.utcnow().isoformat()
+            "generated_at": datetime.utcnow().isoformat(),
         }
 
     async def get_expiring_documents(self, days_until_expiry: int = 30) -> list[TD2Document]:
@@ -701,8 +694,10 @@ class TD2Service:
 
         expiring_documents = []
         for document in self.document_storage.values():
-            if (document.status in [TD2Status.ISSUED, TD2Status.ACTIVE] and
-                document.document_data.date_of_expiry <= cutoff_date):
+            if (
+                document.status in [TD2Status.ISSUED, TD2Status.ACTIVE]
+                and document.document_data.date_of_expiry <= cutoff_date
+            ):
                 expiring_documents.append(document)
 
         return expiring_documents
@@ -718,11 +713,24 @@ class TD2Service:
         checks = [
             (not request.personal_data, "Personal data is required"),
             (not request.document_data, "Document data is required"),
-            (not getattr(request.personal_data, "primary_identifier", None), "Primary identifier (surname) is required"),
+            (
+                not getattr(request.personal_data, "primary_identifier", None),
+                "Primary identifier (surname) is required",
+            ),
             (not getattr(request.personal_data, "nationality", None), "Nationality is required"),
-            (not getattr(request.document_data, "document_number", None), "Document number is required"),
-            (not getattr(request.document_data, "issuing_state", None), "Issuing state is required"),
-            (getattr(request.document_data, "date_of_expiry", date.today()) <= getattr(request.document_data, "date_of_issue", date.today()), "Expiry date must be after issue date"),
+            (
+                not getattr(request.document_data, "document_number", None),
+                "Document number is required",
+            ),
+            (
+                not getattr(request.document_data, "issuing_state", None),
+                "Issuing state is required",
+            ),
+            (
+                getattr(request.document_data, "date_of_expiry", date.today())
+                <= getattr(request.document_data, "date_of_issue", date.today()),
+                "Expiry date must be after issue date",
+            ),
         ]
         for condition, message in checks:
             if condition:
@@ -734,11 +742,12 @@ class TD2Service:
         # For now, create minimal structure
         if not document.chip_data:
             document.chip_data = ChipData(
-                dg1_mrz=document.mrz_data.line1.encode("utf-8") + document.mrz_data.line2.encode("utf-8"),
+                dg1_mrz=document.mrz_data.line1.encode("utf-8")
+                + document.mrz_data.line2.encode("utf-8"),
                 dg2_portrait=b"",  # Would contain actual portrait data
                 sod=b"",  # Would contain actual SOD
                 hash_algorithm="SHA-256",
-                certificate_chain=[]
+                certificate_chain=[],
             )
 
     async def _create_document_from_mrz(self, mrz_data: TD2MRZData) -> TD2Document:
@@ -756,7 +765,7 @@ class TD2Service:
             secondary_identifier=parsed_data.get("given_names", ""),
             nationality=parsed_data.get("nationality", ""),
             date_of_birth=parsed_data.get("date_of_birth"),
-            gender=parsed_data.get("gender")
+            gender=parsed_data.get("gender"),
         )
 
         document_data = TD2DocumentData(
@@ -764,7 +773,7 @@ class TD2Service:
             document_number=parsed_data.get("document_number", ""),
             issuing_state=parsed_data.get("issuing_state", ""),
             date_of_issue=date.today(),  # Not available in MRZ
-            date_of_expiry=parsed_data.get("date_of_expiry")
+            date_of_expiry=parsed_data.get("date_of_expiry"),
         )
 
         return TD2Document(
@@ -772,10 +781,12 @@ class TD2Service:
             document_data=document_data,
             mrz_data=mrz_data,
             document_id="temp_verify",
-            status=TD2Status.ISSUED
+            status=TD2Status.ISSUED,
         )
 
-    async def _matches_search_criteria(self, document: TD2Document, request: TD2DocumentSearchRequest) -> bool:
+    async def _matches_search_criteria(
+        self, document: TD2Document, request: TD2DocumentSearchRequest
+    ) -> bool:
         """Check if document matches search criteria with early exits.
 
         This condensed implementation preserves behavior while reducing
@@ -812,7 +823,7 @@ class TD2Service:
             TD2Status.ACTIVE: [TD2Status.EXPIRED, TD2Status.REVOKED, TD2Status.SUSPENDED],
             TD2Status.SUSPENDED: [TD2Status.ACTIVE, TD2Status.REVOKED],
             TD2Status.EXPIRED: [TD2Status.REVOKED],
-            TD2Status.REVOKED: []  # Final state
+            TD2Status.REVOKED: [],  # Final state
         }
 
         return to_status in valid_transitions.get(from_status, [])
@@ -830,7 +841,9 @@ class TD2BatchProcessor:
         """
         self.td2_service = td2_service
 
-    async def create_documents_batch(self, requests: list[TD2DocumentCreateRequest], created_by: str | None = None) -> list[TD2Document]:
+    async def create_documents_batch(
+        self, requests: list[TD2DocumentCreateRequest], created_by: str | None = None
+    ) -> list[TD2Document]:
         """
         Create multiple TD-2 documents in batch.
 
@@ -853,7 +866,9 @@ class TD2BatchProcessor:
 
         return results
 
-    async def verify_documents_batch(self, requests: list[TD2DocumentVerifyRequest]) -> list[VerificationResult]:
+    async def verify_documents_batch(
+        self, requests: list[TD2DocumentVerifyRequest]
+    ) -> list[VerificationResult]:
         """
         Verify multiple TD-2 documents in batch.
 
@@ -874,7 +889,7 @@ class TD2BatchProcessor:
                 error_result = VerificationResult(
                     is_valid=False,
                     errors=[f"Verification failed: {e!s}"],
-                    verified_at=datetime.utcnow()
+                    verified_at=datetime.utcnow(),
                 )
                 results.append(error_result)
 
@@ -909,7 +924,11 @@ class TD2ServiceManager:
 
         for document in self.td2_service.document_storage.values():
             # Check MRZ compliance
-            if document.mrz_data and len(document.mrz_data.line1) == 36 and len(document.mrz_data.line2) == 36:
+            if (
+                document.mrz_data
+                and len(document.mrz_data.line1) == 36
+                and len(document.mrz_data.line2) == 36
+            ):
                 valid_mrz_count += 1
 
             # Check policy compliance
@@ -925,5 +944,5 @@ class TD2ServiceManager:
             "policy_compliant": policy_compliant_count,
             "by_document_type": stats["by_document_type"],
             "by_issuing_state": stats["by_issuing_state"],
-            "generated_at": stats["generated_at"]
+            "generated_at": stats["generated_at"],
         }

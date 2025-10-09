@@ -35,7 +35,7 @@ print_error() {
 check_file() {
     local file="$1"
     local description="$2"
-    
+
     if [[ -f "$file" ]]; then
         print_success "$description exists"
         return 0
@@ -48,7 +48,7 @@ check_file() {
 check_directory() {
     local dir="$1"
     local description="$2"
-    
+
     if [[ -d "$dir" ]]; then
         print_success "$description exists"
         return 0
@@ -61,7 +61,7 @@ check_directory() {
 check_executable() {
     local script="$1"
     local description="$2"
-    
+
     if [[ -x "$script" ]]; then
         print_success "$description is executable"
         return 0

@@ -5,13 +5,17 @@ This enhanced integration test provides comprehensive testing of the trust servi
 ## Usage
 
 ### Basic Synthetic Testing (Default)
+
 Test with generated synthetic master lists only:
+
 ```bash
 python3 tests/integration/test_enhanced_trust_service.py
 ```
 
 ### Testing with Real Master Lists
+
 Test with real master list files from a specific directory:
+
 ```bash
 python3 tests/integration/test_enhanced_trust_service.py --real-ml-path /path/to/masterlist/directory
 ```
@@ -20,7 +24,8 @@ python3 tests/integration/test_enhanced_trust_service.py --real-ml-path /path/to
 
 ### Examples
 
-#### Test with project's existing master lists:
+#### Test with project's existing master lists
+
 ```bash
 # Test with ASN.1 formatted master lists
 python3 tests/integration/test_enhanced_trust_service.py --real-ml-path data/final_asn1_test
@@ -29,7 +34,8 @@ python3 tests/integration/test_enhanced_trust_service.py --real-ml-path data/fin
 python3 tests/integration/test_enhanced_trust_service.py --real-ml-path data/ml_test_new
 ```
 
-#### Synthetic testing only:
+#### Synthetic testing only
+
 ```bash
 python3 tests/integration/test_enhanced_trust_service.py --synthetic-only
 ```
@@ -37,6 +43,7 @@ python3 tests/integration/test_enhanced_trust_service.py --synthetic-only
 ## What the Test Does
 
 ### Synthetic Master List Testing
+
 1. **🧪 Master List Generation**: Creates synthetic master lists for multiple countries
 2. **🔍 ASN.1 Parsing**: Tests parsing with mocked ASN.1 decoder  
 3. **🔒 Trust Service Validation**: Validates master lists through mocked trust service
@@ -44,6 +51,7 @@ python3 tests/integration/test_enhanced_trust_service.py --synthetic-only
 5. **🎯 End-to-End Workflow**: Complete pipeline validation
 
 ### Real Master List Testing (when `--real-ml-path` provided)
+
 1. **📁 File Discovery**: Finds all `.ml` files in the specified directory
 2. **📄 Format Validation**: Checks if files start with ASN.1 SEQUENCE tag (`0x30`)
 3. **🔍 Certificate Parsing**: Extracts certificates using mocked ASN.1 decoder
@@ -53,16 +61,19 @@ python3 tests/integration/test_enhanced_trust_service.py --synthetic-only
 ## Key Features
 
 ### ✅ **No File Copying**
+
 - Real master list files are read directly from source
 - No temporary copies or modifications made
 - Original files remain untouched
 
 ### ✅ **Comprehensive Testing**
+
 - Tests both synthetic and real master lists
 - Validates complete trust service workflow
 - Provides detailed logging and reporting
 
 ### ✅ **Mocked Dependencies**
+
 - Works without real PKD service components
 - Fast execution with consistent results
 - No external service dependencies

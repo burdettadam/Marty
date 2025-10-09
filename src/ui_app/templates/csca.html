@@ -5,7 +5,7 @@
     <header>
       <h2>Certificate Authority (CSCA) Management</h2>
     </header>
-    
+
     <!-- Create Certificate Section -->
     <details open>
       <summary>Create New Certificate</summary>
@@ -17,24 +17,24 @@
           <label for="country">Country:</label>
           <input type="text" id="country" name="country" placeholder="US" required>
         </div>
-        
+
         <div class="form-group">
           <label for="organization">Organization:</label>
           <input type="text" id="organization" name="organization" placeholder="Government" required>
         </div>
-        
+
         <div class="form-group">
           <label for="subject_name">Subject Name:</label>
-          <input type="text" id="subject_name" name="subject_name" 
+          <input type="text" id="subject_name" name="subject_name"
                  placeholder="CN=Country CSCA, O=Government, C=XX" value="CN=Test CSCA, O=Test, C=US" required>
         </div>
-        
+
         <div class="form-row">
           <div class="form-group">
             <label for="validity_days">Validity (days):</label>
             <input type="number" id="validity_days" name="validity_days" value="3650" min="1" max="7300" required>
           </div>
-          
+
           <div class="form-group">
             <label for="key_algorithm">Key Algorithm:</label>
             <select id="key_algorithm" name="key_algorithm" required>
@@ -42,7 +42,7 @@
               <option value="ECDSA">ECDSA</option>
             </select>
           </div>
-          
+
           <div class="form-group">
             <label for="key_size">Key Size:</label>
             <select id="key_size" name="key_size" required>
@@ -53,10 +53,10 @@
             </select>
           </div>
         </div>
-        
+
         <button type="submit" class="button button-primary">Create Certificate</button>
       </form>
-      
+
       {% if create_result %}
         <div class="result-panel">
           <h4>Create Result</h4>
@@ -80,7 +80,7 @@
         </div>
       {% endif %}
     </details>
-    
+
     <!-- Certificate List Section -->
     <details open>
       <summary>Certificate List</summary>
@@ -124,11 +124,11 @@
         <button class="button" onclick="checkExpiringCertificates()">Check for Expiring Certificates</button>
       {% endif %}
     </details>
-    
+
     <!-- Certificate Operations Section -->
     <details>
       <summary>Certificate Operations</summary>
-      
+
       <!-- Renew Certificate -->
       <div class="operation-section">
         <h4>Renew Certificate</h4>
@@ -142,7 +142,7 @@
           <button type="submit" class="button">Renew</button>
         </form>
       </div>
-      
+
       <!-- Revoke Certificate -->
       <div class="operation-section">
         <h4>Revoke Certificate</h4>
@@ -158,7 +158,7 @@
           <button type="submit" class="button button-danger">Revoke</button>
         </form>
       </div>
-      
+
       <!-- Check Certificate Status -->
       <div class="operation-section">
         <h4>Check Certificate Status</h4>
@@ -202,7 +202,7 @@ function checkExpiringCertificates() {
 document.getElementById('key_algorithm').addEventListener('change', function() {
   const keySize = document.getElementById('key_size');
   keySize.innerHTML = '';
-  
+
   if (this.value === 'RSA') {
     keySize.innerHTML = '<option value="2048">2048</option><option value="4096">4096</option>';
   } else if (this.value === 'ECDSA') {

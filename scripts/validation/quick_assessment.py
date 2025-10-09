@@ -11,14 +11,11 @@ from pathlib import Path
 # Add src to path
 sys.path.insert(0, str(Path(__file__).parent / "src"))
 
+
 def test_implementation():
     """Test our key implementations."""
 
-    results = {
-        "phase1_core_crypto": {},
-        "phase3_security": {},
-        "quality_summary": {}
-    }
+    results = {"phase1_core_crypto": {}, "phase3_security": {}, "quality_summary": {}}
 
     print("🚀 Testing Passport Verification Implementation")
     print("=" * 50)
@@ -35,17 +32,13 @@ def test_implementation():
 
         # Test basic instantiation
         HashComparisonEngine()
-        IntegrityVerificationReport(
-            passport_id="TEST123",
-            verified=True,
-            overall_status="PASS"
-        )
+        IntegrityVerificationReport(passport_id="TEST123", verified=True, overall_status="PASS")
 
         print("  ✅ HashComparisonEngine: Implemented with comprehensive features")
         results["phase1_core_crypto"]["hash_comparison"] = {
             "status": "implemented",
             "classes": ["HashComparisonEngine", "IntegrityVerificationReport"],
-            "score": 95
+            "score": 95,
         }
     except Exception as e:
         print(f"  ❌ hash_comparison: {e}")
@@ -61,11 +54,14 @@ def test_implementation():
         results["phase1_core_crypto"]["certificate_validator"] = {
             "status": "implemented",
             "classes": ["CertificateChainValidator"],
-            "score": 90
+            "score": 90,
         }
     except Exception as e:
         print(f"  ❌ certificate_validator: {e}")
-        results["phase1_core_crypto"]["certificate_validator"] = {"status": "error", "error": str(e)}
+        results["phase1_core_crypto"]["certificate_validator"] = {
+            "status": "error",
+            "error": str(e),
+        }
 
     # Test CSCA trust store
     try:
@@ -77,7 +73,7 @@ def test_implementation():
         results["phase1_core_crypto"]["csca_trust_store"] = {
             "status": "implemented",
             "classes": ["CSCATrustStore"],
-            "score": 90
+            "score": 90,
         }
     except Exception as e:
         print(f"  ❌ csca_trust_store: {e}")
@@ -93,7 +89,7 @@ def test_implementation():
         results["phase1_core_crypto"]["sod_parser"] = {
             "status": "implemented",
             "classes": ["SODParser"],
-            "score": 85
+            "score": 85,
         }
     except Exception as e:
         print(f"  ❌ sod_parser: {e}")
@@ -109,7 +105,7 @@ def test_implementation():
         results["phase1_core_crypto"]["data_group_hasher"] = {
             "status": "implemented",
             "classes": ["DataGroupHasher"],
-            "score": 85
+            "score": 85,
         }
     except Exception as e:
         print(f"  ❌ data_group_hasher: {e}")
@@ -128,7 +124,7 @@ def test_implementation():
         results["phase3_security"]["eac_protocol"] = {
             "status": "implemented",
             "classes": ["EACProtocolHandler"],
-            "score": 90
+            "score": 90,
         }
     except Exception as e:
         print(f"  ❌ eac_protocol: {e}")
@@ -144,7 +140,7 @@ def test_implementation():
         results["phase3_security"]["biometric_processing"] = {
             "status": "implemented",
             "classes": ["BiometricProcessor"],
-            "score": 70  # Partial - missing some dependencies
+            "score": 70,  # Partial - missing some dependencies
         }
     except Exception as e:
         print(f"  🔄 biometric_processing: {e} (Expected - missing dependencies)")
@@ -166,14 +162,20 @@ def test_implementation():
 
     completion_rate = (implemented_count / total_count * 100) if total_count > 0 else 0
 
-    print(f"📈 Implementation Progress: {completion_rate:.1f}% ({implemented_count}/{total_count} modules)")
+    print(
+        f"📈 Implementation Progress: {completion_rate:.1f}% ({implemented_count}/{total_count} modules)"
+    )
 
     # Phase summaries
-    phase1_implemented = sum(1 for r in results["phase1_core_crypto"].values() if r.get("status") == "implemented")
+    phase1_implemented = sum(
+        1 for r in results["phase1_core_crypto"].values() if r.get("status") == "implemented"
+    )
     phase1_total = len(results["phase1_core_crypto"])
     phase1_rate = (phase1_implemented / phase1_total * 100) if phase1_total > 0 else 0
 
-    phase3_implemented = sum(1 for r in results["phase3_security"].values() if r.get("status") == "implemented")
+    phase3_implemented = sum(
+        1 for r in results["phase3_security"].values() if r.get("status") == "implemented"
+    )
     phase3_total = len(results["phase3_security"])
     phase3_rate = (phase3_implemented / phase3_total * 100) if phase3_total > 0 else 0
 
@@ -216,6 +218,7 @@ def test_implementation():
     print("5. Enhance hardware integration")
 
     return results
+
 
 if __name__ == "__main__":
     test_implementation()

@@ -7,24 +7,25 @@ The gRPC Service Factory provides a comprehensive DRY (Don't Repeat Yourself) pa
 ## Code Reduction Achieved
 
 ### Before (Traditional Pattern)
+
 ```python
 def serve():
     # ~50 lines of duplicated setup code per service
     service_name = "my-service"
     setup_logging(service_name=service_name)
     logger = get_logger(__name__)
-    
+
     port = os.environ.get("GRPC_PORT", 50051)
     server = grpc.server(futures.ThreadPoolExecutor(max_workers=10))
-    
+
     # Add main service
     servicer = MyServicer()
     add_MyServicer_to_server(servicer, server)
-    
+
     # Add health check
     health_servicer = HealthServicer()
     health_pb2_grpc.add_HealthServicer_to_server(health_servicer, server)
-    
+
     # Add logging streamer
     try:
         logging_streamer = LoggingStreamerServicer()
@@ -33,15 +34,15 @@ def serve():
         )
     except Exception as e:
         logger.error(f"Failed to add logging streamer: {e}")
-    
+
     # Signal handling
     def signal_handler(signum, frame):
         logger.info("Shutting down...")
         server.stop(30)
-    
+
     signal.signal(signal.SIGINT, signal_handler)
     signal.signal(signal.SIGTERM, signal_handler)
-    
+
     # Configure and start server
     server.add_insecure_port(f"[::]:{port}")
     server.start()
@@ -50,6 +51,7 @@ def serve():
 ```
 
 ### After (Using gRPC Service Factory)
+
 ```python
 def main():
     # Just 8 lines for complete service setup!
@@ -58,13 +60,13 @@ def main():
         grpc_port=50051,
         grpc_max_workers=10,
     )
-    
+
     factory.register_service(
         name="my_service",
         servicer_factory=lambda **_: MyServicer(),
         registration_func=add_MyServicer_to_server,
     )
-    
+
     factory.serve()
 ```
 
@@ -73,23 +75,27 @@ def main():
 ## Key Features
 
 ### 1. Automatic Standard Services
+
 - Health check service (`grpc.health.v1.Health`)
 - Logging streamer service (`common_services.LoggingStreamer`)
 - gRPC reflection (optional)
 
 ### 2. Configuration Integration
+
 - Uses `BaseServiceConfig` and `GRPCServiceConfig` patterns
 - Environment-based configuration
 - TLS support ready
 - Comprehensive gRPC options
 
 ### 3. Lifecycle Management
+
 - Signal handling (SIGINT, SIGTERM)
 - Graceful shutdown
 - Proper error handling
 - Service health monitoring
 
 ### 4. Service Registration Patterns
+
 - Priority-based service registration
 - Dependency injection support
 - Global service registry
@@ -98,6 +104,7 @@ def main():
 ## Usage Patterns
 
 ### Pattern 1: Simple Service
+
 ```python
 from marty_common.grpc_service_factory import run_single_service
 
@@ -110,6 +117,7 @@ def main():
 ```
 
 ### Pattern 2: Configured Service
+
 ```python
 from marty_common.grpc_service_factory import create_grpc_service_factory
 
@@ -120,22 +128,23 @@ def main():
         reflection_enabled=True,
         debug=True,
     )
-    
+
     factory.register_service(
         name="trust_anchor",
         servicer_factory=lambda **_: TrustAnchorService(),
         registration_func=add_TrustAnchorServicer_to_server,
         health_service_name="trust.TrustAnchor",
     )
-    
+
     factory.serve()
 ```
 
 ### Pattern 3: Multi-Service Setup
+
 ```python
 def main():
     factory = create_grpc_service_factory("multi-service")
-    
+
     # Register multiple services with different priorities
     factory.register_service(
         name="trust_anchor",
@@ -148,26 +157,28 @@ def main():
         registration_func=add_PKDServiceServicer_to_server,
         priority=20,
     )
-    
+
     factory.serve()
 ```
 
 ### Pattern 4: Dependency Injection
+
 ```python
 def main():
     factory = create_grpc_service_factory("pkd-service")
-    
+
     factory.register_service(
         name="pkd_service",
         servicer_factory=lambda db=None, **_: PKDService(database=db),
         registration_func=add_PKDServiceServicer_to_server,
         dependencies={"db": get_database()},
     )
-    
+
     factory.serve()
 ```
 
 ### Pattern 5: TLS-Enabled Service
+
 ```python
 def main():
     factory = create_grpc_service_factory(
@@ -176,17 +187,18 @@ def main():
         tls_cert_file="/path/to/cert.pem",
         tls_key_file="/path/to/key.pem",
     )
-    
+
     factory.register_service(
         name="my_service",
         servicer_factory=lambda **_: MyServicer(),
         registration_func=add_MyServicer_to_server,
     )
-    
+
     factory.serve()
 ```
 
 ### Pattern 6: Decorator Registration
+
 ```python
 from marty_common.grpc_service_factory import grpc_service
 
@@ -225,7 +237,9 @@ factory = create_grpc_service_factory(
 ## Migration Guide
 
 ### Step 1: Identify Current Service Setup
+
 Look for patterns like:
+
 - `grpc.server()` creation
 - `add_*Servicer_to_server()` calls
 - Health check setup
@@ -234,18 +248,21 @@ Look for patterns like:
 - Port configuration
 
 ### Step 2: Replace with Factory Pattern
+
 1. Import the factory: `from marty_common.grpc_service_factory import create_grpc_service_factory`
 2. Create factory with service configuration
 3. Register your main service
 4. Call `factory.serve()`
 
 ### Step 3: Remove Old Boilerplate
+
 - Delete manual server setup code
 - Remove signal handling
 - Remove health check setup
 - Remove logging streamer setup
 
 ### Step 4: Leverage Additional Features
+
 - Enable gRPC reflection
 - Add TLS configuration
 - Use dependency injection
@@ -254,6 +271,7 @@ Look for patterns like:
 ## Configuration Reference
 
 ### Standard Configuration Options
+
 ```python
 factory = create_grpc_service_factory(
     service_name="my-service",           # Required: service name
@@ -270,7 +288,9 @@ factory = create_grpc_service_factory(
 ```
 
 ### Advanced gRPC Options
+
 The factory automatically applies all gRPC configuration from `BaseServiceConfig`:
+
 - Message size limits
 - Keepalive settings
 - HTTP/2 ping configurations

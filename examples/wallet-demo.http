@@ -70,7 +70,7 @@ GET {{baseUrl}}/health
 ### Example Complete Flow (Copy values between requests)
 # Step 1: Create offer
 # Step 2: Copy pre_authorized_code to token request
-# Step 3: Copy access_token to credential request  
+# Step 3: Copy access_token to credential request
 # Step 4: Receive SD-JWT credential
 
 ### Sample SD-JWT Response Structure
@@ -92,7 +92,7 @@ GET {{baseUrl}}/health
 
 ### Advanced Examples
 
-### 6. Create Identity Document Credential  
+### 6. Create Identity Document Credential
 POST {{baseUrl}}/credential-offer
 Content-Type: application/json
 
@@ -115,7 +115,7 @@ Content-Type: application/json
         "address": {
             "street": "456 Oak Avenue",
             "city": "Springfield",
-            "state": "IL", 
+            "state": "IL",
             "postal_code": "62701",
             "country": "US"
         },
@@ -138,7 +138,7 @@ Content-Type: application/json
 
 {
     "subject_id": "did:example:jane789",
-    "credential_type": "AgeVerification", 
+    "credential_type": "AgeVerification",
     "base_claims": {
         "over_18": true,
         "over_21": true,

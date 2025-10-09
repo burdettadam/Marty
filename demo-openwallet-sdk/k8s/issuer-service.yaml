@@ -133,14 +133,14 @@ data:
       name: "OpenWallet Foundation Demo Issuer"
       version: "1.0.0"
       description: "mDoc/mDL Issuer using Multipaz SDK"
-    
+
     multipaz:
       version: "0.94.0"
       features:
         - "mso_mdoc"
         - "iso18013-5"
         - "openid4vci"
-    
+
     credentials:
       types:
         - type: "mDL"
@@ -168,7 +168,7 @@ data:
             - "family_name"
             - "birth_date"
             - "document_number"
-    
+
     demo:
       auto_provision: true
       sample_data:

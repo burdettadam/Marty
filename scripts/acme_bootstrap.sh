@@ -105,23 +105,23 @@ check_dependencies() {
 
 setup_directories() {
     log "Setting up ACME directories..."
-    
+
     mkdir -p "$ACME_DATA_DIR"
     mkdir -p "$ACME_DATA_DIR/.well-known/acme-challenge"
-    
+
     # Set appropriate permissions
     chmod 755 "$ACME_DATA_DIR"
     chmod 755 "$ACME_DATA_DIR/.well-known"
     chmod 755 "$ACME_DATA_DIR/.well-known/acme-challenge"
-    
+
     success "Created ACME directories at $ACME_DATA_DIR"
 }
 
 create_pebble_docker_compose() {
     log "Creating Pebble Docker Compose configuration..."
-    
+
     mkdir -p "$(dirname "$DOCKER_COMPOSE_FILE")"
-    
+
     cat > "$DOCKER_COMPOSE_FILE" << 'EOF'
 version: '3.8'
 
@@ -182,14 +182,14 @@ start_pebble() {
     fi
 
     log "Starting Pebble ACME server..."
-    
+
     cd "$(dirname "$DOCKER_COMPOSE_FILE")"
-    
+
     if docker-compose -f "$(basename "$DOCKER_COMPOSE_FILE")" ps | grep -q "Up"; then
         warn "Pebble is already running"
     else
         docker-compose -f "$(basename "$DOCKER_COMPOSE_FILE")" up -d
-        
+
         # Wait for Pebble to be ready
         log "Waiting for Pebble to start..."
         for i in {1..30}; do
@@ -213,12 +213,12 @@ check_domain_resolution() {
     fi
 
     log "Checking domain resolution for $DOMAIN..."
-    
+
     if ! nslookup "$DOMAIN" > /dev/null 2>&1 && ! getent hosts "$DOMAIN" > /dev/null 2>&1; then
         warn "Domain $DOMAIN does not resolve to an IP address"
         warn "For local development, you may need to add it to your /etc/hosts file:"
         warn "  echo '127.0.0.1 $DOMAIN' | sudo tee -a /etc/hosts"
-        
+
         if [ "$ACME_SERVER" = "pebble" ]; then
             warn "For Pebble, this is usually fine as it can be configured to skip validation"
         else
@@ -232,10 +232,10 @@ check_domain_resolution() {
 
 create_acme_config() {
     log "Creating ACME configuration..."
-    
+
     local config_file="$PROJECT_ROOT/config/acme.yaml"
     mkdir -p "$(dirname "$config_file")"
-    
+
     cat > "$config_file" << EOF
 # ACME Configuration for Marty
 acme:
@@ -243,19 +243,19 @@ acme:
   server: "$ACME_SERVER"
   contact_email: "$CONTACT_EMAIL"
   cert_storage_dir: "$ACME_DATA_DIR"
-  
+
   # Domains to manage
   domains:
     - name: "$DOMAIN"
       key_path: "$ACME_DATA_DIR/$DOMAIN.key"
       cert_path: "$ACME_DATA_DIR/$DOMAIN.crt"
       challenge_type: "http-01"
-      
+
   # Renewal settings
   renewal:
     days_before_expiry: 30
     check_interval_hours: 24
-    
+
   # Development settings (for Pebble)
   development:
     skip_tls_verify: $( [ "$ACME_SERVER" = "pebble" ] && echo "true" || echo "false" )
@@ -267,9 +267,9 @@ EOF
 
 test_acme_client() {
     log "Testing ACME client functionality..."
-    
+
     cd "$PROJECT_ROOT"
-    
+
     # Create a simple test script
     cat > /tmp/test_acme.py << EOF
 #!/usr/bin/env python3
@@ -288,26 +288,26 @@ async def test_acme():
             contact_email="$CONTACT_EMAIL",
             cert_storage_dir="$ACME_DATA_DIR"
         )
-        
+
         print("✓ ACME client initialized successfully")
-        
+
         # Test directory loading
         if client.directory:
             print("✓ ACME directory loaded successfully")
         else:
             print("✗ Failed to load ACME directory")
             return False
-            
+
         # Test account
         if client.account_url:
             print(f"✓ ACME account ready: {client.account_url}")
         else:
             print("✗ ACME account not ready")
             return False
-            
+
         await client.client.aclose()
         return True
-        
+
     except Exception as e:
         print(f"✗ ACME test failed: {e}")
         return False
@@ -324,7 +324,7 @@ EOF
         warn "Check the logs above for details"
         exit 1
     fi
-    
+
     rm -f /tmp/test_acme.py
 }
 
@@ -336,7 +336,7 @@ show_next_steps() {
     echo "  2. Configuration file: $PROJECT_ROOT/config/acme.yaml"
     echo "  3. Certificate storage: $ACME_DATA_DIR"
     echo
-    
+
     if [ "$ACME_SERVER" = "pebble" ]; then
         log "Pebble ACME server:"
         echo "  - Directory URL: https://localhost:14000/dir"
@@ -357,7 +357,7 @@ show_next_steps() {
         log "ACME server: $ACME_SERVER"
         warn "Make sure your domain $DOMAIN is publicly accessible for HTTP-01 challenges"
     fi
-    
+
     echo
     log "To stop Pebble (if running):"
     echo "  cd $(dirname "$DOCKER_COMPOSE_FILE")"
@@ -410,12 +410,12 @@ main() {
 
     check_dependencies
     setup_directories
-    
+
     if [ "$ACME_SERVER" = "pebble" ] && [ "$SETUP_PEBBLE" = "true" ]; then
         create_pebble_docker_compose
         start_pebble
     fi
-    
+
     check_domain_resolution
     create_acme_config
     test_acme_client

@@ -21,6 +21,7 @@ logger = logging.getLogger(__name__)
 @dataclass
 class ServiceConfig:
     """Base configuration for Marty services."""
+
     service_name: str
     environment: str = "development"
     debug: bool = False
@@ -83,7 +84,7 @@ class ConfigurationManager:
         self,
         service_name: str,
         environment: str | None = None,
-        config_overrides: dict[str, Any] | None = None
+        config_overrides: dict[str, Any] | None = None,
     ) -> ServiceConfig:
         """
         Load configuration for a specific service.
@@ -115,12 +116,7 @@ class ConfigurationManager:
             merged_config = self._merge_configs(merged_config, config_overrides)
 
         # Create ServiceConfig instance
-        return ServiceConfig(
-            service_name=service_name,
-            environment=env,
-            **merged_config
-        )
-
+        return ServiceConfig(service_name=service_name, environment=env, **merged_config)
 
     def _load_config_file(self, filename: str) -> dict[str, Any]:
         """Load configuration from a YAML file."""
@@ -142,11 +138,7 @@ class ConfigurationManager:
             logger.exception(f"Failed to load configuration from {config_path}")
             return {}
 
-    def _merge_configs(
-        self,
-        base: dict[str, Any],
-        override: dict[str, Any]
-    ) -> dict[str, Any]:
+    def _merge_configs(self, base: dict[str, Any], override: dict[str, Any]) -> dict[str, Any]:
         """Recursively merge configuration dictionaries."""
         result = base.copy()
 
@@ -159,10 +151,7 @@ class ConfigurationManager:
         return result
 
     def get_service_target(
-        self,
-        service_name: str,
-        config: ServiceConfig,
-        use_tls: bool = False
+        self, service_name: str, config: ServiceConfig, use_tls: bool = False
     ) -> str:
         """Get the target address for a service."""
         host = config.hosts.get(service_name, "localhost")
@@ -204,7 +193,7 @@ config_manager = ConfigurationManager()
 def get_service_config(
     service_name: str,
     environment: str | None = None,
-    config_overrides: dict[str, Any] | None = None
+    config_overrides: dict[str, Any] | None = None,
 ) -> ServiceConfig:
     """
     Convenience function to get service configuration.
@@ -218,9 +207,7 @@ def get_service_config(
         ServiceConfig instance
     """
     return config_manager.load_service_config(
-        service_name=service_name,
-        environment=environment,
-        config_overrides=config_overrides
+        service_name=service_name, environment=environment, config_overrides=config_overrides
     )
 
 
@@ -236,7 +223,9 @@ def validate_service_config(config: ServiceConfig) -> None:
     """
     errors = config_manager.validate_config(config)
     if errors:
-        error_msg = "Configuration validation failed:\n" + "\n".join(f"  - {error}" for error in errors)
+        error_msg = "Configuration validation failed:\n" + "\n".join(
+            f"  - {error}" for error in errors
+        )
         raise ValueError(error_msg)
 
 
@@ -274,9 +263,7 @@ def create_service_targets(config: ServiceConfig) -> dict[str, str]:
 
     for service_name in config.ports:
         targets[service_name] = config_manager.get_service_target(
-            service_name=service_name,
-            config=config,
-            use_tls=config.enable_tls
+            service_name=service_name, config=config, use_tls=config.enable_tls
         )
 
     return targets

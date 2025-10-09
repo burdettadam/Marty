@@ -181,21 +181,21 @@
                 const qrContainer = document.getElementById('qr-container');
                 const qrCode = document.getElementById('qr-code');
                 const deepLink = document.getElementById('deep-link');
-                
+
                 qrCode.innerHTML = `<p style="padding: 40px; border: 1px solid #ccc; background: white;">
                     QR Code would appear here<br>
                     <small style="word-break: break-all;">${data.authorization_request_uri}</small>
                 </p>`;
-                
+
                 deepLink.innerHTML = `<a href="${data.authorization_request_uri}">Open in Microsoft Authenticator</a>`;
-                
+
                 qrContainer.style.display = 'block';
-                
+
                 showStatus('Waiting for credential presentation...', 'pending');
-                
+
                 // Start polling for verification result
                 startPolling();
-                
+
             } catch (error) {
                 console.error('Error initiating verification:', error);
                 showStatus('Error initiating verification: ' + error.message, 'error');
@@ -219,7 +219,7 @@
         function showVerificationDetails(details) {
             const detailsDiv = document.getElementById('verification-details');
             const content = document.getElementById('details-content');
-            
+
             content.textContent = JSON.stringify(details, null, 2);
             detailsDiv.style.display = 'block';
         }
@@ -230,14 +230,14 @@
                 if (pollingInterval) {
                     clearInterval(pollingInterval);
                 }
-                
+
                 const result = event.data.result;
                 if (result.status === 'verified') {
                     showStatus('✅ Credential verified successfully!', 'success');
                 } else {
                     showStatus('❌ Credential verification failed', 'error');
                 }
-                
+
                 showVerificationDetails(result.verification_result);
             }
         });

@@ -5,7 +5,7 @@ package marty.trust.v1;
 service TrustAnchor {
   // Existing method
   rpc VerifyTrust (TrustRequest) returns (TrustResponse);
-  
+
   // OpenXPKI integration methods
   rpc GetMasterList (GetMasterListRequest) returns (MasterListResponse);
   rpc UploadMasterList (UploadMasterListRequest) returns (UploadMasterListResponse);
@@ -13,14 +13,14 @@ service TrustAnchor {
   rpc SyncCertificateStore (SyncRequest) returns (SyncResponse);
   rpc CheckExpiringCertificates (ExpiryCheckRequest) returns (ExpiryCheckResponse);
   rpc GetServiceStatus (StatusRequest) returns (ServiceStatusResponse);
-  
+
   // VDS-NC key management methods
   rpc VerifyVDSNCSignature (VDSNCVerificationRequest) returns (VDSNCVerificationResponse);
   rpc GetVDSNCKeys (GetVDSNCKeysRequest) returns (GetVDSNCKeysResponse);
   rpc RegisterVDSNCKey (RegisterVDSNCKeyRequest) returns (RegisterVDSNCKeyResponse);
   rpc RevokeVDSNCKey (RevokeVDSNCKeyRequest) returns (RevokeVDSNCKeyResponse);
   rpc GetTrustStore (GetTrustStoreRequest) returns (GetTrustStoreResponse);
-  
+
   // Annex 9 data retention and privacy methods
   rpc ApplyDataRetentionPolicy (DataRetentionPolicyRequest) returns (DataRetentionPolicyResponse);
   rpc ValidateMinimalDataStorage (MinimalDataValidationRequest) returns (MinimalDataValidationResponse);
@@ -321,13 +321,13 @@ message ElectronicRecordData {
   CMCIssuanceStatus status = 4;
   string created_at = 5;
   string last_updated = 6;
-  
+
   // Essential data only
   EssentialBiographics essential_data = 7;
   IssuanceMetadata issuance_metadata = 8;
   repeated string background_check_ids = 9;
   string digital_signature = 10;
-  
+
   // Audit trail
   repeated AccessLogEntry access_log = 11;
 }

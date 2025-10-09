@@ -9,7 +9,7 @@
         <legend>Personal Information</legend>
         <label for="document_number">Document Number</label>
         <input id="document_number" name="document_number" placeholder="CMC123456" required>
-        
+
         <label for="issuing_country">Issuing Country</label>
         <select id="issuing_country" name="issuing_country" required>
           <option value="">Select Country</option>
@@ -22,13 +22,13 @@
           <option value="AUS">Australia</option>
           <!-- Add more countries as needed -->
         </select>
-        
+
         <label for="surname">Surname</label>
         <input id="surname" name="surname" placeholder="SMITH" required>
-        
+
         <label for="given_names">Given Names</label>
         <input id="given_names" name="given_names" placeholder="JOHN MICHAEL" required>
-        
+
         <label for="nationality">Nationality</label>
         <select id="nationality" name="nationality" required>
           <option value="">Select Nationality</option>
@@ -41,10 +41,10 @@
           <option value="AUS">Australia</option>
           <!-- Add more countries as needed -->
         </select>
-        
+
         <label for="date_of_birth">Date of Birth</label>
         <input id="date_of_birth" name="date_of_birth" type="date" required>
-        
+
         <label for="gender">Gender</label>
         <select id="gender" name="gender" required>
           <option value="">Select Gender</option>
@@ -52,20 +52,20 @@
           <option value="F">Female</option>
           <option value="X">Unspecified</option>
         </select>
-        
+
         <label for="date_of_expiry">Expiry Date</label>
         <input id="date_of_expiry" name="date_of_expiry" type="date" required>
       </fieldset>
-      
+
       <fieldset>
         <legend>Employment Information</legend>
         <label for="employer">Employer</label>
         <input id="employer" name="employer" placeholder="AMERICAN AIRLINES" required>
-        
+
         <label for="crew_id">Crew ID</label>
         <input id="crew_id" name="crew_id" placeholder="AA12345" required>
       </fieldset>
-      
+
       <fieldset>
         <legend>Security Model</legend>
         <label for="security_model">Security Model</label>
@@ -74,7 +74,7 @@
           <option value="CHIP_LDS">Chip/LDS (Traditional)</option>
           <option value="VDS_NC">VDS-NC Barcode</option>
         </select>
-        
+
         <div class="checkbox-group">
           <label>
             <input type="checkbox" name="background_check_verified" value="true">
@@ -82,10 +82,10 @@
           </label>
         </div>
       </fieldset>
-      
+
       <button type="submit">Create CMC</button>
     </form>
-    
+
     {% if create_result %}
       <div class="result-panel">
         <h3>Status: <span class="status-{{ create_result.status|lower }}">{{ create_result.status }}</span></h3>
@@ -132,22 +132,22 @@
           </label>
         </div>
       </fieldset>
-      
+
       <div id="cmc_id_input" class="input-group">
         <label for="verify_cmc_id">CMC ID</label>
         <input id="verify_cmc_id" name="cmc_id" placeholder="CMC123456">
       </div>
-      
+
       <div id="td1_mrz_input" class="input-group" style="display:none;">
         <label for="verify_td1_mrz">TD-1 MRZ (3 lines, 30 chars each)</label>
         <textarea id="verify_td1_mrz" name="td1_mrz" rows="3" cols="30" placeholder="IUSACMC123456&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&#10;&lt;&lt;&lt;&lt;&lt;8USA8503150M3012316&lt;&lt;&lt;&lt;&lt;&lt;&#10;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;SMITH&lt;&lt;JOHN&lt;MICH"></textarea>
       </div>
-      
+
       <div id="barcode_input" class="input-group" style="display:none;">
         <label for="verify_barcode">VDS-NC Barcode Data</label>
         <textarea id="verify_barcode" name="barcode_data" rows="3" placeholder="Base64 encoded VDS-NC barcode data"></textarea>
       </div>
-      
+
       <fieldset>
         <legend>Verification Options</legend>
         <div class="checkbox-group">
@@ -161,16 +161,16 @@
           </label>
         </div>
       </fieldset>
-      
+
       <button type="submit">Verify CMC</button>
     </form>
-    
+
     {% if verify_result %}
       <div class="result-panel">
         <h3>Status: <span class="status-{{ 'success' if verify_result.is_valid else 'error' }}">
           {{ 'VALID' if verify_result.is_valid else 'INVALID' }}
         </span></h3>
-        
+
         {% if verify_result.cmc_data %}
           <div class="cmc-data">
             <h4>CMC Information</h4>
@@ -182,7 +182,7 @@
             <p><strong>Expiry:</strong> {{ verify_result.cmc_data.date_of_expiry }}</p>
           </div>
         {% endif %}
-        
+
         {% if verify_result.verification_results %}
           <div class="verification-details">
             <h4>Verification Details</h4>
@@ -202,7 +202,7 @@
             {% endfor %}
           </div>
         {% endif %}
-        
+
         {% if verify_result.error_message %}
           <p class="error">{{ verify_result.error_message }}</p>
         {% endif %}
@@ -213,21 +213,21 @@
   <!-- CMC Management -->
   <article class="card">
     <header><h2>CMC Management</h2></header>
-    
+
     <!-- Sign CMC -->
     <form method="post" action="/cmc/sign" class="form">
       <fieldset>
         <legend>Sign CMC</legend>
         <label for="sign_cmc_id">CMC ID</label>
         <input id="sign_cmc_id" name="cmc_id" placeholder="CMC123456" required>
-        
+
         <label for="signer_id">Signer ID</label>
         <input id="signer_id" name="signer_id" placeholder="SIGNER001" required>
-        
+
         <button type="submit">Sign CMC</button>
       </fieldset>
     </form>
-    
+
     {% if sign_result %}
       <div class="result-panel">
         <h3>Signing Status: <span class="status-{{ 'success' if sign_result.success else 'error' }}">
@@ -243,14 +243,14 @@
         {% endif %}
       </div>
     {% endif %}
-    
+
     <!-- Background Check -->
     <form method="post" action="/cmc/background-check" class="form">
       <fieldset>
         <legend>Background Check</legend>
         <label for="bg_cmc_id">CMC ID</label>
         <input id="bg_cmc_id" name="cmc_id" placeholder="CMC123456" required>
-        
+
         <label for="check_authority">Check Authority</label>
         <select id="check_authority" name="check_authority" required>
           <option value="">Select Authority</option>
@@ -259,14 +259,14 @@
           <option value="AIRLINE_SECURITY">Airline Security</option>
           <option value="PORT_AUTHORITY">Port Authority</option>
         </select>
-        
+
         <label for="check_reference">Check Reference</label>
         <input id="check_reference" name="check_reference" placeholder="BG123456" required>
-        
+
         <button type="submit">Run Background Check</button>
       </fieldset>
     </form>
-    
+
     {% if bg_check_result %}
       <div class="result-panel">
         <h3>Background Check: <span class="status-{{ 'success' if bg_check_result.check_passed else 'error' }}">
@@ -277,14 +277,14 @@
         <p><strong>Date:</strong> {{ bg_check_result.check_date }}</p>
       </div>
     {% endif %}
-    
+
     <!-- Visa-Free Status -->
     <form method="post" action="/cmc/visa-free-status" class="form">
       <fieldset>
         <legend>Update Visa-Free Status</legend>
         <label for="vf_cmc_id">CMC ID</label>
         <input id="vf_cmc_id" name="cmc_id" placeholder="CMC123456" required>
-        
+
         <div class="radio-group">
           <label>
             <input type="radio" name="visa_free_eligible" value="true" required>
@@ -295,7 +295,7 @@
             Revoke Visa-Free Entry
           </label>
         </div>
-        
+
         <label for="vf_authority">Authority</label>
         <select id="vf_authority" name="authority" required>
           <option value="">Select Authority</option>
@@ -304,14 +304,14 @@
           <option value="CUSTOMS_AUTHORITY">Customs Authority</option>
           <option value="AVIATION_AUTHORITY">Aviation Authority</option>
         </select>
-        
+
         <label for="vf_reason">Reason</label>
         <textarea id="vf_reason" name="reason" rows="2" placeholder="Reason for status change" required></textarea>
-        
+
         <button type="submit">Update Status</button>
       </fieldset>
     </form>
-    
+
     {% if visa_free_result %}
       <div class="result-panel">
         <h3>Visa-Free Status: <span class="status-{{ 'success' if visa_free_result.success else 'error' }}">
@@ -337,14 +337,14 @@ document.addEventListener('DOMContentLoaded', function() {
   const cmcIdInput = document.getElementById('cmc_id_input');
   const td1MrzInput = document.getElementById('td1_mrz_input');
   const barcodeInput = document.getElementById('barcode_input');
-  
+
   verifyMethodRadios.forEach(radio => {
     radio.addEventListener('change', function() {
       // Hide all input groups
       cmcIdInput.style.display = 'none';
       td1MrzInput.style.display = 'none';
       barcodeInput.style.display = 'none';
-      
+
       // Show selected input group
       switch(this.value) {
         case 'cmc_id':
@@ -359,13 +359,13 @@ document.addEventListener('DOMContentLoaded', function() {
       }
     });
   });
-  
+
   // Auto-format TD-1 MRZ input
   const td1MrzTextarea = document.getElementById('verify_td1_mrz');
   if (td1MrzTextarea) {
     td1MrzTextarea.addEventListener('input', function() {
       let value = this.value.replace(/[^A-Z0-9<]/g, ''); // Only allow valid MRZ characters
-      
+
       // Format into 3 lines of 30 characters
       if (value.length > 30) {
         value = value.substring(0, 30) + '\n' + value.substring(30);
@@ -376,11 +376,11 @@ document.addEventListener('DOMContentLoaded', function() {
       if (value.length > 92) {
         value = value.substring(0, 92);
       }
-      
+
       this.value = value;
     });
   }
-  
+
   // Set minimum date for date inputs to today
   const dateInputs = document.querySelectorAll('input[type="date"]');
   const today = new Date().toISOString().split('T')[0];

@@ -11,20 +11,20 @@ test_modes:
     description: "Unit tests with no service dependencies"
     services_required: []
     parallel_execution: true
-    
+
   mock:
     description: "Tests with mocked services"
     services_required: []
     parallel_execution: true
-    
+
   integration:
     description: "Integration tests with core services"
     services_required: ["postgres", "trust-anchor", "csca-service", "document-signer"]
     parallel_execution: false
-    
+
   e2e:
     description: "End-to-end tests with full service stack"
-    services_required: 
+    services_required:
       - postgres
       - trust-anchor
       - csca-service
@@ -46,14 +46,14 @@ services:
     ready_replicas: 1
     port: 5432
     health_check_path: "/"  # Postgres doesn't have HTTP health endpoint
-    
+
   trust-anchor:
     startup_delay: 45
     dependencies: ["postgres"]
     ready_replicas: 1
     port: 9080
     health_check_path: "/health"
-    
+
   csca-service:
     startup_delay: 30
     dependencies: ["postgres", "trust-anchor"]
@@ -63,7 +63,7 @@ services:
     configuration:
       signing_algorithm: rsa2048
       signing_key_id: document-signer-default
-      
+
   document-signer:
     startup_delay: 30
     dependencies: ["postgres", "trust-anchor"]
@@ -85,14 +85,14 @@ services:
         default_credential_type: "eu.europa.ec.eudiw.pid"
         default_audience: "https://verifier.test.marty"
         storage_prefix: "sd-jwt"
-        
+
   inspection-system:
     startup_delay: 30
     dependencies: ["postgres", "csca-service"]
     ready_replicas: 1
     port: 8083
     health_check_path: "/health"
-    
+
   passport-engine:
     startup_delay: 30
     dependencies: ["postgres", "document-signer"]
@@ -102,21 +102,21 @@ services:
     configuration:
       signing_algorithm: rsa2048
       signing_key_id: document-signer-default
-      
+
   mdl-engine:
     startup_delay: 30
     dependencies: ["postgres"]
     ready_replicas: 1
     port: 8085
     health_check_path: "/health"
-    
+
   mdoc-engine:
     startup_delay: 30
     dependencies: ["postgres"]
     ready_replicas: 1
     port: 8086
     health_check_path: "/health"
-    
+
   dtc-engine:
     startup_delay: 30
     dependencies: ["postgres"]
@@ -126,14 +126,14 @@ services:
     configuration:
       signing_algorithm: rsa2048
       signing_key_id: document-signer-default
-      
+
   credential-ledger:
     startup_delay: 30
     dependencies: ["postgres"]
     ready_replicas: 1
     port: 8089
     health_check_path: "/health"
-    
+
   ui-app:
     startup_delay: 30
     dependencies: ["passport-engine", "inspection-system"]

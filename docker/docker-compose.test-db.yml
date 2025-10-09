@@ -13,7 +13,7 @@ services:
       - postgres_test_data:/var/lib/postgresql/data
       - ../scripts/init-test-databases.sql:/docker-entrypoint-initdb.d/init-test-databases.sql
     command: >
-      postgres 
+      postgres
       -c log_statement=all
       -c log_min_duration_statement=0
       -c max_connections=200

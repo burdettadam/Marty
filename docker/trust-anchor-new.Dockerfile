@@ -25,5 +25,5 @@ USER appuser
 # Expose port
 EXPOSE 50053
 
-# Command to run the Trust Anchor service  
+# Command to run the Trust Anchor service
 CMD ["python", "-m", "app.main"]

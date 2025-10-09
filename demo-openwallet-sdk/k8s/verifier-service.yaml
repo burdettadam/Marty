@@ -128,7 +128,7 @@ data:
       name: "OpenWallet Foundation Demo Verifier"
       version: "1.0.0"
       description: "mDoc/mDL Verifier using Multipaz SDK"
-    
+
     multipaz:
       version: "0.94.0"
       features:
@@ -136,18 +136,18 @@ data:
         - "iso18013-5"
         - "openid4vp"
         - "proximity_presentation"
-    
+
     verification:
       protocols:
         - "openid4vp"
         - "iso18013-5"
-      
+
       trust_anchors:
         - name: "Demo Issuer CA"
           certificate_path: "/app/certs/demo-issuer-ca.pem"
         - name: "Test Issuer CA"
           certificate_path: "/app/certs/test-issuer-ca.pem"
-      
+
       presentation_definitions:
         - id: "age_verification"
           name: "Age Verification"
@@ -164,7 +164,7 @@ data:
                   - path: ["$.portrait"]
                     purpose: "Identity verification"
                     intent_to_retain: false
-        
+
         - id: "driving_license_verification"
           name: "Driving License Verification"
           purpose: "Verify driving privileges and identity"
@@ -183,7 +183,7 @@ data:
                     purpose: "Identity verification"
                   - path: ["$.expiry_date"]
                     purpose: "Validity verification"
-        
+
         - id: "identity_verification"
           name: "Basic Identity Verification"
           purpose: "Verify basic identity information"
@@ -198,7 +198,7 @@ data:
                     purpose: "Name verification"
                   - path: ["$.birth_date"]
                     purpose: "Birth date verification"
-    
+
     demo:
       scenarios:
         - name: "Age Restricted Venue"

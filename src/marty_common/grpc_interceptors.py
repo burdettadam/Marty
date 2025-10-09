@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import inspect
 import logging
-from typing import Callable
+from collections.abc import Callable
 
 import grpc
 from grpc import aio as grpc_aio

@@ -8,12 +8,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [1.0.0] - 2025-10-03
 
 ### Added
+
 - **Semver'd Protobuf Namespaces**: Migrated all protobuf packages to versioned namespaces following `marty.<service>.v1` convention
 - **Breaking Change Detection**: Added Buf-based CI workflow for automated breaking change detection in protobuf APIs
 - **Versioning Policy**: Established formal protobuf versioning and breaking change policy in architecture documentation
 - **Architecture Documentation**: Created comprehensive architecture.md with protobuf versioning guidelines
 
 ### Changed
+
 - **BREAKING**: All protobuf packages renamed from simple names to versioned namespaces:
   - `passport` → `marty.passport.v1`
   - `mdoc` → `marty.mdoc.v1`  
@@ -36,6 +38,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **GitHub Actions**: Enhanced proto-validation.yml workflow with Buf breaking change detection
 
 ### Infrastructure
+
 - **Buf Configuration**: Added buf.yaml for protobuf linting and breaking change detection
 - **Protobuf Compilation**: Regenerated all Python stubs with new package structure
 - **CI/CD**: Updated GitHub Actions workflows to include breaking change validation
@@ -59,12 +62,14 @@ This is a breaking change that requires updating any external clients consuming 
 ## [0.1.0] - 2025-09-XX
 
 ### Added
+
 - Initial release with basic microservices architecture
 - Core protobuf definitions for passport, mDoc, trust anchor, and other services
 - gRPC service implementations
 - Basic CI/CD pipelines
 
 ### Features
+
 - Electronic passport processing
 - Mobile driving license support
 - Digital travel credential handling

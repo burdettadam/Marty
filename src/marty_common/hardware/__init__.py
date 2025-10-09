@@ -114,7 +114,7 @@ class MockReader(ReaderInterface):
 
             # GET CHALLENGE
             if ins == 0x84:
-                challenge = b"\x12\x34\x56\x78\x9A\xBC\xDE\xF0"
+                challenge = b"\x12\x34\x56\x78\x9a\xbc\xde\xf0"
                 return challenge + bytes([0x90, 0x00])
 
         # Default error response

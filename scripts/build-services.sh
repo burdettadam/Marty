@@ -35,28 +35,28 @@ function build_base_image() {
         -f docker/base.Dockerfile \
         -t marty-base:${TAG} \
         .
-    
+
     if [ "${PUSH}" = "true" ] && [ -n "${REGISTRY}" ]; then
         docker tag marty-base:${TAG} ${REGISTRY}/marty-base:${TAG}
         docker push ${REGISTRY}/marty-base:${TAG}
     fi
-    
+
     log "Base image built successfully"
 }
 
 function build_service() {
     local service_name=$1
     local service_port=$2
-    
+
     log "Building ${service_name} service..."
-    
+
     local image_name="marty-${service_name}"
     local base_image="marty-base:${TAG}"
-    
+
     if [ -n "${REGISTRY}" ]; then
         base_image="${REGISTRY}/marty-base:${TAG}"
     fi
-    
+
     docker build \
         -f docker/service.Dockerfile \
         --build-arg BASE_IMAGE=${base_image} \
@@ -64,22 +64,22 @@ function build_service() {
         --build-arg SERVICE_PORT=${service_port} \
         -t ${image_name}:${TAG} \
         .
-    
+
     if [ "${PUSH}" = "true" ] && [ -n "${REGISTRY}" ]; then
         docker tag ${image_name}:${TAG} ${REGISTRY}/${image_name}:${TAG}
         docker push ${REGISTRY}/${image_name}:${TAG}
     fi
-    
+
     log "${service_name} service built successfully"
 }
 
 function build_all_services() {
     log "Building all services..."
-    
+
     for service in "${!SERVICES[@]}"; do
         build_service "${service}" "${SERVICES[$service]}"
     done
-    
+
     log "All services built successfully"
 }
 
@@ -90,15 +90,15 @@ function main() {
     log "Registry: ${REGISTRY:-none}"
     log "Tag: ${TAG}"
     log "Push: ${PUSH}"
-    
+
     if [ "${BUILD_BASE}" = "true" ]; then
         build_base_image
     fi
-    
+
     if [ "${BUILD_SERVICES}" = "true" ]; then
         build_all_services
     fi
-    
+
     log "Build process completed successfully"
 }
 

@@ -22,7 +22,7 @@ from tests.fixtures.data_loader import test_data_loader
 def k8s_orchestrator():
     """Session-scoped Kubernetes test orchestrator."""
     from tests.k8s_test_orchestrator import KubernetesTestOrchestrator
-    
+
     project_root = Path(__file__).parent.parent
     orchestrator = KubernetesTestOrchestrator(
         project_root=project_root,
@@ -35,14 +35,14 @@ def k8s_orchestrator():
 def k8s_test_env(k8s_orchestrator, request):
     """Kubernetes test environment context manager."""
     from tests.k8s_test_orchestrator import TestMode
-    
+
     # Determine test mode from markers
     test_mode = TestMode.UNIT  # default
     if request.node.get_closest_marker("integration"):
         test_mode = TestMode.INTEGRATION
     elif request.node.get_closest_marker("e2e"):
         test_mode = TestMode.E2E
-    
+
     with k8s_orchestrator.test_environment(test_mode) as env:
         yield env
 

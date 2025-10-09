@@ -4,6 +4,7 @@ Base gRPC service class providing common patterns for all gRPC services.
 This module consolidates duplicate gRPC server setup, lifecycle management,
 and error handling patterns across all services.
 """
+
 from __future__ import annotations
 
 import os
@@ -176,8 +177,7 @@ class BaseGrpcService(BaseService, ABC):
             self._is_running = True
 
             self.logger.log_service_ready(
-                port=self.grpc_port,
-                additional_info={"max_workers": self.max_workers}
+                port=self.grpc_port, additional_info={"max_workers": self.max_workers}
             )
 
             # Wait for termination
@@ -212,6 +212,7 @@ class BaseGrpcService(BaseService, ABC):
 
     def _setup_signal_handlers(self) -> None:
         """Setup signal handlers for graceful shutdown."""
+
         def signal_handler(signum: int, frame: Any) -> None:
             self.logger.info("Received signal %s, initiating graceful shutdown", signum)
             self._shutdown_gracefully = True
@@ -266,7 +267,9 @@ def create_service_main(
         **kwargs: Additional arguments passed to service constructor
     """
     # Debug information
-    service_name_env = os.environ.get(f"{service_name.upper().replace('-', '_')}_SERVICE_NAME", service_name)
+    service_name_env = os.environ.get(
+        f"{service_name.upper().replace('-', '_')}_SERVICE_NAME", service_name
+    )
     grpc_port_env = os.environ.get("GRPC_PORT", str(default_port))
 
     print(
@@ -294,6 +297,7 @@ def handle_grpc_errors(logger: ServiceLogger):
     Args:
         logger: Service logger instance
     """
+
     def decorator(func):
         def wrapper(self, request, context):
             try:
@@ -322,6 +326,7 @@ def handle_grpc_errors(logger: ServiceLogger):
                 return None
 
         return wrapper
+
     return decorator
 
 
@@ -332,6 +337,7 @@ def validate_grpc_request(required_fields: list[str]):
     Args:
         required_fields: List of field names that must be present and non-empty
     """
+
     def decorator(func):
         def wrapper(self, request, context):
             # Validate required fields
@@ -345,4 +351,5 @@ def validate_grpc_request(required_fields: list[str]):
             return func(self, request, context)
 
         return wrapper
+
     return decorator

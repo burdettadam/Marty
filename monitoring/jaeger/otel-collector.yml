@@ -11,12 +11,12 @@ processors:
     timeout: 1s
     send_batch_size: 1024
     send_batch_max_size: 2048
-  
+
   memory_limiter:
     limit_mib: 512
     spike_limit_mib: 128
     check_interval: 5s
-  
+
   resource:
     attributes:
       - key: service.namespace
@@ -40,13 +40,13 @@ exporters:
     endpoint: jaeger:14250
     tls:
       insecure: true
-  
+
   # Optional: Export metrics to Prometheus
   prometheus:
     endpoint: "0.0.0.0:8889"
     metric_expiration: 180m
     enable_open_metrics: true
-  
+
   # Debug exporter for troubleshooting
   debug:
     verbosity: normal
@@ -66,12 +66,12 @@ service:
       receivers: [otlp]
       processors: [memory_limiter, resource, batch, filter]
       exporters: [jaeger, debug]
-    
+
     metrics:
       receivers: [otlp]
       processors: [memory_limiter, resource, batch]
       exporters: [prometheus]
-  
+
   telemetry:
     logs:
       level: info

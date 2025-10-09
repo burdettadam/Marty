@@ -122,7 +122,14 @@ class VDSNCKeyMetadata:
         data["status"] = self.status.value
         data["role"] = self.role.value
         # Convert datetimes to ISO format
-        for key in ["not_before", "not_after", "created_at", "activated_at", "deprecated_at", "revoked_at"]:
+        for key in [
+            "not_before",
+            "not_after",
+            "created_at",
+            "activated_at",
+            "deprecated_at",
+            "revoked_at",
+        ]:
             if data[key]:
                 data[key] = data[key].isoformat() if isinstance(data[key], datetime) else data[key]
         return data
@@ -144,9 +151,7 @@ class VDSNCKeyGenerator:
     """Generate VDS-NC signer key pairs."""
 
     @staticmethod
-    def generate_kid(
-        country: str, role: KeyRole, generation: int, use_uuid: bool = False
-    ) -> str:
+    def generate_kid(country: str, role: KeyRole, generation: int, use_uuid: bool = False) -> str:
         """Generate Key ID.
 
         Args:
@@ -482,7 +487,6 @@ class VDSNCKeyManager:
             for metadata in all_keys
             if metadata.needs_rotation(self.rotation_config.warning_days)
         ]
-
 
     async def _get_next_generation(self, issuer_country: str, role: KeyRole) -> int:
         """Get next generation number for key rotation."""

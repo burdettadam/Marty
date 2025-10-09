@@ -3,22 +3,22 @@ from __future__ import annotations
 import asyncio
 import logging
 import os
-from collections.abc import Awaitable
+from collections.abc import Awaitable, Callable
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any, Callable
+from typing import Any
 
 import grpc
 from grpc import aio as grpc_aio
 from grpc_health.v1 import health_pb2, health_pb2_grpc
 from grpc_health.v1.health import HealthServicer
 
+from marty_common.auth_interceptor import create_auth_interceptor
 from marty_common.config import Config as MartyConfig
 from marty_common.grpc_interceptors import AsyncExceptionToStatusInterceptor
 from marty_common.grpc_logging import LoggingStreamerServicer
 from marty_common.grpc_metrics import create_async_metrics_interceptor
 from marty_common.grpc_tls import build_client_credentials, configure_server_security
-from marty_common.auth_interceptor import create_auth_interceptor
 from marty_common.infrastructure import (
     DatabaseManager,
     EventBusProvider,
@@ -80,11 +80,11 @@ async def build_dependencies_async(
     service_name: str | None = None,
 ) -> ServiceDependencies:
     """Build service dependencies with service-specific database configuration.
-    
+
     Args:
         runtime_config: Runtime configuration (optional)
         service_name: Name of the service (required for database isolation)
-        
+
     Raises:
         ValueError: If service_name is not provided
     """
@@ -93,10 +93,10 @@ async def build_dependencies_async(
             "service_name is required for dependency injection. "
             "Each service must specify its name for proper database isolation."
         )
-    
+
     if runtime_config is None:
         runtime_config = MartyConfig()
-        
+
     database = DatabaseManager(runtime_config.database(service_name))
     await database.create_all()
     object_storage = ObjectStorageClient(runtime_config.object_storage())
@@ -120,11 +120,11 @@ def create_service_channels(
     config: dict[str, Any], tls_options: dict[str, Any]
 ) -> dict[str, grpc_aio.Channel]:
     """Create gRPC channels to other services based on discovery config.
-    
+
     TLS is ALWAYS required for all inter-service communication.
     """
     channels: dict[str, grpc_aio.Channel] = {}
-    
+
     # TLS is always required
     channel_credentials = build_client_credentials(tls_options)
 
@@ -454,21 +454,23 @@ async def serve_service_async(
     # Resilience interceptor (circuit breaker, failure injection) can be toggled via env
     # Local import to avoid circular dependencies
     from marty_common.resilience import ResilienceServerInterceptor
-    
+
     enable_resilience = os.environ.get("MARTY_RESILIENCE_ENABLED", "true").lower() in {
-        "1", "true", "yes"
+        "1",
+        "true",
+        "yes",
     }
     interceptors: list[grpc_aio.ServerInterceptor] = [AsyncExceptionToStatusInterceptor()]
 
     # Add metrics interceptor
     metrics_interceptor = create_async_metrics_interceptor(service.name)
     interceptors.append(metrics_interceptor)
-    
+
     # Add authentication interceptor (ALWAYS ENABLED)
     auth_interceptor = create_auth_interceptor()
     interceptors.append(auth_interceptor)
     logger.info("Added authentication interceptor (REQUIRED)")
-    
+
     if enable_resilience:
         interceptors.append(ResilienceServerInterceptor())
     server = grpc_aio.server(interceptors=interceptors)

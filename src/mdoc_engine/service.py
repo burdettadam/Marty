@@ -4,6 +4,7 @@ MDoc Engine service implementation.
 This module provides the gRPC service for managing Mobile Documents (MDocs),
 including creation, signing, and verification of digital documents.
 """
+
 from __future__ import annotations
 
 import json
@@ -17,6 +18,7 @@ from src.proto import (
     document_signer_pb2,  # type: ignore
     mdoc_engine_pb2,  # type: ignore
     mdoc_engine_pb2_grpc,  # type: ignore
+    document_signer_pb2_grpc,  # type: ignore
 )
 
 try:
@@ -173,6 +175,7 @@ class MDocEngineServicer(mdoc_engine_pb2_grpc.MDocEngineServicer):  # type: igno
         # Extract signature info – tolerate either a proper SignResponse with
         # a nested signature_info message or a MagicMock with top-level attributes.
         sig_info = getattr(sign_resp, "signature_info", None)
+
         # Helper accessors with graceful fallback
         def _get(attr_name: str, default):  # local helper
             if sig_info is not None and hasattr(sig_info, attr_name):

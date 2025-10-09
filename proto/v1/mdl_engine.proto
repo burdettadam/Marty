@@ -8,19 +8,19 @@ import "common_services.proto";
 service MDLEngine {
   // Create a new mobile driving license
   rpc CreateMDL (CreateMDLRequest) returns (CreateMDLResponse);
-  
+
   // Retrieve an MDL by license number
   rpc GetMDL (GetMDLRequest) returns (MDLResponse);
-  
+
   // Sign an MDL using Document Signer
   rpc SignMDL (SignMDLRequest) returns (SignMDLResponse);
-  
+
   // Generate QR code for offline verification
   rpc GenerateMDLQRCode (GenerateQRCodeRequest) returns (GenerateQRCodeResponse);
-  
+
   // Transfer MDL to device
   rpc TransferMDLToDevice (TransferMDLRequest) returns (TransferMDLResponse);
-  
+
   // Verify an MDL (for inspection system integration)
   rpc VerifyMDL (VerifyMDLRequest) returns (VerifyMDLResponse);
 }

@@ -13,7 +13,7 @@ from .enhanced_config import (
 __all__ = [
     "Config",
     "ConfigurationError",
-    "ConfigurationManager", 
+    "ConfigurationManager",
     "EnhancedServiceConfig",
     "create_certificate_service_config",
     "create_enhanced_config",

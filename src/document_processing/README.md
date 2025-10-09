@@ -15,15 +15,18 @@ A FastAPI-based document processing service focusing on MRZ (Machine Readable Zo
 ## 📋 API Endpoints
 
 ### Health Endpoints
+
 - `GET /api/ping` - Simple liveness check
 - `GET /api/health` - Detailed health information
 - `GET /api/healthz` - Kubernetes-style health check
 - `GET /api/readyz` - License validation check
 
 ### Processing Endpoints
+
 - `POST /api/process` - Main document processing endpoint
 
 ### Documentation
+
 - `GET /docs` - Interactive API documentation (Swagger UI)
 - `GET /redoc` - Alternative API documentation (ReDoc)
 
@@ -32,44 +35,50 @@ A FastAPI-based document processing service focusing on MRZ (Machine Readable Zo
 ### Local Development
 
 1. **Clone the repository**:
+
 ```bash
 git clone <repository-url>
 cd Marty/src/regula_clone
 ```
 
 2. **Install dependencies**:
+
 ```bash
 pip install -r requirements.txt
 ```
 
 3. **Configure environment** (optional):
+
 ```bash
 cp .env.example .env
 # Edit .env file with your configuration
 ```
 
 4. **Run the server**:
+
 ```bash
 python -m uvicorn app.main:app --host localhost --port 8080 --reload
 ```
 
 5. **Access the API**:
-   - API: http://localhost:8080
-   - Documentation: http://localhost:8080/docs
-   - Health Check: http://localhost:8080/api/health
+   - API: <http://localhost:8080>
+   - Documentation: <http://localhost:8080/docs>
+   - Health Check: <http://localhost:8080/api/health>
 
 ### Docker Deployment
 
 1. **Build and run with Docker Compose**:
+
 ```bash
 docker-compose up --build
 ```
 
 2. **Access the containerized API**:
-   - API: http://localhost:8080
-   - Health Check: http://localhost:8080/api/ping
+   - API: <http://localhost:8080>
+   - Health Check: <http://localhost:8080/api/ping>
 
 3. **Run tests in container**:
+
 ```bash
 docker-compose --profile test up doc-processing-test
 ```
@@ -131,7 +140,7 @@ if response.status_code == 200:
     result = response.json()
     transaction_info = result["transactionInfo"]
     containers = result["containerList"]["List"]
-    
+
     for container in containers:
         if container["type"] == "MrzContainer" and container["mrzResult"]:
             mrz = container["mrzResult"]
@@ -151,7 +160,7 @@ async function processMRZ(imagePath) {
     // Read and encode image
     const imageBuffer = fs.readFileSync(imagePath);
     const base64Image = imageBuffer.toString('base64');
-    
+
     const payload = {
         processParam: {
             scenario: "Mrz",
@@ -166,7 +175,7 @@ async function processMRZ(imagePath) {
         }],
         tag: "js-client-session"
     };
-    
+
     try {
         const response = await axios.post(
             'http://localhost:8080/api/process',
@@ -178,11 +187,11 @@ async function processMRZ(imagePath) {
                 }
             }
         );
-        
+
         const result = response.data;
         console.log('Processing completed in:', result.elapsedTime, 'ms');
         console.log('Transaction ID:', result.transactionInfo.requestId);
-        
+
         return result;
     } catch (error) {
         console.error('Processing failed:', error.response?.data || error.message);
@@ -232,6 +241,7 @@ python tests/e2e/test_e2e_workflow.py
 ### Test Coverage
 
 The test suite covers:
+
 - ✅ All API endpoints (health and processing)
 - ✅ MRZ processing logic
 - ✅ Image handling and validation
@@ -308,6 +318,7 @@ curl http://localhost:8080/api/health | jq '.'
 ### Production Deployment
 
 1. **Environment Configuration**:
+
 ```bash
 export ENVIRONMENT=production
 export DEBUG=false
@@ -316,6 +327,7 @@ export API_KEY=your-secure-api-key
 ```
 
 2. **Docker Production**:
+
 ```bash
 docker-compose -f docker-compose.prod.yml up -d
 ```
@@ -381,6 +393,7 @@ This project is part of the Marty ecosystem and follows the same licensing terms
 ## 📞 Support
 
 For issues and questions:
+
 - Check the troubleshooting section
 - Review the test cases for usage examples
 - Open an issue in the main Marty repository

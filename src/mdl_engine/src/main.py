@@ -10,11 +10,12 @@ from pathlib import Path
 # Ensure we can import from the parent directory
 sys.path.append(str(Path(__file__).resolve().parents[3]))
 
+from marty_common.database import create_service_database_tables
+
 # Import ultra-DRY service utilities
 from marty_common.grpc_service_factory import serve_auto_service
-from marty_common.service_config_factory import get_config_manager
 from marty_common.logging_config import get_logger
-from marty_common.database import create_service_database_tables
+from marty_common.service_config_factory import get_config_manager
 
 # Import database utility
 from src.shared.database import Base, engine
@@ -50,7 +51,7 @@ def main() -> None:
             service_module_path="src.services.mdl_engine",
             grpc_port=config_manager.get_env_int("GRPC_PORT", 8085),
             grpc_max_workers=10,
-            reflection_enabled=True
+            reflection_enabled=True,
         )
 
     except Exception:

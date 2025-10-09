@@ -5,6 +5,7 @@ A comprehensive microservice for managing trust relationships, certificate valid
 ## Overview
 
 The Trust Service provides centralized management of:
+
 - **Trust Anchors**: Country Signing Certificate Authorities (CSCAs)
 - **Document Signing Certificates (DSCs)**: For passport and document validation
 - **Certificate Revocation Lists (CRLs)**: Real-time revocation status
@@ -29,22 +30,26 @@ The Trust Service provides centralized management of:
 ## Features
 
 ### REST API Endpoints
+
 - `GET /trust/status` - Service status and data freshness
 - `GET /trust/snapshot` - Immutable trust state snapshot  
 - `GET /trust/anchors` - List trusted CSCAs with filtering
 
 ### gRPC Service
+
 - High-performance certificate validation
 - Streaming PKD data updates
 - Real-time trust status queries
 
 ### Monitoring & Metrics
+
 - `master_list_age_seconds` - Age of master lists by country
 - `trusted_csca_total` - Count of trusted CSCAs
 - `trusted_dsc_total` - Count of trusted DSCs
 - Complete operational metrics for PKD sync operations
 
 ### Database Schema
+
 - **master_lists** - PKD master list data with provenance
 - **cscas** - Country Signing Certificate Authorities
 - **dscs** - Document Signing Certificates  
@@ -57,22 +62,26 @@ The Trust Service provides centralized management of:
 ### Development
 
 1. **Set up environment:**
+
    ```bash
    cd services/trust-svc
    export DATABASE_URL="postgresql+asyncpg://user:pass@localhost:5432/martydb"
    ```
 
 2. **Install dependencies:**
+
    ```bash
    pip install -r ../../pyproject.toml
    ```
 
 3. **Run database migrations:**
+
    ```bash
    python -m alembic upgrade head
    ```
 
 4. **Start the service:**
+
    ```bash
    python main.py
    ```
@@ -127,6 +136,7 @@ MAX_CERT_AGE_DAYS=1095
 ## API Documentation
 
 ### Trust Status
+
 ```http
 GET /api/v1/trust/status
 ```
@@ -134,10 +144,11 @@ GET /api/v1/trust/status
 Returns current service status and data freshness information.
 
 **Response:**
+
 ```json
 {
   "service_name": "trust-svc",
-  "status": "healthy", 
+  "status": "healthy",
   "timestamp": "2024-10-03T12:00:00Z",
   "data_freshness_hours": 2.5,
   "total_master_lists": 195,
@@ -149,6 +160,7 @@ Returns current service status and data freshness information.
 ```
 
 ### Trust Anchors
+
 ```http
 GET /api/v1/trust/anchors?country_code=USA&trust_level=standard&limit=100
 ```
@@ -156,6 +168,7 @@ GET /api/v1/trust/anchors?country_code=USA&trust_level=standard&limit=100
 Returns paginated list of trusted CSCAs with filtering options.
 
 ### Trust Snapshot  
+
 ```http
 GET /api/v1/trust/snapshot?country_code=USA&include_inactive=false
 ```
@@ -187,6 +200,7 @@ curl http://localhost:8081/metrics
 ```
 
 Key metrics:
+
 - `master_list_age_seconds{country_code, source_type}`
 - `trusted_csca_total{country_code, trust_level, status}`  
 - `trusted_dsc_total{country_code, status}`
@@ -197,8 +211,9 @@ Key metrics:
 ### Adding New PKD Sources
 
 1. Create source configuration in database:
+
 ```sql
-INSERT INTO trust_svc.sources (name, source_type, country_code, url, credentials) 
+INSERT INTO trust_svc.sources (name, source_type, country_code, url, credentials)
 VALUES ('Germany PKD', 'national_pki', 'DEU', 'https://pki.germany.gov', '{}');
 ```
 
@@ -238,6 +253,7 @@ python -m alembic downgrade -1
 ## Support
 
 For issues and questions:
+
 - Check logs: `kubectl logs -f deployment/trust-svc`
 - Monitor metrics: Grafana dashboard
 - Database health: `GET /ready` endpoint

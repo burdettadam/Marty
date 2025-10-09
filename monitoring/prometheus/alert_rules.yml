@@ -12,11 +12,11 @@ groups:
           summary: "Marty service {{ $labels.service_name }} is down"
           description: "Marty service {{ $labels.service_name }} has been down for more than 1 minute."
 
-      # gRPC-specific error rate alerts  
+      # gRPC-specific error rate alerts
       - alert: MartyServiceHighErrorRate
         expr: |
           (
-            rate(marty_grpc_errors_total[5m]) / 
+            rate(marty_grpc_errors_total[5m]) /
             rate(marty_grpc_requests_total[5m])
           ) * 100 > 5
         for: 2m
@@ -30,7 +30,7 @@ groups:
       - alert: MartyServiceCriticalErrorRate
         expr: |
           (
-            rate(marty_grpc_errors_total[5m]) / 
+            rate(marty_grpc_errors_total[5m]) /
             rate(marty_grpc_requests_total[5m])
           ) * 100 > 20
         for: 1m
@@ -44,7 +44,7 @@ groups:
       # gRPC latency alerts
       - alert: MartyServiceHighLatency
         expr: |
-          histogram_quantile(0.95, 
+          histogram_quantile(0.95,
             rate(marty_grpc_request_duration_seconds_bucket[5m])
           ) > 1.0
         for: 3m
@@ -57,7 +57,7 @@ groups:
 
       - alert: MartyServiceVeryHighLatency
         expr: |
-          histogram_quantile(0.95, 
+          histogram_quantile(0.95,
             rate(marty_grpc_request_duration_seconds_bucket[5m])
           ) > 5.0
         for: 1m

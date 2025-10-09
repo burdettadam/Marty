@@ -40,21 +40,21 @@ print_header() {
 # Check prerequisites
 check_prerequisites() {
     print_info "Checking Kubernetes prerequisites..."
-    
+
     local missing_tools=()
-    
+
     if ! command -v kubectl &> /dev/null; then
         missing_tools+=("kubectl")
     fi
-    
+
     if ! command -v kind &> /dev/null; then
         missing_tools+=("kind")
     fi
-    
+
     if ! command -v docker &> /dev/null; then
         missing_tools+=("docker")
     fi
-    
+
     if [ ${#missing_tools[@]} -ne 0 ]; then
         print_error "Missing required tools: ${missing_tools[*]}"
         echo ""
@@ -74,13 +74,13 @@ check_prerequisites() {
         done
         exit 1
     fi
-    
+
     # Check if Docker is running
     if ! docker info &> /dev/null; then
         print_error "Docker is not running. Please start Docker and try again."
         exit 1
     fi
-    
+
     print_success "All prerequisites satisfied"
 }
 
@@ -89,9 +89,9 @@ create_cluster_config() {
     local config_file="/tmp/kind-config-${CLUSTER_NAME}.yaml"
     local script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
     local project_root="$(dirname "$(dirname "$script_dir")")"
-    
+
     print_info "Creating Kind cluster configuration..." >&2
-    
+
     cat > "$config_file" << EOF
 kind: Cluster
 apiVersion: kind.x-k8s.io/v1alpha4
@@ -112,7 +112,7 @@ nodes:
     selinuxRelabel: false
     propagation: None
 EOF
-    
+
     print_success "Cluster configuration created at: $config_file" >&2
     echo "$config_file"
 }
@@ -120,7 +120,7 @@ EOF
 # Create Kind cluster
 create_cluster() {
     print_info "Creating Kind cluster: $CLUSTER_NAME"
-    
+
     # Check if cluster already exists
     if kind get clusters | grep -q "^${CLUSTER_NAME}$"; then
         print_warning "Cluster $CLUSTER_NAME already exists"
@@ -134,51 +134,51 @@ create_cluster() {
             return 0
         fi
     fi
-    
+
     local config_file
     config_file=$(create_cluster_config)
-    
+
     print_info "Creating new Kind cluster..."
     kind create cluster --config "$config_file"
-    
+
     # Clean up temporary config file
     rm -f "$config_file"
-    
+
     print_success "Kind cluster created successfully"
 }
 
 # Configure kubectl context
 configure_kubectl() {
     print_info "Configuring kubectl context..."
-    
+
     # Set kubectl context
     kubectl cluster-info --context "kind-${CLUSTER_NAME}"
     kubectl config use-context "kind-${CLUSTER_NAME}"
-    
+
     print_success "kubectl configured for cluster: $CLUSTER_NAME"
 }
 
 # Create namespace
 create_namespace() {
     print_info "Creating namespace: $NAMESPACE"
-    
+
     kubectl create namespace "$NAMESPACE" --dry-run=client -o yaml | kubectl apply -f -
-    
+
     print_success "Namespace created: $NAMESPACE"
 }
 
 # Verify cluster
 verify_cluster() {
     print_info "Verifying cluster setup..."
-    
+
     # Wait for nodes to be ready
     print_info "Waiting for nodes to be ready..."
     kubectl wait --for=condition=Ready nodes --all --timeout=180s
-    
+
     # Show cluster info
     print_info "Cluster information:"
     kubectl get nodes -o wide
-    
+
     print_success "Cluster verification complete"
 }
 
@@ -187,13 +187,13 @@ main() {
     print_header "Microsoft Demo - Kubernetes Cluster Setup"
     echo "=========================================="
     echo ""
-    
+
     check_prerequisites
     create_cluster
     configure_kubectl
     create_namespace
     verify_cluster
-    
+
     echo ""
     print_success "Kubernetes cluster setup complete!"
     echo ""

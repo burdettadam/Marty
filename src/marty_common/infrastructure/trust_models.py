@@ -27,7 +27,9 @@ class VDSNCKeyModel(Base):
     # Key metadata
     issuer_country: Mapped[str] = mapped_column(String(3), nullable=False)  # ISO 3166-1 alpha-3
     role: Mapped[KeyRole] = mapped_column(Enum(KeyRole), nullable=False)
-    status: Mapped[KeyStatus] = mapped_column(Enum(KeyStatus), nullable=False, default=KeyStatus.ACTIVE)
+    status: Mapped[KeyStatus] = mapped_column(
+        Enum(KeyStatus), nullable=False, default=KeyStatus.ACTIVE
+    )
     algorithm: Mapped[str] = mapped_column(String(10), nullable=False, default="ES256")
 
     # Key validity period
@@ -46,15 +48,10 @@ class VDSNCKeyModel(Base):
     # Metadata and tracking
     custom_metadata: Mapped[dict[str, Any]] = mapped_column(JSONB, nullable=False, default=dict)
     created_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True),
-        nullable=False,
-        server_default=func.now()
+        DateTime(timezone=True), nullable=False, server_default=func.now()
     )
     updated_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True),
-        nullable=False,
-        server_default=func.now(),
-        onupdate=func.now()
+        DateTime(timezone=True), nullable=False, server_default=func.now(), onupdate=func.now()
     )
 
     # Revocation information
@@ -94,6 +91,7 @@ class VDSNCKeyModel(Base):
             return False
 
         from datetime import timedelta
+
         warning_time = datetime.now(timezone.utc) + timedelta(days=warning_days)
         return self.not_after <= warning_time
 
@@ -130,15 +128,10 @@ class CSCAKeyModel(Base):
 
     # Tracking
     created_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True),
-        nullable=False,
-        server_default=func.now()
+        DateTime(timezone=True), nullable=False, server_default=func.now()
     )
     updated_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True),
-        nullable=False,
-        server_default=func.now(),
-        onupdate=func.now()
+        DateTime(timezone=True), nullable=False, server_default=func.now(), onupdate=func.now()
     )
 
     # Revocation
@@ -193,15 +186,10 @@ class DSCKeyModel(Base):
 
     # Tracking
     created_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True),
-        nullable=False,
-        server_default=func.now()
+        DateTime(timezone=True), nullable=False, server_default=func.now()
     )
     updated_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True),
-        nullable=False,
-        server_default=func.now(),
-        onupdate=func.now()
+        DateTime(timezone=True), nullable=False, server_default=func.now(), onupdate=func.now()
     )
 
     # Revocation
@@ -245,9 +233,7 @@ class TrustStoreSnapshot(Base):
 
     # Metadata
     created_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True),
-        nullable=False,
-        server_default=func.now()
+        DateTime(timezone=True), nullable=False, server_default=func.now()
     )
     expires_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     is_current: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
@@ -279,16 +265,16 @@ class KeyRotationLog(Base):
     issuer_country: Mapped[str] = mapped_column(String(3), nullable=False)
 
     # Rotation details
-    action: Mapped[str] = mapped_column(String(20), nullable=False)  # "created", "rotated", "revoked"
+    action: Mapped[str] = mapped_column(
+        String(20), nullable=False
+    )  # "created", "rotated", "revoked"
     old_key_id: Mapped[str | None] = mapped_column(String(255), nullable=True)
     new_key_id: Mapped[str | None] = mapped_column(String(255), nullable=True)
 
     # Timing
     scheduled_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     executed_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True),
-        nullable=False,
-        server_default=func.now()
+        DateTime(timezone=True), nullable=False, server_default=func.now()
     )
 
     # Status and metadata
@@ -320,7 +306,9 @@ class TrustAnchor(Base):
 
     # Entity identification
     entity_id: Mapped[str] = mapped_column(String(255), nullable=False, unique=True)
-    entity_type: Mapped[str] = mapped_column(String(50), nullable=False)  # "country", "organization", etc.
+    entity_type: Mapped[str] = mapped_column(
+        String(50), nullable=False
+    )  # "country", "organization", etc.
     entity_name: Mapped[str] = mapped_column(String(255), nullable=False)
 
     # Trust status
@@ -334,15 +322,10 @@ class TrustAnchor(Base):
     # Metadata
     custom_metadata: Mapped[dict[str, Any]] = mapped_column(JSONB, nullable=False, default=dict)
     created_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True),
-        nullable=False,
-        server_default=func.now()
+        DateTime(timezone=True), nullable=False, server_default=func.now()
     )
     updated_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True),
-        nullable=False,
-        server_default=func.now(),
-        onupdate=func.now()
+        DateTime(timezone=True), nullable=False, server_default=func.now(), onupdate=func.now()
     )
 
     # Indexes

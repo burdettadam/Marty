@@ -94,25 +94,25 @@ data:
     <body>
         <h1>🆔 Microsoft Authenticator Demo</h1>
         <p>Issue and store verifiable credentials in Microsoft Authenticator</p>
-        
+
         <div class="container info">
             <h3>📱 Step 1: Ensure Microsoft Authenticator is Ready</h3>
             <p>Make sure you have Microsoft Authenticator installed on your mobile device and set up.</p>
         </div>
-        
+
         <div class="container">
             <h3>🎫 Step 2: Create a Credential Offer</h3>
             <p>Click the button below to generate a credential offer for an Employee Credential:</p>
             <button onclick="createCredentialOffer()">Generate QR Code</button>
             <div id="offerResult"></div>
         </div>
-        
+
         <div class="container">
             <h3>📱 Step 3: Scan QR Code with Microsoft Authenticator</h3>
             <p>Use Microsoft Authenticator to scan the QR code below:</p>
             <div id="qrCodeContainer"></div>
         </div>
-        
+
         <div class="container">
             <h3>✅ Step 4: Complete the Flow</h3>
             <p>Follow the prompts in Microsoft Authenticator to complete the credential issuance.</p>
@@ -139,9 +139,9 @@ data:
                             }
                         })
                     });
-                    
+
                     const result = await response.json();
-                    
+
                     if (response.ok) {
                         document.getElementById('offerResult').innerHTML = `
                             <div class="credential-info success">
@@ -153,7 +153,7 @@ data:
                                 <code>${result.offer_uri}</code>
                             </div>
                         `;
-                        
+
                         // Generate and display QR code
                         const qrResponse = await fetch('/generate-qr', {
                             method: 'POST',
@@ -164,17 +164,17 @@ data:
                                 data: result.offer_uri
                             })
                         });
-                        
+
                         if (qrResponse.ok) {
                             const qrResult = await qrResponse.json();
                             const img = document.createElement('img');
                             img.src = 'data:image/png;base64,' + qrResult.qr_code;
                             img.alt = 'Credential Offer QR Code';
                             img.style.maxWidth = '300px';
-                            
+
                             document.getElementById('qrCodeContainer').innerHTML = '';
                             document.getElementById('qrCodeContainer').appendChild(img);
-                            
+
                             const instructions = document.createElement('p');
                             instructions.innerHTML = '<strong>Scan this QR code with Microsoft Authenticator</strong>';
                             document.getElementById('qrCodeContainer').appendChild(instructions);
@@ -209,7 +209,7 @@ data:
         try:
             offer_id = str(uuid.uuid4())
             request_id = str(uuid.uuid4())
-            
+
             # Store the credential offer
             credential_offers[offer_id] = {
                 "id": offer_id,
@@ -219,7 +219,7 @@ data:
                 "created_at": datetime.now(timezone.utc).isoformat(),
                 "status": "pending"
             }
-            
+
             # Create issuance request for Microsoft Entra Verified ID format
             issuance_requests[request_id] = {
                 "includeQRCode": False,
@@ -241,11 +241,11 @@ data:
                     "length": 4
                 }
             }
-            
+
             # Create the openid-vc URI for Microsoft Authenticator
             base_url = "https://7bmt9pc1-8000.usw3.devtunnels.ms"
             offer_uri = f"openid-vc://?request_uri={base_url}/issuance-requests/{request_id}"
-            
+
             return {
                 "offer_id": offer_id,
                 "request_id": request_id,
@@ -254,7 +254,7 @@ data:
                 "claims": request.get("claims", {}),
                 "status": "created"
             }
-            
+
         except Exception as e:
             raise HTTPException(status_code=500, detail=f"Failed to create credential offer: {str(e)}")
 
@@ -263,7 +263,7 @@ data:
         """Get issuance request in Microsoft Entra Verified ID format"""
         if request_id not in issuance_requests:
             raise HTTPException(status_code=404, detail="Issuance request not found")
-        
+
         return issuance_requests[request_id]
 
     @app.post("/api/issuer/issuanceCallback")
@@ -278,7 +278,7 @@ data:
             data = request.get("data")
             if not data:
                 raise HTTPException(status_code=400, detail="No data provided for QR code")
-            
+
             # Create QR code
             qr = qrcode.QRCode(
                 version=1,
@@ -288,21 +288,21 @@ data:
             )
             qr.add_data(data)
             qr.make(fit=True)
-            
+
             # Create image
             img = qr.make_image(fill_color="black", back_color="white")
-            
+
             # Convert to base64
             img_buffer = io.BytesIO()
             img.save(img_buffer, format='PNG')
             img_str = base64.b64encode(img_buffer.getvalue()).decode()
-            
+
             return {
                 "qr_code": img_str,
                 "data": data,
                 "format": "PNG"
             }
-            
+
         except Exception as e:
             raise HTTPException(status_code=500, detail=f"Failed to generate QR code: {str(e)}")
 
@@ -324,7 +324,7 @@ data:
     import uvicorn
 
     app = FastAPI(
-        title="Microsoft Demo Verifier API", 
+        title="Microsoft Demo Verifier API",
         description="API for verifying credentials from Microsoft Authenticator",
         version="1.0.0"
     )

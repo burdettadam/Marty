@@ -80,32 +80,32 @@ OFFER_RESPONSE=$(curl -s -X POST http://localhost:${ISSUER_PORT}/credential-offe
 
 if [ $? -eq 0 ] && echo "$OFFER_RESPONSE" | grep -q "credential_offer_uri"; then
     print_success "✅ Credential offer creation working"
-    
+
     # Extract and display the offer URI
     if command -v jq >/dev/null 2>&1; then
         OFFER_URI=$(echo "$OFFER_RESPONSE" | jq -r .credential_offer_uri)
         print_status "Credential Offer URI: $OFFER_URI"
-        
+
         # Extract pre-authorized code for token test
         PRE_AUTH_CODE=$(echo "$OFFER_RESPONSE" | jq -r .pre_authorized_code)
-        
+
         # Test token endpoint
         print_status "5. Testing token endpoint with pre-authorized code..."
         TOKEN_RESPONSE=$(curl -s -X POST http://localhost:${ISSUER_PORT}/token \
             -H "Content-Type: application/json" \
             -d "{\"grant_type\": \"urn:ietf:params:oauth:grant-type:pre-authorized_code\", \"pre_authorized_code\": \"$PRE_AUTH_CODE\"}" 2>/dev/null)
-        
+
         if [ $? -eq 0 ] && echo "$TOKEN_RESPONSE" | grep -q "access_token"; then
             print_success "✅ Token endpoint working"
             ACCESS_TOKEN=$(echo "$TOKEN_RESPONSE" | jq -r .access_token)
-            
+
             # Test credential endpoint
             print_status "6. Testing credential issuance..."
             CREDENTIAL_RESPONSE=$(curl -s -X POST http://localhost:${ISSUER_PORT}/credential \
                 -H "Content-Type: application/json" \
                 -H "Authorization: Bearer $ACCESS_TOKEN" \
                 -d '{}' 2>/dev/null)
-            
+
             if [ $? -eq 0 ] && echo "$CREDENTIAL_RESPONSE" | grep -q "credential"; then
                 print_success "✅ Credential issuance working"
             else
@@ -163,17 +163,17 @@ PRESENTATION_RESPONSE=$(curl -s -X POST http://localhost:${VERIFIER_PORT}/presen
 
 if [ $? -eq 0 ] && echo "$PRESENTATION_RESPONSE" | grep -q "authorization_request_uri"; then
     print_success "✅ Presentation request creation working"
-    
+
     if command -v jq >/dev/null 2>&1; then
         REQUEST_ID=$(echo "$PRESENTATION_RESPONSE" | jq -r .request_id)
         AUTH_URI=$(echo "$PRESENTATION_RESPONSE" | jq -r .authorization_request_uri)
         print_status "Request ID: $REQUEST_ID"
         print_status "Authorization URI: $AUTH_URI"
-        
+
         # Test status endpoint
         print_status "4. Testing verification status endpoint..."
         STATUS_RESPONSE=$(curl -s http://localhost:${VERIFIER_PORT}/verification-status/$REQUEST_ID 2>/dev/null)
-        
+
         if [ $? -eq 0 ] && echo "$STATUS_RESPONSE" | grep -q "request_id"; then
             print_success "✅ Verification status endpoint working"
         else

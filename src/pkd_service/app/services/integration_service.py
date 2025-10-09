@@ -1,6 +1,7 @@
 """
 Integration service for connecting with other Marty microservices
 """
+
 from __future__ import annotations
 
 import logging

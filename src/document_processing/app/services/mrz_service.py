@@ -132,12 +132,13 @@ except (ImportError, ModuleNotFoundError):  # Fallback only for import-related f
             msg = "Unsupported MRZ format in fallback parser"
             raise MRZException(msg)
 
+    logger = logging.getLogger(__name__)
     logger.warning(
         "Using fallback MRZParser (grpc/marty_common unavailable). Limited functionality; "
         "install grpcio for full features."
     )
 
-logger = logging.getLogger(__name__)
+# logger already defined above for module
 
 
 class ImageProcessor:

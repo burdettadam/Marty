@@ -16,7 +16,7 @@ NC='\033[0m' # No Color
 # Function to print colored output
 print_header() {
     echo -e "${BLUE}$1${NC}"
-    echo "===========================================" 
+    echo "==========================================="
 }
 
 print_success() {
@@ -71,47 +71,47 @@ show_help() {
 # Setup function to install dependencies
 setup_test_env() {
     print_header "Setting up test environment"
-    
+
     print_info "Installing test dependencies..."
     pip install pytest pytest-asyncio pytest-cov pytest-html pytest-xdist coverage
-    
+
     print_info "Installing development dependencies..."
     pip install ruff mypy black isort bandit
-    
+
     print_success "Test environment setup complete"
 }
 
 # Clean function
 clean_test_artifacts() {
     print_header "Cleaning test artifacts"
-    
+
     # Remove pytest cache
     if [ -d ".pytest_cache" ]; then
         rm -rf .pytest_cache
         print_info "Removed pytest cache"
     fi
-    
+
     # Remove coverage files
     if [ -f ".coverage" ]; then
         rm -f .coverage
         print_info "Removed coverage data"
     fi
-    
+
     if [ -d "htmlcov" ]; then
         rm -rf htmlcov
         print_info "Removed HTML coverage report"
     fi
-    
+
     # Remove test reports
     if [ -d "test-reports" ]; then
         rm -rf test-reports
         print_info "Removed test reports"
     fi
-    
+
     # Remove Python cache
     find . -type d -name "__pycache__" -exec rm -rf {} + 2>/dev/null || true
     find . -type f -name "*.pyc" -delete 2>/dev/null || true
-    
+
     print_success "Cleanup complete"
 }
 
@@ -181,46 +181,46 @@ case $COMMAND in
     setup)
         setup_test_env
         ;;
-    
+
     clean)
         clean_test_artifacts
         ;;
-    
+
     all)
         print_header "Running all tests"
-        $PYTEST_CMD tests/ 
+        $PYTEST_CMD tests/
         ;;
-    
+
     unit)
         print_header "Running unit tests"
         $PYTEST_CMD tests/test_phase2_units.py tests/test_phase3_units.py -m "unit or not integration"
         ;;
-    
+
     integration)
         print_header "Running integration tests"
         $PYTEST_CMD tests/test_phase2_integration.py tests/test_phase3_integration.py -m "integration"
         ;;
-    
+
     performance)
         print_header "Running performance tests"
         print_warning "Performance tests may take significant time"
         $PYTEST_CMD tests/test_performance_suite.py -m "performance"
         ;;
-    
+
     phase2)
         print_header "Running Phase 2 RFID tests"
         $PYTEST_CMD tests/test_phase2_units.py tests/test_phase2_integration.py -m "phase2 or rfid"
         ;;
-    
+
     phase3)
         print_header "Running Phase 3 Security tests"
         $PYTEST_CMD tests/test_phase3_units.py tests/test_phase3_integration.py -m "phase3 or security"
         ;;
-    
+
     coverage)
         print_header "Running tests with coverage analysis"
         print_info "This will run comprehensive coverage analysis..."
-        
+
         # Use the comprehensive coverage script
         if [[ -f "generate_test_coverage.py" ]]; then
             python generate_test_coverage.py
@@ -230,17 +230,17 @@ case $COMMAND in
             print_info "Coverage report generated in htmlcov/index.html"
         fi
         ;;
-    
+
     quick)
         print_header "Running quick tests"
         $PYTEST_CMD tests/ -m "not slow and not performance"
         ;;
-    
+
     security)
         print_header "Running security tests"
-        $PYTEST_CMD tests/ -m "security" 
+        $PYTEST_CMD tests/ -m "security"
         ;;
-    
+
     *)
         print_error "Unknown command: $COMMAND"
         show_help
@@ -251,7 +251,7 @@ esac
 # Check exit code and provide feedback
 if [[ $? -eq 0 ]]; then
     print_success "Tests completed successfully!"
-    
+
     if [[ -n "$HTML_REPORT" ]]; then
         print_info "HTML report available at: test-reports/report.html"
     fi

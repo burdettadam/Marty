@@ -1,6 +1,7 @@
 """
 Configuration settings for the PKD service
 """
+
 from __future__ import annotations
 
 import os

@@ -1,6 +1,7 @@
 """
 CSCA Master List API endpoints
 """
+
 from __future__ import annotations
 
 import io

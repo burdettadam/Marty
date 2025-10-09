@@ -3,7 +3,7 @@
 # =============================================================================
 # Configure Microsoft Demo with Dev Tunnels URLs
 # =============================================================================
-# 
+#
 # This script updates the Kubernetes configuration to use VS Code dev tunnels
 # URLs instead of localhost, enabling proper integration with Microsoft Authenticator.
 #
@@ -152,7 +152,7 @@ fi
 # Function to update ConfigMap
 update_config_map() {
     log_info "Updating ConfigMap with new URLs..."
-    
+
     if [[ "$DRY_RUN" == "true" ]]; then
         log_info "Would update ConfigMap '$CONFIG_MAP' with:"
         echo "  ISSUER_BASE_URL: $ISSUER_URL"
@@ -161,7 +161,7 @@ update_config_map() {
         echo "  CORS_ORIGINS: $CORS_ORIGINS"
         return
     fi
-    
+
     # Update the ConfigMap
     kubectl patch configmap "$CONFIG_MAP" -n "$NAMESPACE" --type='merge' -p="{
         \"data\": {
@@ -171,35 +171,35 @@ update_config_map() {
             \"CORS_ORIGINS\": \"$CORS_ORIGINS\"
         }
     }"
-    
+
     log_success "ConfigMap updated successfully"
 }
 
 # Function to restart deployments
 restart_deployments() {
     log_info "Restarting deployments to apply new configuration..."
-    
+
     if [[ "$DRY_RUN" == "true" ]]; then
         log_info "Would restart deployments:"
         echo "  - issuer-api-microsoft-demo"
         echo "  - verifier-api-microsoft-demo"
         return
     fi
-    
+
     # Restart issuer API deployment
     kubectl rollout restart deployment/issuer-api-microsoft-demo -n "$NAMESPACE"
     log_success "Issuer API deployment restart initiated"
-    
+
     # Restart verifier API deployment
     kubectl rollout restart deployment/verifier-api-microsoft-demo -n "$NAMESPACE"
     log_success "Verifier API deployment restart initiated"
-    
+
     # Wait for deployments to be ready
     log_info "Waiting for deployments to be ready..."
-    
+
     kubectl rollout status deployment/issuer-api-microsoft-demo -n "$NAMESPACE" --timeout=300s
     kubectl rollout status deployment/verifier-api-microsoft-demo -n "$NAMESPACE" --timeout=300s
-    
+
     log_success "All deployments are ready"
 }
 
@@ -211,19 +211,19 @@ test_configuration() {
         echo "  - $VERIFIER_URL/health"
         return
     fi
-    
+
     log_info "Testing new configuration..."
-    
+
     # Wait a moment for services to be ready
     sleep 10
-    
+
     # Test issuer API (but don't fail if it's not ready yet)
     if curl -s -f "$ISSUER_URL/health" > /dev/null 2>&1; then
         log_success "Issuer API is accessible at $ISSUER_URL"
     else
         log_warning "Issuer API not yet ready at $ISSUER_URL (may take a few more seconds)"
     fi
-    
+
     # Test verifier API (but don't fail if it's not ready yet)
     if curl -s -f "$VERIFIER_URL/health" > /dev/null 2>&1; then
         log_success "Verifier API is accessible at $VERIFIER_URL"

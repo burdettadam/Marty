@@ -72,19 +72,22 @@ End-to-end tests verify the entire system workflow from passport issuance to ver
 To add new tests:
 
 1. For service-specific tests, create a new file in the appropriate service directory:
+
    ```
    tests/integration/docker/services/{service-name}/test_feature_name.py
    ```
 
 2. For end-to-end tests, create a new file in the e2e directory:
+
    ```
    tests/integration/docker/e2e/test_flow_name.py
    ```
 
 3. Import and extend the base test class:
+
    ```python
    from tests.integration.docker.helpers.base_docker_test import BaseDockerIntegrationTest
-   
+
    class MyTestCase(BaseDockerIntegrationTest):
        def test_my_feature(self):
            # Test code here

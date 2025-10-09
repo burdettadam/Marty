@@ -46,7 +46,7 @@ services:
     ports:
       - "8000:8000"
     working_dir: /app
-    command: 
+    command:
       - bash
       - -c
       - |

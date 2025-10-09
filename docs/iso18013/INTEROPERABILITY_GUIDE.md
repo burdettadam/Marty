@@ -21,6 +21,7 @@ This document provides comprehensive mapping between Marty's implementation and 
 The Marty platform implements a complete ISO/IEC 18013-5 and 18013-7 compliant mobile driving license (mDL) system with the following components:
 
 ### Marty Implementation Structure
+
 ```
 src/iso18013/
 ├── core.py              # ISO 18013-5 core protocol (§8, §9)
@@ -48,6 +49,7 @@ src/iso18013/
 | §7.3 | `crypto.py:DigitalSignature` | Document security features and signature validation |
 
 **Reference Links:**
+
 - [ISO/IEC 18013-5:2021 §7](https://www.iso.org/standard/69084.html) - Document format and structure
 - [ISO/IEC 18013-5:2021 §7.1](https://www.iso.org/standard/69084.html) - Mandatory and optional data elements
 
@@ -64,6 +66,7 @@ src/iso18013/
 | §8.3.5 | `protocols.py:terminate_session()` | Session termination |
 
 **Key Marty Endpoints:**
+
 ```python
 # Device Engagement (§8.1)
 POST /api/v1/mdl/engagement
@@ -87,6 +90,7 @@ DELETE /api/v1/mdl/session/{session_id}
 | §9.2 | `crypto.py:SelectiveDisclosureCrypto` | Selective disclosure cryptography |
 
 **Reference Links:**
+
 - [ISO/IEC 18013-5:2021 §9](https://www.iso.org/standard/69084.html) - Security requirements
 - [RFC 5869](https://tools.ietf.org/html/rfc5869) - HKDF key derivation
 
@@ -102,6 +106,7 @@ DELETE /api/v1/mdl/session/{session_id}
 | §6.4 | `online.py:PresentationRequest` | Presentation request handling |
 
 **Key Online Endpoints:**
+
 ```python
 # OpenID4VP Integration (§6.1)
 POST /api/v1/mdl/online/authorization
@@ -123,6 +128,7 @@ GET  /api/v1/mdl/consent/history
 | §7.3 | `online.py:RevocationChecker` | Revocation status checking |
 
 **Reference Links:**
+
 - [ISO/IEC 18013-7:2024 §6](https://www.iso.org/standard/82772.html) - Online verification protocols
 - [OpenID4VP](https://openid.net/specs/openid-4-verifiable-presentations-1_0.html) - OpenID for Verifiable Presentations
 
@@ -131,6 +137,7 @@ GET  /api/v1/mdl/consent/history
 ### Core mDL Operations
 
 #### Device Engagement Endpoints
+
 ```http
 # Generate device engagement QR code (ISO 18013-5 §8.1)
 GET /api/v1/mdl/engagement/qr
@@ -151,6 +158,7 @@ Response: {
 ```
 
 #### Session Management Endpoints
+
 ```http
 # Initiate reader session (ISO 18013-5 §8.3.1)
 POST /api/v1/mdl/session/initiate
@@ -191,6 +199,7 @@ Response: {
 ```
 
 #### Credential Management Endpoints
+
 ```http
 # List stored credentials (Holder)
 GET /api/v1/mdl/credentials
@@ -221,6 +230,7 @@ Response: {
 ### Transport-Specific Endpoints
 
 #### BLE Transport (ISO 18013-5 §8.2.1)
+
 ```http
 # BLE device discovery
 GET /api/v1/mdl/ble/discover
@@ -245,6 +255,7 @@ Response: {
 ```
 
 #### NFC Transport (ISO 18013-5 §8.2.2)
+
 ```http
 # NFC card status
 GET /api/v1/mdl/nfc/status
@@ -268,6 +279,7 @@ Response: {
 ### Online Flow Endpoints (ISO 18013-7)
 
 #### OpenID4VP Integration
+
 ```http
 # Authorization request (ISO 18013-7 §6.1)
 POST /api/v1/mdl/online/auth
@@ -303,6 +315,7 @@ The Marty implementation aligns with the [EU Digital Identity Architecture Refer
 ### EUDI ARF Interface Mappings
 
 #### Level 1: Basic Interoperability
+
 ```python
 # EUDI ARF Interface 1.1: Credential Issuance
 POST /api/v1/eudi/credential/issue
@@ -320,6 +333,7 @@ Request: {
 ```
 
 #### Level 2: Advanced Features
+
 ```python
 # EUDI ARF Interface 2.1: Qualified Electronic Signatures
 POST /api/v1/eudi/signature/create
@@ -337,6 +351,7 @@ Response: {
 ```
 
 **Reference Links:**
+
 - [EUDI ARF v1.4.0](https://github.com/eu-digital-identity-wallet/eudi-doc-architecture-and-reference-framework)
 - [EUDI Wallet Implementation Guide](https://github.com/eu-digital-identity-wallet)
 
@@ -415,7 +430,7 @@ OPTIONAL_ALGORITHMS = {
 class DocumentSigner:
     def sign_mdl(self, credential_data: Dict) -> bytes:
         """Signs mDL according to ISO 18013-5 §9.2.1"""
-        
+
     def verify_signature(self, signature: bytes, public_key: PublicKey) -> bool:
         """Verifies signature according to ISO 18013-5 §9.2.2"""
 
@@ -423,7 +438,7 @@ class DocumentSigner:
 class SelectiveDisclosure:
     def create_disclosure_map(self, elements: List[str]) -> Dict:
         """Creates disclosure map per ISO 18013-5 §9.3.1"""
-        
+
     def apply_selective_disclosure(self, data: Dict, disclosure_map: Dict) -> Dict:
         """Applies selective disclosure per ISO 18013-5 §9.3.2"""
 ```
@@ -446,7 +461,7 @@ TEST_VECTORS = {
     ],
     "session_establishment": [
         {
-            "name": "ecdh_key_agreement", 
+            "name": "ecdh_key_agreement",
             "iso_section": "8.3.1",
             "test_data": {...}
         }
@@ -550,20 +565,24 @@ The Marty implementation includes several extensions beyond the base ISO 18013 s
 ## References
 
 ### ISO Standards
+
 - [ISO/IEC 18013-5:2021](https://www.iso.org/standard/69084.html) - Personal identification — ISO-compliant driving licence — Part 5: Mobile driving licence (mDL) application
 - [ISO/IEC 18013-7:2024](https://www.iso.org/standard/82772.html) - Personal identification — ISO-compliant driving licence — Part 7: Mobile driving licence (mDL) add-on functions
 
 ### EUDI Framework
+
 - [EUDI Architecture Reference Framework](https://github.com/eu-digital-identity-wallet/eudi-doc-architecture-and-reference-framework)
 - [EUDI Wallet Implementation](https://github.com/eu-digital-identity-wallet)
 
 ### Technical Specifications
+
 - [OpenID for Verifiable Presentations](https://openid.net/specs/openid-4-verifiable-presentations-1_0.html)
 - [RFC 5869 - HKDF](https://tools.ietf.org/html/rfc5869)
 - [RFC 7515 - JSON Web Signature](https://tools.ietf.org/html/rfc7515)
 - [RFC 8152 - CBOR Object Signing and Encryption](https://tools.ietf.org/html/rfc8152)
 
 ### Implementation Repositories
+
 - [Marty ISO 18013 Implementation](https://github.com/your-org/marty/tree/main/src/iso18013)
 - [ISO 18013-5 Test Vectors](https://github.com/your-org/marty/tree/main/src/iso18013/testing)
 

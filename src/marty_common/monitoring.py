@@ -13,11 +13,12 @@ import threading
 import time
 import uuid
 from collections import defaultdict, deque
+from collections.abc import Callable
 from contextlib import contextmanager
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from enum import Enum
-from typing import Any, Callable
+from typing import Any
 
 import grpc
 import psutil
@@ -509,7 +510,6 @@ class AlertManager:
                             alert.last_triggered is None
                             or (now - alert.last_triggered).total_seconds() > alert.cooldown_seconds
                         ):
-
                             alert.is_active = True
                             alert.triggered_at = now
                             alert.last_triggered = now

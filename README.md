@@ -4,7 +4,9 @@
 [![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/downloads/)
 [![License: Educational Use Only](https://img.shields.io/badge/License-Educational%20Use%20Only-red.svg)](#license)
 [![gRPC](https://img.shields.io/badge/gRPC-1.59+-green.svg)](https://grpc.io/)
-[![Docker](https://img.shields.io/bad## Documentation
+[![Docker](https://img.shields.io/badge/Docker-Compose-blue.svg)](https://docs.docker.com/compose/)
+
+## Documentation
 
 🗺️ **[Platform Architecture](docs/architecture.md)** - The complete "Map of Marty" - system architecture, service layers, and reference flows
 
@@ -17,6 +19,7 @@
 📄 **[API Reference](docs/api/openapi.yaml)** - OpenAPI specification for REST endpoints
 
 ### Implementation Guides
+
 - **[DRY Implementation Guide](docs/DRY_IMPLEMENTATION_GUIDE.md)** - Don't Repeat Yourself patterns and code reduction
 - **[gRPC Service Factory Guide](docs/GRPC_SERVICE_FACTORY_GUIDE.md)** - Ultra-DRY service creation patterns
 - **[Security Implementation](docs/SECURITY.md)** - Production security features and compliance
@@ -25,10 +28,11 @@
 - **[MyPy Type Checking](docs/MYPY_QUICKSTART.md)** - Strong typing implementation guide
 
 ### Standards and Protocols
+
 - **[Cryptographic Boundaries](docs/CRYPTOGRAPHIC_BOUNDARIES_GUIDE.md)** - Crypto security and role separation
 - **[Trust Services Architecture](docs/TRUST_SERVICES_ARCHITECTURE.md)** - PKI and certificate management
 - **[Unified Verification Protocol](docs/UNIFIED_VERIFICATION_PROTOCOL.md)** - Multi-document verification flows
-- **[SPHEREON OIDC4VC Integration](docs/SPHEREON_OIDC4VC_INTEGRATION.md)** - OpenID4VC compatibility testing-Compose-blue.svg)](https://docs.docker.com/compose/)
+- **[SPHEREON OIDC4VC Integration](docs/SPHEREON_OIDC4VC_INTEGRATION.md)** - OpenID4VC compatibility testing-Compose-blue.svg)](<https://docs.docker.com/compose/>)
 
 🎓 **Educational Portfolio Project - ICAO Standards Learning Implementation**
 
@@ -39,6 +43,7 @@ Marty is a comprehensive learning project that implements ICAO PKI standards for
 ## 🎯 Educational Goals
 
 This project was developed to:
+
 - **Learn ICAO Standards**: Practical implementation of ICAO Doc 9303 and ISO/IEC 18013-5
 - **Portfolio Demonstration**: Showcase microservices architecture and cryptographic implementations
 - **Standards Exploration**: Deep dive into international digital identity document specifications
@@ -148,6 +153,7 @@ This project was developed to:
                     │ (Metrics)   │ (Audit)      │
                     └────────────────────────────┘
 ```
+
                           ┌─────────▼─────────┐
                           │   PostgreSQL      │
                           │ (Certificate DB)  │
@@ -158,6 +164,7 @@ This project was developed to:
                           │     OpenXPKI      │
                           │  (External PKI)   │
                           └───────────────────┘
+
 ```
 
 ## 📁 Project Structure
@@ -200,7 +207,7 @@ docker-compose -f docker/docker-compose.yml up --build
 make test
 ```
 
-**🎯 Verify installation**: Open http://localhost:8090 to access the operator UI, or check service status.
+**🎯 Verify installation**: Open <http://localhost:8090> to access the operator UI, or check service status.
 
 > **💡 Tip**: Use `make help` to see all available commands and development shortcuts.
 
@@ -247,14 +254,16 @@ Or run the setup script manually:
 ```
 
 This will:
+
 1. Create necessary directories
 2. Start OpenXPKI using Docker Compose
 3. Configure the system for CSCA & Master List Management
 4. Display connection information
 
 **Access OpenXPKI (Development)**:
-- Web UI: https://localhost:8443/openxpki/
-- API Endpoint: https://localhost:8443/api/v2
+
+- Web UI: <https://localhost:8443/openxpki/>
+- API Endpoint: <https://localhost:8443/api/v2>
 - Username: `pkiadmin` (override with `OPENXPKI_ADMIN_USER`)
 - Password: stored in `data/openxpki/secrets/admin_password.txt` (not committed)
 
@@ -327,12 +336,13 @@ docker-compose up ui-app passport-engine trust-anchor
 ### Operator UI
 
 An operator-friendly UI is available at `src/ui_app` providing:
+
 - Service health monitoring
 - Certificate management
 - Document issuance workflows
 - Verification testing tools
 
-Access at http://localhost:8090 when services are running.
+Access at <http://localhost:8090> when services are running.
 
 ### Configuration
 
@@ -375,16 +385,19 @@ make test-comprehensive          # Includes advanced protocol tests
 The project includes comprehensive integration tests adapted from industry-standard libraries:
 
 **ICAO Standards Testing** (from ZeroPass/pymrtd):
+
 - Basic infrastructure: ElementaryFile, DataGroup functionality
 - MRZ and DG1: Machine Readable Zone processing
 - Security: SOD, DG14/DG15, Active Authentication
 
 **OCR and Image Processing** (from PassportEye):
+
 - MRZ extraction from passport images
 - OCR functionality validation
 - PDF image extraction
 
 **Certificate Validation** (from wbond/certvalidator):
+
 - X.509 certificate validation
 - Path building and validation
 - Certificate revocation (CRL/OCSP)
@@ -421,3 +434,9 @@ Services are configured through environment-specific YAML files in `/config/`.
 **🌟 Educational Portfolio Project** - This implementation demonstrates modern approaches to international digital identity standards, microservices architecture, and secure certificate management in a comprehensive, well-documented platform.
 
 For questions about educational use or portfolio review, please contact the repository owner.
+
+---
+
+## License
+
+This project is provided under an Educational Use Only license for learning and portfolio demonstration. Commercial or production use is not permitted. See the LICENSE file for full terms.

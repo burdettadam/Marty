@@ -1,6 +1,7 @@
 """
 OpenXPKI Service Integration (Trust Anchor Service)
 """
+
 from __future__ import annotations
 
 import base64
@@ -49,35 +50,25 @@ class OpenXPKIService(BaseOpenXPKIService):
             # Prepare import request
             import_data = {
                 "workflow": "import_master_list",
-                "params": {
-                    "data": pem_data,
-                    "format": "PEM",
-                    "source": "TRUST_ANCHOR"
-                }
+                "params": {"data": pem_data, "format": "PEM", "source": "TRUST_ANCHOR"},
             }
 
             success, response = self._api_request("workflow/start", "POST", import_data)
-            
+
             if success:
                 logger.info("Master list import initiated successfully")
                 return {
                     "status": "success",
                     "workflow_id": response.get("workflow_id"),
-                    "message": "Import initiated"
+                    "message": "Import initiated",
                 }
-            
+
             logger.error("Master list import failed: %s", response)
-            return {
-                "status": "error",
-                "error": response.get("error", "Unknown error")
-            }
+            return {"status": "error", "error": response.get("error", "Unknown error")}
 
         except Exception as e:
             logger.exception("Error importing master list")
-            return {
-                "status": "error",
-                "error": str(e)
-            }
+            return {"status": "error", "error": str(e)}
 
     def get_master_list_status(self, workflow_id: str) -> dict[str, Any]:
         """
@@ -91,25 +82,22 @@ class OpenXPKIService(BaseOpenXPKIService):
         """
         try:
             success, response = self._api_request(f"workflow/{workflow_id}/status")
-            
+
             if success:
                 return {
                     "status": "success",
                     "workflow_status": response.get("status"),
-                    "details": response
+                    "details": response,
                 }
-            
+
             return {
                 "status": "error",
-                "error": response.get("error", "Failed to get workflow status")
+                "error": response.get("error", "Failed to get workflow status"),
             }
 
         except Exception as e:
             logger.exception("Error getting workflow status")
-            return {
-                "status": "error",
-                "error": str(e)
-            }
+            return {"status": "error", "error": str(e)}
 
     def import_csca_certificate(
         self, certificate_data: bytes, country_code: str, format_type: str = "DER"
@@ -145,30 +133,24 @@ class OpenXPKIService(BaseOpenXPKIService):
                     "data": pem_data,
                     "country": country_code,
                     "format": "PEM",
-                    "source": "TRUST_ANCHOR"
-                }
+                    "source": "TRUST_ANCHOR",
+                },
             }
 
             success, response = self._api_request("workflow/start", "POST", import_data)
-            
+
             if success:
                 logger.info("CSCA certificate import initiated for %s", country_code)
                 return {
                     "status": "success",
                     "workflow_id": response.get("workflow_id"),
                     "country": country_code,
-                    "message": "Import initiated"
+                    "message": "Import initiated",
                 }
-            
+
             logger.error("CSCA certificate import failed: %s", response)
-            return {
-                "status": "error",
-                "error": response.get("error", "Unknown error")
-            }
+            return {"status": "error", "error": response.get("error", "Unknown error")}
 
         except Exception as e:
             logger.exception("Error importing CSCA certificate")
-            return {
-                "status": "error",
-                "error": str(e)
-            }
+            return {"status": "error", "error": str(e)}

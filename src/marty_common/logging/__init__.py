@@ -1,6 +1,7 @@
 """
 Consolidated logging utilities package
 """
+
 from .consolidated_logging import (
     LoggingMixin,
     PerformanceTimer,

@@ -38,40 +38,40 @@ log_error() {
 # Check prerequisites
 check_prerequisites() {
     log_info "Checking prerequisites..."
-    
+
     local missing_deps=()
-    
+
     if ! command -v kind &> /dev/null; then
         missing_deps+=(kind)
     fi
-    
+
     if ! command -v kubectl &> /dev/null; then
         missing_deps+=(kubectl)
     fi
-    
+
     if ! command -v docker &> /dev/null; then
         missing_deps+=(docker)
     fi
-    
+
     if [ ${#missing_deps[@]} -ne 0 ]; then
         log_error "Missing required dependencies: ${missing_deps[*]}"
         log_info "Please install the missing dependencies and try again."
         exit 1
     fi
-    
+
     # Check if Docker is running
     if ! docker info >/dev/null 2>&1; then
         log_error "Docker is not running. Please start Docker and try again."
         exit 1
     fi
-    
+
     log_success "All prerequisites are satisfied"
 }
 
 # Create Kind cluster
 create_cluster() {
     log_info "Creating Kind cluster: $CLUSTER_NAME"
-    
+
     if kind get clusters | grep -q "^${CLUSTER_NAME}$"; then
         log_warning "Cluster $CLUSTER_NAME already exists"
         read -p "Do you want to recreate it? (y/N): " -n 1 -r
@@ -84,20 +84,20 @@ create_cluster() {
             return 0
         fi
     fi
-    
+
     kind create cluster --config="${K8S_DIR}/kind-config.yaml" --name="$CLUSTER_NAME"
-    
+
     # Wait for cluster to be ready
     log_info "Waiting for cluster to be ready..."
     kubectl wait --for=condition=Ready nodes --all --timeout=300s
-    
+
     log_success "Kind cluster created successfully"
 }
 
 # Load container images into Kind
 load_images() {
     log_info "Loading container images into Kind cluster..."
-    
+
     # List of images to load (these would be built separately)
     local images=(
         "marty-openwallet-issuer:latest"
@@ -105,7 +105,7 @@ load_images() {
         "marty-openwallet-wallet:latest"
         "marty-openwallet-demo-ui:latest"
     )
-    
+
     for image in "${images[@]}"; do
         if docker image inspect "$image" >/dev/null 2>&1; then
             log_info "Loading image: $image"
@@ -115,29 +115,29 @@ load_images() {
             log_info "Note: You'll need to build this image first or it will fail to deploy"
         fi
     done
-    
+
     log_success "Images loaded successfully"
 }
 
 # Install ingress controller
 install_ingress() {
     log_info "Installing ingress controller..."
-    
+
     kubectl apply -f https://raw.githubusercontent.com/kubernetes/ingress-nginx/main/deploy/static/provider/kind/deploy.yaml
-    
+
     log_info "Waiting for ingress controller to be ready..."
     kubectl wait --namespace ingress-nginx \
         --for=condition=ready pod \
         --selector=app.kubernetes.io/component=controller \
         --timeout=300s
-    
+
     log_success "Ingress controller installed successfully"
 }
 
 # Deploy demo applications
 deploy_demo() {
     log_info "Deploying OpenWallet Foundation demo applications..."
-    
+
     # Apply manifests in order
     local manifests=(
         "namespace-and-config.yaml"
@@ -147,36 +147,36 @@ deploy_demo() {
         "wallet-service.yaml"
         "demo-ui.yaml"
     )
-    
+
     for manifest in "${manifests[@]}"; do
         log_info "Applying manifest: $manifest"
         kubectl apply -f "${K8S_DIR}/${manifest}"
     done
-    
+
     log_info "Waiting for deployments to be ready..."
-    
+
     # Wait for PostgreSQL
     kubectl wait --namespace="$NAMESPACE" \
         --for=condition=available deployment/postgres \
         --timeout=300s
-    
+
     # Wait for services
     kubectl wait --namespace="$NAMESPACE" \
         --for=condition=available deployment/issuer-service \
         --timeout=300s
-    
+
     kubectl wait --namespace="$NAMESPACE" \
         --for=condition=available deployment/verifier-service \
         --timeout=300s
-    
+
     kubectl wait --namespace="$NAMESPACE" \
         --for=condition=available deployment/wallet-service \
         --timeout=300s
-    
+
     kubectl wait --namespace="$NAMESPACE" \
         --for=condition=available deployment/demo-ui \
         --timeout=300s
-    
+
     log_success "Demo applications deployed successfully"
 }
 
@@ -219,16 +219,16 @@ cleanup() {
 # Main deployment function
 main() {
     trap cleanup EXIT
-    
+
     log_info "Starting OpenWallet Foundation mDoc/mDL Demo deployment..."
-    
+
     check_prerequisites
     create_cluster
     load_images
     install_ingress
     deploy_demo
     display_access_info
-    
+
     log_success "Deployment completed successfully!"
 }
 

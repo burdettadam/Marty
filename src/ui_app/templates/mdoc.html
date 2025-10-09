@@ -5,7 +5,7 @@
     <header>
       <h2>Mobile Document (mDoc) Engine</h2>
     </header>
-    
+
     <!-- Create mDoc Section -->
     <details open>
       <summary>Create Mobile Document</summary>
@@ -13,10 +13,10 @@
         <div class="form-row">
           <div class="form-group">
             <label for="user_id">User ID:</label>
-            <input type="text" id="user_id" name="user_id" 
+            <input type="text" id="user_id" name="user_id"
                    placeholder="user123" required>
           </div>
-          
+
           <div class="form-group">
             <label for="document_type">Document Type:</label>
             <select id="document_type" name="document_type" required onchange="updateDocumentFields()">
@@ -30,7 +30,7 @@
               <option value="CUSTOM">Custom Document</option>
             </select>
           </div>
-          
+
           <div class="form-group">
             <label for="template_id">Template (optional):</label>
             <select id="template_id" name="template_id">
@@ -43,7 +43,7 @@
             </select>
           </div>
         </div>
-        
+
         <!-- Basic Document Information -->
         <fieldset class="document-info">
           <legend>Document Information</legend>
@@ -52,27 +52,27 @@
               <label for="document_number">Document Number:</label>
               <input type="text" id="document_number" name="document_number" required>
             </div>
-            
+
             <div class="form-group">
               <label for="issuing_authority">Issuing Authority:</label>
-              <input type="text" id="issuing_authority" name="issuing_authority" 
+              <input type="text" id="issuing_authority" name="issuing_authority"
                      placeholder="e.g., Department of Internal Affairs" required>
             </div>
           </div>
-          
+
           <div class="form-row">
             <div class="form-group">
               <label for="issue_date">Issue Date:</label>
               <input type="date" id="issue_date" name="issue_date" required>
             </div>
-            
+
             <div class="form-group">
               <label for="expiry_date">Expiry Date:</label>
               <input type="date" id="expiry_date" name="expiry_date" required>
             </div>
           </div>
         </fieldset>
-        
+
         <!-- Person Information -->
         <fieldset class="person-info">
           <legend>Person Information</legend>
@@ -81,25 +81,25 @@
               <label for="given_name">Given Name:</label>
               <input type="text" id="given_name" name="given_name" required>
             </div>
-            
+
             <div class="form-group">
               <label for="family_name">Family Name:</label>
               <input type="text" id="family_name" name="family_name" required>
             </div>
-            
+
             <div class="form-group">
               <label for="birth_date">Birth Date:</label>
               <input type="date" id="birth_date" name="birth_date" required>
             </div>
           </div>
-          
+
           <div class="form-row">
             <div class="form-group">
               <label for="nationality">Nationality:</label>
-              <input type="text" id="nationality" name="nationality" 
+              <input type="text" id="nationality" name="nationality"
                      placeholder="e.g., NZL" pattern="[A-Z]{3}" title="3-letter country code">
             </div>
-            
+
             <div class="form-group">
               <label for="sex">Sex:</label>
               <select id="sex" name="sex">
@@ -109,34 +109,34 @@
                 <option value="X">Other</option>
               </select>
             </div>
-            
+
             <div class="form-group">
               <label for="height">Height (cm):</label>
               <input type="number" id="height" name="height" min="50" max="250">
             </div>
           </div>
         </fieldset>
-        
+
         <!-- Document Images -->
         <fieldset class="document-images">
           <legend>Document Images</legend>
           <div class="form-row">
             <div class="form-group">
               <label for="portrait">Portrait Photo:</label>
-              <input type="file" id="portrait" name="portrait" 
+              <input type="file" id="portrait" name="portrait"
                      accept="image/jpeg,image/png" onchange="previewImage(this, 'portrait-preview')">
               <div id="portrait-preview" class="image-preview"></div>
             </div>
-            
+
             <div class="form-group">
               <label for="signature_image">Signature:</label>
-              <input type="file" id="signature_image" name="signature_image" 
+              <input type="file" id="signature_image" name="signature_image"
                      accept="image/jpeg,image/png" onchange="previewImage(this, 'signature-preview')">
               <div id="signature-preview" class="image-preview"></div>
             </div>
           </div>
         </fieldset>
-        
+
         <!-- Dynamic Document Fields -->
         <fieldset id="dynamic-fields" class="dynamic-fields" style="display: none;">
           <legend>Document Specific Fields</legend>
@@ -144,10 +144,10 @@
             <!-- Fields will be populated based on document type -->
           </div>
         </fieldset>
-        
+
         <button type="submit" class="button button-primary">Create mDoc</button>
       </form>
-      
+
       {% if create_result %}
         <div class="result-section">
           <h4>Creation Result</h4>
@@ -168,20 +168,20 @@
         </div>
       {% endif %}
     </details>
-    
+
     <!-- Lookup mDoc Section -->
     <details>
       <summary>Lookup Mobile Document</summary>
       <form method="post" action="/mdoc/lookup">
         <div class="form-group">
           <label for="lookup_document_id">Document ID:</label>
-          <input type="text" id="lookup_document_id" name="document_id" 
+          <input type="text" id="lookup_document_id" name="document_id"
                  placeholder="MDOC-" required>
         </div>
-        
+
         <button type="submit" class="button">Lookup mDoc</button>
       </form>
-      
+
       {% if lookup_result %}
         <div class="result-section">
           <h4>Lookup Result</h4>
@@ -193,7 +193,7 @@
                 <h5>{{ lookup_result.document_type }} - {{ lookup_result.document_number }}</h5>
                 <span class="status status-{{ lookup_result.status|lower }}">{{ lookup_result.status }}</span>
               </div>
-              
+
               <div class="mdoc-info-grid">
                 <div class="info-section">
                   <h6>Document Information</h6>
@@ -204,7 +204,7 @@
                     <dt>Expiry Date:</dt><dd>{{ lookup_result.expiry_date }}</dd>
                   </dl>
                 </div>
-                
+
                 {% if lookup_result.person_info %}
                 <div class="info-section">
                   <h6>Person Information</h6>
@@ -216,7 +216,7 @@
                   </dl>
                 </div>
                 {% endif %}
-                
+
                 {% if lookup_result.signature_info %}
                 <div class="info-section">
                   <h6>Signature Information</h6>
@@ -228,7 +228,7 @@
                 </div>
                 {% endif %}
               </div>
-              
+
               {% if lookup_result.document_fields %}
                 <div class="info-section">
                   <h6>Additional Fields</h6>
@@ -239,7 +239,7 @@
                   </dl>
                 </div>
               {% endif %}
-              
+
               <div class="mdoc-actions">
                 <button class="button" onclick="generateQRCode('{{ lookup_result.document_id }}')">Generate QR Code</button>
                 <button class="button" onclick="transferToDevice('{{ lookup_result.document_id }}')">Transfer to Device</button>
@@ -250,7 +250,7 @@
         </div>
       {% endif %}
     </details>
-    
+
     <!-- Document Templates Section -->
     <details>
       <summary>Document Templates</summary>
@@ -259,7 +259,7 @@
           <button class="button" onclick="createTemplate()">Create New Template</button>
           <button class="button" onclick="refreshTemplates()">Refresh Templates</button>
         </div>
-        
+
         {% if templates %}
           <div class="templates-grid">
             {% for template in templates %}
@@ -330,20 +330,20 @@ function updateDocumentFields() {
   const documentType = document.getElementById('document_type').value;
   const dynamicFields = document.getElementById('dynamic-fields');
   const container = document.getElementById('dynamic-fields-container');
-  
+
   if (documentType && documentFields[documentType]) {
     container.innerHTML = '';
     const fields = documentFields[documentType];
-    
+
     fields.forEach(field => {
       const formGroup = document.createElement('div');
       formGroup.className = 'form-group';
-      
+
       const label = document.createElement('label');
       label.setAttribute('for', field.name);
       label.textContent = field.label + (field.required ? ' *' : '') + ':';
       formGroup.appendChild(label);
-      
+
       let input;
       if (field.type === 'select') {
         input = document.createElement('select');
@@ -361,15 +361,15 @@ function updateDocumentFields() {
         input = document.createElement('input');
         input.type = field.type;
       }
-      
+
       input.id = field.name;
       input.name = field.name;
       if (field.required) input.required = true;
-      
+
       formGroup.appendChild(input);
       container.appendChild(formGroup);
     });
-    
+
     dynamicFields.style.display = 'block';
   } else {
     dynamicFields.style.display = 'none';
@@ -379,7 +379,7 @@ function updateDocumentFields() {
 function previewImage(input, previewId) {
   const preview = document.getElementById(previewId);
   const file = input.files[0];
-  
+
   if (file) {
     const reader = new FileReader();
     reader.onload = function(e) {
@@ -406,12 +406,12 @@ function signDocument(documentId) {
   const form = document.createElement('form');
   form.method = 'POST';
   form.action = '/mdoc/sign';
-  
+
   const input = document.createElement('input');
   input.type = 'hidden';
   input.name = 'document_id';
   input.value = documentId;
-  
+
   form.appendChild(input);
   document.body.appendChild(form);
   form.submit();

@@ -1,6 +1,7 @@
 """
 Database connection and interface for PKD service
 """
+
 from __future__ import annotations
 
 import logging

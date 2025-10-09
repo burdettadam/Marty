@@ -7,6 +7,7 @@ The following duplicate and orphaned files have been identified and can be safel
 ## 1. Trust Anchor Duplicate Directory
 
 **Duplicate:** `/src/trust_anchor/trust-anchor/` (entire directory)
+
 - **Files:**
   - `src/trust_anchor/trust-anchor/app/grpc_service.py`
   - `src/trust_anchor/trust-anchor/app/services/openxpki_service.py`
@@ -34,11 +35,13 @@ The following duplicate and orphaned files have been identified and can be safel
 ## Removal Action Plan
 
 1. **Remove trust-anchor duplicate directory:**
+
    ```bash
    rm -rf src/trust_anchor/trust-anchor/
    ```
 
 2. **Remove experimental refactored file:**
+
    ```bash
    rm src/services/mdoc_engine_refactored.py
    ```
@@ -57,6 +60,7 @@ The following duplicate and orphaned files have been identified and can be safel
 ## Verification Steps
 
 After removal:
+
 1. Run full test suite to ensure no broken imports
 2. Check build processes still work correctly
 3. Verify services start up properly

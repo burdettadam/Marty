@@ -26,7 +26,9 @@ def main() -> None:
 
     # Create a PKD Mirror Service instance
     pkd_mirror = PKDMirrorService(
-        pkd_url="https://pkddownloadsg.icao.int", sync_interval=3600, logger=logger  # 1 hour
+        pkd_url="https://pkddownloadsg.icao.int",
+        sync_interval=3600,
+        logger=logger,  # 1 hour
     )
 
     # Print the service configuration

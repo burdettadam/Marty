@@ -1,12 +1,14 @@
 """
 Consolidated logging utilities for DRY logging patterns across services
 """
+
 from __future__ import annotations
 
 import logging
 import os
 import time
-from typing import Any, Callable
+from collections.abc import Callable
+from typing import Any
 
 from marty_common.logging_config import get_logger, setup_logging
 
@@ -108,9 +110,7 @@ class ServiceLogger:
 
         self.info("Service shutting down", extra=info)
 
-    def log_request_start(
-        self, request_id: str, operation: str, **context: Any
-    ) -> None:
+    def log_request_start(self, request_id: str, operation: str, **context: Any) -> None:
         """Log start of request processing."""
         info = {
             "request_id": request_id,
@@ -147,9 +147,7 @@ class ServiceLogger:
         else:
             self.error("Request failed", extra=info)
 
-    def log_performance_metric(
-        self, metric_name: str, value: float, unit: str = "ms"
-    ) -> None:
+    def log_performance_metric(self, metric_name: str, value: float, unit: str = "ms") -> None:
         """Log performance metrics if enabled."""
         if not self.enable_performance_logging:
             return
@@ -232,9 +230,7 @@ def configure_service_logging(
     )
 
 
-def get_service_logger(
-    service_name: str, module_name: str | None = None
-) -> ServiceLogger:
+def get_service_logger(service_name: str, module_name: str | None = None) -> ServiceLogger:
     """
     Get a service logger instance.
 
@@ -252,9 +248,7 @@ def get_service_logger(
 
 
 # Convenience functions for common logging patterns
-def log_service_event(
-    logger: ServiceLogger, event_type: str, message: str, **context: Any
-) -> None:
+def log_service_event(logger: ServiceLogger, event_type: str, message: str, **context: Any) -> None:
     """Log a service event with standardized format."""
     info = {"event_type": event_type, **context}
     logger.info(message, extra=info)

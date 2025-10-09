@@ -361,7 +361,7 @@ all: help
 # Setup development environment
 setup:
 	@echo "Setting up development environment..."
-	@bash scripts/setup_environment.sh
+	@bash scripts/setup_dev_env.sh
 
 # Clean built files and caches
 clean:
@@ -561,7 +561,7 @@ test-e2e-all:
 	@echo "Running all E2E tests..."
 	@$(UV) run pytest tests/e2e/ -v --tb=short
 
-# Run E2E tests with HTML report generation  
+# Run E2E tests with HTML report generation
 test-e2e-report-mvp:
 	@echo "Running E2E tests with HTML report generation..."
 	@mkdir -p tests/e2e/reports

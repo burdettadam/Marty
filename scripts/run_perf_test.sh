@@ -104,7 +104,7 @@ python3 scripts/performance_test.py \
 if [ $? -eq 0 ]; then
     echo -e "${GREEN}✅ Performance test completed successfully${NC}"
     echo -e "${BLUE}📊 Results saved to: $OUTPUT_DIR/${TEST_RUN_ID}.csv${NC}"
-    
+
     # Show summary if available
     if [ -f "$OUTPUT_DIR/${TEST_RUN_ID}_summary.json" ]; then
         echo -e "${YELLOW}📈 Test Summary:${NC}"
@@ -119,22 +119,22 @@ with open('$OUTPUT_DIR/${TEST_RUN_ID}_summary.json', 'r') as f:
     print(f'  Throughput: {data.get(\"throughput\", \"N/A\")} req/s')
 "
     fi
-    
+
     # CI integration - check performance thresholds
     if [ "$CI" = "true" ] || [ "$GITHUB_ACTIONS" = "true" ]; then
         echo -e "${BLUE}🤖 CI Mode - Checking performance thresholds...${NC}"
         python3 scripts/validate_performance_thresholds.py \
             --results-file="$OUTPUT_DIR/${TEST_RUN_ID}.csv" \
             --service="$SERVICE"
-        
+
         if [ $? -ne 0 ]; then
             echo -e "${RED}❌ Performance thresholds not met${NC}"
             exit 1
         fi
-        
+
         echo -e "${GREEN}✅ Performance thresholds passed${NC}"
     fi
-    
+
 else
     echo -e "${RED}❌ Performance test failed${NC}"
     exit 1

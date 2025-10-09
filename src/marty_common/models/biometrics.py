@@ -8,6 +8,7 @@ Models for biometric data formats used in e-passports:
 
 These models comply with the ICAO Doc 9303 and ISO/IEC standards for biometrics.
 """
+
 from __future__ import annotations
 
 import base64

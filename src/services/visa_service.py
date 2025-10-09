@@ -8,6 +8,7 @@ This module implements comprehensive visa management including:
 - Policy enforcement and validation
 - Integration with external systems
 """
+
 from __future__ import annotations
 
 import asyncio
@@ -52,7 +53,7 @@ class VisaService:
         self,
         verification_engine: VisaVerificationEngine | None = None,
         lookup_service: VisaLookupService | None = None,
-        issuer_config: dict[str, Any] | None = None
+        issuer_config: dict[str, Any] | None = None,
     ) -> None:
         """
         Initialize visa service.
@@ -86,7 +87,9 @@ class VisaService:
             VisaIssueError: If visa creation fails
         """
         try:
-            logger.info(f"Creating visa: type={request.document_data.visa_type}, category={request.document_data.visa_category}")
+            logger.info(
+                f"Creating visa: type={request.document_data.visa_type}, category={request.document_data.visa_category}"
+            )
 
             # Validate request
             await self._validate_create_request(request)
@@ -99,7 +102,7 @@ class VisaService:
                 policy_constraints=request.policy_constraints,
                 metadata=request.metadata,
                 created_by=created_by,
-                status=VisaStatus.DRAFT
+                status=VisaStatus.DRAFT,
             )
 
             # Generate security data based on visa type
@@ -245,7 +248,7 @@ class VisaService:
                 total_count=total_count,
                 limit=request.limit,
                 offset=request.offset,
-                has_more=end_idx < total_count
+                has_more=end_idx < total_count,
             )
 
             logger.info(f"Search completed: {len(paginated_visas)} visas returned")
@@ -261,7 +264,7 @@ class VisaService:
         visa_id: str,
         new_status: VisaStatus,
         reason: str | None = None,
-        updated_by: str | None = None
+        updated_by: str | None = None,
     ) -> Visa:
         """
         Update visa status.
@@ -285,13 +288,15 @@ class VisaService:
             old_status = visa.status
             visa.status = new_status
             visa.metadata["status_history"] = visa.metadata.get("status_history", [])
-            visa.metadata["status_history"].append({
-                "from_status": old_status.value,
-                "to_status": new_status.value,
-                "timestamp": datetime.utcnow().isoformat(),
-                "reason": reason,
-                "updated_by": updated_by
-            })
+            visa.metadata["status_history"].append(
+                {
+                    "from_status": old_status.value,
+                    "to_status": new_status.value,
+                    "timestamp": datetime.utcnow().isoformat(),
+                    "reason": reason,
+                    "updated_by": updated_by,
+                }
+            )
             visa.update_timestamp()
 
             logger.info(f"Visa status updated: {visa_id} from {old_status} to {new_status}")
@@ -302,12 +307,7 @@ class VisaService:
         else:
             return visa
 
-    async def revoke_visa(
-        self,
-        visa_id: str,
-        reason: str,
-        revoked_by: str | None = None
-    ) -> Visa:
+    async def revoke_visa(self, visa_id: str, reason: str, revoked_by: str | None = None) -> Visa:
         """
         Revoke a visa.
 
@@ -319,12 +319,7 @@ class VisaService:
         Returns:
             Updated visa object
         """
-        return await self.update_visa_status(
-            visa_id,
-            VisaStatus.REVOKED,
-            reason,
-            revoked_by
-        )
+        return await self.update_visa_status(visa_id, VisaStatus.REVOKED, reason, revoked_by)
 
     async def renew_visa(self, visa_id: str, new_expiry: date) -> Visa:
         """
@@ -429,10 +424,7 @@ class VisaService:
 
             # Generate VDS-NC data
             vds_nc_data = VDSNCEncoder.encode_vds_nc(
-                visa,
-                issuer,
-                private_key,
-                certificate_pem=certificate
+                visa, issuer, private_key, certificate_pem=certificate
             )
 
             visa.vds_nc_data = vds_nc_data
@@ -478,7 +470,9 @@ class VisaService:
 
         return not (request.date_to and visa.document_data.date_of_issue > request.date_to)
 
-    async def _validate_status_transition(self, from_status: VisaStatus, to_status: VisaStatus) -> None:
+    async def _validate_status_transition(
+        self, from_status: VisaStatus, to_status: VisaStatus
+    ) -> None:
         """Validate status transition is allowed."""
         # Define allowed transitions
         allowed_transitions = {
@@ -487,7 +481,7 @@ class VisaService:
             VisaStatus.ACTIVE: [VisaStatus.EXPIRED, VisaStatus.SUSPENDED, VisaStatus.REVOKED],
             VisaStatus.SUSPENDED: [VisaStatus.ACTIVE, VisaStatus.REVOKED],
             VisaStatus.EXPIRED: [VisaStatus.REVOKED],
-            VisaStatus.REVOKED: []  # Terminal state
+            VisaStatus.REVOKED: [],  # Terminal state
         }
 
         if to_status not in allowed_transitions.get(from_status, []):
@@ -508,9 +502,7 @@ class VisaBatchService:
         self.visa_service = visa_service
 
     async def create_visas_batch(
-        self,
-        requests: list[VisaCreateRequest],
-        created_by: str | None = None
+        self, requests: list[VisaCreateRequest], created_by: str | None = None
     ) -> list[Visa | Exception]:
         """
         Create multiple visas in batch.
@@ -527,10 +519,7 @@ class VisaBatchService:
         results = []
 
         # Process in parallel
-        tasks = [
-            self.visa_service.create_visa(request, created_by)
-            for request in requests
-        ]
+        tasks = [self.visa_service.create_visa(request, created_by) for request in requests]
 
         # Gather results with exception handling
         for i, task in enumerate(asyncio.as_completed(tasks)):
@@ -542,12 +531,13 @@ class VisaBatchService:
                 results.append(e)
                 logger.exception(f"Batch item {i+1} failed: {e!s}")
 
-        logger.info(f"Batch creation completed: {len([r for r in results if isinstance(r, Visa)])} succeeded")
+        logger.info(
+            f"Batch creation completed: {len([r for r in results if isinstance(r, Visa)])} succeeded"
+        )
         return results
 
     async def verify_visas_batch(
-        self,
-        requests: list[VisaVerifyRequest]
+        self, requests: list[VisaVerifyRequest]
     ) -> list[VerificationResult | Exception]:
         """
         Verify multiple visas in batch.
@@ -563,10 +553,7 @@ class VisaBatchService:
         results = []
 
         # Process in parallel
-        tasks = [
-            self.visa_service.verify_visa(request)
-            for request in requests
-        ]
+        tasks = [self.visa_service.verify_visa(request) for request in requests]
 
         # Gather results with exception handling
         for i, task in enumerate(asyncio.as_completed(tasks)):
@@ -578,7 +565,9 @@ class VisaBatchService:
                 results.append(e)
                 logger.exception(f"Batch verification {i+1} failed: {e!s}")
 
-        logger.info(f"Batch verification completed: {len([r for r in results if isinstance(r, VerificationResult)])} succeeded")
+        logger.info(
+            f"Batch verification completed: {len([r for r in results if isinstance(r, VerificationResult)])} succeeded"
+        )
         return results
 
 
@@ -607,7 +596,7 @@ class VisaReportingService:
             "by_type": {},
             "by_category": {},
             "by_nationality": {},
-            "expiring_soon": 0
+            "expiring_soon": 0,
         }
 
         today = date.today()
@@ -649,7 +638,8 @@ class VisaReportingService:
         threshold = date.today() + timedelta(days=days_ahead)
 
         expiring_visas = [
-            visa for visa in self.visa_service.visa_storage.values()
+            visa
+            for visa in self.visa_service.visa_storage.values()
             if visa.document_data.date_of_expiry <= threshold
             and visa.status in [VisaStatus.ISSUED, VisaStatus.ACTIVE]
         ]

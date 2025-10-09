@@ -24,8 +24,7 @@ from marty_common.monitoring import (
 
 # Configure logging
 logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+    level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
 )
 
 logger = logging.getLogger(__name__)
@@ -41,10 +40,7 @@ class MonitoredService:
 
         # Create service monitor
         self.monitor = create_service_monitor(
-            service_name=service_name,
-            service_version="1.0.0",
-            port=port,
-            environment="production"
+            service_name=service_name, service_version="1.0.0", port=port, environment="production"
         )
 
         # Setup monitoring components
@@ -58,14 +54,14 @@ class MonitoredService:
             name="grpc_server_health",
             description="Check if gRPC server is running",
             check_function=self._check_grpc_server,
-            critical=True
+            critical=True,
         )
 
         self.monitor.health_monitor.add_health_check(
             name="database_connection",
             description="Check database connectivity (mock)",
             check_function=self._check_database,
-            critical=True
+            critical=True,
         )
 
         # Add custom alerts
@@ -73,14 +69,14 @@ class MonitoredService:
             name="high_request_rate",
             description="Request rate is unusually high",
             severity=AlertSeverity.WARNING,
-            condition=self._check_high_request_rate
+            condition=self._check_high_request_rate,
         )
 
         self.monitor.alert_manager.add_alert(
             name="service_degraded",
             description="Service is in degraded state",
             severity=AlertSeverity.ERROR,
-            condition=self._check_service_degraded
+            condition=self._check_service_degraded,
         )
 
         # Add alert callback
@@ -105,12 +101,15 @@ class MonitoredService:
         """Check if service is degraded."""
         health_status = self.monitor.health_monitor.current_status
         from marty_common.monitoring import HealthStatus
+
         return health_status == HealthStatus.DEGRADED
 
     def _handle_alert(self, alert) -> None:
         """Handle triggered alerts."""
-        logger.warning(f"ALERT TRIGGERED: {alert.name} - {alert.description} "
-                      f"(Severity: {alert.severity.value})")
+        logger.warning(
+            f"ALERT TRIGGERED: {alert.name} - {alert.description} "
+            f"(Severity: {alert.severity.value})"
+        )
 
         # In production, this would send notifications via email, Slack, etc.
         if alert.severity == AlertSeverity.CRITICAL:
@@ -123,8 +122,7 @@ class MonitoredService:
         # Create gRPC server with monitoring interceptor
         metrics_interceptor = create_metrics_interceptor(self.monitor)
         self.server = grpc.server(
-            futures.ThreadPoolExecutor(max_workers=10),
-            interceptors=[metrics_interceptor]
+            futures.ThreadPoolExecutor(max_workers=10), interceptors=[metrics_interceptor]
         )
 
         # Add service implementation here (would be actual proto service)
@@ -156,15 +154,11 @@ class MonitoredService:
 
                 # Record some custom metrics
                 self.monitor.metrics_collector.increment_counter(
-                    "custom.requests.processed",
-                    {"endpoint": "test", "status": "success"}
+                    "custom.requests.processed", {"endpoint": "test", "status": "success"}
                 )
 
                 if i % 5 == 0:
-                    self.monitor.metrics_collector.set_gauge(
-                        "custom.active_connections",
-                        i + 1
-                    )
+                    self.monitor.metrics_collector.set_gauge("custom.active_connections", i + 1)
 
         logger.info("Activity simulation complete")
 

@@ -223,7 +223,7 @@ class PassportChipSession:
 
         value = bytes([tag]) + PassportChipSession._encode_length(len(public_key)) + public_key
         # Wrap in dynamic authentication template tag 0x7C
-        return b"\x7C" + PassportChipSession._encode_length(len(value)) + value
+        return b"\x7c" + PassportChipSession._encode_length(len(value)) + value
 
     @staticmethod
     def _extract_pace_element(payload: bytes, expected_tag: int) -> bytes:

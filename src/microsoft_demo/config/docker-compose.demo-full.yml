@@ -130,17 +130,17 @@ services:
     ports:
       - "${ISSUER_PORT:-8000}:8000"
     working_dir: /app
-    command: 
+    command:
       - bash
       - -c
       - |
         echo "Installing dependencies..."
         pip install --no-cache-dir fastapi uvicorn[standard] pydantic qrcode[pil] jinja2 python-multipart \
                                    psycopg2-binary minio hvac sqlalchemy
-        
+
         echo "Waiting for dependencies..."
         sleep 10
-        
+
         echo "Starting Microsoft Demo Issuer API..."
         python -m uvicorn issuer_api:app --host 0.0.0.0 --port 8000 --reload
     volumes:
@@ -196,10 +196,10 @@ services:
         echo "Installing dependencies..."
         pip install --no-cache-dir fastapi uvicorn[standard] pydantic qrcode[pil] jinja2 python-multipart \
                                    psycopg2-binary minio hvac sqlalchemy
-        
+
         echo "Waiting for dependencies..."
         sleep 10
-        
+
         echo "Starting Microsoft Demo Verifier API..."
         python -m uvicorn verifier_api:app --host 0.0.0.0 --port 8001 --reload
     volumes:

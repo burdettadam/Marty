@@ -10,6 +10,7 @@ This module implements comprehensive visa models supporting:
 Supports visa categories, document numbers, issuing states, personal data,
 validity periods, and place of issue per ICAO standards.
 """
+
 from __future__ import annotations
 
 import uuid
@@ -22,14 +23,16 @@ from pydantic import BaseModel, Field, field_validator, model_validator
 
 class VisaType(str, Enum):
     """Visa document types."""
+
     MRV_TYPE_A = "MRV_A"  # 2-line MRZ
     MRV_TYPE_B = "MRV_B"  # 3-line MRZ
-    E_VISA = "E_VISA"     # Digital Travel Authorization
-    DTA = "DTA"           # Digital Travel Authorization (alias)
+    E_VISA = "E_VISA"  # Digital Travel Authorization
+    DTA = "DTA"  # Digital Travel Authorization (alias)
 
 
 class VisaCategory(str, Enum):
     """Visa categories per ICAO standards."""
+
     # Visitor visas
     B1 = "B1"  # Business visitor
     B2 = "B2"  # Tourist/pleasure
@@ -40,23 +43,23 @@ class VisaCategory(str, Enum):
     C1_D = "C1/D"  # Transit/crew
 
     # Crew visas
-    D = "D"    # Crew member
+    D = "D"  # Crew member
 
     # Work visas
     H1B = "H1B"  # Specialty occupation
     H2A = "H2A"  # Temporary agricultural worker
     H2B = "H2B"  # Temporary non-agricultural worker
-    L1 = "L1"    # Intracompany transferee
+    L1 = "L1"  # Intracompany transferee
 
     # Student visas
-    F1 = "F1"    # Academic student
-    M1 = "M1"    # Vocational student
-    J1 = "J1"    # Exchange visitor
+    F1 = "F1"  # Academic student
+    M1 = "M1"  # Vocational student
+    J1 = "J1"  # Exchange visitor
 
     # Diplomatic visas
-    A1 = "A1"    # Ambassador/diplomat
-    A2 = "A2"    # Other diplomatic
-    G1 = "G1"    # International organization representative
+    A1 = "A1"  # Ambassador/diplomat
+    A2 = "A2"  # Other diplomatic
+    G1 = "G1"  # International organization representative
 
     # Other categories
     OTHER = "OTHER"
@@ -64,6 +67,7 @@ class VisaCategory(str, Enum):
 
 class Gender(str, Enum):
     """Gender codes per ICAO standards."""
+
     MALE = "M"
     FEMALE = "F"
     UNSPECIFIED = "X"
@@ -71,6 +75,7 @@ class Gender(str, Enum):
 
 class VisaStatus(str, Enum):
     """Visa lifecycle status."""
+
     DRAFT = "DRAFT"
     ISSUED = "ISSUED"
     ACTIVE = "ACTIVE"
@@ -81,21 +86,20 @@ class VisaStatus(str, Enum):
 
 class SecurityModel(str, Enum):
     """Security models for visa verification."""
-    MRZ_ONLY = "MRZ_ONLY"        # MRZ with check digits only
-    VDS_NC = "VDS_NC"            # VDS-NC barcode with signatures
-    CHIP_LDS = "CHIP_LDS"        # RFID chip with LDS
-    HYBRID = "HYBRID"            # Multiple security features
+
+    MRZ_ONLY = "MRZ_ONLY"  # MRZ with check digits only
+    VDS_NC = "VDS_NC"  # VDS-NC barcode with signatures
+    CHIP_LDS = "CHIP_LDS"  # RFID chip with LDS
+    HYBRID = "HYBRID"  # Multiple security features
 
 
 class PersonalData(BaseModel):
     """Personal information for visa holder."""
+
     surname: str = Field(..., min_length=1, max_length=39, description="Primary surname")
     given_names: str = Field(..., min_length=1, max_length=39, description="Given names")
     nationality: str = Field(
-        ...,
-        min_length=3,
-        max_length=3,
-        description="3-letter nationality code"
+        ..., min_length=3, max_length=3, description="3-letter nationality code"
     )
     date_of_birth: date = Field(..., description="Date of birth")
     gender: Gender = Field(..., description="Gender code")
@@ -126,18 +130,13 @@ class PersonalData(BaseModel):
 
 class VisaDocumentData(BaseModel):
     """Core visa document information."""
+
     document_number: str = Field(
-        ...,
-        min_length=1,
-        max_length=9,
-        description="Visa document number"
+        ..., min_length=1, max_length=9, description="Visa document number"
     )
     document_type: str = Field(default="V", description="Document type code (V for visa)")
     issuing_state: str = Field(
-        ...,
-        min_length=3,
-        max_length=3,
-        description="3-letter issuing country code"
+        ..., min_length=3, max_length=3, description="3-letter issuing country code"
     )
     visa_category: VisaCategory = Field(..., description="Visa category/type")
     visa_type: VisaType = Field(..., description="Visa document type")
@@ -154,8 +153,7 @@ class VisaDocumentData(BaseModel):
 
     # Entry information
     number_of_entries: str | None = Field(
-        None,
-        description="Number of allowed entries (S, M, etc.)"
+        None, description="Number of allowed entries (S, M, etc.)"
     )
     duration_of_stay: int | None = Field(None, description="Maximum stay duration in days")
 
@@ -208,6 +206,7 @@ class VisaDocumentData(BaseModel):
 
 class MRZData(BaseModel):
     """Machine Readable Zone data for visa."""
+
     type_a_line1: str | None = Field(None, max_length=44, description="Type A MRZ line 1")
     type_a_line2: str | None = Field(None, max_length=44, description="Type A MRZ line 2")
 
@@ -216,20 +215,14 @@ class MRZData(BaseModel):
     type_b_line3: str | None = Field(None, max_length=36, description="Type B MRZ line 3")
 
     check_digit_document: str | None = Field(
-        None,
-        max_length=1,
-        description="Document number check digit"
+        None, max_length=1, description="Document number check digit"
     )
     check_digit_dob: str | None = Field(None, max_length=1, description="Date of birth check digit")
     check_digit_expiry: str | None = Field(
-        None,
-        max_length=1,
-        description="Expiry date check digit"
+        None, max_length=1, description="Expiry date check digit"
     )
     check_digit_composite: str | None = Field(
-        None,
-        max_length=1,
-        description="Composite check digit"
+        None, max_length=1, description="Composite check digit"
     )
 
     @field_validator("type_a_line1", "type_a_line2", "type_b_line1", "type_b_line2", "type_b_line3")
@@ -247,6 +240,7 @@ class MRZData(BaseModel):
 
 class VDSNCData(BaseModel):
     """VDS-NC (Visible Digital Seal - Non-Constrained) data for e-visa."""
+
     header: dict[str, Any] = Field(default_factory=dict, description="VDS-NC header")
     message: dict[str, Any] = Field(default_factory=dict, description="VDS-NC message payload")
     signature: str | None = Field(None, description="Digital signature")
@@ -261,6 +255,7 @@ class VDSNCData(BaseModel):
 
 class PolicyConstraints(BaseModel):
     """Policy constraints and rules for visa."""
+
     allowed_countries: list[str] | None = Field(None, description="Allowed destination countries")
     restricted_countries: list[str] | None = Field(None, description="Restricted countries")
     purpose_restrictions: list[str] | None = Field(None, description="Purpose restrictions")
@@ -275,10 +270,10 @@ class PolicyConstraints(BaseModel):
 
 class VerificationResult(BaseModel):
     """Results of visa verification process."""
+
     is_valid: bool = Field(..., description="Overall validity")
     verification_timestamp: datetime = Field(
-        default_factory=datetime.utcnow,
-        description="Verification time"
+        default_factory=datetime.utcnow, description="Verification time"
     )
 
     # MRZ verification
@@ -303,17 +298,16 @@ class VerificationResult(BaseModel):
     # Additional details
     warnings: list[str] = Field(default_factory=list, description="Verification warnings")
     verification_details: dict[str, Any] = Field(
-        default_factory=dict,
-        description="Additional verification details"
+        default_factory=dict, description="Additional verification details"
     )
 
 
 class Visa(BaseModel):
     """Complete visa document model."""
+
     # Identifiers
     visa_id: str = Field(
-        default_factory=lambda: str(uuid.uuid4()),
-        description="Unique visa identifier"
+        default_factory=lambda: str(uuid.uuid4()), description="Unique visa identifier"
     )
     version: str = Field(default="1.0", description="Visa document version")
 
@@ -333,19 +327,16 @@ class Visa(BaseModel):
     status: VisaStatus = Field(default=VisaStatus.DRAFT, description="Visa status")
     created_at: datetime = Field(default_factory=datetime.utcnow, description="Creation timestamp")
     updated_at: datetime = Field(
-        default_factory=datetime.utcnow,
-        description="Last update timestamp"
+        default_factory=datetime.utcnow, description="Last update timestamp"
     )
     created_by: str | None = Field(None, description="Creator identifier")
 
     # Verification history
     last_verification: VerificationResult | None = Field(
-        None,
-        description="Last verification result"
+        None, description="Last verification result"
     )
     verification_history: list[VerificationResult] = Field(
-        default_factory=list,
-        description="Verification history"
+        default_factory=list, description="Verification history"
     )
 
     # Additional metadata
@@ -417,6 +408,7 @@ class Visa(BaseModel):
 
 class VisaCreateRequest(BaseModel):
     """Request model for creating a new visa."""
+
     personal_data: PersonalData = Field(..., description="Personal information")
     document_data: VisaDocumentData = Field(..., description="Document information")
     security_model: SecurityModel = Field(..., description="Security model to use")
@@ -426,6 +418,7 @@ class VisaCreateRequest(BaseModel):
 
 class VisaVerifyRequest(BaseModel):
     """Request model for verifying a visa."""
+
     # Input methods
     visa_id: str | None = Field(None, description="Visa ID for lookup")
     mrz_data: str | None = Field(None, description="Raw MRZ data")
@@ -453,6 +446,7 @@ class VisaVerifyRequest(BaseModel):
 
 class VisaSearchRequest(BaseModel):
     """Request model for searching visas."""
+
     document_number: str | None = Field(None, description="Document number")
     surname: str | None = Field(None, description="Surname")
     nationality: str | None = Field(None, description="Nationality")
@@ -467,6 +461,7 @@ class VisaSearchRequest(BaseModel):
 
 class VisaSearchResponse(BaseModel):
     """Response model for visa search."""
+
     visas: list[Visa] = Field(..., description="Found visas")
     total_count: int = Field(..., description="Total matching visas")
     limit: int = Field(..., description="Results limit")

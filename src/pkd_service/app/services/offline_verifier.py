@@ -1,11 +1,12 @@
 """
 Service for offline verification of certificates against a local trust store
 """
+
 from __future__ import annotations
 
 import logging
 import os
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
 
 from app.core.config import settings

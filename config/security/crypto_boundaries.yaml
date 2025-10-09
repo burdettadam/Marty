@@ -6,7 +6,7 @@ crypto_boundaries:
   role_separation:
     enabled: true
     strict_enforcement: true
-    
+
     # Issuing Authority roles (private keys must never be exposed)
     issuing_authorities:
       csca:
@@ -16,7 +16,7 @@ crypto_boundaries:
         max_lifetime_days: 3650  # 10 years
         requires_audit: true
         cross_boundary_usage: false
-        
+
       dsc:
         description: "Document Signer Certificate"
         purposes: ["document_signing", "vds_nc_signing"]
@@ -24,7 +24,7 @@ crypto_boundaries:
         max_lifetime_days: 1095  # 3 years
         requires_audit: true
         cross_boundary_usage: false
-    
+
     # Verification roles (only need public keys)
     verification_roles:
       reader:
@@ -33,14 +33,14 @@ crypto_boundaries:
         security_level: "software_ok"
         requires_audit: true
         cross_boundary_usage: false
-        
+
       verifier:
         description: "Verification service"
         purposes: ["signature_verification", "certificate_validation"]
         security_level: "software_ok"
         requires_audit: true
         cross_boundary_usage: false
-    
+
     # End-user roles (completely separate key space)
     end_user_roles:
       wallet:
@@ -50,7 +50,7 @@ crypto_boundaries:
         max_lifetime_days: 365  # 1 year
         requires_audit: false
         cross_boundary_usage: false
-        
+
       holder:
         description: "Document holder/owner"
         purposes: ["ephemeral_communication", "session_establishment"]
@@ -58,7 +58,7 @@ crypto_boundaries:
         max_lifetime_days: 1  # Very short-lived
         requires_audit: false
         cross_boundary_usage: false
-    
+
     # Infrastructure roles
     infrastructure_roles:
       audit:
@@ -68,7 +68,7 @@ crypto_boundaries:
         max_lifetime_days: 1095  # 3 years
         requires_audit: true
         cross_boundary_usage: false
-        
+
       evidence:
         description: "Evidence/outcome signing"
         purposes: ["evidence_signing"]
@@ -85,7 +85,7 @@ kms_providers:
     staging: "software_hsm"      # Use software HSM in staging
     development: "software_hsm"  # Use software HSM in dev
     testing: "file_based"        # Use file-based for testing
-  
+
   # Provider-specific configurations
   providers:
     aws_kms:
@@ -93,23 +93,23 @@ kms_providers:
       key_policy_template: "crypto_role_based_policy"
       automatic_key_rotation: true
       key_deletion_window: 30  # days
-      
+
     azure_key_vault:
       vault_url: "${AZURE_KEY_VAULT_URL}"
       tenant_id: "${AZURE_TENANT_ID}"
       managed_identity: true
-      
+
     gcp_kms:
       project_id: "${GCP_PROJECT_ID}"
       location: "global"
       key_ring: "marty-crypto-keys"
-      
+
     software_hsm:
       storage_path: "${DATA_DIR}/software_hsm"
       encryption_enabled: true
       backup_enabled: true
       backup_frequency: "daily"
-      
+
     file_based:
       storage_path: "${DATA_DIR}/dev_keys"
       warning_message: "FOR DEVELOPMENT ONLY - NOT SECURE"
@@ -118,7 +118,7 @@ kms_providers:
 evidence_signing:
   enabled: true
   mandatory_for_roles: ["csca", "dsc", "verifier"]
-  
+
   # Evidence types that must be signed
   mandatory_evidence_types:
     - "document_verification"
@@ -126,19 +126,19 @@ evidence_signing:
     - "signature_verification"
     - "audit_log_entry"
     - "system_security_event"
-  
+
   # Evidence format and storage
   evidence_format: "json"  # json, cbor, xml, jwt
   chain_integrity: true    # Enable evidence chaining
   timestamping: true       # Add trusted timestamps
-  
+
   # Evidence retention
   retention:
     audit_logs: 2555      # 7 years (days)
     verification_outcomes: 1095  # 3 years
     security_events: 2555 # 7 years
     temporary_evidence: 30 # 30 days
-  
+
   # Evidence signing keys
   signing_keys:
     algorithm: "ES256"
@@ -153,45 +153,45 @@ key_management:
       signing: "ES256"          # ECDSA with P-256
       encryption: "AES-256-GCM" # AES-256 GCM
       key_agreement: "ECDH-ES"  # ECDH Ephemeral Static
-    
+
     minimum_key_sizes:
       rsa: 2048
       ec: 256
       aes: 256
-    
+
     entropy_requirements:
       min_entropy_bits: 256
       hardware_random: true  # Require hardware RNG when available
-  
+
   # Key rotation policies
   rotation:
     automatic_rotation: true
     overlap_period_days: 30  # Keep old keys for 30 days during rotation
-    
+
     rotation_schedules:
       csca_keys: 1095        # 3 years
       dsc_keys: 365          # 1 year
       evidence_keys: 365     # 1 year
       ephemeral_keys: 1      # 1 day
-      
+
     rotation_triggers:
       - "scheduled"          # Based on schedule
       - "compromise_detected" # When compromise is detected
       - "policy_change"      # When policy changes
       - "manual_request"     # Manual operator request
-  
+
   # Key backup and recovery
   backup:
     enabled: true
     encryption_required: true
     geographic_distribution: true
     minimum_copies: 3
-    
+
     backup_schedules:
       hsm_keys: "daily"
       software_keys: "hourly"
       evidence_keys: "real_time"
-    
+
     recovery_procedures:
       require_multiple_approvers: true
       minimum_approvers: 2
@@ -204,7 +204,7 @@ audit:
   key_operations:
     audit_all_operations: true
     real_time_alerting: true
-    
+
     audited_operations:
       - "key_generation"
       - "key_rotation"
@@ -214,26 +214,26 @@ audit:
       - "key_export"
       - "backup_operation"
       - "recovery_operation"
-    
+
     alert_conditions:
       - "unusual_key_usage"
       - "cross_role_access_attempt"
       - "failed_operations"
       - "bulk_operations"
       - "off_hours_access"
-  
+
   # Compliance requirements
   compliance:
     frameworks: ["FIPS_140_2", "Common_Criteria", "GDPR", "SOC2"]
-    
+
     fips_140_2:
       level: 2  # Level 2 minimum for production
       validated_modules_only: true
-      
+
     common_criteria:
       evaluation_level: "EAL4+"
       protection_profiles: ["HSM_PP", "PKI_PP"]
-    
+
     gdpr:
       data_protection_by_design: true
       privacy_impact_assessments: true
@@ -246,14 +246,14 @@ monitoring:
     track_all_usage: true
     anomaly_detection: true
     machine_learning_detection: true
-    
+
     monitoring_metrics:
       - "operations_per_second"
       - "failed_operation_rate"
       - "unusual_access_patterns"
       - "geographic_access_patterns"
       - "time_based_patterns"
-  
+
   # Alerting configuration
   alerting:
     immediate_alerts:
@@ -262,7 +262,7 @@ monitoring:
       - "hsm_tamper_detection"
       - "key_compromise_detected"
       - "audit_log_tampering"
-    
+
     alert_destinations:
       email: ["security@company.com", "ops@company.com"]
       slack: ["#security-alerts", "#ops-alerts"]
@@ -276,13 +276,13 @@ integrations:
     migration_mode: true
     dual_operation: true  # Support both old and new systems during transition
     migration_deadline: "2025-12-31"
-    
+
   # External HSM integration
   external_hsm:
     pkcs11_support: true
     network_attached_hsm: true
     cloud_hsm_support: true
-    
+
   # Certificate authority integration
   certificate_authorities:
     internal_ca: true
@@ -297,7 +297,7 @@ development:
     disable_audit_requirements: false  # Keep audit even in dev
     reduced_key_sizes: false           # Don't reduce key sizes
     skip_compliance_checks: false     # Keep compliance checks
-  
+
   # Testing configurations
   testing:
     mock_hsm_provider: true
@@ -313,17 +313,17 @@ deployment:
       enforce_hsm_requirements: true
       strict_role_separation: true
       mandatory_evidence_signing: true
-      
+
     staging:
       enforce_hsm_requirements: false
       strict_role_separation: true
       mandatory_evidence_signing: true
-      
+
     development:
       enforce_hsm_requirements: false
       strict_role_separation: true
       mandatory_evidence_signing: false
-  
+
   # Migration settings
   migration:
     gradual_migration: true

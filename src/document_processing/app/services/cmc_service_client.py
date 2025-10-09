@@ -69,11 +69,10 @@ class CMCServiceClient:
                     employer=cmc_data.get("employer", ""),
                     crew_id=cmc_data.get("crew_id", ""),
                     security_model=getattr(
-                        cmc_engine_pb2.CMCSecurityModel,
-                        cmc_data.get("security_model", "CHIP_LDS")
+                        cmc_engine_pb2.CMCSecurityModel, cmc_data.get("security_model", "CHIP_LDS")
                     ),
                     face_image=cmc_data.get("face_image", b""),
-                    background_check_verified=cmc_data.get("background_check_verified", False)
+                    background_check_verified=cmc_data.get("background_check_verified", False),
                 )
 
                 # Make the gRPC call
@@ -84,7 +83,7 @@ class CMCServiceClient:
                     "cmc_id": response.cmc_id if response.success else None,
                     "td1_mrz": response.td1_mrz if response.success else None,
                     "security_model": response.security_model if response.success else None,
-                    "error_message": response.error_message if not response.success else None
+                    "error_message": response.error_message if not response.success else None,
                 }
 
         except ImportError as e:
@@ -120,20 +119,23 @@ class CMCServiceClient:
                 stub = cmc_engine_pb2_grpc.CMCEngineStub(channel)
 
                 request = cmc_engine_pb2.SignCMCRequest(
-                    cmc_id=cmc_id,
-                    signer_id=signer_id or "document-signer-default"
+                    cmc_id=cmc_id, signer_id=signer_id or "document-signer-default"
                 )
 
                 response = await stub.SignCMC(request, timeout=self.timeout)
 
                 return {
                     "success": response.success,
-                    "signature_info": {
-                        "signature_date": response.signature_info.signature_date,
-                        "signer_id": response.signature_info.signer_id,
-                        "algorithm": getattr(response.signature_info, "algorithm", "ES256")
-                    } if response.success and response.signature_info else None,
-                    "error_message": response.error_message if not response.success else None
+                    "signature_info": (
+                        {
+                            "signature_date": response.signature_info.signature_date,
+                            "signer_id": response.signature_info.signer_id,
+                            "algorithm": getattr(response.signature_info, "algorithm", "ES256"),
+                        }
+                        if response.success and response.signature_info
+                        else None
+                    ),
+                    "error_message": response.error_message if not response.success else None,
                 }
 
         except ImportError as e:
@@ -170,7 +172,9 @@ class CMCServiceClient:
                 # Build the request based on provided data
                 request = cmc_engine_pb2.VerifyCMCRequest(
                     check_revocation=verification_data.get("check_revocation", True),
-                    validate_background_check=verification_data.get("validate_background_check", True)
+                    validate_background_check=verification_data.get(
+                        "validate_background_check", True
+                    ),
                 )
 
                 # Set the verification data (one of these must be provided)
@@ -194,7 +198,7 @@ class CMCServiceClient:
                             "check_name": result.check_name,
                             "passed": result.passed,
                             "details": result.details,
-                            "error_code": getattr(result, "error_code", None)
+                            "error_code": getattr(result, "error_code", None),
                         }
                         for result in response.verification_results
                     ]
@@ -202,9 +206,13 @@ class CMCServiceClient:
                 return {
                     "success": response.success,
                     "is_valid": response.is_valid if response.success else False,
-                    "cmc_data": self._convert_cmc_to_dict(response.cmc) if response.success and response.cmc else None,
+                    "cmc_data": (
+                        self._convert_cmc_to_dict(response.cmc)
+                        if response.success and response.cmc
+                        else None
+                    ),
                     "verification_results": verification_results,
-                    "error_message": response.error_message if not response.success else None
+                    "error_message": response.error_message if not response.success else None,
                 }
 
         except ImportError as e:
@@ -220,7 +228,9 @@ class CMCServiceClient:
             error_msg = f"CMC verification failed: {e!s}"
             raise CMCServiceError(error_msg) from e
 
-    async def background_check(self, cmc_id: str, check_authority: str, check_reference: str | None = None) -> dict[str, Any]:
+    async def background_check(
+        self, cmc_id: str, check_authority: str, check_reference: str | None = None
+    ) -> dict[str, Any]:
         """Initiate or check background verification for CMC.
 
         Args:
@@ -243,7 +253,7 @@ class CMCServiceClient:
                 request = cmc_engine_pb2.BackgroundCheckRequest(
                     cmc_id=cmc_id,
                     check_authority=check_authority,
-                    check_reference=check_reference or f"BGC-{cmc_id[:8]}"
+                    check_reference=check_reference or f"BGC-{cmc_id[:8]}",
                 )
 
                 response = await stub.CheckBackgroundVerification(request, timeout=self.timeout)
@@ -254,7 +264,7 @@ class CMCServiceClient:
                     "check_date": response.check_date if response.success else None,
                     "check_authority": response.check_authority if response.success else None,
                     "check_reference": response.check_reference if response.success else None,
-                    "error_message": response.error_message if not response.success else None
+                    "error_message": response.error_message if not response.success else None,
                 }
 
         except ImportError as e:
@@ -270,7 +280,9 @@ class CMCServiceClient:
             msg = f"Background check failed: {e!s}"
             raise CMCServiceError(msg) from e
 
-    async def update_visa_free_status(self, cmc_id: str, visa_free_eligible: bool, authority: str, reason: str) -> dict[str, Any]:
+    async def update_visa_free_status(
+        self, cmc_id: str, visa_free_eligible: bool, authority: str, reason: str
+    ) -> dict[str, Any]:
         """Update visa-free entry eligibility status.
 
         Args:
@@ -295,16 +307,18 @@ class CMCServiceClient:
                     cmc_id=cmc_id,
                     visa_free_eligible=visa_free_eligible,
                     authority=authority,
-                    reason=reason
+                    reason=reason,
                 )
 
                 response = await stub.UpdateVisaFreeStatus(request, timeout=self.timeout)
 
                 return {
                     "success": response.success,
-                    "visa_free_eligible": response.visa_free_eligible if response.success else False,
+                    "visa_free_eligible": (
+                        response.visa_free_eligible if response.success else False
+                    ),
                     "updated_at": response.updated_at if response.success else None,
-                    "error_message": response.error_message if not response.success else None
+                    "error_message": response.error_message if not response.success else None,
                 }
 
         except ImportError as e:
@@ -334,14 +348,36 @@ class CMCServiceClient:
 
         return {
             "cmc_id": getattr(cmc_proto, "cmc_id", ""),
-            "document_number": getattr(cmc_proto.cmc_data, "document_number", "") if hasattr(cmc_proto, "cmc_data") else "",
-            "surname": getattr(cmc_proto.cmc_data, "surname", "") if hasattr(cmc_proto, "cmc_data") else "",
-            "given_names": getattr(cmc_proto.cmc_data, "given_names", "") if hasattr(cmc_proto, "cmc_data") else "",
-            "nationality": getattr(cmc_proto.cmc_data, "nationality", "") if hasattr(cmc_proto, "cmc_data") else "",
-            "security_model": getattr(cmc_proto.cmc_data, "security_model", "") if hasattr(cmc_proto, "cmc_data") else "",
-            "background_check_verified": getattr(cmc_proto.cmc_data, "background_check_verified", False) if hasattr(cmc_proto, "cmc_data") else False,
+            "document_number": (
+                getattr(cmc_proto.cmc_data, "document_number", "")
+                if hasattr(cmc_proto, "cmc_data")
+                else ""
+            ),
+            "surname": (
+                getattr(cmc_proto.cmc_data, "surname", "") if hasattr(cmc_proto, "cmc_data") else ""
+            ),
+            "given_names": (
+                getattr(cmc_proto.cmc_data, "given_names", "")
+                if hasattr(cmc_proto, "cmc_data")
+                else ""
+            ),
+            "nationality": (
+                getattr(cmc_proto.cmc_data, "nationality", "")
+                if hasattr(cmc_proto, "cmc_data")
+                else ""
+            ),
+            "security_model": (
+                getattr(cmc_proto.cmc_data, "security_model", "")
+                if hasattr(cmc_proto, "cmc_data")
+                else ""
+            ),
+            "background_check_verified": (
+                getattr(cmc_proto.cmc_data, "background_check_verified", False)
+                if hasattr(cmc_proto, "cmc_data")
+                else False
+            ),
             "visa_free_entry_eligible": getattr(cmc_proto, "visa_free_entry_eligible", False),
-            "td1_mrz": getattr(cmc_proto, "td1_mrz", "")
+            "td1_mrz": getattr(cmc_proto, "td1_mrz", ""),
         }
 
 

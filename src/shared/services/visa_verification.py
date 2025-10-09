@@ -8,24 +8,21 @@ This module provides comprehensive visa verification following ICAO standards:
 
 Supports both MRV (sticker) and e-visa (digital) verification with unified results.
 """
+
 from __future__ import annotations
 
 from datetime import date, datetime
 from enum import Enum
 from typing import Any
 
-from src.shared.models.visa import (
-    VerificationResult,
-    Visa,
-    VisaType,
-    VisaVerifyRequest,
-)
+from src.shared.models.visa import VerificationResult, Visa, VisaType, VisaVerifyRequest
 from src.shared.utils.vds_nc import VDSNCDecoder, VDSNCValidator
 from src.shared.utils.visa_mrz import MRZParser
 
 
 class VerificationStep(str, Enum):
     """Verification step identifiers."""
+
     MRZ_PARSE = "mrz_parse"
     CHECK_DIGITS = "check_digits"
     VDS_NC_DECODE = "vds_nc_decode"
@@ -38,7 +35,9 @@ class VerificationStep(str, Enum):
 class VerificationError(Exception):
     """Custom exception for verification errors."""
 
-    def __init__(self, step: VerificationStep, message: str, details: dict[str, Any] | None = None) -> None:
+    def __init__(
+        self, step: VerificationStep, message: str, details: dict[str, Any] | None = None
+    ) -> None:
         self.step = step
         self.message = message
         self.details = details or {}
@@ -58,9 +57,7 @@ class VisaVerificationEngine:
         self.trust_store = trust_store or {}
 
     async def verify_visa(
-        self,
-        request: VisaVerifyRequest,
-        reference_visa: Visa | None = None
+        self, request: VisaVerifyRequest, reference_visa: Visa | None = None
     ) -> VerificationResult:
         """
         Perform complete visa verification.
@@ -72,10 +69,7 @@ class VisaVerificationEngine:
         Returns:
             VerificationResult with detailed results
         """
-        result = VerificationResult(
-            is_valid=False,
-            verification_timestamp=datetime.utcnow()
-        )
+        result = VerificationResult(is_valid=False, verification_timestamp=datetime.utcnow())
 
         try:
             # Step 1: Parse input and determine verification path
@@ -88,9 +82,7 @@ class VisaVerificationEngine:
             # Step 3: VDS-NC verification (if barcode data present)
             if "vds_nc_data" in parsed_data:
                 await self._verify_vds_nc(
-                    parsed_data["vds_nc_data"],
-                    result,
-                    verify_signature=request.verify_signature
+                    parsed_data["vds_nc_data"], result, verify_signature=request.verify_signature
                 )
 
             # Step 4: Field consistency (if reference visa provided)
@@ -109,10 +101,7 @@ class VisaVerificationEngine:
             result.is_valid = self._calculate_overall_validity(result)
 
         except VerificationError as e:
-            result.verification_details[e.step.value] = {
-                "error": e.message,
-                "details": e.details
-            }
+            result.verification_details[e.step.value] = {"error": e.message, "details": e.details}
             if e.step == VerificationStep.MRZ_PARSE:
                 result.mrz_errors.append(e.message)
             elif e.step in [VerificationStep.VDS_NC_DECODE, VerificationStep.SIGNATURE_VERIFY]:
@@ -125,7 +114,9 @@ class VisaVerificationEngine:
 
         return result
 
-    async def _parse_input(self, request: VisaVerifyRequest, reference_visa: Visa | None = None) -> tuple[dict[str, Any], VisaType | None]:
+    async def _parse_input(
+        self, request: VisaVerifyRequest, reference_visa: Visa | None = None
+    ) -> tuple[dict[str, Any], VisaType | None]:
         """
         Parse verification input and extract data.
 
@@ -147,14 +138,13 @@ class VisaVerificationEngine:
             if reference_visa.mrz_data:
                 if visa_type == VisaType.MRV_TYPE_A:
                     parsed_data["mrz_data"] = MRZParser.parse_type_a_mrz(
-                        reference_visa.mrz_data.type_a_line1,
-                        reference_visa.mrz_data.type_a_line2
+                        reference_visa.mrz_data.type_a_line1, reference_visa.mrz_data.type_a_line2
                     )
                 elif visa_type == VisaType.MRV_TYPE_B:
                     parsed_data["mrz_data"] = MRZParser.parse_type_b_mrz(
                         reference_visa.mrz_data.type_b_line1,
                         reference_visa.mrz_data.type_b_line2,
-                        reference_visa.mrz_data.type_b_line3
+                        reference_visa.mrz_data.type_b_line3,
                     )
 
             # Extract VDS-NC data if available
@@ -162,9 +152,9 @@ class VisaVerificationEngine:
                 parsed_data["vds_nc_data"] = {
                     "decoded": {
                         "header": reference_visa.vds_nc_data.header,
-                        "message": reference_visa.vds_nc_data.message
+                        "message": reference_visa.vds_nc_data.message,
                     },
-                    "signature_valid": True  # Assume valid since it's stored
+                    "signature_valid": True,  # Assume valid since it's stored
                 }
 
         # Parse MRZ data if provided directly
@@ -188,14 +178,14 @@ class VisaVerificationEngine:
                     raise VerificationError(
                         VerificationStep.MRZ_PARSE,
                         "Invalid MRZ format",
-                        {"lines": len(mrz_lines), "line_lengths": [len(line) for line in mrz_lines]}
+                        {
+                            "lines": len(mrz_lines),
+                            "line_lengths": [len(line) for line in mrz_lines],
+                        },
                     )
 
             except Exception as e:
-                raise VerificationError(
-                    VerificationStep.MRZ_PARSE,
-                    f"Failed to parse MRZ: {e!s}"
-                )
+                raise VerificationError(VerificationStep.MRZ_PARSE, f"Failed to parse MRZ: {e!s}")
 
         # Parse VDS-NC barcode data if provided
         if request.barcode_data:
@@ -203,13 +193,12 @@ class VisaVerificationEngine:
                 # Try to get public key for verification
                 public_key = None
                 decoded_data, signature_valid = VDSNCDecoder.decode_vds_nc(
-                    request.barcode_data,
-                    public_key
+                    request.barcode_data, public_key
                 )
 
                 parsed_data["vds_nc_data"] = {
                     "decoded": decoded_data,
-                    "signature_valid": signature_valid
+                    "signature_valid": signature_valid,
                 }
 
                 # Determine visa type from VDS-NC
@@ -218,17 +207,13 @@ class VisaVerificationEngine:
 
             except Exception as e:
                 raise VerificationError(
-                    VerificationStep.VDS_NC_DECODE,
-                    f"Failed to decode VDS-NC: {e!s}"
+                    VerificationStep.VDS_NC_DECODE, f"Failed to decode VDS-NC: {e!s}"
                 )
 
         return parsed_data, visa_type
 
     async def _verify_mrz(
-        self,
-        mrz_data: dict[str, Any],
-        visa_type: VisaType,
-        result: VerificationResult
+        self, mrz_data: dict[str, Any], visa_type: VisaType, result: VerificationResult
     ) -> None:
         """
         Verify MRZ data and check digits.
@@ -256,8 +241,14 @@ class VisaVerificationEngine:
                     format_errors.append("Invalid document type for visa")
 
             # Validate required fields
-            required_fields = ["document_number", "issuing_state", "nationality",
-                             "date_of_birth", "gender", "date_of_expiry"]
+            required_fields = [
+                "document_number",
+                "issuing_state",
+                "nationality",
+                "date_of_birth",
+                "gender",
+                "date_of_expiry",
+            ]
 
             for field in required_fields:
                 if not mrz_data.get(field):
@@ -315,7 +306,7 @@ class VisaVerificationEngine:
 
             result.verification_details["mrz_validation"] = {
                 "format_valid": len(format_errors) == 0,
-                "errors": format_errors
+                "errors": format_errors,
             }
 
         except Exception as e:
@@ -323,10 +314,7 @@ class VisaVerificationEngine:
             result.mrz_errors.append(f"MRZ validation error: {e!s}")
 
     async def _verify_vds_nc(
-        self,
-        vds_nc_data: dict[str, Any],
-        result: VerificationResult,
-        verify_signature: bool = True
+        self, vds_nc_data: dict[str, Any], result: VerificationResult, verify_signature: bool = True
     ) -> None:
         """
         Verify VDS-NC data and signature.
@@ -366,7 +354,9 @@ class VisaVerificationEngine:
                             self.trust_store[issuer]
                             # This would need the original barcode data
                             result.signature_valid = True  # Placeholder
-                            result.warnings.append("Signature verification with trust store not fully implemented")
+                            result.warnings.append(
+                                "Signature verification with trust store not fully implemented"
+                            )
                         except Exception:
                             result.signature_valid = False
                             result.vds_nc_errors.append("Signature verification failed")
@@ -381,7 +371,7 @@ class VisaVerificationEngine:
                 "message_valid": len(message_errors) == 0,
                 "header_errors": header_errors,
                 "message_errors": message_errors,
-                "signature_verified": verify_signature
+                "signature_verified": verify_signature,
             }
 
         except Exception as e:
@@ -389,10 +379,7 @@ class VisaVerificationEngine:
             result.vds_nc_errors.append(f"VDS-NC verification error: {e!s}")
 
     async def _verify_field_consistency(
-        self,
-        parsed_data: dict[str, Any],
-        reference_visa: Visa,
-        result: VerificationResult
+        self, parsed_data: dict[str, Any], reference_visa: Visa, result: VerificationResult
     ) -> None:
         """
         Verify field consistency between parsed data and reference visa.
@@ -461,15 +448,14 @@ class VisaVerificationEngine:
             # Check VDS-NC consistency
             if "vds_nc_data" in parsed_data:
                 vds_nc_errors = VDSNCValidator.validate_field_consistency(
-                    parsed_data["vds_nc_data"]["decoded"],
-                    reference_visa
+                    parsed_data["vds_nc_data"]["decoded"], reference_visa
                 )
                 consistency_errors.extend(vds_nc_errors)
 
             result.field_consistency_valid = len(consistency_errors) == 0
             result.verification_details["field_consistency"] = {
                 "errors": consistency_errors,
-                "checks_performed": ["document_data", "personal_data", "dates"]
+                "checks_performed": ["document_data", "personal_data", "dates"],
             }
 
         except Exception as e:
@@ -522,16 +508,24 @@ class VisaVerificationEngine:
 
                 try:
                     if "from" in val:
-                        issue_date = datetime.fromisoformat(val["from"].replace("Z", "+00:00")).date()
+                        issue_date = datetime.fromisoformat(
+                            val["from"].replace("Z", "+00:00")
+                        ).date()
 
                     if "to" in val:
-                        expiry_date = datetime.fromisoformat(val["to"].replace("Z", "+00:00")).date()
+                        expiry_date = datetime.fromisoformat(
+                            val["to"].replace("Z", "+00:00")
+                        ).date()
 
                     if "valid_from" in val:
-                        valid_from = datetime.fromisoformat(val["valid_from"].replace("Z", "+00:00")).date()
+                        valid_from = datetime.fromisoformat(
+                            val["valid_from"].replace("Z", "+00:00")
+                        ).date()
 
                     if "valid_until" in val:
-                        valid_until = datetime.fromisoformat(val["valid_until"].replace("Z", "+00:00")).date()
+                        valid_until = datetime.fromisoformat(
+                            val["valid_until"].replace("Z", "+00:00")
+                        ).date()
 
                 except (ValueError, TypeError):
                     policy_errors.append("Invalid date format in VDS-NC")
@@ -571,7 +565,7 @@ class VisaVerificationEngine:
                 "expiry_date": expiry_date.isoformat() if expiry_date else None,
                 "valid_from": valid_from.isoformat() if valid_from else None,
                 "valid_until": valid_until.isoformat() if valid_until else None,
-                "errors": policy_errors
+                "errors": policy_errors,
             }
 
         except Exception as e:
@@ -593,7 +587,7 @@ class VisaVerificationEngine:
             result.verification_details["online_verification"] = {
                 "attempted": True,
                 "available": False,
-                "message": "Online verification not implemented"
+                "message": "Online verification not implemented",
             }
 
             result.online_verification_ok = None  # Not performed
@@ -627,7 +621,9 @@ class VisaVerificationEngine:
         policy_ok = result.policy_checks_passed
 
         # Field consistency must be valid if checked
-        consistency_ok = result.field_consistency_valid if hasattr(result, "field_consistency_valid") else True
+        consistency_ok = (
+            result.field_consistency_valid if hasattr(result, "field_consistency_valid") else True
+        )
 
         return has_valid_verification and policy_ok and consistency_ok
 
@@ -656,7 +652,9 @@ class VisaLookupService:
         """
         return self.visa_database.get(visa_id)
 
-    async def lookup_by_document_number(self, document_number: str, issuing_state: str) -> Visa | None:
+    async def lookup_by_document_number(
+        self, document_number: str, issuing_state: str
+    ) -> Visa | None:
         """
         Look up visa by document number and issuing state.
 
@@ -668,8 +666,10 @@ class VisaLookupService:
             Visa object if found
         """
         for visa in self.visa_database.values():
-            if (visa.document_data.document_number == document_number and
-                visa.document_data.issuing_state == issuing_state):
+            if (
+                visa.document_data.document_number == document_number
+                and visa.document_data.issuing_state == issuing_state
+            ):
                 return visa
 
         return None

@@ -10,6 +10,7 @@ structures used in e-passport security:
 
 These models comply with W3C XML Digital Signature and RFC 5652 CMS standards.
 """
+
 from __future__ import annotations
 
 import base64

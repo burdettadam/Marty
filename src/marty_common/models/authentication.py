@@ -9,6 +9,7 @@ Models for various authentication protocols used in e-passport access:
 
 These protocols are specified in ICAO Doc 9303 and BSI TR-03110.
 """
+
 from __future__ import annotations
 
 import base64
@@ -98,9 +99,7 @@ class BACKey(AccessKey):
         )
 
     @classmethod
-    def from_mrz_info(
-        cls, document_number: str, date_of_birth: str, date_of_expiry: str
-    ) -> BACKey:
+    def from_mrz_info(cls, document_number: str, date_of_birth: str, date_of_expiry: str) -> BACKey:
         """Create BAC key from MRZ information."""
         # In a real implementation, this would derive the actual BAC key
         # using the algorithm specified in ICAO Doc 9303

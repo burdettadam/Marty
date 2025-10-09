@@ -4,6 +4,7 @@ Pydantic models for Marty services.
 These models leverage Pydantic for automatic validation and serialization/deserialization.
 They complement the existing dataclass models but provide additional type safety and validation.
 """
+
 from __future__ import annotations
 
 import base64

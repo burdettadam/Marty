@@ -38,39 +38,39 @@ log_error() {
 # Function to check prerequisites
 check_prerequisites() {
     log_info "Checking prerequisites..."
-    
+
     # Check if kubectl is available
     if ! command -v kubectl &> /dev/null; then
         log_error "kubectl is not installed or not in PATH"
         exit 1
     fi
-    
+
     # Check if helm is available
     if ! command -v helm &> /dev/null; then
         log_error "helm is not installed or not in PATH"
         exit 1
     fi
-    
+
     # Check kubectl connectivity
     if ! kubectl cluster-info &> /dev/null; then
         log_error "Cannot connect to Kubernetes cluster"
         exit 1
     fi
-    
+
     log_success "Prerequisites check passed"
 }
 
 # Function to create namespace
 create_namespace() {
     log_info "Creating namespace ${NAMESPACE}..."
-    
+
     if kubectl get namespace "${NAMESPACE}" &> /dev/null; then
         log_warning "Namespace ${NAMESPACE} already exists"
     else
         kubectl create namespace "${NAMESPACE}"
         log_success "Created namespace ${NAMESPACE}"
     fi
-    
+
     # Label namespace for monitoring
     kubectl label namespace "${NAMESPACE}" name="${NAMESPACE}" --overwrite
     kubectl label namespace "${NAMESPACE}" environment="${ENVIRONMENT}" --overwrite
@@ -80,40 +80,40 @@ create_namespace() {
 # Function to add Helm repositories
 add_helm_repos() {
     log_info "Adding required Helm repositories..."
-    
+
     helm repo add prometheus-community https://prometheus-community.github.io/helm-charts
     helm repo add grafana https://grafana.github.io/helm-charts
     helm repo update
-    
+
     log_success "Helm repositories updated"
 }
 
 # Function to validate chart
 validate_chart() {
     log_info "Validating Helm chart..."
-    
+
     if [ ! -f "${CHART_DIR}/Chart.yaml" ]; then
         log_error "Chart.yaml not found in ${CHART_DIR}"
         exit 1
     fi
-    
+
     if [ ! -f "${CHART_DIR}/values.yaml" ]; then
         log_error "values.yaml not found in ${CHART_DIR}"
         exit 1
     fi
-    
+
     # Lint the chart
     helm lint "${CHART_DIR}"
-    
+
     log_success "Chart validation passed"
 }
 
 # Function to generate values file for environment
 generate_values_file() {
     local values_file="/tmp/marty-monitoring-${ENVIRONMENT}.yaml"
-    
+
     log_info "Generating values file for environment: ${ENVIRONMENT}"
-    
+
     cat > "${values_file}" << EOF
 global:
   environment: "${ENVIRONMENT}"
@@ -165,20 +165,20 @@ EOF
 deploy_monitoring() {
     local values_file
     values_file=$(generate_values_file)
-    
+
     log_info "Deploying monitoring stack to ${ENVIRONMENT} environment..."
-    
+
     # Copy monitoring configuration files to chart
     if [ -d "../monitoring/prometheus" ]; then
         cp -r ../monitoring/prometheus "${CHART_DIR}/"
         log_info "Copied Prometheus configuration files"
     fi
-    
+
     if [ -d "../monitoring/grafana" ]; then
         cp -r ../monitoring/grafana "${CHART_DIR}/"
         log_info "Copied Grafana configuration files"
     fi
-    
+
     # Deploy with Helm
     helm upgrade --install "${RELEASE_NAME}" "${CHART_DIR}" \
         --namespace "${NAMESPACE}" \
@@ -187,9 +187,9 @@ deploy_monitoring() {
         --set global.environment="${ENVIRONMENT}" \
         --timeout 10m \
         --wait
-    
+
     log_success "Monitoring stack deployed successfully"
-    
+
     # Clean up temporary values file
     rm -f "${values_file}"
 }
@@ -197,25 +197,25 @@ deploy_monitoring() {
 # Function to verify deployment
 verify_deployment() {
     log_info "Verifying deployment..."
-    
+
     # Check pod status
     log_info "Checking pod status..."
     kubectl get pods -n "${NAMESPACE}" -l app.kubernetes.io/instance="${RELEASE_NAME}"
-    
+
     # Wait for pods to be ready
     log_info "Waiting for pods to be ready..."
     kubectl wait --for=condition=ready pod -l app.kubernetes.io/instance="${RELEASE_NAME}" -n "${NAMESPACE}" --timeout=300s
-    
+
     # Check services
     log_info "Checking services..."
     kubectl get services -n "${NAMESPACE}" -l app.kubernetes.io/instance="${RELEASE_NAME}"
-    
+
     # Check ingresses if enabled
     if kubectl get ingresses -n "${NAMESPACE}" -l app.kubernetes.io/instance="${RELEASE_NAME}" &> /dev/null; then
         log_info "Checking ingresses..."
         kubectl get ingresses -n "${NAMESPACE}" -l app.kubernetes.io/instance="${RELEASE_NAME}"
     fi
-    
+
     log_success "Deployment verification completed"
 }
 
@@ -223,7 +223,7 @@ verify_deployment() {
 show_access_info() {
     log_info "Access Information:"
     echo
-    
+
     # Prometheus
     local prometheus_port
     prometheus_port=$(kubectl get service "${RELEASE_NAME}-prometheus" -n "${NAMESPACE}" -o jsonpath='{.spec.ports[0].port}')
@@ -231,7 +231,7 @@ show_access_info() {
     echo "  Port forward: kubectl port-forward svc/${RELEASE_NAME}-prometheus ${prometheus_port}:${prometheus_port} -n ${NAMESPACE}"
     echo "  URL: http://localhost:${prometheus_port}"
     echo
-    
+
     # Grafana
     local grafana_port
     grafana_port=$(kubectl get service "${RELEASE_NAME}-grafana" -n "${NAMESPACE}" -o jsonpath='{.spec.ports[0].port}')
@@ -241,7 +241,7 @@ show_access_info() {
     echo "  Username: admin"
     echo "  Password: ${GRAFANA_ADMIN_PASSWORD:-marty-admin-${ENVIRONMENT}}"
     echo
-    
+
     # Alertmanager
     local alertmanager_port
     alertmanager_port=$(kubectl get service "${RELEASE_NAME}-alertmanager" -n "${NAMESPACE}" -o jsonpath='{.spec.ports[0].port}')
@@ -311,7 +311,7 @@ main() {
     log_info "Namespace: ${NAMESPACE}"
     log_info "Release: ${RELEASE_NAME}"
     echo
-    
+
     check_prerequisites
     create_namespace
     add_helm_repos
@@ -319,7 +319,7 @@ main() {
     deploy_monitoring
     verify_deployment
     show_access_info
-    
+
     log_success "Monitoring stack deployment completed successfully!"
     log_info "Run 'helm status ${RELEASE_NAME} -n ${NAMESPACE}' to check deployment status"
 }

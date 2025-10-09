@@ -16,7 +16,7 @@ automation:
           - "code_analysis"
           - "configuration_validation"
         failure_action: "block"
-        
+
       # Build-time security checks
       build_time:
         enabled: true
@@ -27,7 +27,7 @@ automation:
           - "static_analysis"
           - "license_compliance"
         failure_threshold: "high"
-        
+
       # Pre-deployment security validation
       pre_deployment:
         enabled: true
@@ -38,7 +38,7 @@ automation:
           - "security_review"
           - "vulnerability_assessment"
         approval_required: true
-        
+
       # Post-deployment monitoring
       post_deployment:
         enabled: true
@@ -55,7 +55,7 @@ automation:
       high_severity: "block_deployment"
       medium_severity: "require_approval"
       low_severity: "log_and_continue"
-      
+
       # Notification settings
       notifications:
         channels: ["slack", "email", "pagerduty"]
@@ -63,7 +63,7 @@ automation:
           slack: "#security-alerts"
           email: ["security@marty-platform.com", "devops@marty-platform.com"]
           pagerduty: "security-team"
-          
+
       # Escalation procedures
       escalation:
         timeout_minutes: 30
@@ -81,18 +81,18 @@ automation:
         - name: "bandit"
           config: "config/security/bandit.yaml"
           severity_threshold: "medium"
-          
+
         - name: "semgrep"
           ruleset: "p/security-audit"
           severity_threshold: "high"
-          
+
         - name: "codeql"
           language: "python"
           query_suite: "security-extended"
-          
+
       schedule: "on_commit"
       report_format: ["json", "sarif"]
-      
+
     # Dynamic Application Security Testing (DAST)
     dast:
       enabled: true
@@ -101,23 +101,23 @@ automation:
           spider_timeout: 300
           scan_timeout: 600
           authentication: "form_based"
-          
+
         - name: "burp"
           scan_type: "passive"
           crawl_depth: 3
-          
+
       schedule: "nightly"
       target_environments: ["staging", "pre-production"]
-      
+
     # Interactive Application Security Testing (IAST)
     iast:
       enabled: false  # Enable when ready for runtime analysis
       tools:
         - name: "contrast"
           agent_config: "runtime_monitoring"
-          
+
       environments: ["staging"]
-      
+
     # Software Composition Analysis (SCA)
     sca:
       enabled: true
@@ -125,17 +125,17 @@ automation:
         - name: "safety"
           database_url: "https://pyup.io/safety/api/v1/"
           ignore_list: []
-          
+
         - name: "pip-audit"
           vulnerability_db: "osv"
-          
+
         - name: "snyk"
           org: "marty-platform"
           project_id: "marty-backend"
-          
+
       schedule: "daily"
       auto_fix: "low_risk_only"
-      
+
     # Container Security Scanning
     container_scanning:
       enabled: true
@@ -144,16 +144,16 @@ automation:
           image_scan: true
           filesystem_scan: true
           vulnerability_db: "ghcr.io/aquasecurity/trivy-db"
-          
+
         - name: "clair"
           api_endpoint: "http://clair:6060"
-          
+
         - name: "snyk"
           container_monitoring: true
-          
+
       schedule: "on_build"
       severity_threshold: "high"
-      
+
     # Infrastructure as Code (IaC) Security
     iac_security:
       enabled: true
@@ -161,13 +161,13 @@ automation:
         - name: "checkov"
           framework: ["terraform", "kubernetes", "docker"]
           soft_fail: false
-          
+
         - name: "terrascan"
           policy_type: "all"
-          
+
         - name: "kube-score"
           kubernetes_version: "1.28"
-          
+
       schedule: "on_commit"
       policy_as_code: true
 
@@ -179,12 +179,12 @@ automation:
       auto_merge: "patch_only"
       security_updates: "always"
       schedule: "weekly"
-      
+
     # Code fixes
     code_fixes:
       enabled: false  # Requires human review
       fix_types: ["formatting", "import_sorting"]
-      
+
     # Configuration updates
     config_updates:
       enabled: true
@@ -202,7 +202,7 @@ automation:
         - "unusual_access_patterns"
         - "data_exfiltration_indicators"
         - "malware_detection"
-        
+
     # Security dashboards
     dashboards:
       enabled: true
@@ -210,11 +210,11 @@ automation:
         - name: "grafana"
           datasource: "prometheus"
           dashboard_config: "monitoring/grafana/security_dashboard.json"
-          
+
         - name: "elk"
           index_pattern: "security-logs-*"
           dashboard_config: "monitoring/kibana/security_dashboard.json"
-          
+
     # Alerting rules
     alerting:
       enabled: true
@@ -225,13 +225,13 @@ automation:
           - "privilege_escalation_successful"
           - "data_exfiltration_confirmed"
           response_time: "immediate"
-          
+
         high:
           - "multiple_failed_logins"
           - "suspicious_api_access"
           - "configuration_tampering"
           response_time: "15_minutes"
-          
+
         medium:
           - "unusual_login_location"
           - "deprecated_api_usage"
@@ -246,19 +246,19 @@ automation:
       frameworks:
         - name: "owasp_top_10"
           version: "2021"
-          
+
         - name: "nist_csf"
           version: "1.1"
-          
+
         - name: "iso_27001"
           version: "2013"
-          
+
         - name: "soc2_type2"
           controls: ["cc1", "cc2", "cc3", "cc4", "cc5", "cc6", "cc7"]
-          
+
       schedule: "weekly"
       report_generation: true
-      
+
     # Evidence collection
     evidence_collection:
       enabled: true
@@ -270,7 +270,7 @@ automation:
         - "training_records"
       retention_period: "7_years"
       encryption: true
-      
+
     # Audit trail
     audit_trail:
       enabled: true
@@ -293,7 +293,7 @@ environments:
           enabled: false
         container_scanning:
           severity_threshold: "critical"
-          
+
   staging:
     automation:
       testing:
@@ -302,7 +302,7 @@ environments:
           target_environments: ["staging"]
         iast:
           enabled: true
-          
+
   production:
     automation:
       pipeline:

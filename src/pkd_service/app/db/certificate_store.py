@@ -4,6 +4,7 @@ Certificate Store for PKD Mirror Service
 This module provides a simplified interface for storing and retrieving
 certificates from the database for the PKD Mirror Service.
 """
+
 from __future__ import annotations
 
 import asyncio
@@ -119,9 +120,7 @@ class CertificateStore:
         else:
             return True
 
-    async def _store_certificate(
-        self, certificate: dict[str, Any], cert_type: str
-    ) -> str | None:
+    async def _store_certificate(self, certificate: dict[str, Any], cert_type: str) -> str | None:
         """
         Store a certificate in the database.
 

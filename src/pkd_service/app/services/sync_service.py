@@ -61,7 +61,9 @@ class SyncService:
             )
             return PkdSyncResponse(id=sync_id, status=SyncStatus.FAILED, start_time=now)
 
-        component_statuses: dict[str, ComponentSyncStatus] = dict.fromkeys(normalized, ComponentSyncStatus.PENDING)
+        component_statuses: dict[str, ComponentSyncStatus] = dict.fromkeys(
+            normalized, ComponentSyncStatus.PENDING
+        )
         for invalid_component in invalid:
             component_statuses[invalid_component.lower()] = ComponentSyncStatus.FAILED
 

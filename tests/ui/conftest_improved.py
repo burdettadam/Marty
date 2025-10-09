@@ -112,12 +112,12 @@ def ui_settings(test_mode: str, service_status: dict[str, bool]) -> UiSettings:
     # Mix of real and mock services based on availability
     return UiSettings(
         **base_config,
-        passport_engine_target="localhost:8084"
-        if service_status.get("passport_engine")
-        else "mock",
-        inspection_system_target="localhost:8083"
-        if service_status.get("inspection_system")
-        else "mock",
+        passport_engine_target=(
+            "localhost:8084" if service_status.get("passport_engine") else "mock"
+        ),
+        inspection_system_target=(
+            "localhost:8083" if service_status.get("inspection_system") else "mock"
+        ),
         mdl_engine_target="localhost:8085" if service_status.get("mdl_engine") else "mock",
         trust_anchor_target="localhost:8080" if service_status.get("trust_anchor") else "mock",
         enable_mock_data=not all(service_status.values()),

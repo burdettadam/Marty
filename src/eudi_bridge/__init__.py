@@ -35,60 +35,57 @@ SUPPORTED_CREDENTIAL_FORMATS = ["vc+sd-jwt", "mso_mdoc"]
 # Bridge Service Types
 BRIDGE_SERVICES = [
     "oidc4vci_issuer",
-    "oid4vp_verifier", 
+    "oid4vp_verifier",
     "icao_mdl_translator",
-    "eudi_policy_engine"
+    "eudi_policy_engine",
 ]
 
-# Import main components
-from .oidc4vci_issuer import OIDC4VCIIssuerFacade
-from .oid4vp_verifier import OID4VPPresentationLayer, EUDIPolicyEngine
 from .bridge_services import (
-    EUDIBridgeService, 
-    EUDITrustService,
     CredentialFormat,
-    VerificationStatus,
+    EUDIBridgeService,
+    EUDITrustService,
     TranslationResult,
+    VerificationStatus,
     create_eudi_bridge_service,
-    create_eudi_trust_service
+    create_eudi_trust_service,
 )
 from .config import (
     EUDIBridgeConfig,
     EUDIBridgeConfigLoader,
-    EUDIBridgeOrchestrator,
     EUDIBridgeHealthCheck,
+    EUDIBridgeOrchestrator,
     create_eudi_bridge_orchestrator,
-    quick_health_check
+    quick_health_check,
 )
+from .oid4vp_verifier import EUDIPolicyEngine, OID4VPPresentationLayer
+
+# Import main components
+from .oidc4vci_issuer import OIDC4VCIIssuerFacade
 
 __all__ = [
     # Core classes
     "OIDC4VCIIssuerFacade",
-    "OID4VPPresentationLayer", 
+    "OID4VPPresentationLayer",
     "EUDIPolicyEngine",
     "EUDIBridgeService",
     "EUDITrustService",
     "EUDIBridgeOrchestrator",
     "EUDIBridgeHealthCheck",
-    
     # Configuration
     "EUDIBridgeConfig",
     "EUDIBridgeConfigLoader",
-    
     # Data types
     "CredentialFormat",
-    "VerificationStatus", 
+    "VerificationStatus",
     "TranslationResult",
-    
     # Factory functions
     "create_eudi_bridge_service",
     "create_eudi_trust_service",
     "create_eudi_bridge_orchestrator",
     "quick_health_check",
-    
     # Constants
     "SUPPORTED_CREDENTIAL_FORMATS",
     "BRIDGE_SERVICES",
     "EUDI_ARF_VERSION",
-    "OIDC4VCI_PROFILE"
+    "OIDC4VCI_PROFILE",
 ]

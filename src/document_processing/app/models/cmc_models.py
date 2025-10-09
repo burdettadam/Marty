@@ -33,10 +33,14 @@ class CMCCreateRequest(BaseModel):
 
     # Mandatory fields
     document_number: str = Field(..., description="CMC document number")
-    issuing_country: str = Field(..., description="3-letter issuing country code", min_length=3, max_length=3)
+    issuing_country: str = Field(
+        ..., description="3-letter issuing country code", min_length=3, max_length=3
+    )
     surname: str = Field(..., description="Primary identifier (surname)")
     given_names: str = Field(..., description="Secondary identifier (given names)")
-    nationality: str = Field(..., description="3-letter nationality code", min_length=3, max_length=3)
+    nationality: str = Field(
+        ..., description="3-letter nationality code", min_length=3, max_length=3
+    )
     date_of_birth: str = Field(..., description="Date of birth (YYYY-MM-DD)")
     gender: GenderAPI = Field(..., description="Gender designation")
     date_of_expiry: str = Field(..., description="Date of expiry (YYYY-MM-DD)")
@@ -47,8 +51,7 @@ class CMCCreateRequest(BaseModel):
 
     # Security model selection
     security_model: CMCSecurityModelAPI = Field(
-        CMCSecurityModelAPI.CHIP_LDS,
-        description="Security model to use for the CMC"
+        CMCSecurityModelAPI.CHIP_LDS, description="Security model to use for the CMC"
     )
 
     # Face image for chip-based model (DG2)
@@ -71,7 +74,7 @@ class CMCCreateRequest(BaseModel):
                 "employer": "American Airlines",
                 "crew_id": "AA12345",
                 "security_model": "CHIP_LDS",
-                "background_check_verified": True
+                "background_check_verified": True,
             }
         }
     }
@@ -92,7 +95,7 @@ class CMCCreateResponse(BaseModel):
                 "success": True,
                 "cmc_id": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
                 "td1_mrz": "IUSA1234567890CMC<<<<<<<<<\nSMITH<<JOHN<MICHAEL<<<<<<<\n8506156M3006150USA<<<<<<<<0",
-                "security_model": "CHIP_LDS"
+                "security_model": "CHIP_LDS",
             }
         }
     }
@@ -108,7 +111,7 @@ class CMCSignRequest(BaseModel):
         "json_schema_extra": {
             "example": {
                 "cmc_id": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
-                "signer_id": "document-signer-001"
+                "signer_id": "document-signer-001",
             }
         }
     }
@@ -128,8 +131,8 @@ class CMCSignResponse(BaseModel):
                 "signature_info": {
                     "signature_date": "2025-10-01T15:30:00Z",
                     "signer_id": "document-signer-001",
-                    "algorithm": "ES256"
-                }
+                    "algorithm": "ES256",
+                },
             }
         }
     }
@@ -152,7 +155,7 @@ class CMCVerificationRequest(BaseModel):
             "example": {
                 "td1_mrz": "IUSA1234567890CMC<<<<<<<<<\nSMITH<<JOHN<MICHAEL<<<<<<<\n8506156M3006150USA<<<<<<<<0",
                 "check_revocation": True,
-                "validate_background_check": True
+                "validate_background_check": True,
             }
         }
     }
@@ -174,8 +177,7 @@ class CMCVerificationResponse(BaseModel):
     is_valid: bool = Field(False, description="Overall validity of the CMC")
     cmc_data: dict[str, Any | None] = Field(None, description="CMC certificate data")
     verification_results: list[VerificationResult] = Field(
-        default_factory=list,
-        description="Detailed verification results"
+        default_factory=list, description="Detailed verification results"
     )
     error_message: str | None = Field(None, description="Error message if operation failed")
 
@@ -188,20 +190,20 @@ class CMCVerificationResponse(BaseModel):
                     "document_number": "CMC123456789",
                     "surname": "SMITH",
                     "given_names": "JOHN MICHAEL",
-                    "nationality": "USA"
+                    "nationality": "USA",
                 },
                 "verification_results": [
                     {
                         "check_name": "TD-1 MRZ Validation",
                         "passed": True,
-                        "details": "MRZ format and check digits valid"
+                        "details": "MRZ format and check digits valid",
                     },
                     {
                         "check_name": "Background Check",
                         "passed": True,
-                        "details": "Background verification completed successfully"
-                    }
-                ]
+                        "details": "Background verification completed successfully",
+                    },
+                ],
             }
         }
     }
@@ -219,7 +221,7 @@ class CMCBackgroundCheckRequest(BaseModel):
             "example": {
                 "cmc_id": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
                 "check_authority": "DHS-TSA",
-                "check_reference": "BGC-2025-001234"
+                "check_reference": "BGC-2025-001234",
             }
         }
     }
@@ -250,7 +252,7 @@ class CMCVisaFreeStatusRequest(BaseModel):
                 "cmc_id": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
                 "visa_free_eligible": True,
                 "authority": "DHS-CBP",
-                "reason": "Background check completed successfully"
+                "reason": "Background check completed successfully",
             }
         }
     }
@@ -279,7 +281,7 @@ class CMCListRequest(BaseModel):
                 "limit": 20,
                 "offset": 0,
                 "issuing_country": "USA",
-                "security_model": "CHIP_LDS"
+                "security_model": "CHIP_LDS",
             }
         }
     }
@@ -305,9 +307,9 @@ class CMCListResponse(BaseModel):
                         "surname": "SMITH",
                         "given_names": "JOHN MICHAEL",
                         "security_model": "CHIP_LDS",
-                        "status": "ACTIVE"
+                        "status": "ACTIVE",
                     }
-                ]
+                ],
             }
         }
     }

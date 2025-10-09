@@ -39,6 +39,7 @@ class ModCryptoMetaFinder(importlib.abc.MetaPathFinder):
             fullname, filename, loader=None, submodule_search_locations=submodule_locations
         )
 
+
 CUSTOM_FINDER = ModCryptoMetaFinder()
 CUSTOM_FINDER.setup()
 
@@ -84,7 +85,6 @@ def _import_from(mod, path, mod_dir=None):
         path = os.path.join(path, append)
 
     try:
-
         package = mod.split(".", 1)[0]
         package_dir = full_mod.split(".", 1)[0]
         package_path = os.path.join(path, package_dir)

@@ -40,7 +40,7 @@ class TestMyService(BaseServiceTest):
     def test_service_functionality(self, mock_factory: MockFactory):
         # Create mocks using factory
         service_mock = mock_factory.create_grpc_service_mock()
-        
+
         # Test your service
         assert service_mock.running is True
 ```
@@ -54,7 +54,7 @@ class TestMyIntegration(BaseIntegrationTest):
     def test_with_real_service(self):
         # Skip if service not available
         self.skip_if_service_unavailable("trust-anchor")
-        
+
         # Run integration test
         # ...
 ```
@@ -65,13 +65,13 @@ class TestMyIntegration(BaseIntegrationTest):
 def test_file_operations(temp_resource_manager):
     # Create temp file
     temp_file = temp_resource_manager.create_temp_file(
-        content="test data", 
+        content="test data",
         suffix=".json"
     )
-    
+
     # Use the file
     assert temp_file.read_text() == "test data"
-    
+
     # Cleanup is automatic
 ```
 

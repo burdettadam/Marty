@@ -8,14 +8,16 @@ This implementation guide provides comprehensive protocols for minimal data rete
 
 ### 1. Minimal Data Storage Constraints
 
-#### Store Only Essential Data:
+#### Store Only Essential Data
+
 - **Document identifiers**: CMC ID, document number, issuing authority
 - **Essential biographics**: Surname, given names, nationality, date of birth, gender
 - **Issuance/expiry dates**: Issue date, expiry date, validity period
 - **Artifact pointers**: References to stored certificates, signatures, and verification materials
 - **Signature materials**: SOD (Security Object Document) or VDS (Visible Digital Seal) payload
 
-#### Avoid Storing Sensitive Extras:
+#### Avoid Storing Sensitive Extras
+
 - ❌ Full facial images (store only hash/pointer for verification)
 - ❌ Fingerprint templates or biometric raw data
 - ❌ Employment history details beyond current role verification
@@ -27,7 +29,8 @@ This implementation guide provides comprehensive protocols for minimal data rete
 
 ### 2. Electronic Record Management
 
-#### CMC Issuance Status Tracking:
+#### CMC Issuance Status Tracking
+
 ```yaml
 electronic_record:
   record_id: UUID
@@ -36,7 +39,7 @@ electronic_record:
   status: [PENDING, ISSUED, REVOKED, SUSPENDED, EXPIRED]
   created_at: timestamp
   last_updated: timestamp
-  
+
   # Access control matrix
   access_control:
     issuing_authority: [CREATE, READ, UPDATE, REVOKE]
@@ -45,7 +48,8 @@ electronic_record:
     inspection_system: [READ] # verification only
 ```
 
-#### Revocation Management:
+#### Revocation Management
+
 ```yaml
 revocation_record:
   cmc_id: string
@@ -58,18 +62,20 @@ revocation_record:
 
 ### 3. Background Check Prerequisites
 
-#### Pre-Issuance Requirements:
+#### Pre-Issuance Requirements
+
 1. **Criminal History Check**: Clean record verification
 2. **Employment Verification**: Current employer confirmation
 3. **Identity Verification**: Document authenticity confirmation
 4. **Security Clearance**: Aviation security background check
 5. **Aviation Experience**: Relevant crew experience validation
 
-#### Enforcement Workflow:
+#### Enforcement Workflow
+
 ```
-Request CMC → Background Check Required → 
-Check Status Verification → 
-Prerequisites Met? → 
+Request CMC → Background Check Required →
+Check Status Verification →
+Prerequisites Met? →
 Yes: Proceed with Issuance
 No: Block Issuance, Provide Requirements
 ```
@@ -79,22 +85,26 @@ No: Block Issuance, Provide Requirements
 ### Service Integration Points
 
 #### 1. Trust Anchor Service Extensions
+
 - `ApplyDataRetentionPolicy`: Enforce storage constraints
 - `ValidateMinimalDataStorage`: Check compliance before storage
 - `ManageElectronicRecord`: Handle CMC status tracking
 - `AuditDataAccess`: Monitor access patterns
 
 #### 2. CMC Engine Service Extensions  
+
 - `EnforceBackgroundPrerequisite`: Verify checks before issuance
 - `ValidateIssuanceEligibility`: Comprehensive eligibility validation
 
 #### 3. Storage Policy Engine (New Service)
+
 - `ValidateDataCompliance`: Check against minimal storage rules
 - `ApplyStorageConstraints`: Remove non-essential data
 - `MaskSensitiveData`: Redact unnecessary sensitive information
 - `AuditStoredData`: Regular compliance checking
 
 #### 4. Data Lifecycle Manager (New Service)
+
 - `ConfigureRetentionPolicy`: Set retention periods by data type
 - `ScheduleArchival`: Automated archival processes
 - `ScheduleDeletion`: Controlled deletion workflows
@@ -102,7 +112,8 @@ No: Block Issuance, Provide Requirements
 
 ### Configuration Management
 
-#### Retention Periods by Data Category:
+#### Retention Periods by Data Category
+
 ```yaml
 retention_periods:
   document_identifier: 10_years
@@ -115,7 +126,8 @@ retention_periods:
   background_check_status: 5_years
 ```
 
-#### Data Classification:
+#### Data Classification
+
 ```yaml
 data_categories:
   essential:
@@ -126,7 +138,7 @@ data_categories:
     - date_of_birth
     - gender
     - issuing_country
-    
+
   restricted:
     - full_facial_image
     - biometric_templates
@@ -138,35 +150,39 @@ data_categories:
 ## Privacy Compliance Features
 
 ### 1. Data Minimization
+
 - Automatic validation against allowed data categories
 - Rejection of non-essential data fields
 - Regular auditing for compliance violations
 
 ### 2. Purpose Limitation
+
 - Data usage restricted to identity verification and integrity checking
 - Access controls based on legitimate operational needs
 - Audit trails for all data access
 
 ### 3. Storage Limitation
+
 - Automated retention period enforcement
 - Scheduled archival and deletion processes
 - Legal hold management for exceptional cases
 
 ### 4. Access Control
+
 ```yaml
 access_matrix:
   issuing_authority:
     permissions: [CREATE, READ, UPDATE, REVOKE]
     data_scope: [full_cmc_data]
-    
+
   inspection_system:
     permissions: [READ]
     data_scope: [verification_data_only]
-    
+
   compliance_officer:
     permissions: [READ, AUDIT, REPORT]
     data_scope: [metadata, audit_logs]
-    
+
   system_administrator:
     permissions: [READ, MAINTAIN]
     data_scope: [system_operations]
@@ -177,6 +193,7 @@ access_matrix:
 ### Background Check Enforcement Process
 
 1. **Pre-Check Validation**:
+
    ```
    Receive CMC Application →
    Validate Required Information →
@@ -185,6 +202,7 @@ access_matrix:
    ```
 
 2. **Background Check Execution**:
+
    ```
    Criminal History Check →
    Employment Verification →
@@ -194,10 +212,11 @@ access_matrix:
    ```
 
 3. **Result Processing**:
+
    ```
    All Checks Pass → Set Status to ELIGIBLE →
    Enable CMC Issuance
-   
+
    Any Check Fails → Set Status to INELIGIBLE →
    Block CMC Issuance → Notify Applicant
    ```
@@ -217,6 +236,7 @@ access_matrix:
    - ISSUED → [REVOKED | SUSPENDED | EXPIRED]
 
 3. **Access Logging**:
+
    ```yaml
    access_log_entry:
      timestamp: ISO_8601
@@ -231,13 +251,15 @@ access_matrix:
 
 ### Compliance Monitoring
 
-#### Automated Checks:
+#### Automated Checks
+
 - Daily compliance validation
 - Weekly retention period review  
 - Monthly comprehensive audit
 - Quarterly policy effectiveness review
 
-#### Alert Conditions:
+#### Alert Conditions
+
 - Non-essential data detected in storage
 - Retention period exceeded
 - Unauthorized access attempts
@@ -247,16 +269,19 @@ access_matrix:
 ## Security Considerations
 
 ### Data Encryption
+
 - All personal data encrypted at rest and in transit
 - Separate encryption keys for different data categories
 - Regular key rotation schedule
 
 ### Access Authentication
+
 - Multi-factor authentication for privileged operations
 - Role-based access control (RBAC)
 - Regular access review and recertification
 
 ### Audit Trail Integrity
+
 - Tamper-evident audit logs
 - Cryptographic signing of audit entries
 - Separate storage for audit data
@@ -264,12 +289,14 @@ access_matrix:
 ## Compliance Validation
 
 ### Regular Audits
+
 - Automated daily compliance checks
 - Weekly manual review processes
 - Monthly comprehensive audits
 - Annual third-party assessments
 
 ### Key Performance Indicators (KPIs)
+
 - Percentage of compliant data storage: >99.5%
 - Background check completion rate: 100%
 - Electronic record accuracy: >99.9%
@@ -277,6 +304,7 @@ access_matrix:
 - Unauthorized access incidents: 0
 
 ### Reporting Requirements
+
 - Daily operational reports to system administrators
 - Weekly compliance reports to authorities
 - Monthly summary reports to oversight bodies

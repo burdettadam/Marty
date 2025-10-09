@@ -26,58 +26,58 @@ test.describe('End-to-End Integration Tests', () => {
 
       // Step 1: Issue a credential
       await helpers.navigateToTab('Issuer');
-      
+
       // Fill out credential information
       await helpers.fillFormField('Given Name', mockCredentialData.given_name);
       await helpers.fillFormField('Family Name', mockCredentialData.family_name);
       await page.fill('input[type="date"]', mockCredentialData.birth_date);
       await helpers.fillFormField('Document Number', mockCredentialData.document_number);
       await helpers.fillFormField('Issuing Country', mockCredentialData.issuing_country);
-      
+
       // Complete issuance flow
       await helpers.clickButton('Next'); // To review
       await helpers.clickButton('Next'); // To issue
       await helpers.clickButton('Issue Credential');
-      
+
       // Verify credential issued
       await helpers.waitForAlert('success');
       await helpers.verifyChipStatus('ID:', 'primary');
-      
+
       // Step 2: Add credential to wallet (simulated)
       await helpers.navigateToTab('Wallet');
-      
+
       // Add demo credential (represents the issued credential)
       await helpers.clickButton('Add Demo Credential');
-      
+
       // Verify credential appears in wallet
       await expect(page.locator('.MuiCard-root')).toHaveCount({ min: 1 });
-      
+
       // Step 3: Create presentation from wallet
       await page.locator('button:has-text("Share")').first().click();
-      
+
       // Fill presentation request
       const presentationRequest = '{"requested_attributes": ["given_name", "family_name", "age_over_21"], "purpose": "age_verification"}';
       await page.fill('textarea[label*="Presentation Request"]', presentationRequest);
-      
+
       await helpers.clickButton('Create Presentation');
-      
+
       // Wait for presentation creation
       await page.waitForTimeout(1000);
-      
+
       // Step 4: Verify the presentation
       await helpers.navigateToTab('Verifier');
-      
+
       // Simulate QR scan to get presentation data
       await helpers.clickButton('Simulate QR Code Scan');
       await page.waitForTimeout(2500);
-      
+
       // Verify the presentation
       await helpers.clickButton('Verify Presentation');
-      
+
       // Verify successful verification
       await helpers.waitForAlert('success');
       await helpers.verifyChipStatus('VERIFIED', 'success');
-      
+
       // Verify complete workflow
       await expect(page.locator('text=Credential verification successful!')).toBeVisible();
     });
@@ -93,32 +93,32 @@ test.describe('End-to-End Integration Tests', () => {
 
       // Issue credential with age information
       await helpers.navigateToTab('Issuer');
-      
+
       await helpers.fillFormField('Given Name', 'John');
       await helpers.fillFormField('Family Name', 'Smith');
       await page.fill('input[type="date"]', '1985-03-15'); // Over 21
       await helpers.fillFormField('Document Number', 'DL999888777');
       await helpers.fillFormField('Issuing Country', 'US');
-      
+
       await helpers.clickButton('Next');
       await helpers.clickButton('Next');
       await helpers.clickButton('Issue Credential');
       await helpers.waitForAlert('success');
-      
+
       // Use enhanced age verification
       await helpers.navigateToTab('Enhanced');
       await helpers.clickButton('Age Verification');
-      
+
       await helpers.selectAgeVerificationUseCase('Alcohol Purchase (21+)');
       await helpers.clickButton('Create Request');
       await helpers.waitForAlert('info');
-      
+
       await helpers.clickButton('Simulate Verification');
-      
+
       // Verify age verification without birth date disclosure
       await helpers.verifyChipStatus('VERIFIED', 'success');
       await helpers.verifyChipStatus('Privacy: HIGH', 'success');
-      
+
       // Verify privacy protection
       await helpers.expandAccordion('Privacy Report');
       await expect(page.locator('pre')).toContainText('birth_date');
@@ -143,19 +143,19 @@ test.describe('End-to-End Integration Tests', () => {
       });
 
       await helpers.navigateToTab('Enhanced');
-      
+
       // First evaluate policy
       await helpers.clickButton('Policy Engine');
       await helpers.clickButton('Evaluate Demo Policy');
-      
+
       await helpers.verifyChipStatus('APPROVE', 'success');
       await helpers.expandAccordion('Evaluation Details');
-      
+
       // Then use age verification based on policy guidance
       await helpers.clickButton('Age Verification');
       await helpers.selectAgeVerificationUseCase('Alcohol Purchase (21+)');
       await helpers.clickButton('Create Request');
-      
+
       // Verify integrated workflow
       await helpers.waitForAlert('info');
       await expect(page.locator('text=Request created for: Alcohol Purchase')).toBeVisible();
@@ -174,21 +174,21 @@ test.describe('End-to-End Integration Tests', () => {
       });
 
       await helpers.navigateToTab('Enhanced');
-      
+
       // Check certificate status first
       await helpers.clickButton('Certificate Monitor');
       await page.waitForTimeout(1000);
-      
+
       // Verify certificates are healthy
       await expect(page.locator('text=Total Certificates')).toBeVisible();
-      
+
       // Create offline QR with certificate validation
       await helpers.clickButton('Offline QR');
       await helpers.clickButton('Generate Offline QR');
-      
+
       await helpers.waitForAlert('success');
       await helpers.verifyQRCodeGenerated();
-      
+
       // Verify certificate information is included
       await expect(page.locator('text=QR Code created!')).toBeVisible();
     });
@@ -203,18 +203,18 @@ test.describe('End-to-End Integration Tests', () => {
       });
 
       await helpers.navigateToTab('Issuer');
-      
+
       await helpers.fillFormField('Given Name', 'Test');
       await helpers.fillFormField('Family Name', 'User');
-      
+
       await helpers.clickButton('Next');
       await helpers.clickButton('Next');
       await helpers.clickButton('Issue Credential');
-      
+
       // Should handle error gracefully without crashing
       await page.waitForTimeout(2000);
       await expect(page.locator('h4')).toContainText('Credential Issuer Demo');
-      
+
       // Test verifier failure
       await helpers.mockApiResponse('**/api/verifier/verify', {
         success: false,
@@ -226,7 +226,7 @@ test.describe('End-to-End Integration Tests', () => {
       await helpers.clickButton('Simulate QR Code Scan');
       await page.waitForTimeout(2500);
       await helpers.clickButton('Verify Presentation');
-      
+
       // Should show verification failure
       await page.waitForTimeout(2000);
       await expect(page.locator('h4')).toContainText('Credential Verifier Demo');
@@ -242,21 +242,21 @@ test.describe('End-to-End Integration Tests', () => {
       await helpers.clickButton('Age Verification');
       await helpers.selectAgeVerificationUseCase('Alcohol Purchase (21+)');
       await helpers.clickButton('Create Request');
-      
+
       // Wait for failure
       await page.waitForTimeout(2000);
-      
+
       // Restore network and mock successful response
       await page.unroute('**/api/**');
       await helpers.mockApiResponse('**/api/verifier/age-verification/request', {
         success: true,
         verification_request: { request_id: 'recovery_req', use_case: 'alcohol_purchase' }
       });
-      
+
       // Retry operation
       await helpers.clickButton('Create Request');
       await helpers.waitForAlert('info');
-      
+
       // Should recover successfully
       await expect(page.locator('text=Request created')).toBeVisible();
     });
@@ -330,17 +330,17 @@ test.describe('End-to-End Integration Tests', () => {
       await helpers.mockApiResponse('**/api/verifier/certificates/dashboard', largeCertDataset);
 
       const startTime = Date.now();
-      
+
       await helpers.navigateToTab('Enhanced');
       await helpers.clickButton('Certificate Monitor');
-      
+
       // Wait for dashboard to load
       await expect(page.locator('text=Total Certificates')).toBeVisible();
       await expect(page.locator('text=1000')).toBeVisible();
-      
+
       const loadTime = Date.now() - startTime;
       expect(loadTime).toBeLessThan(5000); // Should load within 5 seconds even with large dataset
-      
+
       // Verify UI remains responsive
       await helpers.clickButton('Age Verification');
       await expect(page.locator('h6')).toContainText('Enhanced Age Verification Demo');
@@ -366,19 +366,19 @@ test.describe('End-to-End Integration Tests', () => {
 
       await helpers.navigateToTab('Enhanced');
       await helpers.clickButton('Age Verification');
-      
+
       await helpers.selectAgeVerificationUseCase('Alcohol Purchase (21+)');
       await helpers.clickButton('Create Request');
       await helpers.waitForAlert('info');
-      
+
       await helpers.clickButton('Simulate Verification');
-      
+
       // Verify privacy protection
       await helpers.verifyChipStatus('Privacy: HIGH', 'success');
-      
+
       await helpers.expandAccordion('Privacy Report');
       const privacyReport = page.locator('pre');
-      
+
       // Verify only necessary attributes were disclosed
       await expect(privacyReport).toContainText('age_over_21');
       await expect(privacyReport).toContainText('attributes_protected');
@@ -403,7 +403,7 @@ test.describe('End-to-End Integration Tests', () => {
       await helpers.clickButton('Simulate QR Code Scan');
       await page.waitForTimeout(2500);
       await helpers.clickButton('Verify Presentation');
-      
+
       // Should properly handle authentication failure
       await page.waitForTimeout(2000);
       await expect(page.locator('text=Credential verification successful!')).not.toBeVisible();
@@ -437,14 +437,14 @@ test.describe('End-to-End Integration Tests', () => {
 
       await helpers.navigateToTab('Enhanced');
       await helpers.clickButton('Certificate Monitor');
-      
+
       await page.waitForTimeout(1000);
-      
+
       // Verify security issues are prominently displayed
       await expect(page.locator('text=2')).toBeVisible(); // Critical alerts
       await expect(page.locator('text=Expired Certificate')).toBeVisible();
       await expect(page.locator('text=Compromised Certificate')).toBeVisible();
-      
+
       // Verify critical status indicators
       await expect(page.locator('[data-testid="ErrorIcon"]')).toHaveCount({ min: 1 });
     });
@@ -455,12 +455,12 @@ test.describe('End-to-End Integration Tests', () => {
       // Test keyboard navigation through the demo
       await page.keyboard.press('Tab'); // Should focus first tab
       await page.keyboard.press('Enter'); // Should activate tab
-      
+
       // Continue tabbing through interactive elements
       for (let i = 0; i < 10; i++) {
         await page.keyboard.press('Tab');
       }
-      
+
       // Should not trap focus unexpectedly
       const focusedElement = await page.evaluate(() => document.activeElement?.tagName);
       expect(['BUTTON', 'INPUT', 'TEXTAREA', 'A']).toContain(focusedElement);
@@ -468,21 +468,21 @@ test.describe('End-to-End Integration Tests', () => {
 
     test('should provide appropriate ARIA labels and roles', async ({ page }) => {
       await helpers.navigateToTab('Enhanced');
-      
+
       // Check for proper ARIA attributes
       const buttons = page.locator('button');
       const buttonCount = await buttons.count();
-      
+
       // Verify buttons have accessible names
       for (let i = 0; i < Math.min(buttonCount, 5); i++) {
         const button = buttons.nth(i);
         const ariaLabel = await button.getAttribute('aria-label');
         const textContent = await button.textContent();
-        
+
         // Should have either aria-label or text content
         expect(ariaLabel || textContent?.trim()).toBeTruthy();
       }
-      
+
       // Check for proper heading hierarchy
       await expect(page.locator('h1, h2, h3, h4, h5, h6')).toHaveCount({ min: 1 });
     });
@@ -491,20 +491,20 @@ test.describe('End-to-End Integration Tests', () => {
       // Test that important content is properly announced
       await helpers.navigateToTab('Enhanced');
       await helpers.clickButton('Age Verification');
-      
+
       // Verify proper heading structure
       await expect(page.locator('h6')).toContainText('Enhanced Age Verification Demo');
-      
+
       // Verify form labels are associated with inputs
       const selectLabel = page.locator('label:has-text("Use Case")');
       if (await selectLabel.count() > 0) {
         await expect(selectLabel).toBeVisible();
       }
-      
+
       // Verify status messages are properly announced
       await helpers.selectAgeVerificationUseCase('Alcohol Purchase (21+)');
       await helpers.clickButton('Create Request');
-      
+
       // Alert should be accessible
       await page.waitForTimeout(1000);
       const alerts = page.locator('[role="alert"]');

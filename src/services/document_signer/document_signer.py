@@ -30,8 +30,12 @@ from marty_common.validation.schemas.document_signer import (
     SignDocumentRequestSchema,
 )
 from marty_common.vc import SdJwtConfig
-from src.proto.v1 import document_signer_pb2, document_signer_pb2_grpc
-from src.proto.v1 import csca_service_pb2, csca_service_pb2_grpc
+from src.proto.v1 import (
+    csca_service_pb2,
+    csca_service_pb2_grpc,
+    document_signer_pb2,
+    document_signer_pb2_grpc,
+)
 
 # Import our refactored modules
 from .certificate_manager import CertificateManager
@@ -274,7 +278,12 @@ class DocumentSigner(document_signer_pb2_grpc.DocumentSignerServicer):
                 "event_type": "credential_offer_created",
                 "offer_id": offer_id,
                 "subject_id": payload.subject_id,
-                "credential_type": payload.credential_type or (self._sd_jwt_manager._default_credential_type if self._sd_jwt_manager else "VerifiableCredential"),
+                "credential_type": payload.credential_type
+                or (
+                    self._sd_jwt_manager._default_credential_type
+                    if self._sd_jwt_manager
+                    else "VerifiableCredential"
+                ),
                 "expires_in": expires_in,
             }
 

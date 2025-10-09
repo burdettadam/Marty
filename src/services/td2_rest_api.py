@@ -4,6 +4,7 @@ TD-2 REST API implementation.
 This module provides HTTP REST endpoints for TD-2 document operations,
 offering an alternative to the gRPC interface for web-based integrations.
 """
+
 from __future__ import annotations
 
 import logging
@@ -41,6 +42,7 @@ logger = logging.getLogger(__name__)
 # Pydantic models for REST API requests/responses
 class PersonalDataRequest(BaseModel):
     """Personal data for REST API."""
+
     primary_identifier: str = Field(..., description="Surname")
     secondary_identifier: str | None = Field(None, description="Given names")
     nationality: str = Field(..., description="Nationality code (3 chars)")
@@ -51,6 +53,7 @@ class PersonalDataRequest(BaseModel):
 
 class TD2DocumentDataRequest(BaseModel):
     """Document data for REST API."""
+
     document_type: str = Field(..., description="Document type (I, AC, IA, etc.)")
     document_number: str = Field(..., description="Document number")
     issuing_state: str = Field(..., description="Issuing state code (3 chars)")
@@ -62,6 +65,7 @@ class TD2DocumentDataRequest(BaseModel):
 
 class PolicyConstraintsRequest(BaseModel):
     """Policy constraints for REST API."""
+
     work_authorization: list[str] | None = Field(None, description="Work permit restrictions")
     study_authorization: list[str] | None = Field(None, description="Study permit restrictions")
     travel_restrictions: list[str] | None = Field(None, description="Travel limitations")
@@ -72,6 +76,7 @@ class PolicyConstraintsRequest(BaseModel):
 
 class CreateTD2DocumentRequest(BaseModel):
     """Create TD-2 document request."""
+
     personal_data: PersonalDataRequest
     document_data: TD2DocumentDataRequest
     security_model: str | None = Field("MRZ_ONLY", description="Security model")
@@ -81,6 +86,7 @@ class CreateTD2DocumentRequest(BaseModel):
 
 class TD2MRZDataResponse(BaseModel):
     """MRZ data response."""
+
     line1: str
     line2: str
     check_digit_document: str | None = None
@@ -91,6 +97,7 @@ class TD2MRZDataResponse(BaseModel):
 
 class TD2DocumentResponse(BaseModel):
     """TD-2 document response."""
+
     document_id: str
     personal_data: dict[str, Any]
     document_data: dict[str, Any]
@@ -106,6 +113,7 @@ class TD2DocumentResponse(BaseModel):
 
 class VerifyTD2DocumentRequest(BaseModel):
     """Verify TD-2 document request."""
+
     document_id: str | None = None
     mrz_line1: str | None = None
     mrz_line2: str | None = None
@@ -116,6 +124,7 @@ class VerifyTD2DocumentRequest(BaseModel):
 
 class VerificationResultResponse(BaseModel):
     """Verification result response."""
+
     is_valid: bool
     mrz_valid: bool
     chip_valid: bool
@@ -129,6 +138,7 @@ class VerificationResultResponse(BaseModel):
 
 class SearchTD2DocumentsRequest(BaseModel):
     """Search TD-2 documents request."""
+
     query: str | None = None
     document_type: str | None = None
     status: str | None = None
@@ -142,6 +152,7 @@ class SearchTD2DocumentsRequest(BaseModel):
 
 class TD2StatisticsResponse(BaseModel):
     """TD-2 statistics response."""
+
     total_documents: int
     active_documents: int
     expired_documents: int
@@ -153,6 +164,7 @@ class TD2StatisticsResponse(BaseModel):
 
 class UpdateStatusRequest(BaseModel):
     """Update document status request."""
+
     new_status: str
     reason: str | None = None
     metadata: dict[str, str] | None = None
@@ -160,6 +172,7 @@ class UpdateStatusRequest(BaseModel):
 
 class RenewDocumentRequest(BaseModel):
     """Renew document request."""
+
     new_expiry_date: str
     updated_constraints: PolicyConstraintsRequest | None = None
     metadata: dict[str, str] | None = None
@@ -180,7 +193,7 @@ class TD2RestAPI:
         self.app = FastAPI(
             title="TD-2 Document Management API",
             description="REST API for TD-2 machine-readable official travel documents",
-            version="1.0.0"
+            version="1.0.0",
         )
         self._setup_routes()
         logger.info("TD-2 REST API initialized")
@@ -191,7 +204,7 @@ class TD2RestAPI:
         @self.app.post(
             "/td2/documents",
             response_model=TD2DocumentResponse,
-            status_code=status.HTTP_201_CREATED
+            status_code=status.HTTP_201_CREATED,
         )
         async def create_document(request: CreateTD2DocumentRequest):
             """Create a new TD-2 document."""
@@ -291,7 +304,7 @@ class TD2RestAPI:
                     ],
                     "total_count": search_response.total_count,
                     "success": search_response.success,
-                    "message": search_response.message
+                    "message": search_response.message,
                 }
 
                 logger.info(
@@ -314,7 +327,7 @@ class TD2RestAPI:
             issuing_state: str | None = None,
             nationality: str | None = None,
             limit: int = Query(100, ge=1, le=1000),
-            offset: int = Query(0, ge=0)
+            offset: int = Query(0, ge=0),
         ):
             """Search TD-2 documents via GET (query parameters)."""
             request = SearchTD2DocumentsRequest(
@@ -324,7 +337,7 @@ class TD2RestAPI:
                 issuing_state=issuing_state,
                 nationality=nationality,
                 limit=limit,
-                offset=offset
+                offset=offset,
             )
             return await search_documents(request)
 
@@ -387,9 +400,7 @@ class TD2RestAPI:
 
                 # Renew document
                 document = await self.td2_service.renew_document(
-                    document_id,
-                    new_expiry_date,
-                    updated_constraints
+                    document_id, new_expiry_date, updated_constraints
                 )
                 response = self._convert_document_response(document)
 
@@ -426,7 +437,7 @@ class TD2RestAPI:
             document_type: str | None = None,
             issuing_state: str | None = None,
             limit: int = Query(100, ge=1, le=1000),
-            offset: int = Query(0, ge=0)
+            offset: int = Query(0, ge=0),
         ):
             """Get expiring TD-2 documents."""
             try:
@@ -435,22 +446,30 @@ class TD2RestAPI:
                 # Apply filters
                 if document_type:
                     doc_type_enum = self._convert_document_type_string(document_type)
-                    documents = [d for d in documents if d.document_data.document_type == doc_type_enum]
+                    documents = [
+                        d for d in documents if d.document_data.document_type == doc_type_enum
+                    ]
 
                 if issuing_state:
-                    documents = [d for d in documents if d.document_data.issuing_state == issuing_state]
+                    documents = [
+                        d for d in documents if d.document_data.issuing_state == issuing_state
+                    ]
 
                 # Apply pagination
-                paginated_documents = documents[offset:offset + limit]
+                paginated_documents = documents[offset : offset + limit]
 
                 response = {
-                    "documents": [self._convert_document_response(doc) for doc in paginated_documents],
+                    "documents": [
+                        self._convert_document_response(doc) for doc in paginated_documents
+                    ],
                     "total_count": len(documents),
                     "success": True,
-                    "message": f"Found {len(documents)} expiring documents"
+                    "message": f"Found {len(documents)} expiring documents",
                 }
 
-                logger.info(f"TD-2 expiring documents retrieved via REST: {len(paginated_documents)} results")
+                logger.info(
+                    f"TD-2 expiring documents retrieved via REST: {len(paginated_documents)} results"
+                )
             except ValueError as e:
                 logger.exception(f"Invalid document type: {e}")
                 raise HTTPException(status_code=400, detail=f"Invalid document type: {e!s}")
@@ -463,7 +482,11 @@ class TD2RestAPI:
         @self.app.get("/td2/health")
         async def health_check():
             """Health check endpoint."""
-            return {"status": "healthy", "service": "td2-api", "timestamp": datetime.utcnow().isoformat()}
+            return {
+                "status": "healthy",
+                "service": "td2-api",
+                "timestamp": datetime.utcnow().isoformat(),
+            }
 
         @self.app.get("/")
         async def root():
@@ -483,8 +506,8 @@ class TD2RestAPI:
                     "renew": "POST /td2/documents/{id}/renew",
                     "statistics": "GET /td2/statistics",
                     "expiring": "GET /td2/documents/expiring",
-                    "health": "GET /td2/health"
-                }
+                    "health": "GET /td2/health",
+                },
             }
 
     # Conversion helper methods
@@ -500,7 +523,7 @@ class TD2RestAPI:
             nationality=request.personal_data.nationality,
             date_of_birth=datetime.fromisoformat(request.personal_data.date_of_birth).date(),
             gender=request.personal_data.gender,
-            place_of_birth=request.personal_data.place_of_birth
+            place_of_birth=request.personal_data.place_of_birth,
         )
 
         # Convert document data
@@ -511,7 +534,7 @@ class TD2RestAPI:
             date_of_issue=datetime.fromisoformat(request.document_data.date_of_issue).date(),
             date_of_expiry=datetime.fromisoformat(request.document_data.date_of_expiry).date(),
             place_of_issue=request.document_data.place_of_issue,
-            issuing_authority=request.document_data.issuing_authority
+            issuing_authority=request.document_data.issuing_authority,
         )
 
         # Convert security model
@@ -527,7 +550,7 @@ class TD2RestAPI:
             document_data=document_data,
             security_model=security_model,
             policy_constraints=policy_constraints,
-            metadata=request.metadata
+            metadata=request.metadata,
         )
 
     def _convert_verify_request(
@@ -537,17 +560,14 @@ class TD2RestAPI:
         # Create MRZ data if provided
         mrz_data = None
         if request.mrz_line1 and request.mrz_line2:
-            mrz_data = TD2MRZData(
-                line1=request.mrz_line1,
-                line2=request.mrz_line2
-            )
+            mrz_data = TD2MRZData(line1=request.mrz_line1, line2=request.mrz_line2)
 
         return TD2DocumentVerifyRequest(
             document_id=request.document_id,
             mrz_data=mrz_data,
             verify_chip=request.verify_chip,
             verify_policies=request.verify_policies,
-            context=request.context or {}
+            context=request.context or {},
         )
 
     def _convert_search_request(
@@ -573,7 +593,7 @@ class TD2RestAPI:
             date_from=request.date_from,
             date_to=request.date_to,
             limit=request.limit or 100,
-            offset=request.offset or 0
+            offset=request.offset or 0,
         )
 
     def _convert_document_response(
@@ -589,7 +609,7 @@ class TD2RestAPI:
                 check_digit_document=document.mrz_data.check_digit_document,
                 check_digit_dob=document.mrz_data.check_digit_dob,
                 check_digit_expiry=document.mrz_data.check_digit_expiry,
-                check_digit_composite=document.mrz_data.check_digit_composite
+                check_digit_composite=document.mrz_data.check_digit_composite,
             )
 
         return TD2DocumentResponse(
@@ -598,18 +618,30 @@ class TD2RestAPI:
                 "primary_identifier": document.personal_data.primary_identifier,
                 "secondary_identifier": document.personal_data.secondary_identifier,
                 "nationality": document.personal_data.nationality,
-                "date_of_birth": document.personal_data.date_of_birth.isoformat() if document.personal_data.date_of_birth else None,
+                "date_of_birth": (
+                    document.personal_data.date_of_birth.isoformat()
+                    if document.personal_data.date_of_birth
+                    else None
+                ),
                 "gender": document.personal_data.gender,
-                "place_of_birth": document.personal_data.place_of_birth
+                "place_of_birth": document.personal_data.place_of_birth,
             },
             document_data={
                 "document_type": document.document_data.document_type.value,
                 "document_number": document.document_data.document_number,
                 "issuing_state": document.document_data.issuing_state,
-                "date_of_issue": document.document_data.date_of_issue.isoformat() if document.document_data.date_of_issue else None,
-                "date_of_expiry": document.document_data.date_of_expiry.isoformat() if document.document_data.date_of_expiry else None,
+                "date_of_issue": (
+                    document.document_data.date_of_issue.isoformat()
+                    if document.document_data.date_of_issue
+                    else None
+                ),
+                "date_of_expiry": (
+                    document.document_data.date_of_expiry.isoformat()
+                    if document.document_data.date_of_expiry
+                    else None
+                ),
                 "place_of_issue": document.document_data.place_of_issue,
-                "issuing_authority": document.document_data.issuing_authority
+                "issuing_authority": document.document_data.issuing_authority,
             },
             mrz_data=mrz_data,
             status=document.status.value,
@@ -618,10 +650,12 @@ class TD2RestAPI:
             created_by=document.created_by,
             created_at=document.created_at.isoformat() if document.created_at else None,
             updated_at=document.updated_at.isoformat() if document.updated_at else None,
-            version=document.version
+            version=document.version,
         )
 
-    def _convert_verification_response(self, result: VerificationResult) -> VerificationResultResponse:
+    def _convert_verification_response(
+        self, result: VerificationResult
+    ) -> VerificationResultResponse:
         """Convert internal verification result to REST response."""
         return VerificationResultResponse(
             is_valid=result.is_valid,
@@ -632,7 +666,11 @@ class TD2RestAPI:
             errors=result.errors,
             warnings=getattr(result, "warnings", []),
             details=getattr(result, "details", {}),
-            verified_at=result.verified_at.isoformat() if result.verified_at else datetime.utcnow().isoformat()
+            verified_at=(
+                result.verified_at.isoformat()
+                if result.verified_at
+                else datetime.utcnow().isoformat()
+            ),
         )
 
     def _convert_document_type_string(self, type_str: str) -> TD2DocumentType:
@@ -645,7 +683,7 @@ class TD2RestAPI:
             "IF": TD2DocumentType.IF,
             "IP": TD2DocumentType.IP,
             "IR": TD2DocumentType.IR,
-            "IV": TD2DocumentType.IV
+            "IV": TD2DocumentType.IV,
         }
 
         if type_str not in type_map:
@@ -662,7 +700,7 @@ class TD2RestAPI:
             "ACTIVE": TD2Status.ACTIVE,
             "EXPIRED": TD2Status.EXPIRED,
             "REVOKED": TD2Status.REVOKED,
-            "SUSPENDED": TD2Status.SUSPENDED
+            "SUSPENDED": TD2Status.SUSPENDED,
         }
 
         if status_str not in status_map:
@@ -676,7 +714,7 @@ class TD2RestAPI:
         model_map = {
             "MRZ_ONLY": SecurityModel.MRZ_ONLY,
             "MINIMAL_CHIP": SecurityModel.MINIMAL_CHIP,
-            "EXTENDED_CHIP": SecurityModel.EXTENDED_CHIP
+            "EXTENDED_CHIP": SecurityModel.EXTENDED_CHIP,
         }
 
         if model_str not in model_map:
@@ -685,7 +723,9 @@ class TD2RestAPI:
 
         return model_map[model_str]
 
-    def _convert_policy_constraints(self, constraints: PolicyConstraintsRequest) -> PolicyConstraints:
+    def _convert_policy_constraints(
+        self, constraints: PolicyConstraintsRequest
+    ) -> PolicyConstraints:
         """Convert policy constraints from REST to internal model."""
         return PolicyConstraints(
             work_authorization=constraints.work_authorization or [],
@@ -693,7 +733,7 @@ class TD2RestAPI:
             travel_restrictions=constraints.travel_restrictions or [],
             employment_sectors=constraints.employment_sectors or [],
             max_stay_duration=constraints.max_stay_duration,
-            renewable=constraints.renewable if constraints.renewable is not None else True
+            renewable=constraints.renewable if constraints.renewable is not None else True,
         )
 
 

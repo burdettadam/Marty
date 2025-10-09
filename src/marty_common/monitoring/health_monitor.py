@@ -4,6 +4,7 @@ Comprehensive health monitoring system for Marty services.
 Provides health checks, metrics collection, alerting, and monitoring
 dashboard capabilities for all Marty microservices.
 """
+
 from __future__ import annotations
 
 import json
@@ -13,10 +14,11 @@ import threading
 import time
 from abc import ABC, abstractmethod
 from collections import defaultdict, deque
+from collections.abc import Callable
 from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import Any, Callable
+from typing import Any
 
 logger = logging.getLogger(__name__)
 
@@ -262,9 +264,7 @@ class MetricsCollector:
 
             return metrics
 
-    def get_current_value(
-        self, name: str, labels: dict[str, str] | None = None
-    ) -> float | None:
+    def get_current_value(self, name: str, labels: dict[str, str] | None = None) -> float | None:
         """Get the most recent value for a metric."""
         history = self.get_metric_history(name, labels)
         return history[-1].value if history else None

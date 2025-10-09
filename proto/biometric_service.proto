@@ -10,11 +10,11 @@ service BiometricProcessingService {
     rpc ProcessTemplate(ProcessTemplateRequest) returns (ProcessTemplateResponse);
     rpc ExtractFeatures(ExtractFeaturesRequest) returns (ExtractFeaturesResponse);
     rpc ValidateQuality(ValidateQualityRequest) returns (ValidateQualityResponse);
-    
+
     // Biometric matching
     rpc MatchBiometrics(MatchBiometricsRequest) returns (MatchBiometricsResponse);
     rpc VerifyIdentity(VerifyIdentityRequest) returns (VerifyIdentityResponse);
-    
+
     // Batch operations
     rpc BatchProcessTemplates(BatchProcessTemplatesRequest) returns (BatchProcessTemplatesResponse);
 }

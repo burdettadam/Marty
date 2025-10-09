@@ -5,11 +5,11 @@
     <header>
       <h2>System Administration</h2>
     </header>
-    
+
     <!-- System Overview -->
     <details open>
       <summary>System Overview</summary>
-      
+
       <div class="overview-section">
         <div class="system-stats">
           <div class="stats-grid">
@@ -17,24 +17,24 @@
               <div class="stat-value">{{ system_stats.active_services if system_stats else '0' }}</div>
               <div class="stat-label">Active Services</div>
             </div>
-            
+
             <div class="stat-card">
               <div class="stat-value">{{ system_stats.total_certificates if system_stats else '0' }}</div>
               <div class="stat-label">Total Certificates</div>
             </div>
-            
+
             <div class="stat-card">
               <div class="stat-value">{{ system_stats.documents_processed if system_stats else '0' }}</div>
               <div class="stat-label">Documents Processed</div>
             </div>
-            
+
             <div class="stat-card">
               <div class="stat-value">{{ system_stats.system_uptime if system_stats else '0h' }}</div>
               <div class="stat-label">System Uptime</div>
             </div>
           </div>
         </div>
-        
+
         <!-- Quick Health Check -->
         <div class="health-overview">
           <h4>System Health</h4>
@@ -55,11 +55,11 @@
         </div>
       </div>
     </details>
-    
+
     <!-- Service Management -->
     <details>
       <summary>Service Management</summary>
-      
+
       <div class="service-management-section">
         <div class="services-grid">
           <!-- CSCA Service -->
@@ -70,7 +70,7 @@
                 {{ services.csca.status if services else 'Unknown' }}
               </div>
             </div>
-            
+
             <div class="service-details">
               {% if services and services.csca %}
                 <dl>
@@ -81,7 +81,7 @@
                 </dl>
               {% endif %}
             </div>
-            
+
             <div class="service-actions">
               <button class="button button-small" onclick="serviceAction('csca', 'start')">Start</button>
               <button class="button button-small" onclick="serviceAction('csca', 'stop')">Stop</button>
@@ -89,7 +89,7 @@
               <button class="button button-small" onclick="viewServiceLogs('csca')">Logs</button>
             </div>
           </div>
-          
+
           <!-- Document Signer Service -->
           <div class="service-card">
             <div class="service-header">
@@ -98,7 +98,7 @@
                 {{ services.document_signer.status if services else 'Unknown' }}
               </div>
             </div>
-            
+
             <div class="service-details">
               {% if services and services.document_signer %}
                 <dl>
@@ -109,7 +109,7 @@
                 </dl>
               {% endif %}
             </div>
-            
+
             <div class="service-actions">
               <button class="button button-small" onclick="serviceAction('document_signer', 'start')">Start</button>
               <button class="button button-small" onclick="serviceAction('document_signer', 'stop')">Stop</button>
@@ -117,7 +117,7 @@
               <button class="button button-small" onclick="viewServiceLogs('document_signer')">Logs</button>
             </div>
           </div>
-          
+
           <!-- Passport Engine -->
           <div class="service-card">
             <div class="service-header">
@@ -126,7 +126,7 @@
                 {{ services.passport_engine.status if services else 'Unknown' }}
               </div>
             </div>
-            
+
             <div class="service-details">
               {% if services and services.passport_engine %}
                 <dl>
@@ -137,7 +137,7 @@
                 </dl>
               {% endif %}
             </div>
-            
+
             <div class="service-actions">
               <button class="button button-small" onclick="serviceAction('passport_engine', 'start')">Start</button>
               <button class="button button-small" onclick="serviceAction('passport_engine', 'stop')">Stop</button>
@@ -145,7 +145,7 @@
               <button class="button button-small" onclick="viewServiceLogs('passport_engine')">Logs</button>
             </div>
           </div>
-          
+
           <!-- Inspection System -->
           <div class="service-card">
             <div class="service-header">
@@ -154,7 +154,7 @@
                 {{ services.inspection_system.status if services else 'Unknown' }}
               </div>
             </div>
-            
+
             <div class="service-details">
               {% if services and services.inspection_system %}
                 <dl>
@@ -165,7 +165,7 @@
                 </dl>
               {% endif %}
             </div>
-            
+
             <div class="service-actions">
               <button class="button button-small" onclick="serviceAction('inspection_system', 'start')">Start</button>
               <button class="button button-small" onclick="serviceAction('inspection_system', 'stop')">Stop</button>
@@ -173,7 +173,7 @@
               <button class="button button-small" onclick="viewServiceLogs('inspection_system')">Logs</button>
             </div>
           </div>
-          
+
           <!-- MDL Engine -->
           <div class="service-card">
             <div class="service-header">
@@ -182,7 +182,7 @@
                 {{ services.mdl_engine.status if services else 'Unknown' }}
               </div>
             </div>
-            
+
             <div class="service-details">
               {% if services and services.mdl_engine %}
                 <dl>
@@ -193,7 +193,7 @@
                 </dl>
               {% endif %}
             </div>
-            
+
             <div class="service-actions">
               <button class="button button-small" onclick="serviceAction('mdl_engine', 'start')">Start</button>
               <button class="button button-small" onclick="serviceAction('mdl_engine', 'stop')">Stop</button>
@@ -201,7 +201,7 @@
               <button class="button button-small" onclick="viewServiceLogs('mdl_engine')">Logs</button>
             </div>
           </div>
-          
+
           <!-- mDoc Engine -->
           <div class="service-card">
             <div class="service-header">
@@ -210,7 +210,7 @@
                 {{ services.mdoc_engine.status if services else 'Unknown' }}
               </div>
             </div>
-            
+
             <div class="service-details">
               {% if services and services.mdoc_engine %}
                 <dl>
@@ -221,7 +221,7 @@
                 </dl>
               {% endif %}
             </div>
-            
+
             <div class="service-actions">
               <button class="button button-small" onclick="serviceAction('mdoc_engine', 'start')">Start</button>
               <button class="button button-small" onclick="serviceAction('mdoc_engine', 'stop')">Stop</button>
@@ -229,7 +229,7 @@
               <button class="button button-small" onclick="viewServiceLogs('mdoc_engine')">Logs</button>
             </div>
           </div>
-          
+
           <!-- DTC Engine -->
           <div class="service-card">
             <div class="service-header">
@@ -238,7 +238,7 @@
                 {{ services.dtc_engine.status if services else 'Unknown' }}
               </div>
             </div>
-            
+
             <div class="service-details">
               {% if services and services.dtc_engine %}
                 <dl>
@@ -249,7 +249,7 @@
                 </dl>
               {% endif %}
             </div>
-            
+
             <div class="service-actions">
               <button class="button button-small" onclick="serviceAction('dtc_engine', 'start')">Start</button>
               <button class="button button-small" onclick="serviceAction('dtc_engine', 'stop')">Stop</button>
@@ -257,7 +257,7 @@
               <button class="button button-small" onclick="viewServiceLogs('dtc_engine')">Logs</button>
             </div>
           </div>
-          
+
           <!-- PKD Service -->
           <div class="service-card">
             <div class="service-header">
@@ -266,7 +266,7 @@
                 {{ services.pkd_service.status if services else 'Unknown' }}
               </div>
             </div>
-            
+
             <div class="service-details">
               {% if services and services.pkd_service %}
                 <dl>
@@ -277,7 +277,7 @@
                 </dl>
               {% endif %}
             </div>
-            
+
             <div class="service-actions">
               <button class="button button-small" onclick="serviceAction('pkd_service', 'start')">Start</button>
               <button class="button button-small" onclick="serviceAction('pkd_service', 'stop')">Stop</button>
@@ -285,7 +285,7 @@
               <button class="button button-small" onclick="viewServiceLogs('pkd_service')">Logs</button>
             </div>
           </div>
-          
+
           <!-- Trust Anchor -->
           <div class="service-card">
             <div class="service-header">
@@ -294,7 +294,7 @@
                 {{ services.trust_anchor.status if services else 'Unknown' }}
               </div>
             </div>
-            
+
             <div class="service-details">
               {% if services and services.trust_anchor %}
                 <dl>
@@ -305,7 +305,7 @@
                 </dl>
               {% endif %}
             </div>
-            
+
             <div class="service-actions">
               <button class="button button-small" onclick="serviceAction('trust_anchor', 'start')">Start</button>
               <button class="button button-small" onclick="serviceAction('trust_anchor', 'stop')">Stop</button>
@@ -314,7 +314,7 @@
             </div>
           </div>
         </div>
-        
+
         <!-- Bulk Service Actions -->
         <div class="bulk-actions">
           <h4>Bulk Service Operations</h4>
@@ -327,11 +327,11 @@
         </div>
       </div>
     </details>
-    
+
     <!-- System Configuration -->
     <details>
       <summary>System Configuration</summary>
-      
+
       <div class="configuration-section">
         <!-- Environment Settings -->
         <div class="config-subsection">
@@ -344,7 +344,7 @@
                 <button type="button" class="tab-button" onclick="showConfigTab('logging')">Logging</button>
                 <button type="button" class="tab-button" onclick="showConfigTab('integration')">Integration</button>
               </div>
-              
+
               <!-- General Configuration Tab -->
               <div id="general-config" class="config-tab active">
                 <div class="form-row">
@@ -356,7 +356,7 @@
                       <option value="production" {% if config.environment == 'production' %}selected{% endif %}>Production</option>
                     </select>
                   </div>
-                  
+
                   <div class="form-group">
                     <label for="debug_mode">Debug Mode:</label>
                     <select id="debug_mode" name="debug_mode">
@@ -365,26 +365,26 @@
                     </select>
                   </div>
                 </div>
-                
+
                 <div class="form-row">
                   <div class="form-group">
                     <label for="host">Host:</label>
                     <input type="text" id="host" name="host" value="{{ config.host or '0.0.0.0' }}" required>
                   </div>
-                  
+
                   <div class="form-group">
                     <label for="port">Port:</label>
                     <input type="number" id="port" name="port" value="{{ config.port or 8000 }}" min="1" max="65535" required>
                   </div>
                 </div>
-                
+
                 <div class="form-group">
                   <label for="max_workers">Maximum Worker Processes:</label>
-                  <input type="number" id="max_workers" name="max_workers" 
+                  <input type="number" id="max_workers" name="max_workers"
                          value="{{ config.max_workers or 4 }}" min="1" max="32">
                 </div>
               </div>
-              
+
               <!-- Security Configuration Tab -->
               <div id="security-config" class="config-tab">
                 <div class="form-row">
@@ -395,7 +395,7 @@
                       <option value="false" {% if not config.tls_enabled %}selected{% endif %}>Disabled</option>
                     </select>
                   </div>
-                  
+
                   <div class="form-group">
                     <label for="cert_validation">Certificate Validation:</label>
                     <select id="cert_validation" name="cert_validation">
@@ -405,7 +405,7 @@
                     </select>
                   </div>
                 </div>
-                
+
                 <div class="form-group">
                   <label for="api_key_required">API Key Required:</label>
                   <select id="api_key_required" name="api_key_required">
@@ -413,14 +413,14 @@
                     <option value="false" {% if not config.api_key_required %}selected{% endif %}>Optional</option>
                   </select>
                 </div>
-                
+
                 <div class="form-group">
                   <label for="session_timeout">Session Timeout (minutes):</label>
-                  <input type="number" id="session_timeout" name="session_timeout" 
+                  <input type="number" id="session_timeout" name="session_timeout"
                          value="{{ config.session_timeout or 30 }}" min="5" max="480">
                 </div>
               </div>
-              
+
               <!-- Logging Configuration Tab -->
               <div id="logging-config" class="config-tab">
                 <div class="form-row">
@@ -434,7 +434,7 @@
                       <option value="CRITICAL" {% if config.log_level == 'CRITICAL' %}selected{% endif %}>CRITICAL</option>
                     </select>
                   </div>
-                  
+
                   <div class="form-group">
                     <label for="log_rotation">Log Rotation:</label>
                     <select id="log_rotation" name="log_rotation">
@@ -445,28 +445,28 @@
                     </select>
                   </div>
                 </div>
-                
+
                 <div class="form-group">
                   <label for="log_directory">Log Directory:</label>
-                  <input type="text" id="log_directory" name="log_directory" 
+                  <input type="text" id="log_directory" name="log_directory"
                          value="{{ config.log_directory or '/var/log/marty' }}" required>
                 </div>
-                
+
                 <div class="form-group">
                   <label for="max_log_files">Maximum Log Files:</label>
-                  <input type="number" id="max_log_files" name="max_log_files" 
+                  <input type="number" id="max_log_files" name="max_log_files"
                          value="{{ config.max_log_files or 30 }}" min="1" max="365">
                 </div>
               </div>
-              
+
               <!-- Integration Configuration Tab -->
               <div id="integration-config" class="config-tab">
                 <div class="form-group">
                   <label for="openxpki_url">OpenXPKI URL:</label>
-                  <input type="url" id="openxpki_url" name="openxpki_url" 
+                  <input type="url" id="openxpki_url" name="openxpki_url"
                          value="{{ config.openxpki_url }}" placeholder="https://openxpki.example.com">
                 </div>
-                
+
                 <div class="form-row">
                   <div class="form-group">
                     <label for="pkd_sync_enabled">PKD Auto-Sync:</label>
@@ -475,23 +475,23 @@
                       <option value="false" {% if not config.pkd_sync_enabled %}selected{% endif %}>Disabled</option>
                     </select>
                   </div>
-                  
+
                   <div class="form-group">
                     <label for="pkd_sync_interval">Sync Interval (hours):</label>
-                    <input type="number" id="pkd_sync_interval" name="pkd_sync_interval" 
+                    <input type="number" id="pkd_sync_interval" name="pkd_sync_interval"
                            value="{{ config.pkd_sync_interval or 24 }}" min="1" max="168">
                   </div>
                 </div>
-                
+
                 <div class="form-group">
                   <label for="notification_email">System Notifications Email:</label>
-                  <input type="email" id="notification_email" name="notification_email" 
-                         value="{{ config.notification_email }}" 
+                  <input type="email" id="notification_email" name="notification_email"
+                         value="{{ config.notification_email }}"
                          placeholder="admin@example.com">
                 </div>
               </div>
             </div>
-            
+
             <div class="config-actions">
               <button type="submit" class="button button-primary">Save Configuration</button>
               <button type="button" class="button" onclick="resetToDefaults()">Reset to Defaults</button>
@@ -501,11 +501,11 @@
         </div>
       </div>
     </details>
-    
+
     <!-- System Monitoring -->
     <details>
       <summary>System Monitoring & Logs</summary>
-      
+
       <div class="monitoring-section">
         <!-- Real-time Metrics -->
         <div class="metrics-subsection">
@@ -518,7 +518,7 @@
                 <div class="chart-bar" style="width: {{ metrics.cpu_usage if metrics else '0' }}%"></div>
               </div>
             </div>
-            
+
             <div class="metric-card">
               <h6>Memory Usage</h6>
               <div class="metric-value">{{ metrics.memory_usage if metrics else '0' }}%</div>
@@ -526,7 +526,7 @@
                 <div class="chart-bar" style="width: {{ metrics.memory_usage if metrics else '0' }}%"></div>
               </div>
             </div>
-            
+
             <div class="metric-card">
               <h6>Disk Usage</h6>
               <div class="metric-value">{{ metrics.disk_usage if metrics else '0' }}%</div>
@@ -534,7 +534,7 @@
                 <div class="chart-bar" style="width: {{ metrics.disk_usage if metrics else '0' }}%"></div>
               </div>
             </div>
-            
+
             <div class="metric-card">
               <h6>Network I/O</h6>
               <div class="metric-value">{{ metrics.network_io if metrics else '0' }} MB/s</div>
@@ -544,16 +544,16 @@
               </div>
             </div>
           </div>
-          
+
           <button class="button" onclick="toggleMetricsAutoRefresh()">
             <span id="metrics-refresh-text">Enable Auto-refresh</span>
           </button>
         </div>
-        
+
         <!-- Log Viewer -->
         <div class="logs-subsection">
           <h4>System Logs</h4>
-          
+
           <!-- Log Filters -->
           <div class="log-controls">
             <div class="log-filters">
@@ -573,7 +573,7 @@
                     <option value="trust_anchor">Trust Anchor</option>
                   </select>
                 </div>
-                
+
                 <div class="form-group">
                   <label for="log_level_filter">Level:</label>
                   <select id="log_level_filter" name="log_level" onchange="filterLogs()">
@@ -585,13 +585,13 @@
                     <option value="CRITICAL">CRITICAL</option>
                   </select>
                 </div>
-                
+
                 <div class="form-group">
                   <label for="log_search">Search:</label>
                   <input type="text" id="log_search" placeholder="Search log messages..." onkeyup="filterLogs()">
                 </div>
               </div>
-              
+
               <div class="log-actions">
                 <button class="button" onclick="refreshLogs()">Refresh</button>
                 <button class="button" onclick="clearLogFilters()">Clear Filters</button>
@@ -599,13 +599,13 @@
               </div>
             </div>
           </div>
-          
+
           <!-- Log Display -->
           <div class="log-viewer">
             <div id="log-entries" class="log-entries">
               {% if log_entries %}
                 {% for entry in log_entries %}
-                  <div class="log-entry log-{{ entry.level.lower() }}" 
+                  <div class="log-entry log-{{ entry.level.lower() }}"
                        data-service="{{ entry.service }}" data-level="{{ entry.level }}">
                     <span class="log-timestamp">{{ entry.timestamp }}</span>
                     <span class="log-service">{{ entry.service }}</span>
@@ -621,15 +621,15 @@
         </div>
       </div>
     </details>
-    
+
     <!-- Database Management -->
     <details>
       <summary>Database Management</summary>
-      
+
       <div class="database-section">
         <div class="db-operations">
           <h4>Database Operations</h4>
-          
+
           <div class="db-actions-grid">
             <div class="db-action-card">
               <h6>Backup Operations</h6>
@@ -640,7 +640,7 @@
                 <button class="button" onclick="viewBackups()">View Backups</button>
               </div>
             </div>
-            
+
             <div class="db-action-card">
               <h6>Maintenance</h6>
               <p>Database optimization and cleanup</p>
@@ -650,7 +650,7 @@
                 <button class="button" onclick="analyzeDatabase()">Analyze</button>
               </div>
             </div>
-            
+
             <div class="db-action-card">
               <h6>Migration</h6>
               <p>Schema migrations and updates</p>
@@ -660,7 +660,7 @@
                 <button class="button" onclick="rollbackMigration()">Rollback</button>
               </div>
             </div>
-            
+
             <div class="db-action-card">
               <h6>Statistics</h6>
               <p>Database usage and performance stats</p>
@@ -672,7 +672,7 @@
             </div>
           </div>
         </div>
-        
+
         {% if db_stats %}
           <div class="db-stats">
             <h4>Database Statistics</h4>
@@ -749,11 +749,11 @@ function showConfigTab(tabName) {
   // Hide all config tabs
   const tabs = document.querySelectorAll('.config-tab');
   tabs.forEach(tab => tab.classList.remove('active'));
-  
+
   // Remove active class from all tab buttons
   const buttons = document.querySelectorAll('.tab-button');
   buttons.forEach(button => button.classList.remove('active'));
-  
+
   // Show selected tab
   document.getElementById(`${tabName}-config`).classList.add('active');
   event.target.classList.add('active');
@@ -790,7 +790,7 @@ function validateConfiguration() {
 
 function toggleMetricsAutoRefresh() {
   const button = document.getElementById('metrics-refresh-text');
-  
+
   if (metricsAutoRefresh) {
     clearInterval(metricsRefreshInterval);
     metricsAutoRefresh = false;
@@ -814,7 +814,7 @@ function updateMetrics(metrics) {
     const title = card.querySelector('h6').textContent;
     const valueEl = card.querySelector('.metric-value');
     const chartBar = card.querySelector('.chart-bar');
-    
+
     if (title.includes('CPU') && metrics.cpu_usage) {
       valueEl.textContent = `${metrics.cpu_usage}%`;
       chartBar.style.width = `${metrics.cpu_usage}%`;
@@ -834,13 +834,13 @@ function filterLogs() {
   const service = document.getElementById('log_service').value;
   const level = document.getElementById('log_level_filter').value;
   const search = document.getElementById('log_search').value.toLowerCase();
-  
+
   const entries = document.querySelectorAll('.log-entry');
   entries.forEach(entry => {
     const matchesService = !service || entry.dataset.service === service;
     const matchesLevel = !level || entry.dataset.level === level;
     const matchesSearch = !search || entry.textContent.toLowerCase().includes(search);
-    
+
     entry.style.display = (matchesService && matchesLevel && matchesSearch) ? 'flex' : 'none';
   });
 }

@@ -6,7 +6,7 @@ document_policies:
   cmc_certificates:
     name: "Crew Member Certificate Data Policy"
     description: "ICAO Doc 9303 Annex 9 compliant data retention for CMCs"
-    
+
     # Only store data required for identity and integrity verification
     allowed_data_categories:
       - DOCUMENT_IDENTIFIER
@@ -16,7 +16,7 @@ document_policies:
       - ARTIFACT_POINTER
       - SIGNATURE_MATERIAL
       - SOD_PAYLOAD
-    
+
     # Essential biographic data (minimal set)
     essential_biographics:
       - document_number
@@ -26,7 +26,7 @@ document_policies:
       - date_of_birth
       - gender
       - issuing_country
-    
+
     # Prohibited data (avoid storing sensitive extras)
     prohibited_data:
       - full_facial_image        # Store only image hash/pointer
@@ -40,7 +40,7 @@ document_policies:
       - personal_email           # Contact privacy
       - medical_information      # Health privacy
       - criminal_background      # Security classification
-    
+
     # Data retention periods (years)
     retention_periods:
       document_identifier: 10     # Certificate lifecycle
@@ -49,7 +49,7 @@ document_policies:
       artifact_pointers: 15      # Digital signature verification
       signature_materials: 15    # Integrity verification
       audit_logs: 7              # Operational compliance
-    
+
     # Background check requirements
     background_check_policy:
       prerequisite_before_issuance: true
@@ -59,7 +59,7 @@ document_policies:
         - identity_verification
         - security_clearance
         - aviation_experience
-      
+
       # Electronic record for issuance status and revocations
       electronic_record:
         maintain_issuance_status: true
@@ -76,7 +76,7 @@ document_policies:
       - ISSUANCE_DATE
       - EXPIRY_DATE
       - ARTIFACT_POINTER
-    
+
     retention_periods:
       certificate_data: 20        # Extended for root CA
       revocation_data: 20         # CRL/OCSP history
@@ -90,7 +90,7 @@ document_policies:
       - ISSUANCE_DATE
       - EXPIRY_DATE
       - ARTIFACT_POINTER
-    
+
     retention_periods:
       certificate_data: 15
       signature_verification: 15
@@ -102,13 +102,13 @@ privacy_settings:
     enabled: true
     automatic_purge: true
     grace_period_days: 30       # Before final deletion
-    
+
   sensitive_data_handling:
     encryption_required: true
     access_logging: true
     purpose_limitation: true
     consent_tracking: false     # Not applicable for official documents
-    
+
   cross_border_restrictions:
     # Some countries may have data localization requirements
     respect_sovereignty: true
@@ -119,15 +119,15 @@ compliance_monitoring:
   automated_audits:
     enabled: true
     frequency_days: 30
-    
+
   violation_reporting:
     real_time_alerts: true
     escalation_threshold: "WARNING"
-    notification_authorities: 
+    notification_authorities:
       - issuing_authority
       - system_administrator
       - compliance_officer
-  
+
   retention_enforcement:
     automatic_archival: true
     automatic_deletion: false   # Require manual approval
@@ -142,33 +142,33 @@ electronic_records:
       system_admin: ["READ", "AUDIT"]
       compliance_officer: ["READ", "AUDIT", "REPORT"]
       unauthorized_user: []
-    
+
     audit_requirements:
       log_all_access: true
       log_modifications: true
       log_failed_attempts: true
       retention_period_years: 7
-      
+
   revocation_management:
     immediate_recording: true
     distribution_required: true
     revocation_reason_mandatory: true
     effective_date_tracking: true
-    
+
 # System integration points
 integration:
   trust_anchor_service:
     enforce_policies: true
     validate_before_storage: true
-    
+
   cmc_engine:
     background_check_enforcement: true
     prerequisite_validation: true
-    
+
   document_signer:
     minimal_payload_only: true
     signature_verification_data_only: true
-    
+
   inspection_system:
     verification_data_only: true
     no_personal_data_retention: true

@@ -1,6 +1,7 @@
 """
 OpenXPKI Service - Integration layer for OpenXPKI Certificate Management (PKD Service)
 """
+
 from __future__ import annotations
 
 import json

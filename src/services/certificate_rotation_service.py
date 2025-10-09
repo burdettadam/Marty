@@ -6,6 +6,7 @@ This service automates the rotation of certificates based on configured security
 It works with the Certificate Lifecycle Monitor to identify certificates needing renewal
 and automatically processes them according to the defined rotation policy.
 """
+
 from __future__ import annotations
 
 import json

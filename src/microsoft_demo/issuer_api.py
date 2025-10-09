@@ -5,14 +5,14 @@ This is a simplified implementation for demonstrating OID4VCI with Microsoft Aut
 It doesn't depend on gRPC services and provides a self-contained credential issuance flow.
 """
 
-import os
 import base64
+import os
 import uuid
-import qrcode
-from io import BytesIO
 from datetime import datetime, timezone
-from typing import Dict, Any, Optional
+from io import BytesIO
+from typing import Any, Dict, Optional
 
+import qrcode
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import HTMLResponse
@@ -34,21 +34,21 @@ ISSUER_BASE_URL = os.getenv("ISSUER_BASE_URL", "https://localhost:8000")
 CREDENTIAL_ISSUER_DID = os.getenv("CREDENTIAL_ISSUER_DID", "did:web:localhost%3A8000")
 
 # In-memory storage for demo purposes
-credential_offers: Dict[str, Dict[str, Any]] = {}
-issued_credentials: Dict[str, Dict[str, Any]] = {}
-issuance_requests: Dict[str, Dict[str, Any]] = {}
+credential_offers: dict[str, dict[str, Any]] = {}
+issued_credentials: dict[str, dict[str, Any]] = {}
+issuance_requests: dict[str, dict[str, Any]] = {}
 
 
 class CredentialRequest(BaseModel):
     type: str
-    holder_did: Optional[str] = None
-    subject_data: Dict[str, Any]
+    holder_did: str | None = None
+    subject_data: dict[str, Any]
 
 
 class TokenRequest(BaseModel):
     grant_type: str
-    code: Optional[str] = None
-    pre_authorized_code: Optional[str] = None
+    code: str | None = None
+    pre_authorized_code: str | None = None
 
 
 @app.get("/health")
@@ -70,19 +70,19 @@ async def root():
             "token": "/token",
             "credential": "/credential",
             "offers": "/credential-offer",
-            "demo": "/demo"
+            "demo": "/demo",
         },
-        "status": "operational"
+        "status": "operational",
     }
 
 
 @app.get("/demo")
 async def credential_demo():
     """Interactive demo page for credential issuance with Microsoft Authenticator."""
-    
+
     # Create verifier URL by replacing port 8000 with 8001
     verifier_url = ISSUER_BASE_URL.replace(":8000", ":8001")
-    
+
     html_content = f"""
     <!DOCTYPE html>
     <html>
@@ -169,19 +169,19 @@ async def credential_demo():
         <div class="container">
             <h1>🆔 Microsoft Authenticator Demo</h1>
             <p class="subtitle">Issue and store verifiable credentials in Microsoft Authenticator</p>
-            
+
             <div class="step">
                 <h3>📱 Step 1: Ensure Microsoft Authenticator is Ready</h3>
                 <p>Make sure you have Microsoft Authenticator installed on your mobile device and set up.</p>
             </div>
-            
+
             <div class="step">
                 <h3>🎫 Step 2: Create a Credential Offer</h3>
                 <p>Click the button below to generate a credential offer for an Employee Credential:</p>
                 <button onclick="createCredentialOffer()" class="button">Generate QR Code</button>
                 <div id="offer-result"></div>
             </div>
-            
+
             <div class="step">
                 <h3>📱 Step 3: Scan QR Code with Microsoft Authenticator</h3>
                 <p>Use Microsoft Authenticator to scan the QR code below:</p>
@@ -191,7 +191,7 @@ async def credential_demo():
                     <p id="qr-instructions" style="display:none;"><strong>Scan this QR code with Microsoft Authenticator</strong></p>
                 </div>
             </div>
-            
+
             <div class="step">
                 <h3>✅ Step 4: Complete the Flow</h3>
                 <p>Follow the prompts in Microsoft Authenticator to complete the credential issuance.</p>
@@ -199,7 +199,7 @@ async def credential_demo():
                 <a href="{verifier_url}/verification-demo" class="button" style="text-decoration: none; display: inline-block;">Go to Verification Demo</a>
             </div>
         </div>
-        
+
         <script>
             const isMobile = /android|iphone|ipad|ipod/i.test(navigator.userAgent);
             let currentOffer = null;
@@ -212,7 +212,7 @@ async def credential_demo():
                     const holderEmail = 'demo.employee@example.com';
                     const issuerName = 'Marty Document Services';
                     const format = 'microsoft'; // Default to Microsoft format
-                    
+
                     const response = await fetch('/credential-offer', {{
                         method: 'POST',
                         headers: {{
@@ -280,7 +280,7 @@ async def credential_demo():
                     img.style.display = 'none';
                     qrInstructions.style.display = 'none';
                 }}
-                
+
                 qrContainer.style.display = 'block';
             }}
 
@@ -328,7 +328,7 @@ async def credential_demo():
     </body>
     </html>
     """
-    
+
     return HTMLResponse(content=html_content)
 
 
@@ -349,27 +349,21 @@ async def openid_credential_issuer_metadata():
                     {
                         "name": "Employee Credential",
                         "locale": "en-US",
-                        "logo": {
-                            "url": f"{ISSUER_BASE_URL}/static/logo.png"
-                        },
+                        "logo": {"url": f"{ISSUER_BASE_URL}/static/logo.png"},
                         "background_color": "#0066CC",
-                        "text_color": "#FFFFFF"
+                        "text_color": "#FFFFFF",
                     }
                 ],
-                "credential_definition": {
-                    "type": ["VerifiableCredential", "EmployeeCredential"]
-                }
+                "credential_definition": {"type": ["VerifiableCredential", "EmployeeCredential"]},
             }
         ],
         "display": [
             {
                 "name": "Marty Document Services",
                 "locale": "en-US",
-                "logo": {
-                    "url": f"{ISSUER_BASE_URL}/static/issuer-logo.png"
-                }
+                "logo": {"url": f"{ISSUER_BASE_URL}/static/issuer-logo.png"},
             }
-        ]
+        ],
     }
 
 
@@ -379,20 +373,20 @@ async def authorize():
     return {
         "credential_issuer": ISSUER_BASE_URL,
         "authorization_endpoint": f"{ISSUER_BASE_URL}/authorize",
-        "message": "Authorization flow not implemented in this demo - using pre-authorized codes instead"
+        "message": "Authorization flow not implemented in this demo - using pre-authorized codes instead",
     }
 
 
 @app.get("/issuance-requests/{request_id}")
 async def get_issuance_request(request_id: str):
     """OpenID4VCI compliant authorization request endpoint for Microsoft Authenticator."""
-    
+
     if request_id not in issuance_requests:
         raise HTTPException(status_code=404, detail="Issuance request not found")
-    
+
     request_data = issuance_requests[request_id]
     offer_data = request_data["offer_data"]
-    
+
     # Return proper OpenID4VCI Authorization Request format
     # This follows the OpenID for Verifiable Credential Issuance specification
     return {
@@ -407,43 +401,49 @@ async def get_issuance_request(request_id: str):
         "code_challenge_method": "S256",
         "client_metadata": {
             "vp_formats": {
-                "jwt_vp": {
-                    "alg": ["ES256"]
-                },
-                "ldp_vp": {
-                    "proof_type": ["Ed25519Signature2018"]
-                }
+                "jwt_vp": {"alg": ["ES256"]},
+                "ldp_vp": {"proof_type": ["Ed25519Signature2018"]},
             },
             "client_name": "Marty Document Services",
             "logo_uri": f"{ISSUER_BASE_URL}/static/logo.png",
-            "client_purpose": "To issue verifiable employee credentials"
+            "client_purpose": "To issue verifiable employee credentials",
         },
         "presentation_definition": {
             "id": str(uuid.uuid4()),
             "input_descriptors": [],
-            "purpose": "No presentation required for issuance"
+            "purpose": "No presentation required for issuance",
         },
         "authorization_details": [
             {
                 "type": "openid_credential",
-                "credential_configuration_id": offer_data["subject_data"].get("type", "EmployeeCredential"),
+                "credential_configuration_id": offer_data["subject_data"].get(
+                    "type", "EmployeeCredential"
+                ),
                 "format": "vc+sd-jwt",
                 "credential_definition": {
                     "type": [
                         "VerifiableCredential",
-                        offer_data["subject_data"].get("type", "EmployeeCredential")
+                        offer_data["subject_data"].get("type", "EmployeeCredential"),
                     ],
                     "credentialSubject": {
-                        "given_name": offer_data["subject_data"].get("name", "Demo User").split()[0],
-                        "family_name": offer_data["subject_data"].get("name", "Demo User").split()[-1] if " " in offer_data["subject_data"].get("name", "Demo User") else "",
+                        "given_name": offer_data["subject_data"]
+                        .get("name", "Demo User")
+                        .split()[0],
+                        "family_name": (
+                            offer_data["subject_data"].get("name", "Demo User").split()[-1]
+                            if " " in offer_data["subject_data"].get("name", "Demo User")
+                            else ""
+                        ),
                         "email": offer_data["subject_data"].get("email", "demo@example.com"),
                         "jobTitle": offer_data["subject_data"].get("position", "Software Engineer"),
                         "department": offer_data["subject_data"].get("department", "Technology"),
-                        "employeeId": offer_data["subject_data"].get("employeeId", f"EMP-{str(uuid.uuid4())[:8].upper()}")
-                    }
-                }
+                        "employeeId": offer_data["subject_data"].get(
+                            "employeeId", f"EMP-{str(uuid.uuid4())[:8].upper()}"
+                        ),
+                    },
+                },
             }
-        ]
+        ],
     }
 
 
@@ -463,7 +463,7 @@ async def issuance_callback(callback_data: dict):  # noqa: ARG001
 async def create_credential_offer(request: CredentialRequest):
     """Create a credential offer with Microsoft Authenticator compatibility."""
     offer_id = str(uuid.uuid4())
-    
+
     # Create the credential offer data
     offer_data = {
         "offer_id": offer_id,
@@ -472,41 +472,43 @@ async def create_credential_offer(request: CredentialRequest):
         "grants": {
             "urn:ietf:params:oauth:grant-type:pre-authorized_code": {
                 "pre-authorized_code": f"pre_auth_{offer_id}",
-                "user_pin_required": False
+                "user_pin_required": False,
             }
         },
         "subject_data": request.subject_data,
         "created_at": datetime.now(timezone.utc).isoformat(),
-        "expires_at": datetime.now(timezone.utc).replace(hour=23, minute=59, second=59).isoformat()
+        "expires_at": datetime.now(timezone.utc).replace(hour=23, minute=59, second=59).isoformat(),
     }
-    
+
     # Store the offer
     credential_offers[offer_id] = offer_data
-    
+
     # Create corresponding issuance request for Microsoft format compatibility
     issuance_requests[offer_id] = {
         "offer_data": offer_data,
         "request_id": offer_id,
-        "created_at": datetime.now(timezone.utc).isoformat()
+        "created_at": datetime.now(timezone.utc).isoformat(),
     }
-    
+
     # Determine format to generate
-    format_type = getattr(request, 'format', 'microsoft')  # Default to Microsoft format
-    
+    format_type = getattr(request, "format", "microsoft")  # Default to Microsoft format
+
     # Generate URIs based on requested format
     result = {"offer_id": offer_id}
-    
+
     # Use Microsoft Entra ID format for Microsoft Authenticator compatibility
     microsoft_uri = f"openid-vc://?request_uri={ISSUER_BASE_URL}/issuance-requests/{offer_id}"
     result["credential_offer_uri"] = microsoft_uri
-    
+
     # Also create a standard OpenID4VCI format for compatibility
-    standard_uri = f"openid-credential-offer://?credential_offer_uri={ISSUER_BASE_URL}/offers/{offer_id}"
+    standard_uri = (
+        f"openid-credential-offer://?credential_offer_uri={ISSUER_BASE_URL}/offers/{offer_id}"
+    )
     result["openid4vci_uri"] = standard_uri
-    
+
     # Microsoft format requires a request_uri endpoint that returns the issuance request
     # The /issuance-requests/{offer_id} endpoint will return the Microsoft-compatible request
-    
+
     # Generate QR code for the Microsoft-compatible URI
     primary_uri = result.get("credential_offer_uri")  # This is the Microsoft format URI
     if primary_uri:
@@ -520,23 +522,23 @@ async def create_credential_offer(request: CredentialRequest):
             )
             qr.add_data(primary_uri)
             qr.make(fit=True)
-            
+
             # Generate QR code image
             qr_image = qr.make_image(fill_color="black", back_color="white")
-            
+
             # Convert to base64
             img_buffer = BytesIO()
-            qr_image.save(img_buffer, 'PNG')
+            qr_image.save(img_buffer, "PNG")
             img_buffer.seek(0)
             qr_base64 = base64.b64encode(img_buffer.getvalue()).decode()
-            
+
             result["qr_code"] = qr_base64
             result["qr_size"] = str(len(qr_base64))
-            
+
         except Exception as e:  # noqa: BLE001
             print(f"QR code generation error: {e}")
             result["qr_error"] = str(e)
-    
+
     return result
 
 
@@ -545,69 +547,60 @@ async def get_credential_offer(offer_id: str):
     """Get a specific credential offer by ID (OpenID4VCI standard endpoint)."""
     if offer_id not in credential_offers:
         raise HTTPException(status_code=404, detail="Credential offer not found")
-    
+
     return credential_offers[offer_id]
 
 
 @app.post("/token")
 async def token_endpoint(request: TokenRequest):
     """OAuth 2.0 token endpoint for pre-authorized code flow."""
-    
+
     if request.grant_type != "urn:ietf:params:oauth:grant-type:pre-authorized_code":
-        raise HTTPException(
-            status_code=400,
-            detail="unsupported_grant_type"
-        )
-    
+        raise HTTPException(status_code=400, detail="unsupported_grant_type")
+
     if not request.pre_authorized_code:
-        raise HTTPException(
-            status_code=400,
-            detail="invalid_request"
-        )
-    
+        raise HTTPException(status_code=400, detail="invalid_request")
+
     # Find the corresponding offer
     offer_id = None
     for oid, offer_data in credential_offers.items():
         if offer_data["pre_authorized_code"] == request.pre_authorized_code:
             offer_id = oid
             break
-    
+
     if not offer_id:
-        raise HTTPException(
-            status_code=400,
-            detail="invalid_grant"
-        )
-    
+        raise HTTPException(status_code=400, detail="invalid_grant")
+
     # Generate access token
     access_token = str(uuid.uuid4())
-    
+
     return {
         "access_token": access_token,
         "token_type": "bearer",
         "expires_in": 3600,
         "c_nonce": str(uuid.uuid4()),
-        "c_nonce_expires_in": 3600
+        "c_nonce_expires_in": 3600,
     }
 
 
 @app.post("/credential")
 async def credential_endpoint(request: Request):
     """Credential endpoint for issuing verifiable credentials."""
-    
+
     # In a real implementation, verify the access token
     # For demo purposes, we'll proceed without strict verification
-    
+
     try:
         data = await request.json()
     except Exception as exc:  # noqa: BLE001
         raise HTTPException(status_code=400, detail="invalid_request") from exc
-    
+
     credential_format = data.get("format", "jwt_vc_json")
     types = data.get("types", ["VerifiableCredential"])
-    
+
     # Generate a mock credential
     credential_id = str(uuid.uuid4())
-    
+
     # Find the original credential request (simplified lookup)
     credential_request = None
     for offer_data in credential_offers.values():
@@ -615,7 +608,7 @@ async def credential_endpoint(request: Request):
             credential_request = offer_data["credential_request"]
             offer_data["status"] = "completed"
             break
-    
+
     if not credential_request:
         # Generate default data if no pending request found
         credential_request = {
@@ -624,42 +617,37 @@ async def credential_endpoint(request: Request):
                 "employeeId": "EMP-DEMO123",
                 "name": "Demo Employee",
                 "department": "Technology",
-                "position": "Software Engineer"
-            }
+                "position": "Software Engineer",
+            },
         }
-    
+
     # Create the verifiable credential
     credential = {
         "@context": [
             "https://www.w3.org/2018/credentials/v1",
-            "https://www.w3.org/2018/credentials/examples/v1"
+            "https://www.w3.org/2018/credentials/examples/v1",
         ],
         "id": f"did:example:{uuid.uuid4()}",
         "type": types,
-        "issuer": {
-            "id": CREDENTIAL_ISSUER_DID,
-            "name": "Marty Document Services"
-        },
+        "issuer": {"id": CREDENTIAL_ISSUER_DID, "name": "Marty Document Services"},
         "issuanceDate": datetime.now(timezone.utc).isoformat(),
         "credentialSubject": {
             "id": f"did:example:{uuid.uuid4()}",
-            **credential_request["subject_data"]
-        }
+            **credential_request["subject_data"],
+        },
     }
-    
+
     # Store the issued credential
     issued_credentials[credential_id] = {
         "credential": credential,
         "format": credential_format,
-        "issued_at": datetime.now(timezone.utc).isoformat()
+        "issued_at": datetime.now(timezone.utc).isoformat(),
     }
-    
-    return {
-        "credential": credential,
-        "format": credential_format
-    }
+
+    return {"credential": credential, "format": credential_format}
 
 
 if __name__ == "__main__":
     import uvicorn
+
     uvicorn.run(app, host="0.0.0.0", port=8000)

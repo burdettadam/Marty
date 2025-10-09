@@ -7,6 +7,7 @@ The Marty platform includes a comprehensive centralized logging infrastructure b
 ## Features
 
 ### 🏗️ **Structured Logging**
+
 - JSON-formatted logs with consistent schema
 - Service context (name, version, environment, hostname)
 - Request tracing with correlation IDs
@@ -15,6 +16,7 @@ The Marty platform includes a comprehensive centralized logging infrastructure b
 - Business logic tracking
 
 ### 📊 **Log Aggregation**
+
 - ELK stack for centralized log collection and analysis
 - Filebeat for log shipping from multiple sources
 - Logstash for log processing and enrichment
@@ -22,6 +24,7 @@ The Marty platform includes a comprehensive centralized logging infrastructure b
 - Kibana for visualization and dashboards
 
 ### 🔍 **Search & Analytics**
+
 - Full-text search across all logs
 - Time-based filtering and analysis
 - Service-specific log views
@@ -30,6 +33,7 @@ The Marty platform includes a comprehensive centralized logging infrastructure b
 - Business metrics monitoring
 
 ### 🚀 **Integration Ready**
+
 - FastAPI middleware for automatic request logging
 - Context managers for request-scoped logging
 - Prometheus metrics integration
@@ -109,17 +113,20 @@ Application Logs → Structured Logger → File/Console → Filebeat → Logstas
 ### Components
 
 #### **MartyStructuredLogger**
+
 - Core logging configuration class
 - Handles structured logging setup
 - Manages request context
 - Supports multiple output formats
 
 #### **Specialized Loggers**
+
 - **PerformanceLogger**: HTTP requests, database queries, API calls
 - **SecurityLogger**: Authentication, authorization, security events
 - **BusinessLogger**: Document processing, verification results, business metrics
 
 #### **Middleware Integration**
+
 - **LoggingMiddleware**: FastAPI middleware for automatic request/response logging
 - Request ID generation and context management
 - Performance metrics collection
@@ -221,6 +228,7 @@ async def health_check():
 ## Kibana Dashboards
 
 ### Index Patterns
+
 - `marty-*`: All Marty logs
 - `marty-performance-*`: Performance metrics
 - `marty-security-*`: Security events
@@ -228,6 +236,7 @@ async def health_check():
 - `marty-{service}-*`: Service-specific logs
 
 ### Pre-built Dashboards
+
 1. **Service Overview**: Request rates, response times, error rates
 2. **Performance Dashboard**: API performance, database query times
 3. **Security Dashboard**: Authentication attempts, authorization failures
@@ -282,10 +291,10 @@ from marty_common.logging.structured_logging import setup_logging_for_service
 def test_structured_logging():
     logging_config = setup_logging_for_service("test_service", environment="test")
     logger = logging_config.get_logger()
-    
+
     # Test basic logging
     logger.info("Test message", test_field="test_value")
-    
+
     # Test context management
     with logging_config.request_context(request_id="test-123"):
         logger.info("Context test")
@@ -294,6 +303,7 @@ def test_structured_logging():
 ## Production Deployment
 
 ### Security Considerations
+
 - Enable Elasticsearch authentication in production
 - Use TLS for all ELK communications
 - Implement log retention policies
@@ -301,6 +311,7 @@ def test_structured_logging():
 - Network isolation for logging infrastructure
 
 ### Performance Tuning
+
 - Adjust Elasticsearch heap size based on log volume
 - Configure appropriate log retention and rotation
 - Use index lifecycle management (ILM)
@@ -308,6 +319,7 @@ def test_structured_logging():
 - Monitor logging infrastructure performance
 
 ### Monitoring
+
 - Set up alerts for logging infrastructure health
 - Monitor disk space for log storage
 - Track log ingestion rates and processing delays
@@ -318,18 +330,21 @@ def test_structured_logging():
 ### Common Issues
 
 #### No logs appearing in Kibana
+
 1. Check if services are running: `docker-compose -f docker/docker-compose.logging.yml ps`
 2. Verify Filebeat is reading logs: `docker logs marty-filebeat`
 3. Check Logstash processing: `docker logs marty-logstash`
 4. Verify Elasticsearch indices: `curl localhost:9200/_cat/indices`
 
 #### Performance issues
+
 1. Check Elasticsearch cluster health: `curl localhost:9200/_cluster/health`
 2. Monitor resource usage: `docker stats`
 3. Adjust heap sizes in docker-compose.logging.yml
 4. Review log volume and retention policies
 
 #### Missing log fields
+
 1. Verify log format matches expected schema
 2. Check Logstash pipeline configuration
 3. Review index mapping in Elasticsearch
@@ -367,33 +382,33 @@ class MyService:
         self.logger = self.logging_config.get_logger()
         self.perf_logger = PerformanceLogger(self.logger)
         self.security_logger = SecurityLogger(self.logger)
-    
+
     async def process_request(self, request_id: str, user_id: str):
         with self.logging_config.request_context(
-            request_id=request_id, 
+            request_id=request_id,
             user_id=user_id
         ):
             start_time = time.time()
-            
+
             try:
                 self.logger.info("Processing request started")
-                
+
                 # Process request
                 result = await self._do_processing()
-                
+
                 # Log success
                 processing_time = time.time() - start_time
                 self.perf_logger.log_external_api_call(
-                    "my_service", "/process", "POST", 
+                    "my_service", "/process", "POST",
                     processing_time, 200
                 )
-                
-                self.logger.info("Request processed successfully", 
+
+                self.logger.info("Request processed successfully",
                                result_id=result.id)
                 return result
-                
+
             except Exception as e:
-                self.logger.error("Request processing failed", 
+                self.logger.error("Request processing failed",
                                 error=str(e), error_type=type(e).__name__)
                 raise
 ```
@@ -411,16 +426,16 @@ logger = logging_config.get_logger()
 async def call_service_b(data: dict, correlation_id: str):
     with logging_config.request_context(correlation_id=correlation_id):
         logger.info("Calling service B", target_service="service_b")
-        
+
         headers = {"X-Correlation-ID": correlation_id}
         async with httpx.AsyncClient() as client:
             response = await client.post(
-                "http://service-b/api/process", 
-                json=data, 
+                "http://service-b/api/process",
+                json=data,
                 headers=headers
             )
-        
-        logger.info("Service B response received", 
+
+        logger.info("Service B response received",
                    status_code=response.status_code)
         return response.json()
 
@@ -433,17 +448,17 @@ logger = logging_config.get_logger()
 
 @app.post("/api/process")
 async def process_data(
-    data: dict, 
+    data: dict,
     x_correlation_id: str = Header(None)
 ):
     with logging_config.request_context(correlation_id=x_correlation_id):
-        logger.info("Processing data from service A", 
+        logger.info("Processing data from service A",
                    data_size=len(str(data)))
-        
+
         # Process data
         result = {"processed": True, "items": len(data)}
-        
-        logger.info("Data processing complete", 
+
+        logger.info("Data processing complete",
                    result_items=result["items"])
         return result
 ```

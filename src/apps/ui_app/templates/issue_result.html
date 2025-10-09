@@ -12,7 +12,7 @@
             <hr>
             <p class="mb-0">Credential ID: <code>{{ credential_id }}</code></p>
         </div>
-        
+
         <div class="card">
             <div class="card-header">
                 <h5 class="mb-0"><i class="bi bi-file-earmark-code"></i> Credential Data</h5>
@@ -28,7 +28,7 @@
                 </div>
             </div>
         </div>
-        
+
         {% else %}
         <div class="alert alert-danger">
             <h4 class="alert-heading"><i class="bi bi-exclamation-triangle"></i> Credential Issuance Failed</h4>
@@ -41,7 +41,7 @@
             </details>
             {% endif %}
         </div>
-        
+
         <div class="d-grid gap-2 d-md-flex justify-content-md-end">
             <a href="/issue" class="btn btn-primary">Try Again</a>
             <a href="/" class="btn btn-secondary">Back to Home</a>
@@ -63,7 +63,7 @@ function copyToClipboard() {
         btn.textContent = 'Copied!';
         btn.classList.remove('btn-outline-secondary');
         btn.classList.add('btn-success');
-        
+
         setTimeout(function() {
             btn.textContent = originalText;
             btn.classList.remove('btn-success');

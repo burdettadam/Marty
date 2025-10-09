@@ -4,7 +4,7 @@
 # Multi-stage build using base image
 FROM marty-base:latest AS base
 
-# Service-specific build stage  
+# Service-specific build stage
 FROM base AS service-name
 
 # Set service-specific environment variables

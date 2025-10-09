@@ -55,7 +55,7 @@ rule_pack_schema:
           items:
             type: string
           description: "Tags for organizing and filtering rule packs"
-        
+
     field_mappings:
       type: object
       description: "Maps canonical fields to zone-specific field names"
@@ -130,7 +130,7 @@ rule_pack_schema:
             description: "Detailed rule description"
           rule_type:
             type: string
-            enum: 
+            enum:
               - exact_match
               - fuzzy_match
               - date_validation

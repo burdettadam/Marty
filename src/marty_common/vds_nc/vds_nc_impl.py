@@ -48,9 +48,8 @@ except ImportError:
     EllipticCurvePublicKey = Any
     InvalidSignature = Exception
 
-from shared.logging_config import get_logger
-
 from marty_common.models.passport import CMCCertificate, VDSNCBarcode
+from shared.logging_config import get_logger
 
 logger = get_logger(__name__)
 
@@ -69,9 +68,7 @@ class VDSNCGenerator:
         self.certificate_reference = certificate_reference
 
     def generate_vds_nc_barcode(
-        self,
-        cmc_certificate: CMCCertificate,
-        signature_algorithm: str = "ES256"
+        self, cmc_certificate: CMCCertificate, signature_algorithm: str = "ES256"
     ) -> VDSNCBarcode:
         """Generate VDS-NC barcode for CMC certificate.
 
@@ -108,9 +105,7 @@ class VDSNCGenerator:
             signature_b64 = base64.b64encode(signature).decode("ascii")
 
             # Create complete barcode data
-            barcode_data = self._create_barcode_data(
-                header, cmc_payload, signature_b64
-            )
+            barcode_data = self._create_barcode_data(header, cmc_payload, signature_b64)
 
             # Create VDS-NC barcode object
             vds_nc_barcode = VDSNCBarcode(
@@ -123,7 +118,7 @@ class VDSNCGenerator:
                 signature_creation_time=signature_time_str,
                 cmc_payload=cmc_payload,
                 signature=signature_b64,
-                barcode_data=barcode_data
+                barcode_data=barcode_data,
             )
 
             logger.info(f"VDS-NC barcode generated successfully for CMC: {cmc_certificate.cmc_id}")
@@ -199,10 +194,7 @@ class VDSNCGenerator:
             Signature bytes
         """
         try:
-            signature = self.signing_key.sign(
-                data,
-                ec.ECDSA(hashes.SHA256())
-            )
+            signature = self.signing_key.sign(data, ec.ECDSA(hashes.SHA256()))
         except Exception as e:
             msg = f"Signing failed: {e!s}"
             raise RuntimeError(msg) from e
@@ -236,7 +228,9 @@ class VDSNCVerifier:
         """
         self.public_keys = public_keys
 
-    def verify_vds_nc_barcode(self, barcode_data: str) -> tuple[bool, CMCCertificate | None, list[str]]:
+    def verify_vds_nc_barcode(
+        self, barcode_data: str
+    ) -> tuple[bool, CMCCertificate | None, list[str]]:
         """Verify VDS-NC barcode and extract CMC data.
 
         Args:
@@ -262,9 +256,7 @@ class VDSNCVerifier:
         issuing_country = header[4:7]
 
         # Validate and parse components
-        validation_result = self._validate_barcode_components(
-            payload, signature_b64
-        )
+        validation_result = self._validate_barcode_components(payload, signature_b64)
         if not validation_result[0]:
             return False, None, validation_result[1]
 
@@ -322,10 +314,10 @@ class VDSNCVerifier:
         """
         # Header should be: DC + version + country (e.g., "DC03USA")
         return (
-            len(header) == 7 and
-            header.startswith("DC") and
-            header[2:4].isdigit() and
-            header[4:7].isalpha()
+            len(header) == 7
+            and header.startswith("DC")
+            and header[2:4].isdigit()
+            and header[4:7].isalpha()
         )
 
     def _validate_cmc_payload(self, payload: dict[str, Any]) -> list[str]:
@@ -342,9 +334,7 @@ class VDSNCVerifier:
         # Required fields
         required_fields = ["typ", "doc", "iss", "sur", "nat", "dob", "sex", "exp"]
         errors.extend(
-            f"Missing required field: {field}"
-            for field in required_fields
-            if field not in payload
+            f"Missing required field: {field}" for field in required_fields if field not in payload
         )
 
         # Validate message type
@@ -447,7 +437,7 @@ def export_public_key_pem(public_key: EllipticCurvePublicKey) -> str:
     try:
         pem_bytes = public_key.public_bytes(
             encoding=serialization.Encoding.PEM,
-            format=serialization.PublicFormat.SubjectPublicKeyInfo
+            format=serialization.PublicFormat.SubjectPublicKeyInfo,
         )
         return pem_bytes.decode("utf-8")
     except Exception as e:

@@ -17,10 +17,10 @@ BASE_DIR="/Users/adamburdett/Github/work/Marty/helm/charts"
 
 for service in "${SERVICES[@]}"; do
   echo "Updating ${service}..."
-  
+
   # Generate service-specific database name (replace hyphens with underscores)
   db_name=$(echo "${service}" | tr '-' '_')
-  
+
   cat > "${BASE_DIR}/${service}/values.yaml" << EOF
 # Default values for ${service}.
 # This is a YAML-formatted file.

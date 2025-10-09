@@ -1,6 +1,7 @@
 """
 Notification utilities for sending alerts
 """
+
 from __future__ import annotations
 
 import logging

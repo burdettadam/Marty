@@ -4,6 +4,7 @@ Certificate processing utilities to eliminate duplicate cryptography patterns.
 This module consolidates common certificate operations using cryptography.x509
 to reduce code duplication across services that handle certificates.
 """
+
 from __future__ import annotations
 
 import logging
@@ -260,17 +261,21 @@ class CertificateProcessor:
         }
 
         if isinstance(public_key, rsa.RSAPublicKey):
-            key_info.update({
-                "key_size": public_key.key_size,
-                "public_exponent": public_key.public_numbers().e,
-                "modulus_size": public_key.key_size,
-            })
+            key_info.update(
+                {
+                    "key_size": public_key.key_size,
+                    "public_exponent": public_key.public_numbers().e,
+                    "modulus_size": public_key.key_size,
+                }
+            )
         elif hasattr(public_key, "curve"):
             # EC public key
-            key_info.update({
-                "curve": public_key.curve.name,
-                "key_size": public_key.curve.key_size,
-            })
+            key_info.update(
+                {
+                    "curve": public_key.curve.name,
+                    "key_size": public_key.curve.key_size,
+                }
+            )
 
         return key_info
 
@@ -315,11 +320,11 @@ class CertificateProcessor:
         try:
             key1_bytes = cert1.public_key().public_bytes(
                 encoding=serialization.Encoding.DER,
-                format=serialization.PublicFormat.SubjectPublicKeyInfo
+                format=serialization.PublicFormat.SubjectPublicKeyInfo,
             )
             key2_bytes = cert2.public_key().public_bytes(
                 encoding=serialization.Encoding.DER,
-                format=serialization.PublicFormat.SubjectPublicKeyInfo
+                format=serialization.PublicFormat.SubjectPublicKeyInfo,
             )
             if key1_bytes == key2_bytes:
                 result["same_public_key"] = True
@@ -434,9 +439,7 @@ def get_certificate_summary(cert_path: str | Path) -> dict[str, Any]:
     }
 
 
-def check_certificate_expiration(
-    cert_path: str | Path, days_warning: int = 30
-) -> dict[str, Any]:
+def check_certificate_expiration(cert_path: str | Path, days_warning: int = 30) -> dict[str, Any]:
     """
     Check certificate expiration status.
 

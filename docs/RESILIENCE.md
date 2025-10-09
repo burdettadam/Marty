@@ -45,10 +45,10 @@ State machine: `CLOSED -> OPEN -> HALF_OPEN -> CLOSED` with immediate reopen on 
 
 Config (`CircuitBreakerConfig`):
 
-* `failure_threshold`: consecutive failures in CLOSED to OPEN the breaker.
-* `recovery_timeout`: seconds to stay OPEN before allowing a HALF_OPEN trial.
-* `half_open_success_threshold`: successes required while HALF_OPEN to fully CLOSE.
-* `failure_reset_timeout`: inactivity window after which the failure counter resets while CLOSED.
+- `failure_threshold`: consecutive failures in CLOSED to OPEN the breaker.
+- `recovery_timeout`: seconds to stay OPEN before allowing a HALF_OPEN trial.
+- `half_open_success_threshold`: successes required while HALF_OPEN to fully CLOSE.
+- `failure_reset_timeout`: inactivity window after which the failure counter resets while CLOSED.
 
 Inbound usage: one breaker per fully-qualified RPC method path.
 
@@ -78,8 +78,8 @@ Injected failures raise `TransientBackendError` -> mapped to `UNAVAILABLE`.
 
 Added unit tests:
 
-* `test_circuit_breaker.py` – state transitions, half-open behavior, reset timer.
-* `test_resilience_interceptor.py` – error mapping verification & failure injection.
+- `test_circuit_breaker.py` – state transitions, half-open behavior, reset timer.
+- `test_resilience_interceptor.py` – error mapping verification & failure injection.
 
 Run all tests:
 
@@ -105,6 +105,6 @@ async def get_doc(stub, request):
 
 ## Future Enhancements
 
-* Metrics export (success/failure counts, state) via Prometheus.
-* Configurable breaker policies per method via config file.
-* Structured error detail metadata (rich protobuf Any attachments).
+- Metrics export (success/failure counts, state) via Prometheus.
+- Configurable breaker policies per method via config file.
+- Structured error detail metadata (rich protobuf Any attachments).

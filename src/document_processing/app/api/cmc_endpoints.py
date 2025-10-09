@@ -92,14 +92,13 @@ async def create_cmc(
     except CMCServiceError as e:
         logger.exception("CMC service error during creation")
         raise HTTPException(
-            status_code=status.HTTP_502_BAD_GATEWAY,
-            detail=f"CMC service error: {e.message}"
+            status_code=status.HTTP_502_BAD_GATEWAY, detail=f"CMC service error: {e.message}"
         ) from e
     except Exception as e:
         logger.exception("Unexpected error during CMC creation")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Internal server error: {e!s}"
+            detail=f"Internal server error: {e!s}",
         ) from e
 
 
@@ -131,14 +130,13 @@ async def sign_cmc(
     except CMCServiceError as e:
         logger.exception("CMC service error during signing")
         raise HTTPException(
-            status_code=status.HTTP_502_BAD_GATEWAY,
-            detail=f"CMC service error: {e.message}"
+            status_code=status.HTTP_502_BAD_GATEWAY, detail=f"CMC service error: {e.message}"
         ) from e
     except Exception as e:
         logger.exception("Unexpected error during CMC signing")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Internal server error: {e!s}"
+            detail=f"Internal server error: {e!s}",
         ) from e
 
 
@@ -186,7 +184,7 @@ async def verify_cmc(
         else:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail="One of td1_mrz, barcode_data, or cmc_id must be provided"
+                detail="One of td1_mrz, barcode_data, or cmc_id must be provided",
             )
 
         # Call CMC service
@@ -198,7 +196,7 @@ async def verify_cmc(
                 check_name=vr["check_name"],
                 passed=vr["passed"],
                 details=vr["details"],
-                error_code=vr.get("error_code")
+                error_code=vr.get("error_code"),
             )
             for vr in result.get("verification_results", [])
         ]
@@ -217,14 +215,13 @@ async def verify_cmc(
     except CMCServiceError as e:
         logger.exception("CMC service error during verification")
         raise HTTPException(
-            status_code=status.HTTP_502_BAD_GATEWAY,
-            detail=f"CMC service error: {e.message}"
+            status_code=status.HTTP_502_BAD_GATEWAY, detail=f"CMC service error: {e.message}"
         ) from e
     except Exception as e:
         logger.exception("Unexpected error during CMC verification")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Internal server error: {e!s}"
+            detail=f"Internal server error: {e!s}",
         ) from e
 
 
@@ -243,14 +240,13 @@ async def background_check_cmc(
     Annex 9 compliance.
     """
     try:
-        logger.info("Background check for CMC: %s by authority: %s",
-                   request.cmc_id, request.check_authority)
+        logger.info(
+            "Background check for CMC: %s by authority: %s", request.cmc_id, request.check_authority
+        )
 
         # Call CMC service
         result = await cmc_client.background_check(
-            request.cmc_id,
-            request.check_authority,
-            request.check_reference
+            request.cmc_id, request.check_authority, request.check_reference
         )
 
         return CMCBackgroundCheckResponse(
@@ -265,14 +261,13 @@ async def background_check_cmc(
     except CMCServiceError as e:
         logger.exception("CMC service error during background check")
         raise HTTPException(
-            status_code=status.HTTP_502_BAD_GATEWAY,
-            detail=f"CMC service error: {e.message}"
+            status_code=status.HTTP_502_BAD_GATEWAY, detail=f"CMC service error: {e.message}"
         ) from e
     except Exception as e:
         logger.exception("Unexpected error during background check")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Internal server error: {e!s}"
+            detail=f"Internal server error: {e!s}",
         ) from e
 
 
@@ -291,15 +286,16 @@ async def update_visa_free_status(
     proper authority verification.
     """
     try:
-        logger.info("Updating visa-free status for CMC: %s to %s by authority: %s",
-                   request.cmc_id, request.visa_free_eligible, request.authority)
-
-        # Call CMC service
-        result = await cmc_client.update_visa_free_status(
+        logger.info(
+            "Updating visa-free status for CMC: %s to %s by authority: %s",
             request.cmc_id,
             request.visa_free_eligible,
             request.authority,
-            request.reason
+        )
+
+        # Call CMC service
+        result = await cmc_client.update_visa_free_status(
+            request.cmc_id, request.visa_free_eligible, request.authority, request.reason
         )
 
         return CMCVisaFreeStatusResponse(
@@ -312,14 +308,13 @@ async def update_visa_free_status(
     except CMCServiceError as e:
         logger.exception("CMC service error during visa-free status update")
         raise HTTPException(
-            status_code=status.HTTP_502_BAD_GATEWAY,
-            detail=f"CMC service error: {e.message}"
+            status_code=status.HTTP_502_BAD_GATEWAY, detail=f"CMC service error: {e.message}"
         ) from e
     except Exception as e:
         logger.exception("Unexpected error during visa-free status update")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Internal server error: {e!s}"
+            detail=f"Internal server error: {e!s}",
         ) from e
 
 
@@ -356,7 +351,7 @@ async def list_cmcs(
         logger.exception("Unexpected error during CMC listing")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Internal server error: {e!s}"
+            detail=f"Internal server error: {e!s}",
         ) from e
 
 
@@ -394,5 +389,5 @@ async def get_cmc_status(
         logger.exception("Unexpected error during CMC status retrieval")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Internal server error: {e!s}"
+            detail=f"Internal server error: {e!s}",
         ) from e

@@ -20,7 +20,7 @@
             "path": ["$.vc.credentialSubject.family_name", "$.family_name"],
             "purpose": "Required: Last name",
             "filter": {
-              "type": "string" 
+              "type": "string"
             }
           },
           {

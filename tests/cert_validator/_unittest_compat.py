@@ -125,7 +125,5 @@ class _AssertRaisesContext:
         expected_regexp = self.expected_regexp
         if not expected_regexp.search(str(exc_value)):
             msg = f'"{expected_regexp.pattern}" does not match "{exc_value!s}"'
-            raise self.failureException(
-                msg
-            )
+            raise self.failureException(msg)
         return True

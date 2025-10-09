@@ -35,7 +35,7 @@ print_error() {
 check_file() {
     local file="$1"
     local description="$2"
-    
+
     if [[ -f "$file" ]]; then
         print_success "$description exists"
         return 0
@@ -48,7 +48,7 @@ check_file() {
 check_directory() {
     local dir="$1"
     local description="$2"
-    
+
     if [[ -d "$dir" ]]; then
         print_success "$description exists"
         return 0
@@ -61,7 +61,7 @@ check_directory() {
 check_command() {
     local cmd="$1"
     local description="$2"
-    
+
     if command -v "$cmd" &> /dev/null; then
         print_success "$description available"
         return 0
@@ -109,7 +109,7 @@ if command -v uv &> /dev/null; then
     else
         print_warning "Pre-commit not available via uv"
     fi
-    
+
     echo
     echo "Code quality tools:"
     quality_tools=("black" "ruff" "mypy" "bandit" "isort")
@@ -149,7 +149,7 @@ print_header "🧪 Testing Development Workflow"
 echo "Testing development helper script:"
 if [[ -x "scripts/dev.sh" ]]; then
     print_success "Development script is executable"
-    
+
     # Test help command
     if ./scripts/dev.sh help | grep -q "Marty Platform Development Helper"; then
         print_success "Development script help works"

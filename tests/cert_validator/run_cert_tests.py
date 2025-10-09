@@ -19,6 +19,7 @@ except ImportError:
 current_dir = os.path.dirname(os.path.abspath(__file__))
 fixtures_dir = os.path.join(current_dir, "fixtures")
 
+
 # Create a test suite containing all tests
 def create_suite():
     """Create a test suite containing all certvalidator tests."""

@@ -9,7 +9,8 @@ from __future__ import annotations
 
 import logging
 import time
-from typing import Any, Callable
+from collections.abc import Callable
+from typing import Any
 
 import grpc
 from grpc import aio as grpc_aio
@@ -31,38 +32,38 @@ class MetricsInterceptor(grpc.ServerInterceptor):
         handler_call_details: grpc.HandlerCallDetails,
     ) -> Any:
         """Intercept gRPC service calls to collect metrics."""
-        
+
         def wrapper(behavior: Callable[..., Any]) -> Callable[..., Any]:
             def wrapped_behavior(request: Any, context: grpc.ServicerContext) -> Any:
                 method = handler_call_details.method
                 start_time = time.time()
-                
+
                 try:
                     response = behavior(request, context)
                     duration = time.time() - start_time
-                    
+
                     # Record successful request
                     metrics_server = get_metrics_server()
                     if metrics_server:
                         metrics_server.metrics.record_request(method, "OK", duration)
                         metrics_server.metrics.record_successful_operation(method)
-                    
+
                     return response
-                    
+
                 except Exception as e:
                     duration = time.time() - start_time
                     error_type = type(e).__name__
-                    
+
                     # Record error
                     metrics_server = get_metrics_server()
                     if metrics_server:
                         metrics_server.metrics.record_request(method, "ERROR", duration)
                         metrics_server.metrics.record_error(method, error_type)
-                    
+
                     raise
-                    
+
             return wrapped_behavior
-            
+
         return wrapper(continuation(handler_call_details))
 
 
@@ -78,38 +79,38 @@ class AsyncMetricsInterceptor(grpc_aio.ServerInterceptor):
         handler_call_details: grpc.HandlerCallDetails,
     ) -> Any:
         """Intercept async gRPC service calls to collect metrics."""
-        
+
         def wrapper(behavior: Callable[..., Any]) -> Callable[..., Any]:
             async def wrapped_behavior(request: Any, context: grpc_aio.ServicerContext) -> Any:
                 method = handler_call_details.method
                 start_time = time.time()
-                
+
                 try:
                     response = await behavior(request, context)
                     duration = time.time() - start_time
-                    
+
                     # Record successful request
                     metrics_server = get_metrics_server()
                     if metrics_server:
                         metrics_server.metrics.record_request(method, "OK", duration)
                         metrics_server.metrics.record_successful_operation(method)
-                    
+
                     return response
-                    
+
                 except Exception as e:
                     duration = time.time() - start_time
                     error_type = type(e).__name__
-                    
+
                     # Record error
                     metrics_server = get_metrics_server()
                     if metrics_server:
                         metrics_server.metrics.record_request(method, "ERROR", duration)
                         metrics_server.metrics.record_error(method, error_type)
-                    
+
                     raise
-                    
+
             return wrapped_behavior
-            
+
         return wrapper(await continuation(handler_call_details))
 
 

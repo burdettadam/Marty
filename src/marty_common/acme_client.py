@@ -3,6 +3,7 @@ ACME client implementation for automated certificate management.
 
 Supports Let's Encrypt staging and Pebble (for development) for internal TLS certificates.
 """
+
 from __future__ import annotations
 
 import asyncio
@@ -20,7 +21,7 @@ import httpx
 from cryptography import x509
 from cryptography.hazmat.primitives import hashes, serialization
 from cryptography.hazmat.primitives.asymmetric import rsa
-from cryptography.hazmat.primitives.serialization import Encoding, PrivateFormat, NoEncryption
+from cryptography.hazmat.primitives.serialization import Encoding, NoEncryption, PrivateFormat
 from cryptography.x509.oid import NameOID
 
 logger = logging.getLogger(__name__)
@@ -28,22 +29,23 @@ logger = logging.getLogger(__name__)
 
 class ACMEError(Exception):
     """Base exception for ACME-related errors."""
+
     pass
 
 
 class ACMEClient:
     """
     ACME client for automated certificate management.
-    
+
     Supports both Let's Encrypt staging and Pebble for development environments.
     """
 
     def __init__(
         self,
         directory_url: str,
-        account_key_path: Optional[str] = None,
+        account_key_path: str | None = None,
         cert_storage_dir: str = "data/acme_certs",
-        contact_email: Optional[str] = None,
+        contact_email: str | None = None,
     ) -> None:
         """
         Initialize the ACME client.
@@ -57,20 +59,20 @@ class ACMEClient:
         self.directory_url = directory_url
         self.cert_storage_dir = Path(cert_storage_dir)
         self.cert_storage_dir.mkdir(parents=True, exist_ok=True)
-        
+
         self.contact_email = contact_email
         self.account_key_path = Path(account_key_path or self.cert_storage_dir / "account.key")
-        
+
         # ACME client state
-        self.directory: Dict[str, Any] = {}
-        self.account_key: Optional[rsa.RSAPrivateKey] = None
-        self.account_url: Optional[str] = None
-        self.nonce: Optional[str] = None
-        
+        self.directory: dict[str, Any] = {}
+        self.account_key: rsa.RSAPrivateKey | None = None
+        self.account_url: str | None = None
+        self.nonce: str | None = None
+
         # HTTP client
         self.client = httpx.AsyncClient(timeout=30.0)
 
-    async def __aenter__(self) -> 'ACMEClient':
+    async def __aenter__(self) -> ACMEClient:
         """Async context manager entry."""
         await self.initialize()
         return self
@@ -108,7 +110,7 @@ class ACMEClient:
                 public_exponent=65537,
                 key_size=2048,
             )
-            
+
             # Save the key
             key_pem = self.account_key.private_bytes(
                 encoding=Encoding.PEM,
@@ -127,83 +129,83 @@ class ACMEClient:
             self.nonce = response.headers["Replay-Nonce"]
         return self.nonce
 
-    def _jose_header(self, url: str, kid: Optional[str] = None) -> Dict[str, Any]:
+    def _jose_header(self, url: str, kid: str | None = None) -> dict[str, Any]:
         """Create JOSE header for ACME requests."""
         header = {
             "alg": "RS256",
             "nonce": self.nonce,
             "url": url,
         }
-        
+
         if kid:
             header["kid"] = kid
         else:
             # Include JWK for new account requests
             public_key = self.account_key.public_key()
             public_numbers = public_key.public_numbers()
-            
+
             # Convert to base64url encoded integers
             n = self._int_to_base64url(public_numbers.n)
             e = self._int_to_base64url(public_numbers.e)
-            
+
             header["jwk"] = {
                 "kty": "RSA",
                 "n": n,
                 "e": e,
             }
-        
+
         return header
 
     def _int_to_base64url(self, value: int) -> str:
         """Convert integer to base64url encoding."""
         # Convert to bytes, removing leading zeros
         byte_length = (value.bit_length() + 7) // 8
-        value_bytes = value.to_bytes(byte_length, byteorder='big')
-        return base64.urlsafe_b64encode(value_bytes).decode('ascii').rstrip('=')
+        value_bytes = value.to_bytes(byte_length, byteorder="big")
+        return base64.urlsafe_b64encode(value_bytes).decode("ascii").rstrip("=")
 
     def _base64url_encode(self, data: bytes) -> str:
         """Base64url encode data."""
-        return base64.urlsafe_b64encode(data).decode('ascii').rstrip('=')
+        return base64.urlsafe_b64encode(data).decode("ascii").rstrip("=")
 
-    async def _sign_and_post(self, url: str, payload: Dict[str, Any], kid: Optional[str] = None) -> httpx.Response:
+    async def _sign_and_post(
+        self, url: str, payload: dict[str, Any], kid: str | None = None
+    ) -> httpx.Response:
         """Sign and POST a JOSE request to the ACME server."""
         await self._get_nonce()
-        
+
         # Create protected header
         protected = self._jose_header(url, kid)
         protected_b64 = self._base64url_encode(json.dumps(protected).encode())
-        
+
         # Create payload
         payload_b64 = self._base64url_encode(json.dumps(payload).encode())
-        
+
         # Create signing input
         signing_input = f"{protected_b64}.{payload_b64}".encode()
-        
+
         # Sign with account key
         signature = self.account_key.sign(
             signing_input,
             hashes.SHA256(),
         )
         signature_b64 = self._base64url_encode(signature)
-        
+
         # Create JWS
         jws = {
             "protected": protected_b64,
             "payload": payload_b64,
             "signature": signature_b64,
         }
-        
+
         # POST request
         response = await self.client.post(
-            url,
-            json=jws,
-            headers={"Content-Type": "application/jose+json"}
+            url, json=jws, headers={"Content-Type": "application/jose+json"}
         )
-        
+
         # Update nonce from response
         if "Replay-Nonce" in response.headers:
             self.nonce = response.headers["Replay-Nonce"]
-        
+
         return response
 
     async def _get_account(self) -> None:
@@ -211,7 +213,7 @@ class ACMEClient:
         # Try to find existing account first
         payload = {"onlyReturnExisting": True}
         response = await self._sign_and_post(self.directory["newAccount"], payload)
-        
+
         if response.status_code == 200:
             # Existing account found
             self.account_url = response.headers["Location"]
@@ -227,12 +229,12 @@ class ACMEClient:
         payload = {
             "termsOfServiceAgreed": True,
         }
-        
+
         if self.contact_email:
             payload["contact"] = [f"mailto:{self.contact_email}"]
-        
+
         response = await self._sign_and_post(self.directory["newAccount"], payload)
-        
+
         if response.status_code == 201:
             self.account_url = response.headers["Location"]
             logger.info("Created new ACME account: %s", self.account_url)
@@ -243,9 +245,9 @@ class ACMEClient:
         self,
         domain: str,
         challenge_type: str = "http-01",
-        key_path: Optional[str] = None,
-        cert_path: Optional[str] = None,
-    ) -> Tuple[str, str]:
+        key_path: str | None = None,
+        cert_path: str | None = None,
+    ) -> tuple[str, str]:
         """
         Request a certificate for the given domain.
 
@@ -259,31 +261,31 @@ class ACMEClient:
             Tuple of (certificate_path, private_key_path)
         """
         logger.info("Requesting certificate for domain: %s", domain)
-        
+
         # Generate certificate private key
         cert_key = rsa.generate_private_key(
             public_exponent=65537,
             key_size=2048,
         )
-        
+
         # Create CSR
         csr = self._create_csr(domain, cert_key)
-        
+
         # Create order
         order_url = await self._create_order(domain)
-        
+
         # Process authorizations
         await self._process_authorizations(order_url, challenge_type)
-        
+
         # Finalize order
         certificate_pem = await self._finalize_order(order_url, csr)
-        
+
         # Save certificate and key
         if not key_path:
             key_path = str(self.cert_storage_dir / f"{domain}.key")
         if not cert_path:
             cert_path = str(self.cert_storage_dir / f"{domain}.crt")
-        
+
         # Save private key
         key_pem = cert_key.private_bytes(
             encoding=Encoding.PEM,
@@ -292,28 +294,32 @@ class ACMEClient:
         )
         Path(key_path).write_bytes(key_pem)
         Path(key_path).chmod(0o600)
-        
+
         # Save certificate
         Path(cert_path).write_text(certificate_pem)
-        
+
         logger.info("Certificate saved to %s, key saved to %s", cert_path, key_path)
         return cert_path, key_path
 
     def _create_csr(self, domain: str, private_key: rsa.RSAPrivateKey) -> bytes:
         """Create a Certificate Signing Request."""
-        subject = x509.Name([
-            x509.NameAttribute(NameOID.COMMON_NAME, domain),
-        ])
-        
+        subject = x509.Name(
+            [
+                x509.NameAttribute(NameOID.COMMON_NAME, domain),
+            ]
+        )
+
         builder = x509.CertificateSigningRequestBuilder()
         builder = builder.subject_name(subject)
         builder = builder.add_extension(
-            x509.SubjectAlternativeName([
-                x509.DNSName(domain),
-            ]),
+            x509.SubjectAlternativeName(
+                [
+                    x509.DNSName(domain),
+                ]
+            ),
             critical=False,
         )
-        
+
         csr = builder.sign(private_key, hashes.SHA256())
         return csr.public_bytes(Encoding.DER)
 
@@ -322,13 +328,11 @@ class ACMEClient:
         payload = {
             "identifiers": [{"type": "dns", "value": domain}],
         }
-        
+
         response = await self._sign_and_post(
-            self.directory["newOrder"],
-            payload,
-            kid=self.account_url
+            self.directory["newOrder"], payload, kid=self.account_url
         )
-        
+
         if response.status_code == 201:
             order_url = response.headers["Location"]
             logger.info("Created ACME order: %s", order_url)
@@ -342,7 +346,7 @@ class ACMEClient:
         response = await self.client.get(order_url)
         response.raise_for_status()
         order = response.json()
-        
+
         for authz_url in order["authorizations"]:
             await self._process_authorization(authz_url, challenge_type)
 
@@ -352,32 +356,34 @@ class ACMEClient:
         response = await self.client.get(authz_url)
         response.raise_for_status()
         authz = response.json()
-        
+
         if authz["status"] == "valid":
             logger.info("Authorization already valid for %s", authz["identifier"]["value"])
             return
-        
+
         # Find the requested challenge
         challenge = None
         for chall in authz["challenges"]:
             if chall["type"] == challenge_type:
                 challenge = chall
                 break
-        
+
         if not challenge:
-            raise ACMEError(f"Challenge type {challenge_type} not supported for {authz['identifier']['value']}")
-        
+            raise ACMEError(
+                f"Challenge type {challenge_type} not supported for {authz['identifier']['value']}"
+            )
+
         # Calculate key authorization
         key_authz = self._calculate_key_authorization(challenge["token"])
-        
+
         if challenge_type == "http-01":
             await self._setup_http_challenge(challenge["token"], key_authz)
         else:
             raise ACMEError(f"Challenge type {challenge_type} not implemented")
-        
+
         # Trigger challenge validation
         await self._trigger_challenge(challenge["url"])
-        
+
         # Wait for challenge completion
         await self._wait_for_authorization(authz_url)
 
@@ -386,39 +392,35 @@ class ACMEClient:
         # Get account key thumbprint
         public_key = self.account_key.public_key()
         public_numbers = public_key.public_numbers()
-        
+
         jwk = {
             "kty": "RSA",
             "n": self._int_to_base64url(public_numbers.n),
             "e": self._int_to_base64url(public_numbers.e),
         }
-        
+
         # Create thumbprint
-        jwk_json = json.dumps(jwk, sort_keys=True, separators=(',', ':'))
+        jwk_json = json.dumps(jwk, sort_keys=True, separators=(",", ":"))
         thumbprint = hashlib.sha256(jwk_json.encode()).digest()
         thumbprint_b64 = self._base64url_encode(thumbprint)
-        
+
         return f"{token}.{thumbprint_b64}"
 
     async def _setup_http_challenge(self, token: str, key_authz: str) -> None:
         """Set up HTTP-01 challenge response."""
         challenge_dir = self.cert_storage_dir / ".well-known" / "acme-challenge"
         challenge_dir.mkdir(parents=True, exist_ok=True)
-        
+
         challenge_file = challenge_dir / token
         challenge_file.write_text(key_authz)
-        
+
         logger.info("HTTP challenge set up at %s", challenge_file)
 
     async def _trigger_challenge(self, challenge_url: str) -> None:
         """Trigger challenge validation."""
         payload = {}  # Empty payload to trigger
-        response = await self._sign_and_post(
-            challenge_url,
-            payload,
-            kid=self.account_url
-        )
-        
+        response = await self._sign_and_post(challenge_url, payload, kid=self.account_url)
+
         if response.status_code == 200:
             logger.info("Challenge triggered successfully")
         else:
@@ -430,16 +432,16 @@ class ACMEClient:
             response = await self.client.get(authz_url)
             response.raise_for_status()
             authz = response.json()
-            
+
             if authz["status"] == "valid":
                 logger.info("Authorization completed successfully")
                 return
             elif authz["status"] == "invalid":
                 raise ACMEError(f"Authorization failed: {authz}")
-            
+
             # Wait before next check
             await asyncio.sleep(2)
-        
+
         raise ACMEError("Authorization timed out")
 
     async def _finalize_order(self, order_url: str, csr: bytes) -> str:
@@ -448,29 +450,25 @@ class ACMEClient:
         response = await self.client.get(order_url)
         response.raise_for_status()
         order = response.json()
-        
+
         if order["status"] != "ready":
             raise ACMEError(f"Order not ready for finalization: {order['status']}")
-        
+
         # Submit CSR
         payload = {
             "csr": self._base64url_encode(csr),
         }
-        
-        response = await self._sign_and_post(
-            order["finalize"],
-            payload,
-            kid=self.account_url
-        )
+
+        response = await self._sign_and_post(order["finalize"], payload, kid=self.account_url)
         response.raise_for_status()
-        
+
         # Wait for certificate to be ready
         certificate_url = await self._wait_for_certificate(order_url)
-        
+
         # Download certificate
         response = await self.client.get(certificate_url)
         response.raise_for_status()
-        
+
         return response.text
 
     async def _wait_for_certificate(self, order_url: str, max_attempts: int = 60) -> str:
@@ -479,14 +477,14 @@ class ACMEClient:
             response = await self.client.get(order_url)
             response.raise_for_status()
             order = response.json()
-            
+
             if order["status"] == "valid" and "certificate" in order:
                 return order["certificate"]
             elif order["status"] == "invalid":
                 raise ACMEError(f"Order failed: {order}")
-            
+
             await asyncio.sleep(2)
-        
+
         raise ACMEError("Certificate generation timed out")
 
     async def renew_certificate(
@@ -512,19 +510,19 @@ class ACMEClient:
             logger.info("Certificate not found, requesting new one")
             await self.request_certificate(domain, key_path=key_path, cert_path=cert_path)
             return True
-        
+
         # Check expiry date
         cert_data = Path(cert_path).read_bytes()
         cert = x509.load_pem_x509_certificate(cert_data)
-        
+
         expiry_date = cert.not_valid_after
         days_until_expiry = (expiry_date - datetime.now(timezone.utc)).days
-        
+
         if days_until_expiry <= days_before_expiry:
             logger.info(
                 "Certificate expires in %d days, renewing (threshold: %d days)",
                 days_until_expiry,
-                days_before_expiry
+                days_before_expiry,
             )
             await self.request_certificate(domain, key_path=key_path, cert_path=cert_path)
             return True
@@ -532,7 +530,7 @@ class ACMEClient:
             logger.info(
                 "Certificate expires in %d days, renewal not needed (threshold: %d days)",
                 days_until_expiry,
-                days_before_expiry
+                days_before_expiry,
             )
             return False
 
@@ -547,7 +545,7 @@ ACME_SERVERS = {
 
 async def create_acme_client(
     server: str = "letsencrypt-staging",
-    contact_email: Optional[str] = None,
+    contact_email: str | None = None,
     cert_storage_dir: str = "data/acme_certs",
 ) -> ACMEClient:
     """
@@ -562,13 +560,13 @@ async def create_acme_client(
         Initialized ACMEClient instance
     """
     directory_url = ACME_SERVERS.get(server, server)
-    
+
     client = ACMEClient(
         directory_url=directory_url,
         contact_email=contact_email,
         cert_storage_dir=cert_storage_dir,
     )
-    
+
     await client.initialize()
     return client
 

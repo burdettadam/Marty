@@ -1,11 +1,13 @@
 # VS Code Port Forwarding Integration for Microsoft Authenticator Demo
 
 ## Overview
+
 Updated the Microsoft Authenticator demo to use VS Code port forwarding for public access, enabling mobile device testing from anywhere with a simpler setup than tunnels.
 
 ## Changes Made
 
 ### 1. Docker Compose Updates
+
 **File**: `docker/docker-compose.demo-microsoft-simple.yml`
 
 - **Header**: Added VS Code port forwarding usage instructions
@@ -15,6 +17,7 @@ Updated the Microsoft Authenticator demo to use VS Code port forwarding for publ
 - **Dependencies**: Proper service dependencies and health checks
 
 Key environment variables:
+
 ```
 ISSUER_BASE_URL=${ISSUER_BASE_URL:-https://localhost:8000}
 VERIFIER_BASE_URL=${VERIFIER_BASE_URL:-https://localhost:8001}
@@ -23,6 +26,7 @@ CORS_ORIGINS=${CORS_ORIGINS:-*}
 ```
 
 ### 2. Documentation Updates
+
 **File**: `docs/demos/microsoft_authenticator.md`
 
 - **Architecture Diagram**: Updated to show VS Code port forwarding in the flow
@@ -33,18 +37,22 @@ CORS_ORIGINS=${CORS_ORIGINS:-*}
 - **Troubleshooting**: New VS Code port forwarding-specific troubleshooting section
 
 ### 3. Configuration Template
+
 **File**: `.env.microsoft.portforward.example`
 
 Complete environment template with:
+
 - Database and MinIO configuration
 - VS Code port forwarding URL placeholders
 - Clear instructions for customization
 - Step-by-step setup guide
 
 ### 4. Automated Setup Script
+
 **File**: `scripts/setup-microsoft-portforward.sh`
 
 Interactive script that:
+
 - Validates VS Code availability
 - Starts demo services
 - Provides step-by-step port forwarding instructions
@@ -54,12 +62,14 @@ Interactive script that:
 ## Usage Instructions
 
 ### Quick Setup (Recommended)
+
 1. Run setup script: `./scripts/setup-microsoft-portforward.sh`
 2. In VS Code, open Ports panel and forward ports 8000 and 8001 as "Public"
 3. Update `.env.microsoft` with your actual forwarded URLs
 4. Restart demo: `docker-compose -f docker/docker-compose.demo-microsoft-simple.yml --env-file .env.microsoft down && up -d`
 
 ### Manual Setup
+
 1. Copy `.env.microsoft.portforward.example` to `.env.microsoft`
 2. Start services: `docker-compose -f docker/docker-compose.demo-microsoft-simple.yml up -d`
 3. Set up port forwarding in VS Code
@@ -99,6 +109,7 @@ Interactive script that:
 - All existing Marty security measures remain in place
 
 ## File Structure
+
 ```
 Marty/
 ├── docker/docker-compose.demo-microsoft-simple.yml (updated)

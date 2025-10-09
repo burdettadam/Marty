@@ -3,6 +3,7 @@
 Temporary file to bypass corrupted legacy `document_models.py`.
 All consuming code should import from this module instead of `document_models`.
 """
+
 from __future__ import annotations
 
 from enum import Enum

@@ -8,29 +8,29 @@ import "common_services.proto";
 service CMCEngine {
   // Create a new crew member certificate
   rpc CreateCMC (CreateCMCRequest) returns (CreateCMCResponse);
-  
+
   // Retrieve a CMC by document number
   rpc GetCMC (GetCMCRequest) returns (CMCResponse);
-  
+
   // Sign a CMC using Document Signer
   rpc SignCMC (SignCMCRequest) returns (SignCMCResponse);
-  
+
   // Generate VDS-NC barcode for offline verification
   rpc GenerateVDSNCBarcode (GenerateVDSNCRequest) returns (GenerateVDSNCResponse);
-  
+
   // Generate QR code for CMC access
   rpc GenerateCMCQRCode (GenerateQRCodeRequest) returns (GenerateQRCodeResponse);
-  
+
   // Verify a CMC (for inspection system integration)
   rpc VerifyCMC (VerifyCMCRequest) returns (VerifyCMCResponse);
-  
+
   // Check background verification status (Annex 9 compliance)
   rpc CheckBackgroundVerification (BackgroundCheckRequest) returns (BackgroundCheckResponse);
-  
+
   // Annex 9 Background Check Prerequisite Enforcement
   rpc EnforceBackgroundPrerequisite (BackgroundPrerequisiteRequest) returns (BackgroundPrerequisiteResponse);
   rpc ValidateIssuanceEligibility (IssuanceEligibilityRequest) returns (IssuanceEligibilityResponse);
-  
+
   // Update visa-free entry eligibility
   rpc UpdateVisaFreeStatus (VisaFreeStatusRequest) returns (VisaFreeStatusResponse);
 }
@@ -45,17 +45,17 @@ message CreateCMCRequest {
   string date_of_birth = 6; // ISO format: YYYY-MM-DD
   string gender = 7; // M, F, or X
   string date_of_expiry = 8; // ISO format: YYYY-MM-DD
-  
+
   // Optional CMC-specific fields
   string employer = 9; // Employing airline/organization
   string crew_id = 10; // Crew member identification number
-  
+
   // Security model selection
   CMCSecurityModel security_model = 11;
-  
+
   // Face image for chip-based model (DG2)
   bytes face_image = 12;
-  
+
   // Annex 9 compliance fields
   bool background_check_verified = 13;
   string electronic_record_id = 14;
@@ -100,26 +100,26 @@ message CMCCertificate {
   string date_of_expiry = 9;
   string employer = 10;
   string crew_id = 11;
-  
+
   CMCSecurityModel security_model = 12;
   bool background_check_verified = 13;
   bytes face_image = 14;
-  
+
   string td1_mrz = 15; // TD-1 format MRZ string
   SignatureInfo signature_info = 16;
   CMCStatus status = 17;
-  
+
   // Security model specific data
   oneof security_data {
     ChipLDSData chip_lds = 18;
     VDSNCBarcode vds_nc_barcode = 19;
   }
-  
+
   // Annex 9 compliance
   string electronic_record_id = 20;
   bool issuer_record_keeping = 21;
   bool visa_free_entry_eligible = 22;
-  
+
   string created_at = 23;
   string updated_at = 24;
 }
@@ -339,7 +339,7 @@ message GenerateQRCodeRequest {
   string cmc_id = 1;
   bool include_photo = 2;
   repeated string fields_to_include = 3; // Empty means include all fields
-  string format = 4; // "URL", "JSON", "MINIMAL" 
+  string format = 4; // "URL", "JSON", "MINIMAL"
 }
 
 // Response with QR code for CMC

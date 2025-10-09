@@ -63,15 +63,15 @@ spec:
               set -e
               echo "Installing dependencies..."
               pip install --no-cache-dir fastapi uvicorn[standard] pydantic qrcode[pil]
-              
+
               echo "Creating source directory..."
               mkdir -p /app/src/microsoft_demo
-              
+
               echo "Copying issuer API source..."
               cat > /app/src/microsoft_demo/__init__.py << 'EOF'
               # Microsoft Demo Module
               EOF
-              
+
               echo "Setting up issuer API..."
               curl -s https://raw.githubusercontent.com/burdettadam/Marty/main/src/microsoft_demo/issuer_api.py > /app/src/microsoft_demo/issuer_api.py || {
                 echo "Failed to fetch from GitHub, using embedded version..."
@@ -79,7 +79,7 @@ spec:
               # This will be replaced with the actual API code
               APIEOF
               }
-              
+
               echo "Starting issuer API..."
               python -m uvicorn src.microsoft_demo.issuer_api:app --host 0.0.0.0 --port 8000
           env:
@@ -183,15 +183,15 @@ spec:
               set -e
               echo "Installing dependencies..."
               pip install --no-cache-dir fastapi uvicorn[standard] pydantic
-              
+
               echo "Creating source directory..."
               mkdir -p /app/src/microsoft_demo
-              
+
               echo "Copying verifier API source..."
               cat > /app/src/microsoft_demo/__init__.py << 'EOF'
               # Microsoft Demo Module
               EOF
-              
+
               echo "Setting up verifier API..."
               curl -s https://raw.githubusercontent.com/burdettadam/Marty/main/src/microsoft_demo/verifier_api.py > /app/src/microsoft_demo/verifier_api.py || {
                 echo "Failed to fetch from GitHub, using embedded version..."
@@ -199,7 +199,7 @@ spec:
               # This will be replaced with the actual API code
               APIEOF
               }
-              
+
               echo "Starting verifier API..."
               python -m uvicorn src.microsoft_demo.verifier_api:app --host 0.0.0.0 --port 8001
           env:

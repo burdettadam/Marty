@@ -49,11 +49,11 @@ class CertificateExpiryService:
         self.openxpki_service = openxpki_service
         self.check_interval_days = check_interval_days
         self.notification_days = notification_days or [30, 15, 7, 3, 1]
-        
+
         # Initialize shared utilities using DRY factory
         self.config_manager = get_config_manager("trust-anchor")
         self.cert_processor = CertificateProcessor()
-        
+
         # Use ConfigurationManager for path resolution
         data_dir = self.config_manager.get_env_path("DATA_DIR") or Path("data")
         default_history_path = data_dir / "trust" / "cert_notification_history.json"
@@ -173,7 +173,7 @@ class CertificateExpiryService:
             if serial_number is None:
                 logger.warning("Certificate with missing serial number found")
                 continue
-                
+
             cert_history = history.get(serial_number, {"notify_days": []})
 
             # If days_remaining matches one of our notification thresholds
@@ -181,7 +181,6 @@ class CertificateExpiryService:
             if days_remaining in self.notification_days and days_remaining not in cert_history.get(
                 "notify_days", []
             ):
-
                 # Add the notification_days field to the certificate
                 cert_copy = cert.copy()
                 cert_copy["notification_days"] = days_remaining

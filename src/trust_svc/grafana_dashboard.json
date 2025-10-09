@@ -372,7 +372,7 @@
         },
         {
           "name": "country",
-          "type": "query", 
+          "type": "query",
           "query": "label_values(trust_dsc_total, country)",
           "refresh": 1,
           "options": [],

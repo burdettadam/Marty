@@ -5,10 +5,9 @@ This module provides integration between the VDS-NC implementation and the CMC E
 
 from __future__ import annotations
 
-from shared.logging_config import get_logger
-
 from marty_common.models.passport import CMCCertificate, VDSNCBarcode
 from marty_common.vds_nc.vds_nc_impl import VDSNCGenerator, VDSNCVerifier, generate_test_key_pair
+from shared.logging_config import get_logger
 
 logger = get_logger(__name__)
 
@@ -25,19 +24,14 @@ class CMCVDSNCService:
 
         # Initialize generator and verifier
         self.generator = VDSNCGenerator(
-            signing_key=self.private_key,
-            certificate_reference=self.certificate_reference
+            signing_key=self.private_key, certificate_reference=self.certificate_reference
         )
-        self.verifier = VDSNCVerifier(
-            public_keys={self.certificate_reference: self.public_key}
-        )
+        self.verifier = VDSNCVerifier(public_keys={self.certificate_reference: self.public_key})
 
         logger.info("CMC VDS-NC service initialized with test keys")
 
     def generate_barcode(
-        self,
-        cmc_certificate: CMCCertificate,
-        signature_algorithm: str = "ES256"
+        self, cmc_certificate: CMCCertificate, signature_algorithm: str = "ES256"
     ) -> VDSNCBarcode:
         """Generate VDS-NC barcode for CMC certificate.
 
@@ -48,13 +42,9 @@ class CMCVDSNCService:
         Returns:
             VDS-NC barcode data
         """
-        return self.generator.generate_vds_nc_barcode(
-            cmc_certificate, signature_algorithm
-        )
+        return self.generator.generate_vds_nc_barcode(cmc_certificate, signature_algorithm)
 
-    def verify_barcode(
-        self, barcode_data: str
-    ) -> tuple[bool, CMCCertificate | None, list[str]]:
+    def verify_barcode(self, barcode_data: str) -> tuple[bool, CMCCertificate | None, list[str]]:
         """Verify VDS-NC barcode and extract CMC data.
 
         Args:

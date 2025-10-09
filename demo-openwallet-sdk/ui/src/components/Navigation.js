@@ -4,7 +4,7 @@ import { Link, useLocation } from 'react-router-dom';
 
 function Navigation() {
   const location = useLocation();
-  
+
   const getCurrentTab = () => {
     switch (location.pathname) {
       case '/issuer':

@@ -9,25 +9,28 @@ The Trust Service now includes comprehensive ASN.1/X.509 certificate parsing cap
 ### Core Components
 
 1. **`certificate_parser.py`** - Advanced X.509 certificate parsing with ASN.1 support
-2. **`certificate_service.py`** - High-level certificate validation service 
+2. **`certificate_service.py`** - High-level certificate validation service
 3. **Updated `ingestion.py`** - PKD ingestion with real certificate processing
 4. **Updated `grpc_server.py`** - gRPC validation API with real parsing logic
 
 ### Key Classes
 
 #### X509CertificateParser
+
 - Complete X.509 certificate parsing using cryptography library
 - ASN.1 structure parsing with pyasn1
 - ICAO-specific extension handling
 - Certificate fingerprinting and metadata extraction
 
 #### CertificateValidator  
+
 - Certificate chain validation
 - Signature verification
 - Time validity checking
 - ICAO compliance validation
 
 #### TrustServiceCertificateValidator
+
 - Database integration
 - Trust store management
 - Revocation checking
@@ -38,12 +41,14 @@ The Trust Service now includes comprehensive ASN.1/X.509 certificate parsing cap
 ### 1. Advanced Certificate Parsing
 
 **Supported Formats:**
+
 - DER (Distinguished Encoding Rules)
 - PEM (Privacy-Enhanced Mail)  
 - Base64 encoded
 - Hex strings (with or without separators)
 
 **Extracted Information:**
+
 - Subject and issuer distinguished names
 - Serial number and version
 - Validity period (not_before, not_after)
@@ -54,6 +59,7 @@ The Trust Service now includes comprehensive ASN.1/X.509 certificate parsing cap
 ### 2. X.509 Extensions Support
 
 **Standard Extensions:**
+
 - Key Usage
 - Extended Key Usage
 - Basic Constraints
@@ -64,6 +70,7 @@ The Trust Service now includes comprehensive ASN.1/X.509 certificate parsing cap
 - Certificate Policies
 
 **ICAO-Specific Extensions:**
+
 - Document Type List (OID: 2.23.136.1.1.1)
 - Master List Identifier (OID: 2.23.136.1.1.2)
 - Document Security Object (OID: 2.23.136.1.1.3)
@@ -72,6 +79,7 @@ The Trust Service now includes comprehensive ASN.1/X.509 certificate parsing cap
 ### 3. Certificate Validation
 
 **Validation Checks:**
+
 - Time validity (not expired, not yet valid)
 - Signature verification against issuer
 - Certificate chain validation
@@ -79,6 +87,7 @@ The Trust Service now includes comprehensive ASN.1/X.509 certificate parsing cap
 - ICAO compliance verification
 
 **Trust Store Integration:**
+
 - Automatic loading of trusted CSCAs from database
 - Chain building and verification
 - Trust path construction
@@ -86,12 +95,14 @@ The Trust Service now includes comprehensive ASN.1/X.509 certificate parsing cap
 ### 4. Certificate Type Detection
 
 **Automatic Classification:**
+
 - **CSCA**: Country Signing Certificate Authority
 - **DSC**: Document Signing Certificate
 - **CRL_SIGNER**: CRL signing certificate
 - **UNKNOWN**: Unclassified certificate
 
 **Classification Logic:**
+
 - CA certificates with key certificate signing usage → CSCA
 - Non-CA certificates with digital signature usage → DSC
 - Certificates with CRL signing usage → CRL_SIGNER
@@ -208,9 +219,9 @@ Every certificate import creates a provenance record:
 INSERT INTO trust_svc.provenance (
     object_type, object_id, source_id, operation, metadata
 ) VALUES (
-    'certificate', 
-    'cert-uuid', 
-    'source-uuid', 
+    'certificate',
+    'cert-uuid',
+    'source-uuid',
     'import',
     '{"certificate_type": "csca", "validation_result": true}'
 );
@@ -219,16 +230,19 @@ INSERT INTO trust_svc.provenance (
 ## Security Considerations
 
 ### Cryptographic Validation
+
 - All signatures verified using cryptography library
 - Strong hash algorithms (SHA-256) for fingerprints
 - Proper ASN.1 parsing prevents malformed data attacks
 
 ### Trust Store Management
+
 - Only active CSCAs loaded into trust store
 - Regular trust store refresh from database
 - Secure certificate chain validation
 
 ### Input Validation
+
 - Comprehensive certificate format validation
 - Safe handling of malformed certificates
 - Error boundaries prevent crashes
@@ -236,16 +250,19 @@ INSERT INTO trust_svc.provenance (
 ## Performance Optimization
 
 ### Efficient Parsing
+
 - Single-pass certificate parsing
 - Lazy loading of trust store
 - Cached certificate fingerprints
 
 ### Memory Management
+
 - Bounded certificate processing
 - Proper cleanup of cryptographic objects
 - Streaming support for large datasets
 
 ### Concurrent Processing
+
 - Async/await throughout
 - Parallel certificate validation
 - Database connection pooling
@@ -253,11 +270,13 @@ INSERT INTO trust_svc.provenance (
 ## Error Handling
 
 ### Graceful Degradation
+
 - Invalid certificates logged, not crashed
 - Partial validation results returned
 - Comprehensive error reporting
 
 ### Error Categories
+
 - **Parse Errors**: Malformed certificate data
 - **Validation Errors**: Failed cryptographic checks  
 - **Chain Errors**: Broken certificate chains
@@ -280,6 +299,7 @@ INSERT INTO trust_svc.provenance (
    - Database integration
 
 ### Test Certificate Samples
+
 - CSCA test certificates
 - DSC test certificates  
 - Expired certificates
@@ -325,6 +345,7 @@ trust_store_size{store_type="csca"}
 ```
 
 ### Monitoring Dashboards
+
 - Certificate validation success rates
 - Parse error rates by country
 - Trust store size over time
@@ -333,18 +354,21 @@ trust_store_size{store_type="csca"}
 ## Best Practices
 
 ### Certificate Handling
+
 1. Always validate certificates before use
 2. Check revocation status regularly
 3. Maintain complete trust store
 4. Log all validation decisions
 
 ### Performance
+
 1. Cache parsed certificates when possible
 2. Use batch validation for multiple certificates
 3. Monitor memory usage during large imports
 4. Implement circuit breakers for external services
 
 ### Security
+
 1. Validate all input certificate data
 2. Use secure random for cryptographic operations
 3. Regular security updates for dependencies
@@ -353,6 +377,7 @@ trust_store_size{store_type="csca"}
 ## Future Enhancements
 
 ### Planned Features
+
 - OCSP (Online Certificate Status Protocol) support
 - Certificate transparency log integration
 - Advanced ICAO extension parsing
@@ -360,6 +385,7 @@ trust_store_size{store_type="csca"}
 - Machine learning for anomaly detection
 
 ### Performance Improvements
+
 - Certificate parsing pipeline optimization
 - GPU acceleration for large-scale validation
 - Distributed trust store synchronization
@@ -370,22 +396,27 @@ trust_store_size{store_type="csca"}
 ### Common Issues
 
 **Certificate Parse Errors:**
+
 ```
 ValueError: Invalid certificate data
 ```
+
 - Check certificate format (PEM vs DER)
 - Verify certificate is not corrupted
 - Ensure proper encoding
 
 **Chain Validation Failures:**
+
 ```
 Chain validation failed: issuer not found
 ```
+
 - Verify trust store contains issuer certificate
 - Check certificate chain order
 - Validate issuer/subject DN matching
 
 **Performance Issues:**
+
 - Monitor certificate_validation_duration_seconds metric
 - Check database connection pool health
 - Verify trust store loading efficiency

@@ -11,12 +11,12 @@ service RFIDReaderService {
     rpc ConnectReader(ConnectReaderRequest) returns (ConnectReaderResponse);
     rpc DisconnectReader(DisconnectReaderRequest) returns (DisconnectReaderResponse);
     rpc GetReaderStatus(GetReaderStatusRequest) returns (GetReaderStatusResponse);
-    
+
     // Card operations
     rpc ReadCard(ReadCardRequest) returns (ReadCardResponse);
     rpc SendAPDU(SendAPDURequest) returns (SendAPDUResponse);
     rpc GetATR(GetATRRequest) returns (GetATRResponse);
-    
+
     // Document operations
     rpc ReadPassport(ReadPassportRequest) returns (ReadPassportResponse);
     rpc VerifyDocument(VerifyDocumentRequest) returns (VerifyDocumentResponse);

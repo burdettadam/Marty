@@ -4,12 +4,12 @@ SET search_path = trust_svc;
 
 -- Insert sample trust anchors (CSCA certificates)
 INSERT INTO trust_anchors (
-    country_code, certificate_hash, certificate_data, subject_dn, issuer_dn, 
-    serial_number, valid_from, valid_to, key_usage, signature_algorithm, 
+    country_code, certificate_hash, certificate_data, subject_dn, issuer_dn,
+    serial_number, valid_from, valid_to, key_usage, signature_algorithm,
     public_key_algorithm, trust_level, status
-) VALUES 
+) VALUES
 (
-    'DEV', 
+    'DEV',
     sha256('DEV_CSCA_001'::bytea)::text,
     'DEV_CSCA_CERT_DATA_001'::bytea,
     'CN=CSCA-DEV,C=DEV,O=Development Authority',
@@ -24,7 +24,7 @@ INSERT INTO trust_anchors (
     'active'
 ),
 (
-    'TST', 
+    'TST',
     sha256('TST_CSCA_001'::bytea)::text,
     'TST_CSCA_CERT_DATA_001'::bytea,
     'CN=CSCA-TST,C=TST,O=Test Authority',
@@ -39,7 +39,7 @@ INSERT INTO trust_anchors (
     'active'
 ),
 (
-    'USA', 
+    'USA',
     sha256('USA_CSCA_001'::bytea)::text,
     'USA_CSCA_CERT_DATA_001'::bytea,
     'CN=CSCA-USA,C=US,O=U.S. Department of State',
@@ -63,8 +63,8 @@ INSERT INTO dsc_certificates (
     subject_dn, issuer_dn, serial_number, valid_from, valid_to,
     key_usage, signature_algorithm, public_key_algorithm, revocation_status,
     revocation_checked_at, chain_valid, chain_validated_at, status
-) 
-SELECT 
+)
+SELECT
     ta.country_code,
     sha256(('DSC_' || ta.country_code || '_' || series.num)::bytea)::text,
     ('DSC_CERT_DATA_' || ta.country_code || '_' || series.num)::bytea,
@@ -77,9 +77,9 @@ SELECT
     ARRAY['digitalSignature'],
     'sha256WithRSAEncryption',
     'RSA',
-    CASE 
+    CASE
         WHEN series.num % 10 = 0 THEN 'bad'  -- 10% revoked
-        WHEN series.num % 5 = 0 THEN 'unknown'  -- 10% unknown  
+        WHEN series.num % 5 = 0 THEN 'unknown'  -- 10% unknown
         ELSE 'good'  -- 80% good
     END,
     NOW() - INTERVAL '1 hour',
@@ -91,7 +91,7 @@ CROSS JOIN generate_series(1, 25) as series(num);
 
 -- Insert sample CRL cache entries
 WITH trust_anchor_data AS (
-    SELECT id, country_code, 
+    SELECT id, country_code,
            'CN=CSCA-' || country_code || ',C=' || country_code || ',O=' || country_code || ' Authority' as issuer_dn
     FROM trust_anchors WHERE country_code IN ('DEV', 'TST', 'USA')
 )
@@ -100,7 +100,7 @@ INSERT INTO crl_cache (
     this_update, next_update, crl_data, crl_hash, signature_valid,
     revoked_count, status
 )
-SELECT 
+SELECT
     ta.issuer_dn,
     sha256(('CSCA_' || ta.country_code)::bytea)::text,
     'https://crl.example.com/' || ta.country_code || '/current.crl',
@@ -110,7 +110,7 @@ SELECT
     ('CRL_DATA_' || ta.country_code)::bytea,
     sha256(('CRL_' || ta.country_code)::bytea)::text,
     true,
-    CASE ta.country_code 
+    CASE ta.country_code
         WHEN 'DEV' THEN 3
         WHEN 'TST' THEN 2
         WHEN 'USA' THEN 1
@@ -133,7 +133,7 @@ crl_data AS (
 INSERT INTO revoked_certificates (
     crl_id, serial_number, revocation_date, reason_code, certificate_hash
 )
-SELECT 
+SELECT
     cd.crl_id,
     rd.serial_number,
     NOW() - INTERVAL '30 days',
@@ -256,8 +256,8 @@ INSERT INTO job_executions (
 INSERT INTO trust_snapshots (
     snapshot_hash, signature, trust_anchor_count, dsc_count,
     revoked_count, crl_count, metadata, expires_at
-) 
-SELECT 
+)
+SELECT
     sha256(('SNAPSHOT_' || NOW()::text)::bytea)::text,
     'MOCK_KMS_SIGNATURE_' || extract(epoch from NOW())::text,
     (SELECT COUNT(*) FROM trust_anchors WHERE status = 'active'),
@@ -270,7 +270,7 @@ SELECT
             SELECT jsonb_object_agg(country_code, count)
             FROM (
                 SELECT country_code, COUNT(*) as count
-                FROM trust_anchors 
+                FROM trust_anchors
                 WHERE status = 'active'
                 GROUP BY country_code
             ) t
@@ -288,7 +288,7 @@ SELECT
     NOW() + INTERVAL '7 days';
 
 -- Update last sync times for PKD sources
-UPDATE pkd_sources 
+UPDATE pkd_sources
 SET last_sync_at = NOW() - INTERVAL '1 hour'
 WHERE name IN ('ICAO PKD Test Environment', 'DEV Synthetic Source');
 

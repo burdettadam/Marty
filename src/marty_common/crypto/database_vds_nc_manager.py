@@ -19,16 +19,12 @@ from cryptography.hazmat.primitives.asymmetric.ec import (
     EllipticCurvePrivateKey,
     EllipticCurvePublicKey,
 )
-from marty_common.security.encryption import SymmetricEncryption
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 
-from marty_common.crypto.vds_nc_keys import (
-    KeyRole,
-    KeyStatus,
-    VDSNCKeyMetadata,
-)
+from marty_common.crypto.vds_nc_keys import KeyRole, KeyStatus, VDSNCKeyMetadata
 from marty_common.infrastructure.trust_models import KeyRotationLog, VDSNCKeyModel
+from marty_common.security.encryption import SymmetricEncryption
 
 logger = logging.getLogger(__name__)
 
@@ -177,9 +173,7 @@ class DatabaseVDSNCKeyManager:
 
     async def get_key_by_kid(self, kid: str) -> VDSNCKeyModel | None:
         """Get key by KID."""
-        result = await self.session.execute(
-            select(VDSNCKeyModel).where(VDSNCKeyModel.kid == kid)
-        )
+        result = await self.session.execute(select(VDSNCKeyModel).where(VDSNCKeyModel.kid == kid))
         return result.scalar_one_or_none()
 
     async def list_keys(
@@ -269,15 +263,17 @@ class DatabaseVDSNCKeyManager:
                 jwk = key_model.public_key_jwk.copy()
 
                 # Add metadata
-                jwk.update({
-                    "kid": key_model.kid,
-                    "use": "sig",
-                    "alg": key_model.algorithm,
-                    "country": key_model.issuer_country,
-                    "role": key_model.role.value,
-                    "nbf": int(key_model.not_before.timestamp()),
-                    "exp": int(key_model.not_after.timestamp()),
-                })
+                jwk.update(
+                    {
+                        "kid": key_model.kid,
+                        "use": "sig",
+                        "alg": key_model.algorithm,
+                        "country": key_model.issuer_country,
+                        "role": key_model.role.value,
+                        "nbf": int(key_model.not_before.timestamp()),
+                        "exp": int(key_model.not_after.timestamp()),
+                    }
+                )
 
                 jwks_keys.append(jwk)
 
@@ -288,7 +284,7 @@ class DatabaseVDSNCKeyManager:
                 "total_count": len(jwks_keys),
                 "country_filter": issuer_country,
                 "role_filter": role.value if role else None,
-            }
+            },
         }
 
     async def get_private_key(self, kid: str) -> EllipticCurvePrivateKey | None:
@@ -303,9 +299,7 @@ class DatabaseVDSNCKeyManager:
 
         try:
             # Decrypt private key
-            private_key_pem = self.encryption_service.decrypt(
-                key_model.private_key_encrypted
-            )
+            private_key_pem = self.encryption_service.decrypt(key_model.private_key_encrypted)
 
             # Load private key
             private_key = serialization.load_pem_private_key(
@@ -383,9 +377,7 @@ class DatabaseVDSNCKeyManager:
                 format=serialization.PrivateFormat.PKCS8,
                 encryption_algorithm=serialization.NoEncryption(),
             )
-            private_key_encrypted = self.encryption_service.encrypt(
-                private_key_pem.decode()
-            )
+            private_key_encrypted = self.encryption_service.encrypt(private_key_pem.decode())
 
         # Create model
         key_model = VDSNCKeyModel(
@@ -481,6 +473,7 @@ class DatabaseVDSNCKeyManager:
 
         # Base64url encode
         import base64
+
         x_b64 = base64.urlsafe_b64encode(x_bytes).decode().rstrip("=")
         y_b64 = base64.urlsafe_b64encode(y_bytes).decode().rstrip("=")
 
@@ -530,9 +523,7 @@ class VDSNCKeyRepository:
 
     async def get_by_kid(self, kid: str) -> VDSNCKeyModel | None:
         """Get key by KID."""
-        result = await self.session.execute(
-            select(VDSNCKeyModel).where(VDSNCKeyModel.kid == kid)
-        )
+        result = await self.session.execute(select(VDSNCKeyModel).where(VDSNCKeyModel.kid == kid))
         return result.scalar_one_or_none()
 
     async def list_by_country_and_role(

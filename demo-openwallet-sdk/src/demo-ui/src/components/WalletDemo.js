@@ -56,7 +56,7 @@ function WalletDemo() {
   const provisionDemoCredentials = async () => {
     setLoading(true);
     setError(null);
-    
+
     try {
       await axios.get(`/api/wallet/demo/provision/${selectedUserId}`);
       await loadWalletData(); // Reload data
@@ -88,7 +88,7 @@ function WalletDemo() {
   const simulateImportCredential = async () => {
     setLoading(true);
     setError(null);
-    
+
     try {
       await axios.post(`/api/wallet/${selectedUserId}/import`, {
         import_method: 'openid4vci',
@@ -121,7 +121,7 @@ function WalletDemo() {
       <Typography variant="h4" component="h1" gutterBottom>
         Digital Wallet Demo
       </Typography>
-      
+
       <Typography variant="body1" color="text.secondary" paragraph>
         Manage mDoc and mDL credentials in a secure wallet using the OpenWallet Foundation Multipaz SDK.
         Store, view, and present credentials with user consent and selective disclosure.
@@ -134,7 +134,7 @@ function WalletDemo() {
               <Typography variant="h6" gutterBottom>
                 Wallet Controls
               </Typography>
-              
+
               <TextField
                 fullWidth
                 label="User ID"
@@ -172,7 +172,7 @@ function WalletDemo() {
                 >
                   Provision Demo Credentials
                 </Button>
-                
+
                 <Button
                   variant="outlined"
                   onClick={simulateImportCredential}
@@ -181,7 +181,7 @@ function WalletDemo() {
                 >
                   Import Credential (Mock)
                 </Button>
-                
+
                 <Button
                   variant="outlined"
                   onClick={loadWalletData}
@@ -200,35 +200,35 @@ function WalletDemo() {
               <Typography variant="h6" gutterBottom>
                 Stored Credentials
               </Typography>
-              
+
               {error && (
                 <Alert severity="error" sx={{ mb: 2 }}>
                   {error}
                 </Alert>
               )}
-              
+
               {loading && (
                 <Box sx={{ display: 'flex', justifyContent: 'center', p: 3 }}>
                   <CircularProgress />
                 </Box>
               )}
-              
+
               {!loading && credentials.length === 0 && (
                 <Typography color="text.secondary" sx={{ textAlign: 'center', p: 3 }}>
                   No credentials found. Use "Provision Demo Credentials" to add some.
                 </Typography>
               )}
-              
+
               {!loading && credentials.length > 0 && (
                 <List>
                   {credentials.map((credential) => (
                     <ListItem
                       key={credential.credential_id}
-                      sx={{ 
-                        border: 1, 
-                        borderColor: 'grey.300', 
-                        borderRadius: 1, 
-                        mb: 1 
+                      sx={{
+                        border: 1,
+                        borderColor: 'grey.300',
+                        borderRadius: 1,
+                        mb: 1
                       }}
                     >
                       <ListItemText
@@ -244,9 +244,9 @@ function WalletDemo() {
                             <Typography variant="body2" color="text.secondary">
                               Issued: {new Date(credential.issued_at).toLocaleDateString()}
                             </Typography>
-                            <Chip 
-                              label={credential.status} 
-                              size="small" 
+                            <Chip
+                              label={credential.status}
+                              size="small"
                               color={getCredentialStatusColor(credential.status)}
                               sx={{ mt: 1 }}
                             />
@@ -282,7 +282,7 @@ function WalletDemo() {
                 <Typography variant="h6" gutterBottom>
                   Credential Details
                 </Typography>
-                
+
                 <Paper sx={{ p: 2, bgcolor: 'grey.50' }}>
                   <Typography variant="subtitle2" gutterBottom>
                     Credential ID: {selectedCredential.credential_id}
@@ -293,7 +293,7 @@ function WalletDemo() {
                   <Typography variant="body2" gutterBottom>
                     Last Accessed: {new Date(selectedCredential.last_accessed).toLocaleString()}
                   </Typography>
-                  
+
                   <Typography variant="subtitle2" gutterBottom sx={{ mt: 2 }}>
                     Credential Data:
                   </Typography>
@@ -301,7 +301,7 @@ function WalletDemo() {
                     {JSON.stringify(selectedCredential.details, null, 2)}
                   </Box>
                 </Paper>
-                
+
                 <Button
                   variant="outlined"
                   onClick={() => setSelectedCredential(null)}

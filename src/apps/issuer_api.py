@@ -6,14 +6,14 @@ import base64
 import json
 import logging
 import uuid
+from io import BytesIO
 from typing import Any
 from urllib.parse import urlencode
 
 import grpc
 import qrcode
-from fastapi import FastAPI, HTTPException, status, Header, Depends
+from fastapi import Depends, FastAPI, Header, HTTPException, status
 from fastapi.responses import JSONResponse
-from io import BytesIO
 from pydantic import BaseModel, Field
 
 from src.proto.v1 import document_signer_pb2, document_signer_pb2_grpc
@@ -25,7 +25,7 @@ app = FastAPI(
     description="OpenID for Verifiable Credential Issuance - Microsoft Authenticator Compatible",
     version="1.0.0",
     docs_url="/docs",
-    redoc_url="/redoc"
+    redoc_url="/redoc",
 )
 
 # gRPC client setup
@@ -42,11 +42,11 @@ CREDENTIAL_ISSUER_DID = "did:web:issuer.marty.local"  # Should come from config
 def get_grpc_client() -> document_signer_pb2_grpc.DocumentSignerStub:
     """Get or create the gRPC client."""
     global channel, document_signer_stub
-    
+
     if document_signer_stub is None:
         channel = grpc.insecure_channel(GRPC_DOCUMENT_SIGNER_ADDRESS)
         document_signer_stub = document_signer_pb2_grpc.DocumentSignerStub(channel)
-    
+
     return document_signer_stub
 
 
@@ -71,46 +71,62 @@ def generate_qr_code(data: str) -> str:
     )
     qr.add_data(data)
     qr.make(fit=True)
-    
+
     img = qr.make_image(fill_color="black", back_color="white")
     buffer = BytesIO()
     img.save(buffer, "PNG")
     buffer.seek(0)
-    
+
     return base64.b64encode(buffer.getvalue()).decode()
 
 
 # Pydantic models for OID4VCI
 class CredentialOfferRequest(BaseModel):
     """Request to create a credential offer."""
+
     subject_id: str = Field(..., description="Subject identifier for the credential")
-    credential_type: str = Field(default="VerifiableCredential", description="Type of credential to issue")
+    credential_type: str = Field(
+        default="VerifiableCredential", description="Type of credential to issue"
+    )
     base_claims: dict[str, Any] = Field(..., description="Base claims for the credential")
-    selective_disclosures: dict[str, Any] = Field(..., description="Claims available for selective disclosure")
+    selective_disclosures: dict[str, Any] = Field(
+        ..., description="Claims available for selective disclosure"
+    )
     metadata: dict[str, Any] | None = Field(default=None, description="Additional metadata")
 
 
 class TokenRequest(BaseModel):
     """Token request for OID4VCI."""
+
     grant_type: str = Field(..., description="Grant type (pre-authorized_code)")
     pre_authorized_code: str = Field(alias="pre-authorized_code", description="Pre-authorized code")
-    wallet_attestation: dict[str, Any] | None = Field(default=None, description="Wallet attestation")
+    wallet_attestation: dict[str, Any] | None = Field(
+        default=None, description="Wallet attestation"
+    )
 
 
 class CredentialRequest(BaseModel):
     """Credential request for OID4VCI."""
+
     format: str = Field(default="sd-jwt", description="Credential format")
     disclose_claims: list[str] = Field(default_factory=list, description="Claims to disclose")
     audience: str | None = Field(default=None, description="Intended audience")
     nonce: str | None = Field(default=None, description="Nonce for proof of possession")
-    wallet_attestation: dict[str, Any] | None = Field(default=None, description="Wallet attestation")
+    wallet_attestation: dict[str, Any] | None = Field(
+        default=None, description="Wallet attestation"
+    )
 
 
 class QROfferRequest(BaseModel):
     """Request to generate QR code for credential offer."""
-    credential_type: str = Field(default="MartyDigitalPassport", description="Type of credential to offer")
+
+    credential_type: str = Field(
+        default="MartyDigitalPassport", description="Type of credential to offer"
+    )
     subject_claims: dict[str, Any] = Field(..., description="Subject claims for the credential")
-    issuer_metadata: dict[str, Any] | None = Field(default=None, description="Additional issuer metadata")
+    issuer_metadata: dict[str, Any] | None = Field(
+        default=None, description="Additional issuer metadata"
+    )
 
 
 @app.get("/.well-known/openid-credential-issuer")
@@ -131,10 +147,14 @@ async def openid_credential_issuer_metadata() -> dict[str, Any]:
                         "family_name": {"display": [{"name": "Family Name", "locale": "en"}]},
                         "nationality": {"display": [{"name": "Nationality", "locale": "en"}]},
                         "date_of_birth": {"display": [{"name": "Date of Birth", "locale": "en"}]},
-                        "passport_number": {"display": [{"name": "Passport Number", "locale": "en"}]},
-                        "issuing_country": {"display": [{"name": "Issuing Country", "locale": "en"}]},
-                        "expiry_date": {"display": [{"name": "Expiry Date", "locale": "en"}]}
-                    }
+                        "passport_number": {
+                            "display": [{"name": "Passport Number", "locale": "en"}]
+                        },
+                        "issuing_country": {
+                            "display": [{"name": "Issuing Country", "locale": "en"}]
+                        },
+                        "expiry_date": {"display": [{"name": "Expiry Date", "locale": "en"}]},
+                    },
                 },
                 "display": [
                     {
@@ -144,10 +164,10 @@ async def openid_credential_issuer_metadata() -> dict[str, Any]:
                         "text_color": "#FFFFFF",
                         "logo": {
                             "url": f"{ISSUER_BASE_URL}/static/marty-logo.png",
-                            "alt_text": "Marty Digital Identity"
-                        }
+                            "alt_text": "Marty Digital Identity",
+                        },
                     }
-                ]
+                ],
             },
             {
                 "format": "sd-jwt",
@@ -157,18 +177,18 @@ async def openid_credential_issuer_metadata() -> dict[str, Any]:
                         "given_name": {"display": [{"name": "Given Name", "locale": "en"}]},
                         "family_name": {"display": [{"name": "Family Name", "locale": "en"}]},
                         "email": {"display": [{"name": "Email", "locale": "en"}]},
-                        "birthdate": {"display": [{"name": "Date of Birth", "locale": "en"}]}
-                    }
+                        "birthdate": {"display": [{"name": "Date of Birth", "locale": "en"}]},
+                    },
                 },
                 "display": [
                     {
                         "name": "Verifiable Credential",
                         "locale": "en",
                         "background_color": "#12107c",
-                        "text_color": "#FFFFFF"
+                        "text_color": "#FFFFFF",
                     }
-                ]
-            }
+                ],
+            },
         ],
         "display": [
             {
@@ -176,10 +196,10 @@ async def openid_credential_issuer_metadata() -> dict[str, Any]:
                 "locale": "en",
                 "logo": {
                     "url": f"{ISSUER_BASE_URL}/static/marty-issuer-logo.png",
-                    "alt_text": "Marty Digital Identity Issuer Logo"
-                }
+                    "alt_text": "Marty Digital Identity Issuer Logo",
+                },
             }
-        ]
+        ],
     }
 
 
@@ -188,41 +208,40 @@ async def create_credential_offer(request: CredentialOfferRequest) -> dict[str, 
     """Create a credential offer."""
     try:
         client = get_grpc_client()
-        
+
         grpc_request = document_signer_pb2.CreateCredentialOfferRequest(
             subject_id=request.subject_id,
             credential_type=request.credential_type,
             base_claims_json=json.dumps(request.base_claims),
             selective_disclosures_json=json.dumps(request.selective_disclosures),
-            metadata_json=json.dumps(request.metadata) if request.metadata else ""
+            metadata_json=json.dumps(request.metadata) if request.metadata else "",
         )
-        
+
         response = await client.CreateCredentialOffer(grpc_request)
-        
+
         if response.error and response.error.code != 0:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail=f"Failed to create credential offer: {response.error.message}"
+                detail=f"Failed to create credential offer: {response.error.message}",
             )
-        
+
         return {
             "offer_id": response.offer_id,
             "credential_offer": json.loads(response.credential_offer),
             "pre_authorized_code": response.pre_authorized_code,
-            "expires_in": response.expires_in
+            "expires_in": response.expires_in,
         }
-        
+
     except grpc.RpcError as e:
         logger.exception("gRPC error creating credential offer")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Service error: {e.details()}"
+            detail=f"Service error: {e.details()}",
         ) from e
     except Exception as e:
         logger.exception("Unexpected error creating credential offer")
         raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Internal server error"
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Internal server error"
         ) from e
 
 
@@ -231,77 +250,78 @@ async def token_endpoint(request: TokenRequest) -> dict[str, Any]:
     """Token endpoint for OID4VCI flow."""
     if request.grant_type != "urn:ietf:params:oauth:grant-type:pre-authorized_code":
         raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Unsupported grant type"
+            status_code=status.HTTP_400_BAD_REQUEST, detail="Unsupported grant type"
         )
-    
+
     try:
         client = get_grpc_client()
-        
+
         grpc_request = document_signer_pb2.RedeemPreAuthorizedCodeRequest(
             pre_authorized_code=request.pre_authorized_code,
-            wallet_attestation=json.dumps(request.wallet_attestation) if request.wallet_attestation else ""
+            wallet_attestation=(
+                json.dumps(request.wallet_attestation) if request.wallet_attestation else ""
+            ),
         )
-        
+
         response = await client.RedeemPreAuthorizedCode(grpc_request)
-        
+
         if response.error and response.error.code != 0:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail=f"Failed to redeem code: {response.error.message}"
+                detail=f"Failed to redeem code: {response.error.message}",
             )
-        
+
         return {
             "access_token": response.access_token,
             "token_type": "Bearer",
             "expires_in": response.expires_in,
-            "c_nonce": response.c_nonce
+            "c_nonce": response.c_nonce,
         }
-        
+
     except grpc.RpcError as e:
         logger.exception("gRPC error redeeming pre-authorized code")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Service error: {e.details()}"
+            detail=f"Service error: {e.details()}",
         ) from e
     except Exception as e:
         logger.exception("Unexpected error redeeming pre-authorized code")
         raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Internal server error"
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Internal server error"
         ) from e
 
 
 @app.post("/credential")
 async def credential_endpoint(
-    request: CredentialRequest,
-    access_token: str = Depends(get_bearer_token)
+    request: CredentialRequest, access_token: str = Depends(get_bearer_token)
 ) -> dict[str, Any]:
     """Credential endpoint for OID4VCI flow."""
     try:
         client = get_grpc_client()
-        
+
         grpc_request = document_signer_pb2.IssueSdJwtCredentialRequest(
             access_token=access_token,
             disclose_claims=request.disclose_claims,
             audience=request.audience or "",
             nonce=request.nonce or "",
-            wallet_attestation=json.dumps(request.wallet_attestation) if request.wallet_attestation else ""
+            wallet_attestation=(
+                json.dumps(request.wallet_attestation) if request.wallet_attestation else ""
+            ),
         )
-        
+
         response = await client.IssueSdJwtCredential(grpc_request)
-        
+
         if response.error and response.error.code != 0:
             if response.error.code == 6:  # TOKEN_INVALID
                 raise HTTPException(
                     status_code=status.HTTP_401_UNAUTHORIZED,
-                    detail="Invalid or expired access token"
+                    detail="Invalid or expired access token",
                 )
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail=f"Failed to issue credential: {response.error.message}"
+                detail=f"Failed to issue credential: {response.error.message}",
             )
-        
+
         # Format the response based on requested format
         if request.format == "jwt_vc_json":
             # Microsoft Authenticator expects JWT VC JSON format
@@ -309,7 +329,7 @@ async def credential_endpoint(
                 "credential": response.credential,
                 "format": "jwt_vc_json",
                 "credential_id": response.credential_id,
-                "expires_in": response.expires_in
+                "expires_in": response.expires_in,
             }
         else:
             # Default SD-JWT format
@@ -323,20 +343,19 @@ async def credential_endpoint(
                 "disclosures_location": response.disclosures_location,
                 "issuer": response.issuer,
                 "credential_type": response.credential_type,
-                "subject_id": response.subject_id
+                "subject_id": response.subject_id,
             }
-        
+
     except grpc.RpcError as e:
         logger.exception("gRPC error issuing credential")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Service error: {e.details()}"
+            detail=f"Service error: {e.details()}",
         ) from e
     except Exception as e:
         logger.exception("Unexpected error issuing credential")
         raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Internal server error"
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Internal server error"
         ) from e
 
 
@@ -347,7 +366,7 @@ async def create_qr_offer(request: QROfferRequest) -> dict[str, Any]:
         # Create a credential offer
         offer_id = str(uuid.uuid4())
         pre_authorized_code = str(uuid.uuid4()).replace("-", "")
-        
+
         # Construct the credential offer object compatible with Microsoft Authenticator
         credential_offer = {
             "credential_issuer": ISSUER_BASE_URL,
@@ -356,40 +375,37 @@ async def create_qr_offer(request: QROfferRequest) -> dict[str, Any]:
                     "format": "jwt_vc_json",
                     "credential_definition": {
                         "type": ["VerifiableCredential", request.credential_type]
-                    }
+                    },
                 }
             ],
             "grants": {
                 "urn:ietf:params:oauth:grant-type:pre-authorized_code": {
                     "pre-authorized_code": pre_authorized_code,
-                    "user_pin_required": False
+                    "user_pin_required": False,
                 }
-            }
+            },
         }
-        
+
         # Create the credential offer URI for Microsoft Authenticator
-        offer_uri_params = {
-            "credential_offer": json.dumps(credential_offer)
-        }
+        offer_uri_params = {"credential_offer": json.dumps(credential_offer)}
         offer_uri = f"openid-credential-offer://?{urlencode(offer_uri_params)}"
-        
+
         # Generate QR code
         qr_code_data = generate_qr_code(offer_uri)
-        
+
         return {
             "offer_id": offer_id,
             "credential_offer_uri": offer_uri,
             "credential_offer": credential_offer,
             "pre_authorized_code": pre_authorized_code,
             "qr_code": f"data:image/png;base64,{qr_code_data}",
-            "expires_in": 3600  # 1 hour
+            "expires_in": 3600,  # 1 hour
         }
-        
+
     except Exception as e:
         logger.exception("Unexpected error creating QR offer")
         raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Internal server error"
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Internal server error"
         ) from e
 
 
@@ -401,4 +417,5 @@ async def health_check() -> dict[str, str]:
 
 if __name__ == "__main__":
     import uvicorn
+
     uvicorn.run(app, host="0.0.0.0", port=8000)

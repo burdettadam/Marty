@@ -60,7 +60,7 @@ const IssuerDemo = () => {
 
   const issueCredential = async () => {
     setLoading(true);
-    
+
     try {
       const response = await fetch('/api/issuer/issue', {
         method: 'POST',
@@ -73,7 +73,7 @@ const IssuerDemo = () => {
           issuer_id: 'demo_issuer'
         })
       });
-      
+
       const result = await response.json();
       setIssuanceResult(result);
     } catch (error) {
@@ -155,7 +155,7 @@ const IssuerDemo = () => {
             </Grid>
           </Grid>
         );
-      
+
       case 1:
         return (
           <Box>
@@ -180,7 +180,7 @@ const IssuerDemo = () => {
             </Grid>
           </Box>
         );
-      
+
       case 2:
         return (
           <Box textAlign="center">
@@ -204,18 +204,18 @@ const IssuerDemo = () => {
                     <Typography variant="h6" gutterBottom>
                       Credential Details
                     </Typography>
-                    <Chip 
-                      label={`ID: ${issuanceResult.credential.id}`} 
-                      color="primary" 
+                    <Chip
+                      label={`ID: ${issuanceResult.credential.id}`}
+                      color="primary"
                       sx={{ m: 0.5 }}
                     />
-                    <Chip 
-                      label={`Type: ${issuanceResult.credential.type}`} 
-                      color="secondary" 
+                    <Chip
+                      label={`Type: ${issuanceResult.credential.type}`}
+                      color="secondary"
                       sx={{ m: 0.5 }}
                     />
-                    <Chip 
-                      label={`Format: ${issuanceResult.credential.format}`} 
+                    <Chip
+                      label={`Format: ${issuanceResult.credential.format}`}
                       sx={{ m: 0.5 }}
                     />
                   </Box>
@@ -228,7 +228,7 @@ const IssuerDemo = () => {
             ) : null}
           </Box>
         );
-      
+
       default:
         return 'Unknown step';
     }
@@ -241,7 +241,7 @@ const IssuerDemo = () => {
           <CardIcon sx={{ fontSize: 48, mr: 2, verticalAlign: 'middle' }} />
           Credential Issuer Demo
         </Typography>
-        
+
         <Typography variant="body1" color="text.secondary" paragraph align="center">
           Issue mobile driving license (mDL) credentials using the OpenWallet Foundation SDK.
           This demo simulates the credential issuance process for a mobile driving license.
@@ -271,7 +271,7 @@ const IssuerDemo = () => {
             Back
           </Button>
           <Box sx={{ flex: '1 1 auto' }} />
-          <Button 
+          <Button
             onClick={handleNext}
             disabled={loading}
           >

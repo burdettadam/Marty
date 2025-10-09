@@ -9,32 +9,32 @@ import "google/protobuf/empty.proto";
 service VisaService {
     // Create a new visa
     rpc CreateVisa(CreateVisaRequest) returns (CreateVisaResponse);
-    
+
     // Issue a visa (finalize)
     rpc IssueVisa(IssueVisaRequest) returns (IssueVisaResponse);
-    
+
     // Verify a visa
     rpc VerifyVisa(VerifyVisaRequest) returns (VerifyVisaResponse);
-    
+
     // Get visa by ID
     rpc GetVisa(GetVisaRequest) returns (GetVisaResponse);
-    
+
     // Search visas
     rpc SearchVisas(SearchVisasRequest) returns (SearchVisasResponse);
-    
+
     // Update visa status
     rpc UpdateVisaStatus(UpdateVisaStatusRequest) returns (UpdateVisaStatusResponse);
-    
+
     // Revoke visa
     rpc RevokeVisa(RevokeVisaRequest) returns (RevokeVisaResponse);
-    
+
     // Renew visa
     rpc RenewVisa(RenewVisaRequest) returns (RenewVisaResponse);
-    
+
     // Batch operations
     rpc CreateVisasBatch(CreateVisasBatchRequest) returns (CreateVisasBatchResponse);
     rpc VerifyVisasBatch(VerifyVisasBatchRequest) returns (VerifyVisasBatchResponse);
-    
+
     // Reports
     rpc GetVisaStatistics(google.protobuf.Empty) returns (VisaStatisticsResponse);
     rpc GetExpiringVisas(GetExpiringVisasRequest) returns (GetExpiringVisasResponse);
@@ -158,26 +158,26 @@ message PolicyConstraints {
 message VerificationResult {
     bool is_valid = 1;
     google.protobuf.Timestamp verification_timestamp = 2;
-    
+
     // MRZ verification
     bool mrz_valid = 3;
     bool check_digits_valid = 4;
     repeated string mrz_errors = 5;
-    
+
     // VDS-NC verification
     bool vds_nc_present = 6;
     bool vds_nc_valid = 7;
     bool signature_valid = 8;
     bool field_consistency_valid = 9;
     repeated string vds_nc_errors = 10;
-    
+
     // Policy verification
     bool policy_checks_passed = 11;
     bool validity_period_ok = 12;
     bool category_constraints_ok = 13;
     bool online_verification_ok = 14;
     repeated string policy_errors = 15;
-    
+
     // Additional details
     repeated string warnings = 16;
     map<string, string> verification_details = 17;

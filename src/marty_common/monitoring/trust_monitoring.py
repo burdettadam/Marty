@@ -14,14 +14,7 @@ import time
 from datetime import datetime, timezone
 from typing import Any
 
-from prometheus_client import (
-    CONTENT_TYPE_LATEST,
-    Counter,
-    Gauge,
-    Histogram,
-    Info,
-    generate_latest,
-)
+from prometheus_client import CONTENT_TYPE_LATEST, Counter, Gauge, Histogram, Info, generate_latest
 from starlette.responses import Response
 from typing_extensions import Self
 
@@ -31,56 +24,45 @@ logger = logging.getLogger(__name__)
 trust_operations_total = Counter(
     "trust_operations_total",
     "Total trust operations",
-    ["operation_type", "status", "country", "role"]
+    ["operation_type", "status", "country", "role"],
 )
 
 key_rotation_events_total = Counter(
-    "key_rotation_events_total",
-    "Total key rotation events",
-    ["country", "role", "action"]
+    "key_rotation_events_total", "Total key rotation events", ["country", "role", "action"]
 )
 
 trust_list_age_seconds = Gauge(
-    "trust_list_age_seconds",
-    "Age of trust list in seconds",
-    ["country", "source"]
+    "trust_list_age_seconds", "Age of trust list in seconds", ["country", "source"]
 )
 
 certificate_expiry_days = Gauge(
     "certificate_expiry_days",
     "Days until certificate expiry",
-    ["certificate_type", "country", "identifier"]
+    ["certificate_type", "country", "identifier"],
 )
 
 pkd_requests_total = Counter(
-    "pkd_requests_total",
-    "Total PKD requests",
-    ["endpoint", "country", "status"]
+    "pkd_requests_total", "Total PKD requests", ["endpoint", "country", "status"]
 )
 
 pkd_request_duration_seconds = Histogram(
-    "pkd_request_duration_seconds",
-    "PKD request duration",
-    ["endpoint", "country"]
+    "pkd_request_duration_seconds", "PKD request duration", ["endpoint", "country"]
 )
 
 active_keys_count = Gauge(
-    "active_keys_count",
-    "Number of active keys",
-    ["country", "role", "key_type"]
+    "active_keys_count", "Number of active keys", ["country", "role", "key_type"]
 )
 
-service_info = Info(
-    "service",
-    "Service information"
-)
+service_info = Info("service", "Service information")
 
 # Set service info
-service_info.info({
-    "version": "2.0.0",
-    "component": "trust_and_pkd",
-    "protocol": "vds_nc_doc9303",
-})
+service_info.info(
+    {
+        "version": "2.0.0",
+        "component": "trust_and_pkd",
+        "protocol": "vds_nc_doc9303",
+    }
+)
 
 
 class TrustMonitor:
@@ -97,15 +79,9 @@ class TrustMonitor:
         success: bool = True,
     ) -> None:
         """Record key rotation event."""
-        key_rotation_events_total.labels(
-            country=country,
-            role=role,
-            action=action
-        ).inc()
+        key_rotation_events_total.labels(country=country, role=role, action=action).inc()
 
-        self.logger.info(
-            f"Key rotation event: {action} for {country}/{role}, success={success}"
-        )
+        self.logger.info(f"Key rotation event: {action} for {country}/{role}, success={success}")
 
     def record_trust_operation(
         self,
@@ -116,10 +92,7 @@ class TrustMonitor:
     ) -> None:
         """Record trust operation."""
         trust_operations_total.labels(
-            operation_type=operation,
-            status=status,
-            country=country,
-            role=role
+            operation_type=operation, status=status, country=country, role=role
         ).inc()
 
     def update_trust_list_age(
@@ -130,10 +103,7 @@ class TrustMonitor:
     ) -> None:
         """Update trust list age metric."""
         age_seconds = (datetime.now(timezone.utc) - last_updated).total_seconds()
-        trust_list_age_seconds.labels(
-            country=country,
-            source=source
-        ).set(age_seconds)
+        trust_list_age_seconds.labels(country=country, source=source).set(age_seconds)
 
     def update_certificate_expiry(
         self,
@@ -145,9 +115,7 @@ class TrustMonitor:
         """Update certificate expiry metric."""
         days_until_expiry = (expiry_date - datetime.now(timezone.utc)).days
         certificate_expiry_days.labels(
-            certificate_type=cert_type,
-            country=country,
-            identifier=identifier
+            certificate_type=cert_type, country=country, identifier=identifier
         ).set(days_until_expiry)
 
     def record_pkd_request(
@@ -160,16 +128,9 @@ class TrustMonitor:
         """Record PKD request metrics."""
         status = "success" if 200 <= status_code < 300 else "error"
 
-        pkd_requests_total.labels(
-            endpoint=endpoint,
-            country=country,
-            status=status
-        ).inc()
+        pkd_requests_total.labels(endpoint=endpoint, country=country, status=status).inc()
 
-        pkd_request_duration_seconds.labels(
-            endpoint=endpoint,
-            country=country
-        ).observe(duration)
+        pkd_request_duration_seconds.labels(endpoint=endpoint, country=country).observe(duration)
 
     def update_active_keys_count(
         self,
@@ -179,11 +140,7 @@ class TrustMonitor:
         count: int,
     ) -> None:
         """Update active keys count."""
-        active_keys_count.labels(
-            country=country,
-            role=role,
-            key_type=key_type
-        ).set(count)
+        active_keys_count.labels(country=country, role=role, key_type=key_type).set(count)
 
 
 class HealthChecker:
@@ -207,14 +164,10 @@ class HealthChecker:
             return {
                 "status": "healthy",
                 "response_time_ms": round(duration * 1000, 2),
-                "checks": ["connectivity", "performance"]
+                "checks": ["connectivity", "performance"],
             }
         except Exception as e:
-            return {
-                "status": "unhealthy",
-                "error": str(e),
-                "checks": ["connectivity"]
-            }
+            return {"status": "unhealthy", "error": str(e), "checks": ["connectivity"]}
 
     async def check_trust_list_freshness(
         self,
@@ -281,7 +234,7 @@ class HealthChecker:
                             "expires_at": key.not_after.isoformat(),
                         }
                         for key in expiring_keys[:5]  # Limit to first 5
-                    ]
+                    ],
                 }
             return {
                 "status": "healthy",
@@ -379,7 +332,7 @@ class HealthChecker:
                 "name": "trust_and_pkd",
                 "version": "2.0.0",
                 "uptime_seconds": time.time(),  # Would track actual uptime
-            }
+            },
         }
 
 
@@ -510,11 +463,13 @@ def setup_monitoring() -> None:
     logger.info("Setting up monitoring and metrics")
 
     # Initialize metrics with default values
-    service_info.info({
-        "version": "2.0.0",
-        "component": "trust_and_pkd",
-        "started_at": datetime.now(timezone.utc).isoformat(),
-    })
+    service_info.info(
+        {
+            "version": "2.0.0",
+            "component": "trust_and_pkd",
+            "started_at": datetime.now(timezone.utc).isoformat(),
+        }
+    )
 
     logger.info("Monitoring setup complete")
 
@@ -550,10 +505,6 @@ class monitor_operation:
         )
 
         if exc_type is not None:
-            logger.error(
-                f"Operation {self.operation_type} failed after {duration:.3f}s: {exc_val}"
-            )
+            logger.error(f"Operation {self.operation_type} failed after {duration:.3f}s: {exc_val}")
         else:
-            logger.debug(
-                f"Operation {self.operation_type} completed in {duration:.3f}s"
-            )
+            logger.debug(f"Operation {self.operation_type} completed in {duration:.3f}s")

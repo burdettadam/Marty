@@ -36,7 +36,7 @@ security:
     enabled: false  # Disabled for development
     mtls: false
     require_client_auth: false
-  
+
   auth:
     required: false  # Optional authentication in development
     jwt:
@@ -45,7 +45,7 @@ security:
       secret: "dev_jwt_secret_123456789012345678901234"
     client_cert:
       enabled: false
-  
+
   authz:
     enabled: false  # Disabled for development
     default_action: "allow"  # Permissive for development
@@ -93,7 +93,7 @@ security:
     client_ca: "/etc/tls/ca/ca.crt"
     client_cert: "/etc/tls/client/tls.crt"
     client_key: "/etc/tls/client/tls.key"
-  
+
   auth:
     required: true  # ALWAYS required
     jwt:
@@ -102,11 +102,11 @@ security:
       secret: "dev_jwt_secret_123456789012345678901234"
     client_cert:
       enabled: true
-  
+
   authz:
     enabled: true  # ALWAYS enabled
     default_action: "deny"  # ALWAYS deny by default
-  
+
   key_directory: 'data/keys'
   key_rotation_days: 90
   certificate_validity_days: 365
@@ -124,7 +124,7 @@ database:
     max_overflow: 10
     pool_timeout: 30
     pool_recycle: 3600
-  
+
   csca:
     url: "${CSCA_DATABASE_URL:-postgresql+asyncpg://dev_user:dev_password@localhost:5432/marty_csca}"
     host: localhost
@@ -136,7 +136,7 @@ database:
     max_overflow: 10
     pool_timeout: 30
     pool_recycle: 3600
-  
+
   pkd_service:
     url: "${PKD_SERVICE_DATABASE_URL:-postgresql+asyncpg://dev_user:dev_password@localhost:5432/marty_pkd}"
     host: localhost
@@ -148,7 +148,7 @@ database:
     max_overflow: 10
     pool_timeout: 30
     pool_recycle: 3600
-  
+
   passport_engine:
     url: "${PASSPORT_ENGINE_DATABASE_URL:-postgresql+asyncpg://dev_user:dev_password@localhost:5432/marty_passport_engine}"
     host: localhost
@@ -203,14 +203,14 @@ csca_master_list:
   # Paths for local storage
   local_trust_store_path: "data/trust/csca"
   local_crl_path: "data/trust/crls"
-  
+
   # Certificate monitoring settings
   cert_check_interval_hours: 24
   cert_expiry_warning_days: 90
-  
+
   # Synchronization settings
   sync_interval_hours: 24
-  
+
   # Trusted sources for auto-update
   trusted_sources:
     icao:
@@ -219,12 +219,12 @@ csca_master_list:
       username: "your_pkd_username"
       password: "your_pkd_password"
       ignore_ssl: false
-    
+
     usa:
       type: "national_site"
       url: "https://csca.state.gov/masterlist"
       format: "asn1"
-    
+
     local_backup:
       type: "file"
       path: "data/trust/backup/masterlist.ml"
@@ -237,7 +237,7 @@ csca_master_list:
       smtp_port: 587
       from_address: "csca-alerts@example.com"
       to_addresses: ["admin@example.com"]
-    
+
     webhook:
       enabled: false
       url: "https://example.com/webhook"

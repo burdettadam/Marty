@@ -17,6 +17,7 @@ from typing import Any
 from uuid import UUID, uuid4
 
 from pydantic import BaseModel, Field
+
 from shared.logging_config import get_logger
 
 logger = get_logger(__name__)
@@ -24,6 +25,7 @@ logger = get_logger(__name__)
 
 class BackgroundCheckStatus(str, Enum):
     """Background check verification status."""
+
     PENDING = "pending"
     IN_PROGRESS = "in_progress"
     COMPLETED = "completed"
@@ -33,6 +35,7 @@ class BackgroundCheckStatus(str, Enum):
 
 class VisaFreeEntryStatus(str, Enum):
     """Visa-free entry eligibility status."""
+
     ELIGIBLE = "eligible"
     NOT_ELIGIBLE = "not_eligible"
     SUSPENDED = "suspended"
@@ -82,7 +85,9 @@ class BackgroundCheckRecord(BaseModel):
             return False
         return datetime.now(timezone.utc) > self.expires_at
 
-    def update_status(self, status: BackgroundCheckStatus, findings: dict[str, Any] | None = None) -> None:
+    def update_status(
+        self, status: BackgroundCheckStatus, findings: dict[str, Any] | None = None
+    ) -> None:
         """Update background check status with timestamp."""
         self.status = status
         now = datetime.now(timezone.utc)
@@ -106,8 +111,11 @@ class BackgroundCheckRecord(BaseModel):
     def _assess_annex9_compliance(self, findings: dict[str, Any]) -> bool:
         """Assess if background check meets Annex 9 compliance requirements."""
         required_checks = [
-            "criminal_history", "employment_history", "identity_verification",
-            "security_clearance", "aviation_experience"
+            "criminal_history",
+            "employment_history",
+            "identity_verification",
+            "security_clearance",
+            "aviation_experience",
         ]
 
         for check in required_checks:
@@ -137,13 +145,19 @@ class ElectronicRecord(BaseModel):
 
     # Record content
     holder_data: dict[str, Any] = Field(default_factory=dict, description="Certificate holder data")
-    background_checks: list[str] = Field(default_factory=list, description="Background check record IDs")
-    audit_trail: list[dict[str, Any]] = Field(default_factory=list, description="Access and modification log")
+    background_checks: list[str] = Field(
+        default_factory=list, description="Background check record IDs"
+    )
+    audit_trail: list[dict[str, Any]] = Field(
+        default_factory=list, description="Access and modification log"
+    )
 
     # Retention and compliance
     retention_period_years: int = Field(default=10, description="Record retention period")
     archival_date: datetime | None = Field(None, description="When record will be archived")
-    compliance_status: dict[str, bool] = Field(default_factory=dict, description="Compliance check results")
+    compliance_status: dict[str, bool] = Field(
+        default_factory=dict, description="Compliance check results"
+    )
 
     model_config = {
         "json_encoders": {
@@ -166,7 +180,9 @@ class ElectronicRecord(BaseModel):
         content_str = str(sorted(content.items()))
         return hashlib.sha256(content_str.encode()).hexdigest()
 
-    def add_audit_entry(self, action: str, actor: str, details: dict[str, Any] | None = None) -> None:
+    def add_audit_entry(
+        self, action: str, actor: str, details: dict[str, Any] | None = None
+    ) -> None:
         """Add entry to audit trail."""
         entry = {
             "timestamp": datetime.now(timezone.utc).isoformat(),
@@ -203,12 +219,16 @@ class VisaFreeEntryRecord(BaseModel):
     valid_until: datetime | None = None
 
     # Eligibility criteria
-    eligible_countries: list[str] = Field(default_factory=list, description="Countries for visa-free entry")
+    eligible_countries: list[str] = Field(
+        default_factory=list, description="Countries for visa-free entry"
+    )
     entry_purposes: list[str] = Field(default_factory=list, description="Permitted entry purposes")
     restrictions: list[str] = Field(default_factory=list, description="Entry restrictions")
 
     # Status tracking
-    status_history: list[dict[str, Any]] = Field(default_factory=list, description="Status change history")
+    status_history: list[dict[str, Any]] = Field(
+        default_factory=list, description="Status change history"
+    )
     last_verification: datetime | None = None
     next_review_date: datetime | None = None
 
@@ -224,7 +244,7 @@ class VisaFreeEntryRecord(BaseModel):
         new_status: VisaFreeEntryStatus,
         authority: str,
         reason: str,
-        valid_until: datetime | None = None
+        valid_until: datetime | None = None,
     ) -> None:
         """Update visa-free entry status with audit trail."""
         old_status = self.status
@@ -281,10 +301,7 @@ class Annex9PolicyManager:
         self._visa_free_records: dict[str, VisaFreeEntryRecord] = {}
 
     async def initiate_background_check(
-        self,
-        cmc_id: str,
-        check_authority: str,
-        check_scope: list[str] | None = None
+        self, cmc_id: str, check_authority: str, check_scope: list[str] | None = None
     ) -> BackgroundCheckRecord:
         """Initiate background verification process."""
         logger.info(f"Initiating background check for CMC: {cmc_id}")
@@ -295,11 +312,15 @@ class Annex9PolicyManager:
             cmc_id=cmc_id,
             check_authority=check_authority,
             check_reference=check_reference,
-            check_scope=check_scope or [
-                "criminal_history", "employment_history", "identity_verification",
-                "security_clearance", "aviation_experience"
+            check_scope=check_scope
+            or [
+                "criminal_history",
+                "employment_history",
+                "identity_verification",
+                "security_clearance",
+                "aviation_experience",
             ],
-            expires_at=datetime.now(timezone.utc) + timedelta(days=365)  # 1 year validity
+            expires_at=datetime.now(timezone.utc) + timedelta(days=365),  # 1 year validity
         )
 
         self._background_checks[str(background_check.record_id)] = background_check
@@ -311,10 +332,7 @@ class Annex9PolicyManager:
         return background_check
 
     async def update_background_check(
-        self,
-        record_id: str,
-        status: BackgroundCheckStatus,
-        findings: dict[str, Any] | None = None
+        self, record_id: str, status: BackgroundCheckStatus, findings: dict[str, Any] | None = None
     ) -> BackgroundCheckRecord | None:
         """Update background check status and findings."""
         if record_id not in self._background_checks:
@@ -331,10 +349,7 @@ class Annex9PolicyManager:
         return background_check
 
     async def create_electronic_record(
-        self,
-        cmc_id: str,
-        issuer_authority: str,
-        holder_data: dict[str, Any]
+        self, cmc_id: str, issuer_authority: str, holder_data: dict[str, Any]
     ) -> ElectronicRecord:
         """Create electronic record for enhanced CMC security."""
         logger.info(f"Creating electronic record for CMC: {cmc_id}")
@@ -343,7 +358,8 @@ class Annex9PolicyManager:
             cmc_id=cmc_id,
             issuer_authority=issuer_authority,
             holder_data=holder_data,
-            archival_date=datetime.now(timezone.utc) + timedelta(days=365 * 10)  # 10 year retention
+            archival_date=datetime.now(timezone.utc)
+            + timedelta(days=365 * 10),  # 10 year retention
         )
 
         electronic_record.record_hash = electronic_record.calculate_record_hash()
@@ -358,9 +374,7 @@ class Annex9PolicyManager:
         return electronic_record
 
     async def link_background_check(
-        self,
-        electronic_record_id: str,
-        background_check_id: str
+        self, electronic_record_id: str, background_check_id: str
     ) -> bool:
         """Link background check to electronic record."""
         if electronic_record_id not in self._electronic_records:
@@ -374,9 +388,7 @@ class Annex9PolicyManager:
         electronic_record = self._electronic_records[electronic_record_id]
         electronic_record.background_checks.append(background_check_id)
         electronic_record.add_audit_entry(
-            "background_check_linked",
-            "system",
-            {"background_check_id": background_check_id}
+            "background_check_linked", "system", {"background_check_id": background_check_id}
         )
 
         if self.storage:
@@ -392,7 +404,7 @@ class Annex9PolicyManager:
         granting_authority: str,
         reason: str,
         eligible_countries: list[str] | None = None,
-        valid_until: datetime | None = None
+        valid_until: datetime | None = None,
     ) -> VisaFreeEntryRecord:
         """Manage visa-free entry eligibility status."""
         logger.info(f"Managing visa-free status for CMC: {cmc_id}")
@@ -411,7 +423,7 @@ class Annex9PolicyManager:
                 authorization_reference=f"VFE-{cmc_id}-{datetime.now(timezone.utc).strftime('%Y%m%d')}",
                 eligible_countries=eligible_countries or [],
                 entry_purposes=["crew_duties", "transit"],
-                next_review_date=datetime.now(timezone.utc) + timedelta(days=365)
+                next_review_date=datetime.now(timezone.utc) + timedelta(days=365),
             )
             self._visa_free_records[str(visa_record.record_id)] = visa_record
 
@@ -443,7 +455,11 @@ class Annex9PolicyManager:
 
         compliance_result["checks"]["background_verification"] = {
             "compliant": background_compliant,
-            "details": "Background check completed and verified" if background_compliant else "Background check not completed or failed"
+            "details": (
+                "Background check completed and verified"
+                if background_compliant
+                else "Background check not completed or failed"
+            ),
         }
 
         # Check electronic record keeping
@@ -455,7 +471,11 @@ class Annex9PolicyManager:
 
         compliance_result["checks"]["electronic_record_keeping"] = {
             "compliant": electronic_record_compliant,
-            "details": "Electronic record maintained with integrity" if electronic_record_compliant else "Electronic record not found or integrity compromised"
+            "details": (
+                "Electronic record maintained with integrity"
+                if electronic_record_compliant
+                else "Electronic record not found or integrity compromised"
+            ),
         }
 
         # Check visa-free status management
@@ -467,7 +487,11 @@ class Annex9PolicyManager:
 
         compliance_result["checks"]["visa_free_management"] = {
             "compliant": visa_free_managed,
-            "details": "Visa-free status actively managed" if visa_free_managed else "Visa-free status not managed"
+            "details": (
+                "Visa-free status actively managed"
+                if visa_free_managed
+                else "Visa-free status not managed"
+            ),
         }
 
         # Overall compliance
@@ -507,7 +531,8 @@ class Annex9PolicyManager:
 
         # Clean up expired background checks
         expired_bg_checks = [
-            record_id for record_id, bg_check in self._background_checks.items()
+            record_id
+            for record_id, bg_check in self._background_checks.items()
             if bg_check.is_expired()
         ]
 
@@ -517,7 +542,8 @@ class Annex9PolicyManager:
 
         # Archive old electronic records (beyond retention period)
         expired_electronic_records = [
-            record_id for record_id, record in self._electronic_records.items()
+            record_id
+            for record_id, record in self._electronic_records.items()
             if record.archival_date and now > record.archival_date
         ]
 
@@ -529,8 +555,10 @@ class Annex9PolicyManager:
 
         # Clean up expired visa-free records
         expired_vf_records = [
-            record_id for record_id, vf_record in self._visa_free_records.items()
-            if vf_record.valid_until and now > vf_record.valid_until + timedelta(days=30)  # Grace period
+            record_id
+            for record_id, vf_record in self._visa_free_records.items()
+            if vf_record.valid_until
+            and now > vf_record.valid_until + timedelta(days=30)  # Grace period
         ]
 
         for record_id in expired_vf_records:

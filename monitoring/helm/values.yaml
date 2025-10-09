@@ -3,28 +3,28 @@
 global:
   imageRegistry: ""
   storageClass: ""
-  
+
 nameOverride: ""
 fullnameOverride: ""
 
 # Prometheus Configuration
 prometheus:
   enabled: true
-  
+
   # Use kube-prometheus-stack for complete setup
   kubePrometheusStack:
     enabled: true
-    
+
   # Prometheus Server Configuration
   server:
     image:
       repository: prom/prometheus
       tag: v2.48.0
       pullPolicy: IfNotPresent
-    
+
     retention: "30d"
     retentionSize: "50GB"
-    
+
     resources:
       requests:
         cpu: 100m
@@ -32,7 +32,7 @@ prometheus:
       limits:
         cpu: 1000m
         memory: 2Gi
-    
+
     # Storage
     persistentVolume:
       enabled: true
@@ -40,13 +40,13 @@ prometheus:
       storageClass: ""
       accessModes:
         - ReadWriteOnce
-    
+
     # Service Configuration
     service:
       type: ClusterIP
       port: 9090
       targetPort: 9090
-    
+
     # Ingress Configuration
     ingress:
       enabled: false
@@ -58,39 +58,39 @@ prometheus:
             - path: /
               pathType: Prefix
       tls: []
-    
+
     # Security Context
     securityContext:
       runAsNonRoot: true
       runAsUser: 65534
       runAsGroup: 65534
       fsGroup: 65534
-    
+
     # Node Selector and Tolerations
     nodeSelector: {}
     tolerations: []
     affinity: {}
-  
+
   # Service Account
   serviceAccount:
     create: true
     annotations: {}
     name: ""
-  
+
   # RBAC
   rbac:
     create: true
-  
+
   # Alert Rules Configuration
   alertRules:
     enabled: true
     # Rules will be loaded from ConfigMap
-    
+
   # Recording Rules Configuration
   recordingRules:
     enabled: true
     # Rules will be loaded from ConfigMap
-  
+
   # Scrape Configurations
   scrapeConfigs:
     - job_name: 'kubernetes-pods'
@@ -117,7 +117,7 @@ prometheus:
         - source_labels: [__meta_kubernetes_pod_name]
           action: replace
           target_label: kubernetes_pod_name
-    
+
     - job_name: 'marty-services'
       static_configs:
         - targets:
@@ -137,16 +137,16 @@ prometheus:
 # Grafana Configuration
 grafana:
   enabled: true
-  
+
   image:
     repository: grafana/grafana
     tag: 10.2.0
     pullPolicy: IfNotPresent
-  
+
   # Admin Configuration
   adminUser: admin
   adminPassword: "marty-admin-2024"
-  
+
   # Resources
   resources:
     requests:
@@ -155,7 +155,7 @@ grafana:
     limits:
       cpu: 500m
       memory: 512Mi
-  
+
   # Storage
   persistence:
     enabled: true
@@ -163,13 +163,13 @@ grafana:
     storageClassName: ""
     accessModes:
       - ReadWriteOnce
-  
+
   # Service Configuration
   service:
     type: ClusterIP
     port: 3000
     targetPort: 3000
-  
+
   # Ingress Configuration
   ingress:
     enabled: false
@@ -181,7 +181,7 @@ grafana:
           - path: /
             pathType: Prefix
     tls: []
-  
+
   # Datasources Configuration
   datasources:
     datasources.yaml:
@@ -194,7 +194,7 @@ grafana:
           isDefault: true
           jsonData:
             timeInterval: 15s
-  
+
   # Dashboard Providers
   dashboardProviders:
     dashboardproviders.yaml:
@@ -208,7 +208,7 @@ grafana:
           editable: true
           options:
             path: /var/lib/grafana/dashboards/marty
-  
+
   # Dashboards Configuration
   dashboards:
     marty:
@@ -218,20 +218,20 @@ grafana:
         file: dashboards/marty-service-detail.json
       marty-sla:
         file: dashboards/marty-sla.json
-  
+
   # Security Context
   securityContext:
     runAsNonRoot: true
     runAsUser: 472
     runAsGroup: 472
     fsGroup: 472
-  
+
   # Service Account
   serviceAccount:
     create: true
     annotations: {}
     name: ""
-  
+
   # Node Selector and Tolerations
   nodeSelector: {}
   tolerations: []
@@ -240,12 +240,12 @@ grafana:
 # Alertmanager Configuration
 alertmanager:
   enabled: true
-  
+
   image:
     repository: prom/alertmanager
     tag: v0.26.0
     pullPolicy: IfNotPresent
-  
+
   # Resources
   resources:
     requests:
@@ -254,7 +254,7 @@ alertmanager:
     limits:
       cpu: 100m
       memory: 128Mi
-  
+
   # Storage
   persistence:
     enabled: true
@@ -262,13 +262,13 @@ alertmanager:
     storageClassName: ""
     accessModes:
       - ReadWriteOnce
-  
+
   # Service Configuration
   service:
     type: ClusterIP
     port: 9093
     targetPort: 9093
-  
+
   # Ingress Configuration
   ingress:
     enabled: false
@@ -280,7 +280,7 @@ alertmanager:
           - path: /
             pathType: Prefix
     tls: []
-  
+
   # Alertmanager Configuration
   config:
     global:
@@ -288,10 +288,10 @@ alertmanager:
       smtp_from: 'alertmanager@marty.com'
       smtp_auth_username: ''
       smtp_auth_password: ''
-      
+
     templates:
       - '/etc/alertmanager/templates/*.tmpl'
-    
+
     route:
       group_by: ['alertname', 'cluster', 'service']
       group_wait: 10s
@@ -311,7 +311,7 @@ alertmanager:
         - match:
             team: dev
           receiver: 'dev-team'
-    
+
     receivers:
       - name: 'marty-team'
         email_configs:
@@ -324,7 +324,7 @@ alertmanager:
               Service: {{ .Labels.service }}
               Severity: {{ .Labels.severity }}
               {{ end }}
-        
+
       - name: 'marty-oncall'
         email_configs:
           - to: 'oncall@marty.com'
@@ -337,30 +337,30 @@ alertmanager:
               Service: {{ .Labels.service }}
               Runbook: {{ .Annotations.runbook_url }}
               {{ end }}
-        
+
       - name: 'sre-team'
         email_configs:
           - to: 'sre@marty.com'
             subject: '[SRE] Alert: {{ .GroupLabels.alertname }}'
-            
+
       - name: 'dev-team'
         email_configs:
           - to: 'dev@marty.com'
             subject: '[DEV] Alert: {{ .GroupLabels.alertname }}'
-  
+
   # Security Context
   securityContext:
     runAsNonRoot: true
     runAsUser: 65534
     runAsGroup: 65534
     fsGroup: 65534
-  
+
   # Service Account
   serviceAccount:
     create: true
     annotations: {}
     name: ""
-  
+
   # Node Selector and Tolerations
   nodeSelector: {}
   tolerations: []
@@ -372,13 +372,13 @@ monitoringConfig:
   serviceLabels:
     app.kubernetes.io/part-of: marty
     app.kubernetes.io/component: service
-  
+
   # Metrics Collection
   metricsCollection:
     enabled: true
     interval: 15s
     timeout: 10s
-    
+
   # Health Check Configuration
   healthChecks:
     enabled: true
@@ -388,7 +388,7 @@ monitoringConfig:
       - /health
       - /health/ready
       - /health/live
-  
+
   # Business Metrics
   businessMetrics:
     enabled: true
@@ -411,7 +411,7 @@ environments:
       config:
         route:
           repeat_interval: 30m
-  
+
   staging:
     prometheus:
       server:
@@ -423,7 +423,7 @@ environments:
       config:
         route:
           repeat_interval: 2h
-  
+
   production:
     prometheus:
       server:

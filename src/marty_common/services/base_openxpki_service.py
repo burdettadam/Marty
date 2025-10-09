@@ -1,6 +1,7 @@
 """
 Base OpenXPKI Service - Shared implementation for OpenXPKI integration
 """
+
 from __future__ import annotations
 
 import json
@@ -27,9 +28,7 @@ class BaseOpenXPKIService:
 
     def __init__(self) -> None:
         """Initialize the OpenXPKI service with configuration settings"""
-        self.base_url = os.environ.get(
-            "OPENXPKI_BASE_URL", "https://localhost:8443/api/v2"
-        )
+        self.base_url = os.environ.get("OPENXPKI_BASE_URL", "https://localhost:8443/api/v2")
         self.username = self._resolve_secret(
             env_var="OPENXPKI_USERNAME",
             file_var="OPENXPKI_USERNAME_FILE",
@@ -49,15 +48,13 @@ class BaseOpenXPKIService:
             raise ValueError(
                 "OPENXPKI_PASSWORD must be set via environment variable or OPENXPKI_PASSWORD_FILE"
             )
-        
+
         self.realm = os.environ.get("OPENXPKI_REALM", "marty")
         self.connection_timeout = int(os.environ.get("OPENXPKI_CONN_TIMEOUT", "30"))
         self.read_timeout = int(os.environ.get("OPENXPKI_READ_TIMEOUT", "60"))
         self.verify_ssl = os.environ.get("OPENXPKI_VERIFY_SSL", "False").lower() == "true"
-        self.local_store_path = os.environ.get(
-            "OPENXPKI_LOCAL_STORE", "data/trust/openxpki_sync"
-        )
-        
+        self.local_store_path = os.environ.get("OPENXPKI_LOCAL_STORE", "data/trust/openxpki_sync")
+
         # Create local store path if it doesn't exist
         Path(self.local_store_path).mkdir(parents=True, exist_ok=True)
 
@@ -77,7 +74,7 @@ class BaseOpenXPKIService:
         Precedence:
           1. Direct environment variable
           2. File path specified via *_FILE environment variable
-        
+
         Returns empty string if neither is available.
         """
         direct = os.environ.get(env_var)
@@ -89,17 +86,11 @@ class BaseOpenXPKIService:
                 content = Path(file_path).read_text(encoding="utf-8").strip()
                 if content:
                     return content
-                logger.warning(
-                    "%s file %s is empty.", secret_name or env_var, file_path
-                )
+                logger.warning("%s file %s is empty.", secret_name or env_var, file_path)
             except FileNotFoundError:
-                logger.warning(
-                    "%s file %s not found.", secret_name or env_var, file_path
-                )
+                logger.warning("%s file %s not found.", secret_name or env_var, file_path)
             except Exception:  # pragma: no cover
-                logger.exception(
-                    "Unexpected error reading secret file %s (%s)", file_path, env_var
-                )
+                logger.exception("Unexpected error reading secret file %s (%s)", file_path, env_var)
         return ""
 
     def _authenticate(self) -> bool:
@@ -115,18 +106,14 @@ class BaseOpenXPKIService:
                 return True
 
             # Build auth request
-            auth_data = {
-                "login": self.username,
-                "passwd": self.password,
-                "realm": self.realm
-            }
+            auth_data = {"login": self.username, "passwd": self.password, "realm": self.realm}
 
             logger.debug("Attempting authentication with OpenXPKI...")
             response = requests.post(
                 f"{self.base_url}/login",
                 json=auth_data,
                 timeout=(self.connection_timeout, self.read_timeout),
-                verify=self.verify_ssl
+                verify=self.verify_ssl,
             )
 
             if response.status_code == 200:
@@ -170,7 +157,7 @@ class BaseOpenXPKIService:
             url = f"{self.base_url}/{endpoint.lstrip('/')}"
             headers = {
                 "Authorization": f"Bearer {self.session_token}",
-                "Content-Type": "application/json"
+                "Content-Type": "application/json",
             }
 
             logger.debug("Making %s request to %s", method, url)
@@ -181,7 +168,7 @@ class BaseOpenXPKIService:
                     json=data,
                     headers=headers,
                     timeout=(self.connection_timeout, self.read_timeout),
-                    verify=self.verify_ssl
+                    verify=self.verify_ssl,
                 )
             elif method.upper() == "PUT":
                 response = requests.put(
@@ -189,14 +176,14 @@ class BaseOpenXPKIService:
                     json=data,
                     headers=headers,
                     timeout=(self.connection_timeout, self.read_timeout),
-                    verify=self.verify_ssl
+                    verify=self.verify_ssl,
                 )
             else:  # GET
                 response = requests.get(
                     url,
                     headers=headers,
                     timeout=(self.connection_timeout, self.read_timeout),
-                    verify=self.verify_ssl
+                    verify=self.verify_ssl,
                 )
 
             if response.status_code == 200:
@@ -208,30 +195,38 @@ class BaseOpenXPKIService:
                     headers["Authorization"] = f"Bearer {self.session_token}"
                     if method.upper() == "POST":
                         response = requests.post(
-                            url, json=data, headers=headers,
+                            url,
+                            json=data,
+                            headers=headers,
                             timeout=(self.connection_timeout, self.read_timeout),
-                            verify=self.verify_ssl
+                            verify=self.verify_ssl,
                         )
                     elif method.upper() == "PUT":
                         response = requests.put(
-                            url, json=data, headers=headers,
+                            url,
+                            json=data,
+                            headers=headers,
                             timeout=(self.connection_timeout, self.read_timeout),
-                            verify=self.verify_ssl
+                            verify=self.verify_ssl,
                         )
                     else:
                         response = requests.get(
-                            url, headers=headers,
+                            url,
+                            headers=headers,
                             timeout=(self.connection_timeout, self.read_timeout),
-                            verify=self.verify_ssl
+                            verify=self.verify_ssl,
                         )
-                    
+
                     if response.status_code == 200:
                         return True, response.json()
-                
+
                 return False, {"error": "Authentication failed", "status": response.status_code}
             else:
                 logger.error("API request failed: %d - %s", response.status_code, response.text)
-                return False, {"error": f"Request failed: {response.status_code}", "details": response.text}
+                return False, {
+                    "error": f"Request failed: {response.status_code}",
+                    "details": response.text,
+                }
 
         except Exception as e:
             logger.exception("Error during API request: %s", e)
@@ -246,14 +241,10 @@ class BaseOpenXPKIService:
         """
         success, response = self._api_request("status")
         if success:
-            return {
-                "status": "operational",
-                "server_info": response,
-                "connected": True
-            }
+            return {"status": "operational", "server_info": response, "connected": True}
         else:
             return {
-                "status": "error", 
+                "status": "error",
                 "error": response.get("error", "Unknown error"),
-                "connected": False
+                "connected": False,
             }

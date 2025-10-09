@@ -17,15 +17,15 @@ from .sod_signer import build_lds_security_object, create_sod, load_sod, verify_
 sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
 try:
     from crypto import (
+        decode_base64,
+        encode_base64,
+        generate_hash,
+        generate_key_pair,
+        hash_data,
         hash_password,
+        sign_data,
         verify_password,
         verify_signature,
-        generate_key_pair,
-        sign_data,
-        hash_data,
-        encode_base64,
-        decode_base64,
-        generate_hash,
     )
 except ImportError:
     # Fallback implementations for testing

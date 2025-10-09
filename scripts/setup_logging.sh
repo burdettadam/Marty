@@ -214,8 +214,8 @@ from marty_common.logging.structured_logging import setup_logging_for_service
 logger_config = setup_logging_for_service('test_service', environment='development')
 logger = logger_config.get_logger()
 
-logger.info('Centralized logging setup complete', 
-           setup_version='1.0.0', 
+logger.info('Centralized logging setup complete',
+           setup_version='1.0.0',
            elk_stack='enabled',
            test_entry=True)
 "

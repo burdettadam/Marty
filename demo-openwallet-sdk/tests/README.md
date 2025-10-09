@@ -82,6 +82,7 @@ tests/
 ### Test Categories
 
 #### 1. Basic Demo Flow Tests (`basic-demo.spec.js`)
+
 - Navigation and UI components
 - Issuer service credential issuance
 - Verifier service presentation verification
@@ -89,6 +90,7 @@ tests/
 - Responsive design validation
 
 #### 2. Enhanced Features Tests (`enhanced-features.spec.js`)
+
 - Age verification with selective disclosure
 - Offline QR code generation and verification
 - Certificate lifecycle monitoring
@@ -96,6 +98,7 @@ tests/
 - Feature integration and performance
 
 #### 3. Integration Tests (`integration.spec.js`)
+
 - Complete credential lifecycle workflows
 - Cross-feature integration scenarios
 - Error handling and recovery
@@ -229,6 +232,7 @@ ls test-results/
 ### GitHub Actions
 
 Automated testing on:
+
 - Push to main/develop branches
 - Pull requests
 - Manual workflow dispatch
@@ -273,17 +277,20 @@ npm run test:ci
 ### Common Issues
 
 1. **Demo Not Running**:
+
    ```bash
    cd demo-openwallet-sdk
    ./deploy-k8s.sh
    ```
 
 2. **Browser Installation**:
+
    ```bash
    npx playwright install
    ```
 
 3. **Port Conflicts**:
+
    ```bash
    BASE_URL=http://localhost:3000 npm test
    ```
@@ -296,6 +303,7 @@ npm run test:ci
 ### Support
 
 For issues with the test suite:
+
 1. Check demo application logs
 2. Review Playwright documentation
 3. Examine test failure screenshots

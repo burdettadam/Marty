@@ -3,7 +3,7 @@ Marty Demo UI Application
 
 A minimal web interface for demonstrating the Marty platform capabilities including:
 - Credential issuance
-- Presentation verification  
+- Presentation verification
 - Observability integration
 - Demo data management
 """

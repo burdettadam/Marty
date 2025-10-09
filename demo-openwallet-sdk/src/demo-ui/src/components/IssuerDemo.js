@@ -20,7 +20,7 @@ function IssuerDemo() {
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState(null);
   const [error, setError] = useState(null);
-  
+
   const [formData, setFormData] = useState({
     user_id: 'demo-user-1',
     document_type: 'DRIVER_LICENSE',
@@ -97,7 +97,7 @@ function IssuerDemo() {
       <Typography variant="h4" component="h1" gutterBottom>
         Credential Issuer Demo
       </Typography>
-      
+
       <Typography variant="body1" color="text.secondary" paragraph>
         Issue mDL (Mobile Driving License) and mDoc (Mobile Document) credentials
         using the OpenWallet Foundation Multipaz SDK.
@@ -110,7 +110,7 @@ function IssuerDemo() {
               <Typography variant="h6" gutterBottom>
                 Issue Credential
               </Typography>
-              
+
               <Grid container spacing={2}>
                 <Grid item xs={12}>
                   <TextField
@@ -121,7 +121,7 @@ function IssuerDemo() {
                     onChange={handleInputChange}
                   />
                 </Grid>
-                
+
                 <Grid item xs={12}>
                   <FormControl fullWidth>
                     <InputLabel>Document Type</InputLabel>
@@ -137,7 +137,7 @@ function IssuerDemo() {
                     </Select>
                   </FormControl>
                 </Grid>
-                
+
                 <Grid item xs={6}>
                   <TextField
                     fullWidth
@@ -147,7 +147,7 @@ function IssuerDemo() {
                     onChange={handleInputChange}
                   />
                 </Grid>
-                
+
                 <Grid item xs={6}>
                   <TextField
                     fullWidth
@@ -157,7 +157,7 @@ function IssuerDemo() {
                     onChange={handleInputChange}
                   />
                 </Grid>
-                
+
                 <Grid item xs={12}>
                   <TextField
                     fullWidth
@@ -169,7 +169,7 @@ function IssuerDemo() {
                     InputLabelProps={{ shrink: true }}
                   />
                 </Grid>
-                
+
                 {formData.document_type === 'DRIVER_LICENSE' && (
                   <>
                     <Grid item xs={6}>
@@ -181,7 +181,7 @@ function IssuerDemo() {
                         onChange={handleInputChange}
                       />
                     </Grid>
-                    
+
                     <Grid item xs={6}>
                       <FormControl fullWidth>
                         <InputLabel>License Class</InputLabel>
@@ -200,7 +200,7 @@ function IssuerDemo() {
                     </Grid>
                   </>
                 )}
-                
+
                 <Grid item xs={12}>
                   <Box sx={{ display: 'flex', gap: 2 }}>
                     {formData.document_type === 'DRIVER_LICENSE' ? (
@@ -235,13 +235,13 @@ function IssuerDemo() {
               <Typography variant="h6" gutterBottom>
                 Result
               </Typography>
-              
+
               {error && (
                 <Alert severity="error" sx={{ mb: 2 }}>
                   {error}
                 </Alert>
               )}
-              
+
               {result && (
                 <Alert severity="success" sx={{ mb: 2 }}>
                   Credential issued successfully!
@@ -250,7 +250,7 @@ function IssuerDemo() {
                   </Box>
                 </Alert>
               )}
-              
+
               {!result && !error && !loading && (
                 <Typography color="text.secondary">
                   Fill out the form and click "Issue" to create a credential.

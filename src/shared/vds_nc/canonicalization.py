@@ -21,6 +21,7 @@ from .types import CanonicalizeError, DocumentType
 @dataclass
 class CanonicalField:
     """Definition of a canonical field for VDS-NC."""
+
     key: str
     required: bool
     data_type: type
@@ -142,9 +143,7 @@ class VDSNCCanonicalizer:
             raise CanonicalizeError(msg)
 
         # Create canonical JSON with sorted keys, no spaces
-        return json.dumps(
-            canonical_data, sort_keys=True, separators=(",", ":"), ensure_ascii=False
-        )
+        return json.dumps(canonical_data, sort_keys=True, separators=(",", ":"), ensure_ascii=False)
 
     @staticmethod
     def _validate_and_convert_field(field: CanonicalField, value: Any) -> Any:
@@ -189,9 +188,7 @@ class VDSNCCanonicalizer:
 
     @staticmethod
     def validate_canonicalization_drift(
-        original_canonical: str,
-        new_data: dict[str, Any],
-        doc_type: DocumentType
+        original_canonical: str, new_data: dict[str, Any], doc_type: DocumentType
     ) -> list[str]:
         """
         Detect canonicalization drift between original and new data.

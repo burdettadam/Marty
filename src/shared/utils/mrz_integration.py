@@ -36,7 +36,7 @@ class VisaMRZIntegration:
             given_names=personal.given_names,
             nationality=personal.nationality,
             date_of_birth=personal.date_of_birth,
-            gender=personal.gender.value if personal.gender else "X"
+            gender=personal.gender.value if personal.gender else "X",
         )
 
         # Convert document data
@@ -46,7 +46,7 @@ class VisaMRZIntegration:
             document_number=document.document_number,
             date_of_expiry=document.date_of_expiry,
             personal_number=getattr(document, "personal_number", None),
-            optional_data=getattr(document, "optional_data", None)
+            optional_data=getattr(document, "optional_data", None),
         )
 
         return mrz_personal, mrz_document
@@ -84,9 +84,7 @@ class VisaMRZIntegration:
         mrz_personal, mrz_document = VisaMRZIntegration.convert_visa_to_mrz_data(visa)
 
         # Determine document type
-        document_type = VisaMRZIntegration.determine_mrz_document_type(
-            visa.document_data.visa_type
-        )
+        document_type = VisaMRZIntegration.determine_mrz_document_type(visa.document_data.visa_type)
 
         # Generate MRZ
         return compose_mrz(document_type, mrz_personal, mrz_document)
@@ -156,7 +154,11 @@ class VisaMRZIntegration:
             lines = [visa.mrz_data.type_a_line1, visa.mrz_data.type_a_line2]
             expected_length = 44
         elif visa.document_data.visa_type == VisaType.MRV_TYPE_B:
-            lines = [visa.mrz_data.type_b_line1, visa.mrz_data.type_b_line2, visa.mrz_data.type_b_line3]
+            lines = [
+                visa.mrz_data.type_b_line1,
+                visa.mrz_data.type_b_line2,
+                visa.mrz_data.type_b_line3,
+            ]
             expected_length = 36
         else:
             # Default to Type A
@@ -170,7 +172,9 @@ class VisaMRZIntegration:
                 continue
 
             if not utils.validate_mrz_line_length(line, expected_length):
-                errors.append(f"MRZ line {i} has incorrect length: {len(line)} != {expected_length}")
+                errors.append(
+                    f"MRZ line {i} has incorrect length: {len(line)} != {expected_length}"
+                )
 
             if not utils.validate_mrz_characters(line):
                 errors.append(f"MRZ line {i} contains invalid characters")
@@ -179,19 +183,25 @@ class VisaMRZIntegration:
         if visa.mrz_data.check_digit_document:
             # Extract document number from MRZ and validate
             doc_number = VisaMRZIntegration._extract_document_number_from_mrz(visa)
-            if doc_number and not utils.validate_check_digit(doc_number, visa.mrz_data.check_digit_document):
+            if doc_number and not utils.validate_check_digit(
+                doc_number, visa.mrz_data.check_digit_document
+            ):
                 errors.append("Document number check digit is invalid")
 
         if visa.mrz_data.check_digit_dob:
             # Extract birth date from MRZ and validate
             birth_date = VisaMRZIntegration._extract_birth_date_from_mrz(visa)
-            if birth_date and not utils.validate_check_digit(birth_date, visa.mrz_data.check_digit_dob):
+            if birth_date and not utils.validate_check_digit(
+                birth_date, visa.mrz_data.check_digit_dob
+            ):
                 errors.append("Birth date check digit is invalid")
 
         if visa.mrz_data.check_digit_expiry:
             # Extract expiry date from MRZ and validate
             expiry_date = VisaMRZIntegration._extract_expiry_date_from_mrz(visa)
-            if expiry_date and not utils.validate_check_digit(expiry_date, visa.mrz_data.check_digit_expiry):
+            if expiry_date and not utils.validate_check_digit(
+                expiry_date, visa.mrz_data.check_digit_expiry
+            ):
                 errors.append("Expiry date check digit is invalid")
 
         return len(errors) == 0, errors
@@ -277,7 +287,9 @@ class VisaMRZIntegration:
             return False
 
 
-def migrate_visa_to_standardized_mrz(visa: Visa, force_regenerate: bool = False) -> tuple[bool, list[str]]:
+def migrate_visa_to_standardized_mrz(
+    visa: Visa, force_regenerate: bool = False
+) -> tuple[bool, list[str]]:
     """
     Migrate a visa to use the standardized MRZ system.
 

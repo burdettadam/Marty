@@ -12,7 +12,7 @@ security:
     client_ca: "/etc/tls/ca/ca.crt"
     client_cert: "/etc/tls/client/tls.crt"
     client_key: "/etc/tls/client/tls.key"
-  
+
   auth:
     required: true  # ALWAYS required in production
     jwt:
@@ -21,7 +21,7 @@ security:
       public_key: "/etc/jwt/public.key"
     client_cert:
       enabled: true  # ALWAYS enabled
-  
+
   authz:
     enabled: true  # ALWAYS enabled
     default_action: "deny"  # ALWAYS deny
@@ -136,7 +136,7 @@ database:
     user: "${DB_USER}"
     password: "${DB_PASSWORD}"
     name: marty_document_signer_production
-  
+
   csca:
     url: "${CSCA_DATABASE_URL:-postgresql+asyncpg://${DB_USER}:${DB_PASSWORD}@db:5432/marty_csca_production}"
     host: db
@@ -144,7 +144,7 @@ database:
     user: "${DB_USER}"
     password: "${DB_PASSWORD}"
     name: marty_csca_production
-  
+
   pkd_service:
     url: "${PKD_SERVICE_DATABASE_URL:-postgresql+asyncpg://${DB_USER}:${DB_PASSWORD}@db:5432/marty_pkd_production}"
     host: db
@@ -152,7 +152,7 @@ database:
     user: "${DB_USER}"
     password: "${DB_PASSWORD}"
     name: marty_pkd_production
-  
+
   passport_engine:
     url: "${PASSPORT_ENGINE_DATABASE_URL:-postgresql+asyncpg://${DB_USER}:${DB_PASSWORD}@db:5432/marty_passport_engine_production}"
     host: db

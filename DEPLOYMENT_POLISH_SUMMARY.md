@@ -7,13 +7,15 @@ This document summarizes the comprehensive deployment polish implementation that
 ## ✅ Completed Tasks
 
 ### 1. Helm Chart Structure Analysis ✅
+
 - **Analyzed existing structure**: Identified 11 service charts in `helm/charts/`
-- **Services covered**: 
+- **Services covered**:
   - credential-ledger, pkd-service, trust-svc, csca-service
   - document-signer, inspection-system, mdl-engine, mdoc-engine
   - passport-engine, trust-anchor, monitoring
 
 ### 2. Standardized Values for All Services ✅
+
 - **Standardized values.yaml structure** across all services
 - **Key standardizations implemented**:
   - `image.tag`: Consistent image tagging strategy
@@ -25,6 +27,7 @@ This document summarizes the comprehensive deployment polish implementation that
   - `eventBus.*`: Kafka, NATS, and RabbitMQ support
 
 ### 3. Alembic Migration Jobs ✅
+
 - **Created migration job template**: `helm/templates/migration-job.yaml`
 - **Features**:
   - Pre-install/pre-upgrade hooks
@@ -34,6 +37,7 @@ This document summarizes the comprehensive deployment polish implementation that
 - **Configuration template**: `helm/templates/alembic-configmap.yaml`
 
 ### 4. ServiceMonitors and PodMonitors ✅
+
 - **ServiceMonitor template**: `helm/templates/servicemonitor.yaml`
   - Prometheus integration for main application metrics
   - TLS-aware scraping configuration
@@ -44,6 +48,7 @@ This document summarizes the comprehensive deployment polish implementation that
   - Envoy proxy metrics
 
 ### 5. Service Mesh Overlays ✅
+
 - **Istio configuration** (`k8s/istio/`):
   - IstioOperator with production-ready settings
   - Strict mTLS enforcement via PeerAuthentication
@@ -59,6 +64,7 @@ This document summarizes the comprehensive deployment polish implementation that
 ## 🚀 Key Features Implemented
 
 ### Standardized Service Configuration
+
 ```yaml
 # Example standardized structure
 env:
@@ -92,18 +98,21 @@ eventBus:
 ```
 
 ### Automated Database Migrations
+
 - **Helm hooks** ensure migrations run before deployments
 - **Alembic integration** with configurable commands
 - **Resource management** with proper limits and timeouts
 - **Security context** following least-privilege principles
 
 ### Comprehensive Monitoring
+
 - **ServiceMonitor** for application metrics
 - **PodMonitor** for sidecar metrics
 - **Prometheus integration** with proper labeling
 - **TLS-aware scraping** when mesh mTLS is enabled
 
 ### Service Mesh Integration
+
 - **Dual support**: Both Istio and Linkerd configurations
 - **Automatic mTLS**: Enforced by default in both meshes
 - **Traffic policies**: Secure service-to-service communication
@@ -155,12 +164,13 @@ scripts/
 ## 🔧 Configuration Examples
 
 ### Service Mesh Toggle
+
 ```yaml
 # In values.yaml
 serviceMesh:
   enabled: true
   type: "istio"  # or "linkerd"
-  
+
   istio:
     injection: enabled
     mtls:
@@ -168,6 +178,7 @@ serviceMesh:
 ```
 
 ### Environment Variables
+
 ```yaml
 env:
   LOG_LEVEL: "INFO"
@@ -177,6 +188,7 @@ env:
 ```
 
 ### Migration Configuration
+
 ```yaml
 migration:
   enabled: true
@@ -190,16 +202,19 @@ migration:
 ## 🛡️ Security Features
 
 ### mTLS Enforcement
+
 - **Istio**: STRICT mode PeerAuthentication
 - **Linkerd**: Built-in mTLS (always enabled)
 - **Certificate management**: Automatic with service mesh
 
 ### Authorization Policies
+
 - **Default deny**: All traffic denied by default
 - **Explicit allow**: Granular permissions for inter-service communication
 - **Health check exemptions**: Monitoring traffic allowed
 
 ### Certificate Burden Reduction
+
 - **Automatic detection**: When service mesh mTLS is enabled
 - **Internal TLS disabled**: Reduces double encryption
 - **Environment flag**: `SERVICE_MESH_MTLS_ENABLED=true`
@@ -207,12 +222,14 @@ migration:
 ## 📊 Monitoring Integration
 
 ### Prometheus Scraping
+
 - **ServiceMonitor**: Primary application metrics
 - **PodMonitor**: Sidecar and mesh metrics
 - **TLS configuration**: Handles encrypted endpoints
 - **Label consistency**: Proper service discovery
 
 ### Metrics Collection
+
 - **Application metrics**: Business and performance metrics
 - **Mesh metrics**: Success rates, latencies, connection stats
 - **Infrastructure metrics**: Resource usage, health status
@@ -220,12 +237,14 @@ migration:
 ## 🚀 Next Steps
 
 ### Immediate Actions
+
 1. **Apply namespace configuration**: `kubectl apply -f k8s/namespace.yaml`
 2. **Choose service mesh**: Deploy either Istio or Linkerd
 3. **Deploy standardized charts**: Use new Helm templates
 4. **Verify monitoring**: Check Prometheus targets
 
 ### Future Enhancements
+
 1. **Complete service standardization**: Run standardization script for remaining services
 2. **GitOps integration**: Add ArgoCD/Flux configurations
 3. **Multi-cluster setup**: Extend mesh configuration for multiple clusters

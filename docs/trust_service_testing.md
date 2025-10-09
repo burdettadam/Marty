@@ -33,9 +33,11 @@ When using `--master-list-only`, the script generates:
 The script generates master lists in two formats:
 
 #### JSON Format (`master_lists.json`)
+
 Human-readable JSON containing all master lists for easy inspection and debugging.
 
 #### Binary ML Format (`master_list_<country>.ml`)
+
 Binary files using a simplified ICAO-style format specifically for trust service testing. Each `.ml` file contains:
 
 - Magic bytes: "ICAOML" (6 bytes)

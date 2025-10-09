@@ -44,36 +44,36 @@ print_header() {
 # Function to check prerequisites
 check_prerequisites() {
     print_info "Checking prerequisites..."
-    
+
     local missing_tools=()
-    
+
     if ! command -v docker &> /dev/null; then
         missing_tools+=("docker")
     fi
-    
+
     if ! command -v docker-compose &> /dev/null && ! docker compose version &> /dev/null; then
         missing_tools+=("docker-compose")
     fi
-    
+
     if [ ${#missing_tools[@]} -ne 0 ]; then
         print_error "Missing required tools: ${missing_tools[*]}"
         echo "Please install the missing tools and try again."
         exit 1
     fi
-    
+
     print_success "All prerequisites satisfied"
 }
 
 # Function to setup environment file
 setup_environment() {
     print_info "Setting up environment configuration..."
-    
+
     local env_file="$CONFIG_DIR/.env.demo"
     local env_template="$CONFIG_DIR/.env.template"
-    
+
     # Create config directory if it doesn't exist
     mkdir -p "$CONFIG_DIR"
-    
+
     # Create environment template if it doesn't exist
     if [ ! -f "$env_template" ]; then
         cat > "$env_template" << 'EOF'
@@ -112,7 +112,7 @@ MINIO_CONSOLE_PORT=9001
 # VERIFIER_BASE_URL=https://your-port-8001.preview.app.github.dev
 EOF
     fi
-    
+
     # Copy template to env file if it doesn't exist
     if [ ! -f "$env_file" ]; then
         cp "$env_template" "$env_file"
@@ -120,7 +120,7 @@ EOF
     else
         print_warning "Environment file already exists: $env_file"
     fi
-    
+
     # Source the environment file
     if [ -f "$env_file" ]; then
         set -a  # automatically export all variables
@@ -134,28 +134,28 @@ EOF
 # Function to validate environment
 validate_environment() {
     print_info "Validating environment configuration..."
-    
+
     local required_vars=(
         "ISSUER_BASE_URL"
         "VERIFIER_BASE_URL"
         "ISSUER_PORT"
         "VERIFIER_PORT"
     )
-    
+
     local missing_vars=()
-    
+
     for var in "${required_vars[@]}"; do
         if [ -z "${!var}" ]; then
             missing_vars+=("$var")
         fi
     done
-    
+
     if [ ${#missing_vars[@]} -ne 0 ]; then
         print_error "Missing required environment variables: ${missing_vars[*]}"
         print_info "Please check your environment file: $CONFIG_DIR/.env.demo"
         exit 1
     fi
-    
+
     print_success "Environment validation passed"
 }
 
@@ -185,12 +185,12 @@ main() {
     print_header "Microsoft Authenticator Demo Environment Setup"
     echo "==============================================="
     echo ""
-    
+
     check_prerequisites
     setup_environment
     validate_environment
     show_setup_info
-    
+
     print_success "Environment setup complete!"
 }
 

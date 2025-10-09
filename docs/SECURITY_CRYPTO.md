@@ -5,6 +5,7 @@ This document summarizes the production-grade cryptography now implemented in th
 ## Key Algorithms
 
 Supported key algorithms:
+
 - RSA (>= 2048 bits) for RS256 / RS384 / RS512 signatures (PKCS#1 v1.5)
 - ECDSA P-256 / P-384 / P-521 for ES256 / ES384 / ES512 signatures (ECDSA with respective SHA hash)
 

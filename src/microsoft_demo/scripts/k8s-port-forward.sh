@@ -41,24 +41,24 @@ print_header() {
 # Check if services are ready
 wait_for_services() {
     print_info "Waiting for services to be ready..."
-    
+
     print_info "Waiting for Issuer API..."
     kubectl wait --for=condition=ready pod -l app=issuer-api -n "$NAMESPACE" --timeout=180s
-    
+
     print_info "Waiting for Verifier API..."
     kubectl wait --for=condition=ready pod -l app=verifier-api -n "$NAMESPACE" --timeout=180s
-    
+
     print_success "All services are ready!"
 }
 
 # Kill existing port forwarding processes
 cleanup_port_forwarding() {
     print_info "Cleaning up existing port forwarding..."
-    
+
     # Kill any existing port forwarding for our ports
     pkill -f "kubectl port-forward.*${ISSUER_PORT}" || true
     pkill -f "kubectl port-forward.*${VERIFIER_PORT}" || true
-    
+
     # Wait a moment for processes to cleanup
     sleep 2
 }
@@ -66,27 +66,27 @@ cleanup_port_forwarding() {
 # Start port forwarding
 start_port_forwarding() {
     print_info "Starting port forwarding..."
-    
+
     # Start issuer API port forwarding
     print_info "Setting up port forwarding for Issuer API (port ${ISSUER_PORT})..."
     kubectl port-forward -n "$NAMESPACE" service/issuer-api-microsoft-demo "${ISSUER_PORT}:${ISSUER_PORT}" &
     local issuer_pid=$!
-    
+
     # Start verifier API port forwarding
     print_info "Setting up port forwarding for Verifier API (port ${VERIFIER_PORT})..."
     kubectl port-forward -n "$NAMESPACE" service/verifier-api-microsoft-demo "${VERIFIER_PORT}:${VERIFIER_PORT}" &
     local verifier_pid=$!
-    
+
     # Wait a moment for port forwarding to start
     sleep 3
-    
+
     # Check if port forwarding is working
     if ps -p $issuer_pid > /dev/null 2>&1; then
         print_success "Issuer API port forwarding started (PID: $issuer_pid)"
     else
         print_error "Failed to start Issuer API port forwarding"
     fi
-    
+
     if ps -p $verifier_pid > /dev/null 2>&1; then
         print_success "Verifier API port forwarding started (PID: $verifier_pid)"
     else
@@ -97,17 +97,17 @@ start_port_forwarding() {
 # Test port forwarding
 test_port_forwarding() {
     print_info "Testing port forwarding..."
-    
+
     # Wait a moment for services to be available
     sleep 5
-    
+
     # Test issuer API
     if curl -f -s "http://localhost:${ISSUER_PORT}/health" > /dev/null 2>&1; then
         print_success "Issuer API is accessible at http://localhost:${ISSUER_PORT}"
     else
         print_warning "Issuer API may not be ready yet at http://localhost:${ISSUER_PORT}"
     fi
-    
+
     # Test verifier API
     if curl -f -s "http://localhost:${VERIFIER_PORT}/health" > /dev/null 2>&1; then
         print_success "Verifier API is accessible at http://localhost:${VERIFIER_PORT}"
@@ -160,7 +160,7 @@ main() {
     print_header "Microsoft Demo - Port Forwarding Setup"
     echo "======================================="
     echo ""
-    
+
     # Check if VS Code is available
     local vscode_available=false
     if command -v code &> /dev/null; then
@@ -169,14 +169,14 @@ main() {
     else
         print_warning "VS Code CLI not found - manual port forwarding setup required"
     fi
-    
+
     wait_for_services
     show_status
     cleanup_port_forwarding
     start_port_forwarding
     test_port_forwarding
     show_vscode_instructions
-    
+
     echo ""
     print_success "Port forwarding setup complete!"
     echo ""
@@ -185,7 +185,7 @@ main() {
     echo "  - Use Ctrl+C to stop port forwarding"
     echo "  - Monitor forwarded ports in VS Code's Ports panel"
     echo ""
-    
+
     if [ "$vscode_available" = true ]; then
         read -p "Open VS Code now? (y/n): " -n 1 -r
         echo
@@ -194,11 +194,11 @@ main() {
             code ../..
         fi
     fi
-    
+
     # Keep the script running to maintain port forwarding
     print_info "Port forwarding is active. Press Ctrl+C to stop."
     trap 'print_info "Stopping port forwarding..."; cleanup_port_forwarding; exit 0' INT
-    
+
     # Keep running
     while true; do
         sleep 30

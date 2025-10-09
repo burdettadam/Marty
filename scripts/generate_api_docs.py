@@ -33,7 +33,7 @@ FASTAPI_APPS = {
         "port": 8001,
     },
     "document_processing": {
-        "module_path": "src/document_processing/app/main.py", 
+        "module_path": "src/document_processing/app/main.py",
         "description": "Document Processing MRZ API for document verification",
         "port": 8080,
     },
@@ -59,11 +59,11 @@ def setup_output_directories() -> None:
 def import_fastapi_app(module_path: str, app_var: str) -> FastAPI:
     """
     Dynamically import a FastAPI application.
-    
+
     Args:
         module_path: Python module path (e.g., 'pkd_service.app.main')
         app_var: Variable name of the FastAPI app in the module
-        
+
     Returns:
         FastAPI application instance
     """
@@ -78,15 +78,17 @@ def import_fastapi_app(module_path: str, app_var: str) -> FastAPI:
         raise
 
 
-def generate_openapi_spec(app: FastAPI, service_name: str, config: Dict[str, Any]) -> Dict[str, Any]:
+def generate_openapi_spec(
+    app: FastAPI, service_name: str, config: dict[str, Any]
+) -> dict[str, Any]:
     """
     Generate OpenAPI specification for a FastAPI app.
-    
+
     Args:
         app: FastAPI application instance
         service_name: Name of the service
         config: Service configuration
-        
+
     Returns:
         OpenAPI specification as dictionary
     """
@@ -99,51 +101,51 @@ def generate_openapi_spec(app: FastAPI, service_name: str, config: Dict[str, Any
             routes=app.routes,
             servers=[
                 {"url": f"http://localhost:{config['port']}", "description": "Development server"},
-                {"url": f"https://api.marty.platform", "description": "Production server"},
+                {"url": "https://api.marty.platform", "description": "Production server"},
             ],
         )
-        
+
         # Add additional metadata
         openapi_spec["info"]["contact"] = {
             "name": "Marty Platform Team",
             "url": "https://github.com/burdettadam/Marty",
         }
-        
+
         openapi_spec["info"]["license"] = {
             "name": "Proprietary",
         }
-        
+
         # Add security schemes if not present
         if "components" not in openapi_spec:
             openapi_spec["components"] = {}
-            
+
         if "securitySchemes" not in openapi_spec["components"]:
             openapi_spec["components"]["securitySchemes"] = {
                 "ApiKeyAuth": {
                     "type": "apiKey",
                     "in": "header",
                     "name": "X-API-Key",
-                    "description": "API key for authentication"
+                    "description": "API key for authentication",
                 }
             }
-            
+
         logger.info(f"Generated OpenAPI spec for {service_name}")
         return openapi_spec
-        
+
     except Exception as e:
         logger.error(f"Failed to generate OpenAPI spec for {service_name}: {e}")
         raise
 
 
-def save_openapi_specs(specs: Dict[str, Dict[str, Any]]) -> None:
+def save_openapi_specs(specs: dict[str, dict[str, Any]]) -> None:
     """
     Save OpenAPI specifications to files.
-    
+
     Args:
         specs: Dictionary mapping service names to OpenAPI specs
     """
     openapi_dir = OUTPUT_DIR / "openapi"
-    
+
     # Save individual service specs
     for service_name, spec in specs.items():
         # Save as JSON
@@ -151,34 +153,34 @@ def save_openapi_specs(specs: Dict[str, Dict[str, Any]]) -> None:
         with open(json_path, "w") as f:
             json.dump(spec, f, indent=2)
         logger.info(f"Saved OpenAPI JSON spec: {json_path}")
-        
+
         # Save as YAML
         yaml_path = openapi_dir / f"{service_name}_openapi.yaml"
         with open(yaml_path, "w") as f:
             yaml.dump(spec, f, default_flow_style=False, sort_keys=False)
         logger.info(f"Saved OpenAPI YAML spec: {yaml_path}")
-    
+
     # Create combined spec
     combined_spec = create_combined_spec(specs)
     combined_json_path = openapi_dir / "marty_platform_combined_openapi.json"
     combined_yaml_path = openapi_dir / "marty_platform_combined_openapi.yaml"
-    
+
     with open(combined_json_path, "w") as f:
         json.dump(combined_spec, f, indent=2)
-        
+
     with open(combined_yaml_path, "w") as f:
         yaml.dump(combined_spec, f, default_flow_style=False, sort_keys=False)
-        
+
     logger.info(f"Saved combined OpenAPI specs: {combined_json_path}, {combined_yaml_path}")
 
 
-def create_combined_spec(specs: Dict[str, Dict[str, Any]]) -> Dict[str, Any]:
+def create_combined_spec(specs: dict[str, dict[str, Any]]) -> dict[str, Any]:
     """
     Create a combined OpenAPI specification for all services.
-    
+
     Args:
         specs: Dictionary mapping service names to OpenAPI specs
-        
+
     Returns:
         Combined OpenAPI specification
     """
@@ -202,9 +204,9 @@ def create_combined_spec(specs: Dict[str, Dict[str, Any]]) -> Dict[str, Any]:
         "components": {"schemas": {}, "securitySchemes": {}},
         "tags": [],
     }
-    
+
     service_tags = []
-    
+
     for service_name, spec in specs.items():
         # Add service tag
         service_tag = {
@@ -212,27 +214,29 @@ def create_combined_spec(specs: Dict[str, Dict[str, Any]]) -> Dict[str, Any]:
             "description": spec.get("info", {}).get("description", f"{service_name} service"),
         }
         service_tags.append(service_tag)
-        
+
         # Merge paths with service prefix
         for path, path_spec in spec.get("paths", {}).items():
             prefixed_path = f"/{service_name}{path}"
-            
+
             # Add service tag to all operations
             for method, operation in path_spec.items():
                 if isinstance(operation, dict) and "tags" in operation:
                     operation["tags"] = [service_name] + operation.get("tags", [])
                 elif isinstance(operation, dict):
                     operation["tags"] = [service_name]
-                    
+
             combined["paths"][prefixed_path] = path_spec
-        
+
         # Merge components
         if "components" in spec:
             if "schemas" in spec["components"]:
                 combined["components"]["schemas"].update(spec["components"]["schemas"])
             if "securitySchemes" in spec["components"]:
-                combined["components"]["securitySchemes"].update(spec["components"]["securitySchemes"])
-    
+                combined["components"]["securitySchemes"].update(
+                    spec["components"]["securitySchemes"]
+                )
+
     combined["tags"] = service_tags
     return combined
 
@@ -242,22 +246,22 @@ def generate_html_docs() -> None:
     try:
         # Generate docs for each service
         openapi_dir = OUTPUT_DIR / "openapi"
-        
+
         for service_name in FASTAPI_APPS.keys():
             json_spec_path = openapi_dir / f"{service_name}_openapi.json"
             if json_spec_path.exists():
                 html_path = STATIC_DIR / f"{service_name}_docs.html"
                 generate_redoc_html(json_spec_path, html_path, f"{service_name.title()} API")
-        
+
         # Generate combined docs
         combined_spec_path = openapi_dir / "marty_platform_combined_openapi.json"
         if combined_spec_path.exists():
             combined_html_path = STATIC_DIR / "marty_platform_docs.html"
             generate_redoc_html(combined_spec_path, combined_html_path, "Marty Platform API")
-            
+
         # Generate index page
         generate_index_page()
-        
+
     except Exception as e:
         logger.error(f"Failed to generate HTML docs: {e}")
         raise
@@ -266,7 +270,7 @@ def generate_html_docs() -> None:
 def generate_redoc_html(spec_path: Path, output_path: Path, title: str) -> None:
     """
     Generate Redoc HTML documentation from OpenAPI spec.
-    
+
     Args:
         spec_path: Path to OpenAPI JSON specification
         output_path: Path for output HTML file
@@ -288,7 +292,7 @@ def generate_redoc_html(spec_path: Path, output_path: Path, title: str) -> None:
     <script src="https://cdn.jsdelivr.net/npm/redoc@2.1.0/bundles/redoc.standalone.js"></script>
 </body>
 </html>"""
-    
+
     with open(output_path, "w") as f:
         f.write(html_template)
     logger.info(f"Generated Redoc HTML: {output_path}")
@@ -308,7 +312,7 @@ def generate_index_page() -> None:
                 <a href="openapi/{service_name}_openapi.yaml">OpenAPI YAML</a>
             </p>
         </div>"""
-    
+
     index_html = f"""<!DOCTYPE html>
 <html>
 <head>
@@ -330,7 +334,7 @@ def generate_index_page() -> None:
     <div class="container">
         <h1>Marty Platform API Documentation</h1>
         <p>Enterprise-grade microservices platform for secure digital identity document management.</p>
-        
+
         <div class="service combined">
             <h3>🌟 Combined Platform API</h3>
             <p>Complete API documentation for all Marty services in one place.</p>
@@ -340,16 +344,16 @@ def generate_index_page() -> None:
                 <a href="openapi/marty_platform_combined_openapi.yaml">📄 OpenAPI YAML</a>
             </p>
         </div>
-        
+
         <h2>Individual Services</h2>
         {services_list}
-        
+
         <hr>
         <p><small>Generated automatically by the Marty Platform API documentation generator.</small></p>
     </div>
 </body>
 </html>"""
-    
+
     index_path = OUTPUT_DIR / "index.html"
     with open(index_path, "w") as f:
         f.write(index_html)
@@ -360,13 +364,13 @@ def main() -> None:
     """Main function to generate all API documentation."""
     try:
         logger.info("🚀 Starting API documentation generation for Marty Platform")
-        
+
         # Setup output directories
         setup_output_directories()
-        
+
         # Generate OpenAPI specs for all services
         specs = {}
-        
+
         for service_name, config in FASTAPI_APPS.items():
             try:
                 logger.info(f"Processing {service_name}...")
@@ -377,20 +381,20 @@ def main() -> None:
             except Exception as e:
                 logger.warning(f"⚠️  Skipping {service_name} due to error: {e}")
                 continue
-        
+
         if not specs:
             logger.error("❌ No API specifications were generated successfully")
             sys.exit(1)
-        
+
         # Save OpenAPI specifications
         save_openapi_specs(specs)
-        
+
         # Generate HTML documentation
         generate_html_docs()
-        
+
         logger.info("✅ API documentation generation completed successfully!")
         logger.info(f"📖 Documentation available at: {OUTPUT_DIR / 'index.html'}")
-        
+
     except Exception as e:
         logger.error(f"❌ API documentation generation failed: {e}")
         sys.exit(1)

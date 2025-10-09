@@ -4,6 +4,7 @@ Existing codebase already uses MartyServiceException; we introduce a more granul
 hierarchy that can wrap or co-exist with existing exceptions. The mapping layer
 is additive and does not break existing ExceptionToStatusInterceptor behavior.
 """
+
 from __future__ import annotations
 
 import logging
@@ -89,9 +90,8 @@ def map_exception_to_status(exc: Exception) -> tuple[grpc.StatusCode, str]:
 
 
 def exception_is_transient(exc: Exception) -> bool:
-    return (
-        isinstance(exc, TransientBackendError)
-        or (isinstance(exc, MartyError) and exc.category == ErrorCategory.TRANSIENT)
+    return isinstance(exc, TransientBackendError) or (
+        isinstance(exc, MartyError) and exc.category == ErrorCategory.TRANSIENT
     )
 
 

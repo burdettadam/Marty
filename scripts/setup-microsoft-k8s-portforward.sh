@@ -2,7 +2,7 @@
 
 # Microsoft Authenticator VS Code Port Forwarding Setup - Kubernetes Version
 # Production-like demo using Kubernetes with VS Code port forwarding
-# 
+#
 # Prerequisites:
 # - Kubernetes cluster running (Docker Desktop K8s, minikube, kind, etc.)
 # - kubectl configured and connected to cluster
@@ -60,7 +60,7 @@ echo "⏳ Waiting for services to be ready..."
 echo "   Waiting for PostgreSQL..."
 kubectl wait --for=condition=ready pod -l app=postgres -n marty-microsoft-demo --timeout=180s
 
-# Wait for APIs to be ready  
+# Wait for APIs to be ready
 echo "   Waiting for Issuer API..."
 kubectl wait --for=condition=ready pod -l app=issuer-api -n marty-microsoft-demo --timeout=180s
 

@@ -54,6 +54,7 @@ Additional module-specific configuration is in `mypy.ini`. Generated protobuf fi
 ### 1. All Public Functions Must Have Type Annotations
 
 ✅ **Good:**
+
 ```python
 def calculate_hash(data: bytes, algorithm: str = "sha256") -> str:
     """Calculate hash of data."""
@@ -64,6 +65,7 @@ def calculate_hash(data: bytes, algorithm: str = "sha256") -> str:
 ```
 
 ❌ **Bad:**
+
 ```python
 def calculate_hash(data, algorithm="sha256"):
     import hashlib
@@ -75,6 +77,7 @@ def calculate_hash(data, algorithm="sha256"):
 ### 2. Use Modern Type Syntax (PEP 585, PEP 604)
 
 ✅ **Good (Python 3.10+):**
+
 ```python
 from __future__ import annotations
 
@@ -84,6 +87,7 @@ def process_items(items: list[str], config: dict[str, Any]) -> tuple[int, str]:
 ```
 
 ❌ **Bad (Old syntax):**
+
 ```python
 from typing import List, Dict, Tuple, Optional, Any
 
@@ -95,6 +99,7 @@ def process_items(items: List[str], config: Dict[str, Any]) -> Tuple[int, str]:
 ### 3. Use TYPE_CHECKING for Circular Imports
 
 ✅ **Good:**
+
 ```python
 from __future__ import annotations
 
@@ -102,7 +107,7 @@ from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from marty_common.infrastructure import DatabaseManager
-    
+
 class Repository:
     def __init__(self, db: DatabaseManager) -> None:
         self._db = db
@@ -111,6 +116,7 @@ class Repository:
 ### 4. Prefer Specific Types Over Any
 
 ✅ **Good:**
+
 ```python
 from typing import Literal
 
@@ -119,6 +125,7 @@ def set_log_level(level: Literal["DEBUG", "INFO", "WARNING", "ERROR"]) -> None:
 ```
 
 ❌ **Bad:**
+
 ```python
 from typing import Any
 
@@ -146,12 +153,12 @@ def map_items(
     parallel: bool = False,
 ) -> list[R]:
     """Transform items using the given function.
-    
+
     Args:
         items: Input items to transform
         transform: Transformation function
         parallel: Whether to process in parallel
-        
+
     Returns:
         List of transformed items
     """
@@ -172,7 +179,7 @@ from datetime import datetime
 @dataclass(slots=True)
 class Certificate:
     """Represents an X.509 certificate."""
-    
+
     certificate_id: str
     pem: str
     issuer: str
@@ -193,12 +200,12 @@ from typing import Self  # Python 3.11+, or typing_extensions
 class Builder:
     def __init__(self) -> None:
         self._config: dict[str, str] = {}
-    
+
     def set_option(self, key: str, value: str) -> Self:
         """Set configuration option (builder pattern)."""
         self._config[key] = value
         return self
-    
+
     def build(self) -> Config:
         """Build the configuration object."""
         return Config(self._config)
@@ -217,15 +224,15 @@ if TYPE_CHECKING:
 
 class CertificateRepository:
     """Repository for certificate database operations."""
-    
+
     def __init__(self, session: AsyncSession) -> None:
         self._session = session
-    
+
     async def get(self, cert_id: str) -> CertificateRecord | None:
         """Retrieve certificate by ID."""
         # implementation
         pass
-    
+
     async def upsert(
         self,
         cert_id: str,
@@ -236,7 +243,7 @@ class CertificateRepository:
         """Create or update a certificate."""
         # implementation
         pass
-    
+
     async def list_all(self) -> list[CertificateRecord]:
         """List all certificates."""
         # implementation
@@ -322,11 +329,11 @@ from typing import Protocol, runtime_checkable
 @runtime_checkable
 class Serializable(Protocol):
     """Protocol for objects that can be serialized."""
-    
+
     def to_dict(self) -> dict[str, Any]:
         """Convert to dictionary."""
         ...
-    
+
     def to_json(self) -> str:
         """Convert to JSON string."""
         ...
@@ -367,15 +374,15 @@ T = TypeVar("T")
 
 class Result(Generic[T]):
     """Generic result container."""
-    
+
     def __init__(self, value: T | None, error: str | None = None) -> None:
         self.value = value
         self.error = error
-    
+
     def is_success(self) -> bool:
         """Check if result is successful."""
         return self.error is None
-    
+
     def unwrap(self) -> T:
         """Get value or raise exception."""
         if self.error:
@@ -427,7 +434,7 @@ async def database_session() -> AsyncIterator[AsyncSession]:
 ```python
 class ValidationError(Exception):
     """Raised when validation fails."""
-    
+
     def __init__(self, field: str, message: str) -> None:
         self.field = field
         self.message = message
@@ -520,6 +527,7 @@ disallow_untyped_defs = False
 ## Questions?
 
 For questions or clarifications about type annotations in the Marty codebase, please:
+
 1. Check this document first
 2. Review existing code examples in `src/marty_common/`
 3. Consult the team in code reviews

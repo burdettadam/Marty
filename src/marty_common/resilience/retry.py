@@ -1,16 +1,17 @@
 """Enhanced retry helpers with comprehensive strategies and monitoring."""
+
 from __future__ import annotations
 
 import logging
 import random
 import time
+from collections.abc import Callable
 from dataclasses import dataclass, field
-from typing import Any, Callable, TypeVar, Union
+from typing import Any, TypeVar, Union
 
-from tenacity import (  # type: ignore
+from tenacity import (
     after_log,
     before_log,
-    retry as tenacity_retry,
     retry_if_exception,
     retry_if_exception_type,
     stop_after_attempt,
@@ -22,6 +23,7 @@ from tenacity import (  # type: ignore
     wait_random,
     wait_random_exponential,
 )
+from tenacity import retry as tenacity_retry  # type: ignore
 
 from .error_codes import TransientBackendError, exception_is_transient
 
@@ -29,37 +31,13 @@ logger = logging.getLogger(__name__)
 T = TypeVar("T")
 
 
-"""Enhanced retry helpers with comprehensive strategies and monitoring."""
-from __future__ import annotations
-
-import logging
-import time
-from dataclasses import dataclass, field
-from typing import Any, Callable, TypeVar
-
-from tenacity import (  # type: ignore[import]
-    after_log,
-    before_log,
-    retry as tenacity_retry,
-    retry_if_exception,
-    retry_if_exception_type,
-    stop_after_attempt,
-    stop_after_delay,
-    wait_exponential,
-    wait_exponential_jitter,
-    wait_fixed,
-    wait_random,
-)
-
-from .error_codes import TransientBackendError, exception_is_transient
-
-logger = logging.getLogger(__name__)
-T = TypeVar("T")
+ # Duplicate block removed (future import, logging, TypeVar) -- consolidated at top
 
 
 @dataclass
 class RetryConfig:
     """Configuration for retry behavior with comprehensive options."""
+
     max_attempts: int = 5
     base_delay: float = 0.2
     max_delay: float = 3.0
@@ -73,31 +51,31 @@ class RetryConfig:
 
 class RetryMetrics:
     """Collect metrics about retry attempts."""
-    
+
     def __init__(self) -> None:
         self.total_attempts = 0
         self.total_retries = 0
         self.successful_calls = 0
         self.failed_calls = 0
         self.last_attempt_time = 0.0
-        
+
     def record_attempt(self) -> None:
         """Record a retry attempt."""
         self.total_attempts += 1
         self.last_attempt_time = time.time()
-        
+
     def record_retry(self) -> None:
         """Record a retry (failed attempt that will be retried)."""
         self.total_retries += 1
-        
+
     def record_success(self) -> None:
         """Record a successful completion."""
         self.successful_calls += 1
-        
+
     def record_failure(self) -> None:
         """Record a final failure after all retries."""
         self.failed_calls += 1
-        
+
     def get_stats(self) -> dict[str, Any]:
         """Get retry statistics."""
         return {
@@ -107,7 +85,8 @@ class RetryMetrics:
             "failed_calls": self.failed_calls,
             "success_rate": (
                 self.successful_calls / (self.successful_calls + self.failed_calls)
-                if (self.successful_calls + self.failed_calls) > 0 else 0.0
+                if (self.successful_calls + self.failed_calls) > 0
+                else 0.0
             ),
             "last_attempt_time": self.last_attempt_time,
         }
@@ -128,20 +107,21 @@ def is_retryable_exception(exc: BaseException) -> bool:
     """Enhanced retryable exception detection."""
     if isinstance(exc, TransientBackendError) or exception_is_transient(exc):  # type: ignore[arg-type]
         return True
-    
+
     # Network-related exceptions that should be retried
     retryable_types = (
         ConnectionError,
         TimeoutError,
         OSError,  # Can include network errors
     )
-    
+
     if isinstance(exc, retryable_types):
         return True
-    
+
     # gRPC specific errors (if available)
     try:
         import grpc  # type: ignore[import]  # noqa: WPS433
+
         if isinstance(exc, grpc.RpcError):
             status_code = exc.code()  # type: ignore[attr-defined]
             # Retry on transient gRPC errors
@@ -154,7 +134,7 @@ def is_retryable_exception(exc: BaseException) -> bool:
             return status_code in retryable_grpc_codes
     except ImportError:
         pass
-    
+
     return False
 
 
@@ -162,15 +142,9 @@ def _create_wait_strategy(config: RetryConfig) -> Any:  # noqa: ANN401
     """Create appropriate wait strategy based on configuration."""
     if config.exponential_backoff:
         if config.jitter:
-            return wait_exponential_jitter(
-                exp_base=config.base_delay,
-                max=config.max_delay
-            )
-        return wait_exponential(
-            exp_base=config.base_delay,
-            max=config.max_delay
-        )
-    
+            return wait_exponential_jitter(exp_base=config.base_delay, max=config.max_delay)
+        return wait_exponential(exp_base=config.base_delay, max=config.max_delay)
+
     if config.jitter:
         return wait_fixed(config.base_delay) + wait_random(0, config.base_delay * 0.1)
     return wait_fixed(config.base_delay)
@@ -185,60 +159,52 @@ def _create_stop_strategy(config: RetryConfig) -> Any:  # noqa: ANN401
 
 
 def create_retry_policy(
-    config: RetryConfig | None = None,
-    name: str | None = None,
-    enable_logging: bool = True
+    config: RetryConfig | None = None, name: str | None = None, enable_logging: bool = True
 ) -> Any:  # noqa: ANN401
     """Create a comprehensive retry policy with monitoring."""
     if config is None:
         config = RetryConfig()
-    
+
     wait_strategy = _create_wait_strategy(config)
     stop_strategy = _create_stop_strategy(config)
-    
+
     # Create retry condition
     retry_condition = retry_if_exception(is_retryable_exception)
     if config.retry_on_exceptions:
         retry_condition = retry_if_exception_type(config.retry_on_exceptions)
-    
+
     retry_kwargs = {
         "retry": retry_condition,
         "stop": stop_strategy,
         "wait": wait_strategy,
         "reraise": True,
     }
-    
+
     # Add logging if enabled
     if enable_logging and name:
         retry_kwargs["before"] = before_log(logger, logging.DEBUG)
         retry_kwargs["after"] = after_log(logger, logging.DEBUG)
-    
+
     return tenacity_retry(**retry_kwargs)
 
 
 def default_retry(
-    max_attempts: int = 5,
-    base: float = 0.2,
-    max_wait: float = 3.0
+    max_attempts: int = 5, base: float = 0.2, max_wait: float = 3.0
 ) -> Any:  # noqa: ANN401
     """Create default retry policy with exponential backoff and jitter."""
-    config = RetryConfig(
-        max_attempts=max_attempts,
-        base_delay=base,
-        max_delay=max_wait
-    )
+    config = RetryConfig(max_attempts=max_attempts, base_delay=base, max_delay=max_wait)
     return create_retry_policy(config)
 
 
 def retry_sync(
-    func: Callable[..., T] | None = None,
-    **retry_kwargs: Any
+    func: Callable[..., T] | None = None, **retry_kwargs: Any
 ) -> Callable[..., T] | Callable[[Callable[..., T]], Callable[..., T]]:
     """Enhanced synchronous retry decorator with metrics."""
+
     def decorator(fn: Callable[..., T]) -> Callable[..., T]:
         policy = default_retry(**retry_kwargs)
         metrics = get_retry_metrics(getattr(fn, "__name__", "unknown"))
-        
+
         @policy
         def wrapper(*args: Any, **kwargs: Any) -> T:
             metrics.record_attempt()
@@ -253,7 +219,7 @@ def retry_sync(
             else:
                 metrics.record_success()
                 return result
-        
+
         return wrapper
 
     if func is not None:
@@ -262,14 +228,14 @@ def retry_sync(
 
 
 def retry_async(
-    func: Callable[..., T] | None = None,
-    **retry_kwargs: Any
+    func: Callable[..., T] | None = None, **retry_kwargs: Any
 ) -> Callable[..., T] | Callable[[Callable[..., T]], Callable[..., T]]:
     """Enhanced asynchronous retry decorator with metrics."""
+
     def decorator(fn: Callable[..., T]) -> Callable[..., T]:
         policy = default_retry(**retry_kwargs)
         metrics = get_retry_metrics(getattr(fn, "__name__", "unknown"))
-        
+
         @policy
         async def wrapper(*args: Any, **kwargs: Any) -> T:
             metrics.record_attempt()
@@ -284,7 +250,7 @@ def retry_async(
             else:
                 metrics.record_success()
                 return result
-        
+
         return wrapper  # type: ignore[return-value]
 
     if func is not None:
@@ -299,7 +265,7 @@ def get_all_retry_metrics() -> dict[str, dict[str, Any]]:
 
 __all__ = [
     "RetryConfig",
-    "RetryMetrics", 
+    "RetryMetrics",
     "create_retry_policy",
     "default_retry",
     "get_all_retry_metrics",

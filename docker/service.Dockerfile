@@ -34,7 +34,7 @@ RUN cd /app && python src/compile_protos.py
 
 # Security labels for runtime
 LABEL security.non-root="true"
-LABEL security.readonly-rootfs="recommended" 
+LABEL security.readonly-rootfs="recommended"
 LABEL security.capabilities="NONE"
 
 # Expose service port (metadata only)

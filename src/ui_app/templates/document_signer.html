@@ -5,24 +5,24 @@
     <header>
       <h2>Document Signer Management</h2>
     </header>
-    
+
     <!-- Document Signing Section -->
     <details open>
       <summary>Sign Document</summary>
       <form method="post" action="/document-signer/sign" enctype="multipart/form-data">
         <div class="form-group">
           <label for="document_id">Document ID:</label>
-          <input type="text" id="document_id" name="document_id" 
+          <input type="text" id="document_id" name="document_id"
                  placeholder="DOC-" required>
         </div>
-        
+
         <div class="form-group">
           <label for="document_file">Document File:</label>
-          <input type="file" id="document_file" name="document_file" 
+          <input type="file" id="document_file" name="document_file"
                  accept=".pdf,.xml,.json" required>
           <small class="help-text">Supported formats: PDF, XML, JSON</small>
         </div>
-        
+
         <div class="form-group">
           <label for="signature_type">Signature Type:</label>
           <select id="signature_type" name="signature_type">
@@ -33,10 +33,10 @@
             <option value="GENERIC">Generic Document</option>
           </select>
         </div>
-        
+
         <button type="submit" class="button button-primary">Sign Document</button>
       </form>
-      
+
       {% if sign_result %}
         <div class="result-section">
           <h4>Signing Result</h4>
@@ -62,27 +62,27 @@
         </div>
       {% endif %}
     </details>
-    
+
     <!-- Document Verification Section -->
     <details>
       <summary>Verify Document Signature</summary>
       <form method="post" action="/document-signer/verify" enctype="multipart/form-data">
         <div class="form-group">
           <label for="verify_document_file">Signed Document:</label>
-          <input type="file" id="verify_document_file" name="document_file" 
+          <input type="file" id="verify_document_file" name="document_file"
                  accept=".pdf,.xml,.json" required>
         </div>
-        
+
         <div class="form-group">
           <label for="verify_certificate">Verification Certificate (optional):</label>
-          <input type="file" id="verify_certificate" name="certificate_file" 
+          <input type="file" id="verify_certificate" name="certificate_file"
                  accept=".pem,.cer,.crt">
           <small class="help-text">Leave empty to use trusted certificate store</small>
         </div>
-        
+
         <button type="submit" class="button">Verify Signature</button>
       </form>
-      
+
       {% if verify_result %}
         <div class="result-section">
           <h4>Verification Result</h4>
@@ -101,11 +101,11 @@
         </div>
       {% endif %}
     </details>
-    
+
     <!-- DSC Management Section -->
     <details>
       <summary>Document Signer Certificate (DSC) Management</summary>
-      
+
       <div class="dsc-section">
         <h4>Current DSCs</h4>
         {% if dscs %}
@@ -147,7 +147,7 @@
         {% else %}
           <p>No DSCs found. Request a new DSC from the CSCA service.</p>
         {% endif %}
-        
+
         <!-- Request New DSC -->
         <div class="operation-section">
           <h5>Request New DSC</h5>
@@ -155,16 +155,16 @@
             <div class="form-row">
               <div class="form-group">
                 <label for="dsc_subject">Subject Name:</label>
-                <input type="text" id="dsc_subject" name="subject_name" 
+                <input type="text" id="dsc_subject" name="subject_name"
                        placeholder="CN=Document Signer, O=Government, C=XX" required>
               </div>
-              
+
               <div class="form-group">
                 <label for="dsc_validity">Validity (days):</label>
                 <input type="number" id="dsc_validity" name="validity_days" value="365" min="30" max="1095" required>
               </div>
             </div>
-            
+
             <div class="form-row">
               <div class="form-group">
                 <label for="dsc_usage">Key Usage:</label>
@@ -175,13 +175,13 @@
                 </select>
               </div>
             </div>
-            
+
             <button type="submit" class="button">Request DSC</button>
           </form>
         </div>
       </div>
     </details>
-    
+
     <!-- Signing History Section -->
     <details>
       <summary>Signing History</summary>
@@ -235,12 +235,12 @@ function revokeDSC(certId) {
     const form = document.createElement('form');
     form.method = 'POST';
     form.action = '/document-signer/revoke-dsc';
-    
+
     const input = document.createElement('input');
     input.type = 'hidden';
     input.name = 'certificate_id';
     input.value = certId;
-    
+
     form.appendChild(input);
     document.body.appendChild(form);
     form.submit();

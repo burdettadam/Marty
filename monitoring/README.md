@@ -21,6 +21,7 @@ The monitoring stack provides:
 - **recording_rules.yml**: SLI/SLO tracking with pre-calculated metrics for performance
 
 **Key Features**:
+
 - Multi-tier alerting (Critical, Warning, Info)
 - Business-specific metrics for digital identity operations
 - SLA compliance monitoring with error budgets
@@ -35,6 +36,7 @@ The monitoring stack provides:
 - **marty-sla.json**: SLA tracking and compliance monitoring
 
 **Dashboard Features**:
+
 - Real-time metrics visualization
 - Service health status indicators
 - Business operation tracking (document verification, certificate validation)
@@ -46,6 +48,7 @@ The monitoring stack provides:
 **Location**: `helm/`
 
 Complete Kubernetes deployment with:
+
 - Environment-specific configurations
 - Persistent storage for metrics and dashboards
 - RBAC and security contexts
@@ -63,17 +66,20 @@ Complete Kubernetes deployment with:
 ### Deploy Monitoring Stack
 
 1. **Basic Development Deployment**:
+
    ```bash
    ./deploy-monitoring.sh
    ```
 
 2. **Production Deployment**:
+
    ```bash
    ./deploy-monitoring.sh --environment production \
      --namespace marty-monitoring-prod
    ```
 
 3. **Custom Configuration**:
+
    ```bash
    GRAFANA_ADMIN_PASSWORD="secure-password" \
    GRAFANA_INGRESS_ENABLED=true \
@@ -143,7 +149,9 @@ metrics_server.health_checker.add_dependency("external_api", api_check)
 ```
 
 # Install monitoring stack
+
 helm install marty-monitoring ./helm/charts/monitoring
+
 ```
 
 ### Access Grafana
@@ -167,6 +175,7 @@ kubectl get svc marty-monitoring-prometheus-server -n marty-monitoring
 The monitoring stack collects metrics from:
 
 ### Service Metrics
+
 - HTTP request/response metrics
 - Error rates and latency percentiles
 - Dead letter queue sizes
@@ -174,6 +183,7 @@ The monitoring stack collects metrics from:
 - Database connection usage
 
 ### Infrastructure Metrics
+
 - Container CPU and memory usage
 - Kubernetes pod and node metrics
 - Disk and network I/O
@@ -183,16 +193,19 @@ The monitoring stack collects metrics from:
 ### Alert Rules
 
 **Service Availability**
+
 - `MartyServiceDown`: Service is down for >5 minutes
 - `MartyServiceHighErrorRate`: Error rate >10% for >5 minutes
 - `MartyServiceHighLatency`: 95th percentile latency >5s for >5 minutes
 
 **Business Logic**
+
 - `MartyDeadLetterQueueGrowing`: DLQ growing by >10 messages in 10 minutes
 - `MartyDatabaseConnectionIssues`: DB connection usage >80%
 - `MartyEventProcessingBacklog`: Event queue >1000 pending events
 
 **Infrastructure**
+
 - `KubernetesNodeDown`: K8s node down for >5 minutes
 - `HighCPUUsage`: Container CPU >80% for >5 minutes
 - `HighMemoryUsage`: Container memory >90% for >5 minutes
@@ -201,6 +214,7 @@ The monitoring stack collects metrics from:
 ## Dashboards
 
 ### Marty Platform Overview
+
 - Service health status
 - Active alerts count
 - Request rates by service
@@ -239,24 +253,28 @@ DB_CONNECTIONS_MAX = Gauge('marty_database_connections_max', 'Maximum database c
 ## Production Considerations
 
 ### Security
+
 - Change default Grafana admin password
 - Configure proper authentication (LDAP, OAuth)
 - Use TLS for all monitoring endpoints
 - Restrict network access to monitoring services
 
 ### Scaling
+
 - Configure Prometheus retention policies
 - Set up remote storage for long-term metrics
 - Use Prometheus federation for multi-cluster setups
 - Configure Grafana high availability
 
 ### Alerting
+
 - Configure SMTP or webhook integrations
 - Set up alert routing based on severity
 - Define escalation policies
 - Test alert configurations regularly
 
 ### Backup
+
 - Backup Grafana dashboards and datasources
 - Export Prometheus configuration
 - Document alert rules and thresholds
@@ -266,16 +284,19 @@ DB_CONNECTIONS_MAX = Gauge('marty_database_connections_max', 'Maximum database c
 ### Common Issues
 
 **Metrics not appearing in Grafana**
+
 - Check service `/metrics` endpoint is accessible
 - Verify Prometheus service discovery configuration
 - Check Prometheus targets status
 
 **Alerts not firing**
+
 - Validate alert rule expressions
 - Check Prometheus rule evaluation
 - Verify alertmanager configuration
 
 **Dashboard not loading**
+
 - Check Grafana datasource configuration
 - Validate dashboard JSON syntax
 - Ensure proper permissions

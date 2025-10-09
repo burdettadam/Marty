@@ -1,19 +1,19 @@
 import logging
 import sys
+from collections.abc import Callable
 from pathlib import Path
-from typing import Callable
 
 # Add the parent directory to sys.path
 sys.path.append(str(Path(__file__).resolve().parents[3]))
-
-# Import shared utilities
-from marty_common.services import BaseGrpcService
-from marty_common.service_config_factory import get_config_manager
 
 # Import DTC engine servicer
 from dtc_engine_service import DTCEngineService
 
 from marty_common.config import Config
+from marty_common.service_config_factory import get_config_manager
+
+# Import shared utilities
+from marty_common.services import BaseGrpcService
 from src.proto.v1 import dtc_engine_pb2_grpc
 
 
@@ -23,11 +23,7 @@ class DTCGrpcService(BaseGrpcService):
     def __init__(self, config) -> None:
         """Initialize with config."""
         self.config = config
-        super().__init__(
-            service_name="dtc-engine",
-            default_port=8087,
-            max_workers=10
-        )
+        super().__init__(service_name="dtc-engine", default_port=8087, max_workers=10)
 
     def create_servicer(self) -> DTCEngineService:
         """Create the DTC Engine servicer instance."""

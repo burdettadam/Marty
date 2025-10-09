@@ -1,6 +1,4 @@
-"""Alembic configuration for pkd_def get_url() -> str:
-    """Get the database URL for the pkd_service service."""
-    return get_database_url("pkd_service")ce database migrations."""
+"""Alembic configuration for pkd_service database migrations."""
 
 from __future__ import annotations
 
@@ -18,7 +16,8 @@ project_root = Path(__file__).parent.parent.parent.parent.parent
 sys.path.insert(0, str(project_root / "src"))
 sys.path.insert(0, str(project_root / "scripts"))
 
-from migration_config import get_database_url
+from migration_config import MartyConfig
+
 from services.pkd_service.models import Base
 
 # This is the Alembic Config object, which provides
@@ -72,7 +71,7 @@ def run_migrations_online() -> None:
     """
     configuration = config.get_section(config.config_ini_section, {})
     configuration["sqlalchemy.url"] = get_url()
-    
+
     connectable = create_engine(
         configuration["sqlalchemy.url"],
         poolclass=pool.NullPool,

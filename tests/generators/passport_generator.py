@@ -19,6 +19,7 @@ To ensure licensing compliance:
 References to pypassport are marked with PYPASSPORT_REFERENCE and will be
 removed in a future update once validation is complete.
 """
+
 from __future__ import annotations
 
 import hashlib
@@ -168,7 +169,6 @@ class PassportGenerator:
             "raw_bytes": self._format_dg1_bytes(mrz_data),
         }
 
-
     def _format_dg1_bytes(self, mrz_data: str) -> bytes:
         """
         Format MRZ data as DG1 bytes.
@@ -238,7 +238,6 @@ class PassportGenerator:
             "raw_bytes": self._format_dg2_bytes(image_data),
         }
 
-
     def _format_dg2_bytes(self, image_data: bytes) -> bytes:
         """
         Format image data as DG2 bytes.
@@ -266,7 +265,6 @@ class PassportGenerator:
             biometric_header + biometric_info + biometric_data + biometric_data_header + image_data
         )
         return tag + self._encode_length(len(content)) + content
-
 
     def create_signature_data(
         self, dg1: dict[str, Any], dg2: dict[str, Any], cert_path: str, key_path: str
@@ -299,7 +297,6 @@ class PassportGenerator:
             "certificate": cert_path,
             "raw_bytes": b"\x77\x04\x00\x00\x00\x00",  # Placeholder bytes
         }
-
 
     def generate_passport(
         self,

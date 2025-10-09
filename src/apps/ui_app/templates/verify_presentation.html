@@ -13,11 +13,11 @@
                 <form method="post" action="/verify">
                     <div class="mb-3">
                         <label for="presentation_data" class="form-label">Verifiable Presentation JSON *</label>
-                        <textarea class="form-control" id="presentation_data" name="presentation_data" 
+                        <textarea class="form-control" id="presentation_data" name="presentation_data"
                                   rows="12" required placeholder="Paste the verifiable presentation JSON here..."></textarea>
                         <div class="form-text">Paste the complete verifiable presentation JSON data</div>
                     </div>
-                    
+
                     <div class="mb-3">
                         <label for="verification_policy" class="form-label">Verification Policy</label>
                         <select class="form-select" id="verification_policy" name="verification_policy">
@@ -27,13 +27,13 @@
                         </select>
                         <div class="form-text">Select the verification policy to apply</div>
                     </div>
-                    
+
                     <div class="alert alert-info">
                         <i class="bi bi-info-circle"></i>
-                        <strong>Verification Process:</strong> The system will validate the presentation's signature, 
+                        <strong>Verification Process:</strong> The system will validate the presentation's signature,
                         check expiration dates, verify issuer trust, and confirm revocation status.
                     </div>
-                    
+
                     <div class="d-grid gap-2 d-md-flex justify-content-md-end">
                         <button type="button" class="btn btn-secondary" onclick="fillSamplePresentation()">Use Sample Data</button>
                         <button type="submit" class="btn btn-primary">Verify Presentation</button>
@@ -89,7 +89,7 @@ function fillSamplePresentation() {
             "jws": "demo_presentation_signature_for_testing_only"
         }
     };
-    
+
     document.getElementById('presentation_data').value = JSON.stringify(samplePresentation, null, 2);
 }
 </script>

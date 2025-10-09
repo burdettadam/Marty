@@ -4,23 +4,26 @@ Cryptographic utilities for Marty services.
 This module provides cryptographic functions used across multiple Marty services,
 including certificate operations, key management, and digital signatures.
 """
+
 from __future__ import annotations
 
 import base64
 import binascii
 import hashlib
+import secrets
 from datetime import datetime, timezone
 from typing import Literal, cast
 
 from cryptography import x509
 from cryptography.exceptions import InvalidSignature
 from cryptography.hazmat.primitives import hashes, serialization
-from cryptography.hazmat.primitives.asymmetric import ec, padding as asym_padding, rsa
+from cryptography.hazmat.primitives.asymmetric import ec, rsa
+from cryptography.hazmat.primitives.asymmetric import padding as asym_padding
 from cryptography.hazmat.primitives.serialization import load_pem_private_key, load_pem_public_key
-import secrets
 
 try:
     import bcrypt  # type: ignore[import-not-found]
+
     _BCRYPT_AVAILABLE = True
 except ImportError:  # pragma: no cover
     bcrypt = None  # type: ignore[assignment]
@@ -322,6 +325,7 @@ def verify_password(password: str, hashed: str) -> bool:
 
 # Certificate management and validation functions
 
+
 def load_certificate(cert_data: bytes) -> x509.Certificate:
     """
     Load an X.509 certificate from PEM or DER format.
@@ -475,6 +479,7 @@ def extract_certificate_info(cert: x509.Certificate) -> dict[str, str]:
 
 
 # Secure random number generation functions
+
 
 def generate_secure_random_bytes(length: int) -> bytes:
     """

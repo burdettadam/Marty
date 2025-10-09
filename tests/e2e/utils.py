@@ -2,6 +2,7 @@
 
 Provides stable selector indirection so template changes require minimal test edits.
 """
+
 from __future__ import annotations
 
 from playwright.async_api import Locator, Page

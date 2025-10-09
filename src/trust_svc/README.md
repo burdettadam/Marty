@@ -5,6 +5,7 @@ A comprehensive microservice for managing trust relationships, certificate valid
 ## Overview
 
 The Trust Services microservice provides centralized management of:
+
 - **Trust Anchors**: Country Signing Certificate Authorities (CSCAs)
 - **Document Signing Certificates (DSCs)**: For passport validation
 - **Certificate Revocation Lists (CRLs)**: Real-time revocation status
@@ -50,18 +51,21 @@ The trust_svc schema includes:
 ## API Endpoints
 
 ### Trust Queries
+
 - `GET /api/v1/trust/anchor/{country}` - Get trust anchor for country
 - `GET /api/v1/trust/dsc/{thumbprint}` - Check DSC trust status
 - `GET /api/v1/trust/revocation/{serial}` - Get revocation status
 - `GET /api/v1/trust/snapshot/latest` - Latest trust snapshot
 
 ### Administration
+
 - `POST /api/v1/admin/refresh-crl` - Force CRL refresh
 - `POST /api/v1/admin/snapshot` - Create new trust snapshot
 - `GET /api/v1/admin/status` - Service health status
 - `GET /api/v1/admin/stats` - Trust statistics
 
 ### Development
+
 - `POST /api/v1/dev/load-synthetic` - Load synthetic test data
 - `GET /api/v1/dev/stats` - Development statistics
 
@@ -119,22 +123,26 @@ TRUST_SERVICE_LOG_LEVEL=INFO
 ## Development Setup
 
 1. **Database Setup**:
+
    ```bash
    psql -h localhost -U postgres -d marty -f src/trust_svc/database/schema.sql
    psql -h localhost -U postgres -d marty -f src/trust_svc/database/sample_data.sql
    ```
 
 2. **Install Dependencies**:
+
    ```bash
    pip install -e ".[trust-svc]"
    ```
 
 3. **Run Development Job**:
+
    ```bash
    python -m src.trust_svc.dev_job --count 1000 --format table
    ```
 
 4. **Start Service**:
+
    ```bash
    uvicorn src.trust_svc.api:app --host 0.0.0.0 --port 8080 --reload
    ```
@@ -207,6 +215,7 @@ Common issues:
 4. **Metrics**: Verify Prometheus scraping configuration
 
 Check logs for detailed error information:
+
 ```bash
 docker logs trust-svc
 ```

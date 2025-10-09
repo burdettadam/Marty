@@ -5,6 +5,7 @@ Certificate Lifecycle Monitor
 This service monitors the lifecycle of certificates, including expiration dates,
 and provides notifications for upcoming certificate events.
 """
+
 from __future__ import annotations
 
 import asyncio
@@ -33,9 +34,7 @@ class CertificateLifecycleMonitor:
     5. Automate certificate rotation based on policy
     """
 
-    def __init__(
-        self, csca_endpoint: str | None = None, config_file: str | None = None
-    ) -> None:
+    def __init__(self, csca_endpoint: str | None = None, config_file: str | None = None) -> None:
         """
         Initialize the Certificate Lifecycle Monitor.
 

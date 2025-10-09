@@ -7,6 +7,7 @@
 ## Educational Context
 
 This developer guide documents an educational implementation created to:
+
 - Learn and demonstrate ICAO Doc 9303 and ISO/IEC 18013-5 standards
 - Explore microservices architecture patterns
 - Practice cryptographic implementations and PKI concepts
@@ -15,6 +16,7 @@ This developer guide documents an educational implementation created to:
 **This is a learning project and should never be used in production environments.**
 
 ## Table of Contents
+
 - [Quick Start](#quick-start)
 - [API Reference](#api-reference)
 - [Architecture Deep Dive](#architecture-deep-dive)
@@ -61,6 +63,7 @@ For easier integration and testing, REST endpoints wrap the gRPC services:
 **Base URL**: `http://localhost:8080/api/v1/`
 
 Key endpoints:
+
 ```
 GET    /v1/csca/certificates        # List CSCA certificates
 POST   /v1/csca/certificates        # Create new CSCA certificate
@@ -137,28 +140,33 @@ POST   /v1/trust/anchors           # Add trusted certificate
 ### Core Components
 
 #### Document Engines
+
 - **Passport Engine**: ICAO Doc 9303 compliant eMRTD creation with full LDS support
 - **MDL Engine**: ISO/IEC 18013-5 mobile driving licenses with selective disclosure
 - **DTC Engine**: ICAO Digital Travel Credentials with token management
 
 #### Security Layer
+
 - **CSCA Service**: Country Signing Certificate Authority with HSM integration
 - **Document Signer**: Cryptographic document signing using RSA/ECDSA
 - **Trust Anchor**: Certificate trust chain validation and management
 
 #### Verification Layer
+
 - **Inspection System**: Multi-format document verification with BAC/PACE support
 - **PKD Service**: Public Key Directory integration with ICAO Master Lists
 
 ## Development Setup
 
 ### Prerequisites
+
 - Python 3.10+
 - Docker and Docker Compose
 - UV package manager
 - Make (for development shortcuts)
 
 ### Local Development
+
 ```bash
 # Install UV package manager
 pip install uv
@@ -181,6 +189,7 @@ make dev
 ```
 
 ### Docker Development
+
 ```bash
 # Build and start all services
 docker-compose up --build
@@ -200,10 +209,12 @@ docker-compose up --scale passport-engine=3
 The recommended development approach for microservices is using Kubernetes, which better matches production deployment patterns.
 
 #### Prerequisites
+
 - Docker Desktop (with Kubernetes enabled) or Docker Engine
 - Make (for running commands)
 
 #### Quick Start
+
 ```bash
 # Set up local Kubernetes cluster with all dependencies
 make k8s-setup
@@ -221,11 +232,14 @@ make k8s-status
 #### Development Workflow
 
 **1. Initial Setup**
+
 ```bash
 # One-time setup of Kind cluster with ingress, storage, and namespaces
 make k8s-setup
 ```
+
 This creates a local Kubernetes cluster using Kind with:
+
 - Multi-node cluster (1 control plane + 2 workers)
 - NGINX Ingress Controller
 - Local storage class
@@ -234,11 +248,14 @@ This creates a local Kubernetes cluster using Kind with:
 - Helm repositories configured
 
 **2. Deploy Services**
+
 ```bash
 # Build Docker images and deploy to Kubernetes
 make k8s-deploy
 ```
+
 This will:
+
 - Compile protocol buffers
 - Build all Docker images
 - Load images into Kind cluster
@@ -246,17 +263,21 @@ This will:
 - Deploy all Marty microservices via Helm
 
 **3. Development with Hot Reload**
+
 ```bash
 # Start Skaffold for continuous development
 make k8s-dev
 ```
+
 Skaffold provides:
+
 - Automatic image rebuilds on code changes
 - Deployment to Kubernetes
 - Port forwarding to local machine
 - Log streaming from pods
 
 **4. Access Services**
+
 ```bash
 # Set up port forwarding for all services
 make k8s-port-forward
@@ -267,6 +288,7 @@ kubectl port-forward svc/csca-service 8081:8081 -n marty
 ```
 
 **5. Monitoring and Debugging**
+
 ```bash
 # Deploy monitoring stack (Prometheus + Grafana)
 make k8s-monitoring
@@ -285,18 +307,21 @@ kubectl get events -n marty --sort-by='.lastTimestamp'
 ```
 
 #### Service Access URLs
+
 When port forwarding is active:
-- **UI Application**: http://localhost:8090
-- **CSCA Service**: http://localhost:8081
-- **Document Signer**: http://localhost:8082
-- **Inspection System**: http://localhost:8083
-- **Passport Engine**: http://localhost:8084
-- **MDL Engine**: http://localhost:8085
-- **mDoc Engine**: http://localhost:8086
-- **DTC Engine**: http://localhost:8087
-- **PKD Service**: http://localhost:8088
+
+- **UI Application**: <http://localhost:8090>
+- **CSCA Service**: <http://localhost:8081>
+- **Document Signer**: <http://localhost:8082>
+- **Inspection System**: <http://localhost:8083>
+- **Passport Engine**: <http://localhost:8084>
+- **MDL Engine**: <http://localhost:8085>
+- **mDoc Engine**: <http://localhost:8086>
+- **DTC Engine**: <http://localhost:8087>
+- **PKD Service**: <http://localhost:8088>
 
 #### Monitoring Access
+
 ```bash
 # Access Grafana dashboard
 kubectl port-forward svc/marty-monitoring-grafana 3000:3000 -n marty-system
@@ -310,6 +335,7 @@ kubectl port-forward svc/marty-monitoring-prometheus-server 9090:9090 -n marty-s
 #### Common Development Tasks
 
 **Restart Services**
+
 ```bash
 # Restart all services
 make k8s-restart
@@ -319,6 +345,7 @@ kubectl rollout restart deployment/csca-service -n marty
 ```
 
 **Update Configuration**
+
 ```bash
 # Update Helm values and redeploy
 helm upgrade csca-service helm/charts/csca-service -n marty --set image.tag=latest
@@ -328,6 +355,7 @@ kubectl apply -f k8s/configmap.yaml
 ```
 
 **Debugging**
+
 ```bash
 # Get pod logs
 kubectl logs -f deployment/csca-service -n marty
@@ -340,6 +368,7 @@ kubectl port-forward pod/csca-service-xxx 8081:8081 -n marty
 ```
 
 **Testing Service Communication**
+
 ```bash
 # Test internal service communication
 kubectl run test-pod --image=curlimages/curl -i --tty --rm -- /bin/sh
@@ -348,6 +377,7 @@ curl http://csca-service.marty.svc.cluster.local:8081/health
 ```
 
 #### Cleanup
+
 ```bash
 # Remove all services but keep cluster
 make k8s-undeploy
@@ -359,6 +389,7 @@ make k8s-destroy
 #### Troubleshooting
 
 **Pod Won't Start**
+
 ```bash
 # Check pod status and events
 kubectl describe pod <pod-name> -n marty
@@ -368,6 +399,7 @@ kubectl logs <pod-name> -n marty --previous
 ```
 
 **Service Not Accessible**
+
 ```bash
 # Check service and endpoints
 kubectl get svc,ep -n marty
@@ -377,6 +409,7 @@ kubectl run test-dns --image=busybox -i --tty --rm -- nslookup csca-service.mart
 ```
 
 **Image Pull Issues**
+
 ```bash
 # Ensure images are loaded into Kind
 kind load docker-image marty/csca-service:latest --name marty-dev
@@ -386,6 +419,7 @@ kubectl get deployment csca-service -n marty -o yaml | grep imagePullPolicy
 ```
 
 **Port Forwarding Issues**
+
 ```bash
 # Kill existing port forwards
 pkill -f "kubectl port-forward"
@@ -397,6 +431,7 @@ make k8s-port-forward
 #### Configuration Management
 
 All Kubernetes configurations are managed through:
+
 - **Helm Charts**: `helm/charts/` - Service deployment configurations
 - **Skaffold**: `skaffold.yaml` - Development workflow automation  
 - **Makefile**: Kubernetes development targets
@@ -404,6 +439,7 @@ All Kubernetes configurations are managed through:
 - **Secrets**: Sensitive data like database passwords
 
 ### Environment Configuration
+
 Configuration is managed through environment-specific YAML files:
 
 ```
@@ -420,6 +456,7 @@ Set environment: `export MARTY_ENV=development`
 ⚠️ **Important**: OpenXPKI services require explicit credential configuration. No defaults are provided for security.
 
 **Quick Setup for Development**:
+
 ```bash
 # 1. Setup environment configuration
 cp docker/openxpki.env.example docker/openxpki.env
@@ -436,13 +473,16 @@ curl -k https://localhost:8443/openxpki/
 ```
 
 **Credential Configuration Options**:
+
 1. **Environment Variables** (development):
+
    ```bash
    export OPENXPKI_USERNAME="pkiadmin"
    export OPENXPKI_PASSWORD="your_secure_password"
    ```
 
 2. **Secret Files** (production):
+
    ```bash
    echo "admin_user" > /run/secrets/openxpki_username
    echo "secure_password" > /run/secrets/openxpki_password
@@ -466,7 +506,7 @@ class MartyPassportClient:
     def __init__(self, server_address='localhost:8084'):
         self.channel = grpc.insecure_channel(server_address)
         self.stub = passport_engine_pb2_grpc.PassportEngineStub(self.channel)
-    
+
     def create_passport(self, citizen_data):
         """Create an eMRTD passport"""
         request = passport_engine_pb2.PersonalizationRequest(
@@ -474,7 +514,7 @@ class MartyPassportClient:
             photo_data=citizen_data['photo'],
             additional_data_groups=citizen_data.get('additional_dgs', [])
         )
-        
+
         try:
             response = self.stub.PersonalizePassport(request)
             return {
@@ -502,7 +542,7 @@ class MartyVerificationClient:
     def __init__(self, server_address='localhost:8083'):
         self.channel = grpc.insecure_channel(server_address)
         self.stub = inspection_system_pb2_grpc.InspectionSystemStub(self.channel)
-    
+
     def verify_document(self, document_data, doc_type='passport'):
         """Verify document authenticity"""
         request = inspection_system_pb2.VerificationRequest(
@@ -510,7 +550,7 @@ class MartyVerificationClient:
             verification_type="FULL_CHIP_VERIFICATION",
             document_type=doc_type.upper()
         )
-        
+
         response = self.stub.VerifyDocument(request)
         return {
             'valid': response.is_valid,
@@ -530,7 +570,7 @@ class MartyMDLClient:
     def __init__(self, server_address='localhost:8085'):
         self.channel = grpc.insecure_channel(server_address)
         self.stub = mdl_engine_pb2_grpc.MdlEngineStub(self.channel)
-    
+
     def create_mdl(self, driver_data):
         """Create ISO 18013-5 compliant mDL"""
         request = mdl_engine_pb2.MdlCreationRequest(
@@ -541,7 +581,7 @@ class MartyMDLClient:
             issue_date=driver_data['issue_date'],
             expiry_date=driver_data['expiry_date']
         )
-        
+
         response = self.stub.CreateMdl(request)
         return {
             'success': response.success,
@@ -563,22 +603,22 @@ class MartyBatchProcessor:
         self.max_workers = max_workers
         self.channels = {}
         self.clients = {}
-        
+
     def get_client(self, service_name, port):
         """Get or create gRPC client with connection pooling"""
         key = f"{service_name}:{port}"
         if key not in self.channels:
             self.channels[key] = grpc.insecure_channel(f'localhost:{port}')
-            
+
         if key not in self.clients:
             if service_name == 'passport':
                 self.clients[key] = passport_engine_pb2_grpc.PassportEngineStub(
                     self.channels[key]
                 )
             # Add other service clients as needed
-                
+
         return self.clients[key]
-    
+
     def batch_create_passports(self, citizens_data):
         """Process multiple passports in parallel"""
         with ThreadPoolExecutor(max_workers=self.max_workers) as executor:
@@ -586,7 +626,7 @@ class MartyBatchProcessor:
             for citizen in citizens_data:
                 future = executor.submit(self._create_single_passport, citizen)
                 futures.append(future)
-            
+
             results = []
             for future in futures:
                 try:
@@ -595,9 +635,9 @@ class MartyBatchProcessor:
                 except Exception as e:
                     logging.error(f"Batch processing error: {e}")
                     results.append({'success': False, 'error': str(e)})
-                    
+
             return results
-    
+
     def _create_single_passport(self, citizen_data):
         """Create single passport (internal method)"""
         client = self.get_client('passport', 8084)
@@ -605,7 +645,7 @@ class MartyBatchProcessor:
             mrz_data=citizen_data['mrz'],
             photo_data=citizen_data['photo']
         )
-        
+
         response = client.PersonalizePassport(request)
         return {
             'success': response.success,
@@ -641,14 +681,14 @@ def robust_document_verification(document_data):
     def verify():
         channel = grpc.insecure_channel('localhost:8083')
         client = inspection_system_pb2_grpc.InspectionSystemStub(channel)
-        
+
         request = inspection_system_pb2.VerificationRequest(
             document_data=document_data,
             verification_type="FULL_CHIP_VERIFICATION"
         )
-        
+
         return client.VerifyDocument(request)
-    
+
     try:
         response = retry_with_backoff(verify)
         return {
@@ -659,12 +699,12 @@ def robust_document_verification(document_data):
     except grpc.RpcError as e:
         error_map = {
             StatusCode.INVALID_ARGUMENT: "Invalid document format or data",
-            StatusCode.NOT_FOUND: "Certificate not found in trust store", 
+            StatusCode.NOT_FOUND: "Certificate not found in trust store",
             StatusCode.DEADLINE_EXCEEDED: "Verification timeout - check document complexity",
             StatusCode.PERMISSION_DENIED: "Insufficient permissions for verification",
             StatusCode.UNAVAILABLE: "Verification service unavailable"
         }
-        
+
         return {
             'status': 'error',
             'error_code': e.code().name,
@@ -727,6 +767,7 @@ def create_and_verify_document(citizen_data):
 ## Testing
 
 ### Unit Tests
+
 ```bash
 # Run all tests
 make test
@@ -739,6 +780,7 @@ pytest --cov=src tests/
 ```
 
 ### Integration Tests
+
 ```bash
 # Start test environment
 docker-compose -f docker/docker-compose.yml up -d
@@ -751,6 +793,7 @@ docker-compose -f docker/docker-compose.yml down
 ```
 
 ### Load Testing
+
 ```bash
 # Install load testing tools
 pip install grpcio-tools grpcio-status
@@ -762,6 +805,7 @@ python tests/load/passport_load_test.py --concurrent=50 --requests=1000
 ## Deployment
 
 ### Production Configuration
+
 ```yaml
 # config/production.yaml
 server:
@@ -778,13 +822,14 @@ openxpki:
   server_url: "https://openxpki.production.com"
   api_endpoint: "/api/v1"
   realm: "production-ca"
-  
+
 logging:
   level: "INFO"
   format: "json"
 ```
 
 ### Docker Production Build
+
 ```dockerfile
 # Dockerfile.production
 FROM python:3.10-slim

@@ -16,10 +16,9 @@ import base64
 import hashlib
 from datetime import datetime, timezone
 
-from shared.logging_config import get_logger
-
 from marty_common.models.passport import CMCCertificate, DataGroup, DataGroupType
 from marty_common.utils.mrz_utils import generate_td1_mrz
+from shared.logging_config import get_logger
 
 logger = get_logger(__name__)
 
@@ -65,7 +64,7 @@ class CMCLDSGenerator:
                 data=dg1_data,
                 hash_algorithm="SHA-256",
                 hash_value=dg1_hash,
-                size=len(dg1_data)
+                size=len(dg1_data),
             )
 
             logger.info(f"DG1 generated successfully: {len(dg1_data)} bytes")
@@ -117,7 +116,7 @@ class CMCLDSGenerator:
                 data=dg2_data,
                 hash_algorithm="SHA-256",
                 hash_value=dg2_hash,
-                size=len(dg2_data)
+                size=len(dg2_data),
             )
 
             logger.info(f"DG2 generated successfully: {len(dg2_data)} bytes")
@@ -129,9 +128,7 @@ class CMCLDSGenerator:
             return dg2
 
     def generate_chip_content(
-        self,
-        cmc_certificate: CMCCertificate,
-        sod_data: str | None = None
+        self, cmc_certificate: CMCCertificate, sod_data: str | None = None
     ) -> bytes:
         """Generate complete chip content for CMC certificate.
 
@@ -278,10 +275,10 @@ class CMCLDSGenerator:
         ef_com = bytearray()
 
         # LDS version (1.7)
-        ef_com.extend(b"\x5F\x01\x04\x30\x31\x30\x37")  # Version "0107"
+        ef_com.extend(b"\x5f\x01\x04\x30\x31\x30\x37")  # Version "0107"
 
         # Unicode version (4.0.0)
-        ef_com.extend(b"\x5F\x36\x06\x34\x2E\x30\x2E\x30")  # "4.0.0"
+        ef_com.extend(b"\x5f\x36\x06\x34\x2e\x30\x2e\x30")  # "4.0.0"
 
         # Tag list indicating which DGs are present
         tag_list = [0x61]  # DG1 always present
@@ -289,7 +286,7 @@ class CMCLDSGenerator:
             tag_list.append(0x75)  # DG2 if face image present
 
         # Encode tag list
-        ef_com.extend(b"\x5C")  # Tag list tag
+        ef_com.extend(b"\x5c")  # Tag list tag
         ef_com.append(len(tag_list))
         ef_com.extend(bytes(tag_list))
 
@@ -308,7 +305,7 @@ class CMCLDSGenerator:
             return False
 
         # Check for JPEG magic number
-        if image_bytes[:2] == b"\xFF\xD8":
+        if image_bytes[:2] == b"\xff\xd8":
             return True
 
         # Check for JPEG2000 magic number
@@ -355,7 +352,7 @@ class CMCSODGenerator:
         self,
         data_groups: dict[str, DataGroup],
         signer_certificate: str | None = None,
-        hash_algorithm: str = "SHA-256"
+        hash_algorithm: str = "SHA-256",
     ) -> str:
         """Generate Security Object Document (SOD) for CMC.
 
@@ -374,14 +371,10 @@ class CMCSODGenerator:
             logger.info("Generating SOD for CMC")
 
             # Create LDS Security Object
-            lds_security_object = self._create_lds_security_object(
-                data_groups, hash_algorithm
-            )
+            lds_security_object = self._create_lds_security_object(data_groups, hash_algorithm)
 
             # Create CMS SignedData structure (simplified)
-            sod_data = self._create_cms_signed_data(
-                lds_security_object, signer_certificate
-            )
+            sod_data = self._create_cms_signed_data(lds_security_object, signer_certificate)
 
             # Encode as base64
             sod_b64 = base64.b64encode(sod_data).decode("ascii")
@@ -395,9 +388,7 @@ class CMCSODGenerator:
             return sod_b64
 
     def _create_lds_security_object(
-        self,
-        data_groups: dict[str, DataGroup],
-        hash_algorithm: str
+        self, data_groups: dict[str, DataGroup], hash_algorithm: str
     ) -> bytes:
         """Create LDS Security Object with data group hashes.
 
@@ -446,18 +437,16 @@ class CMCSODGenerator:
         """
         # Hash algorithm OIDs
         hash_oids = {
-            "SHA-1": b"\x30\x09\x06\x05\x2B\x0E\x03\x02\x1A\x05\x00",
-            "SHA-256": b"\x30\x0B\x06\x09\x60\x86\x48\x01\x65\x03\x04\x02\x01\x05\x00",
-            "SHA-384": b"\x30\x0B\x06\x09\x60\x86\x48\x01\x65\x03\x04\x02\x02\x05\x00",
-            "SHA-512": b"\x30\x0B\x06\x09\x60\x86\x48\x01\x65\x03\x04\x02\x03\x05\x00",
+            "SHA-1": b"\x30\x09\x06\x05\x2b\x0e\x03\x02\x1a\x05\x00",
+            "SHA-256": b"\x30\x0b\x06\x09\x60\x86\x48\x01\x65\x03\x04\x02\x01\x05\x00",
+            "SHA-384": b"\x30\x0b\x06\x09\x60\x86\x48\x01\x65\x03\x04\x02\x02\x05\x00",
+            "SHA-512": b"\x30\x0b\x06\x09\x60\x86\x48\x01\x65\x03\x04\x02\x03\x05\x00",
         }
 
         return hash_oids.get(algorithm, hash_oids["SHA-256"])
 
     def _create_cms_signed_data(
-        self,
-        lds_security_object: bytes,
-        signer_certificate: str | None
+        self, lds_security_object: bytes, signer_certificate: str | None
     ) -> bytes:
         """Create CMS SignedData structure.
 
@@ -476,10 +465,10 @@ class CMCSODGenerator:
         cms_data.extend(b"\x30\x82")  # SEQUENCE, long form length
 
         # Content type (signedData)
-        cms_data.extend(b"\x06\x09\x2A\x86\x48\x86\xF7\x0D\x01\x07\x02")
+        cms_data.extend(b"\x06\x09\x2a\x86\x48\x86\xf7\x0d\x01\x07\x02")
 
         # Content (the LDS Security Object)
-        cms_data.extend(b"\xA0\x82")  # CONTEXT [0], long form length
+        cms_data.extend(b"\xa0\x82")  # CONTEXT [0], long form length
         cms_data.extend(len(lds_security_object).to_bytes(2, "big"))
         cms_data.extend(lds_security_object)
 
@@ -509,9 +498,7 @@ class CMCLDSManager:
         logger.info("CMC LDS manager initialized")
 
     def create_chip_lds_data(
-        self,
-        cmc_certificate: CMCCertificate,
-        signer_certificate: str | None = None
+        self, cmc_certificate: CMCCertificate, signer_certificate: str | None = None
     ) -> tuple[dict[str, DataGroup], str, bytes]:
         """Create complete LDS data for chip-based CMC.
 
@@ -538,14 +525,10 @@ class CMCLDSManager:
                 data_groups["DG2"] = dg2
 
             # Generate SOD
-            sod_b64 = self.sod_generator.generate_sod(
-                data_groups, signer_certificate
-            )
+            sod_b64 = self.sod_generator.generate_sod(data_groups, signer_certificate)
 
             # Generate complete chip content
-            chip_content = self.lds_generator.generate_chip_content(
-                cmc_certificate, sod_b64
-            )
+            chip_content = self.lds_generator.generate_chip_content(cmc_certificate, sod_b64)
 
             logger.info("Chip LDS data created successfully")
         except Exception as e:
@@ -556,9 +539,7 @@ class CMCLDSManager:
             return data_groups, sod_b64, chip_content
 
     def update_cmc_with_lds_data(
-        self,
-        cmc_certificate: CMCCertificate,
-        signer_certificate: str | None = None
+        self, cmc_certificate: CMCCertificate, signer_certificate: str | None = None
     ) -> CMCCertificate:
         """Update CMC certificate with LDS data.
 

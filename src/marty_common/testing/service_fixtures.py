@@ -24,19 +24,19 @@ from marty_common.testing.test_utilities import (
 
 class ServiceTestMixin:
     """Base mixin for service test configurations."""
-    
+
     @staticmethod
     def setup_service_paths(service_name: str) -> dict[str, Path]:
         """Set up standard paths for a service test suite."""
         current_dir = Path.cwd()
-        
+
         # Navigate up to find service root
         service_root = current_dir
         while service_root.name != service_name and service_root.parent != service_root:
             service_root = service_root.parent
-            
+
         project_root = service_root.parent.parent  # assuming src/service_name structure
-        
+
         return {
             "service_root": service_root,
             "project_root": project_root,
@@ -49,12 +49,12 @@ class ServiceTestMixin:
 
 class FastAPIServiceTestConfig(ServiceTestMixin):
     """Test configuration for FastAPI services with DRY patterns."""
-    
+
     def __init__(self, service_name: str, app_module_path: str) -> None:
         self.service_name = service_name
         self.app_module_path = app_module_path
         self.paths = self.setup_service_paths(service_name)
-    
+
     @pytest.fixture
     def app(self) -> FastAPI:
         """Import and return the FastAPI app for testing."""
@@ -62,19 +62,19 @@ class FastAPIServiceTestConfig(ServiceTestMixin):
         module_parts = self.app_module_path.split(".")
         module = __import__(self.app_module_path, fromlist=[module_parts[-1]])
         return module.app
-    
+
     @pytest.fixture
     def client(self, app: FastAPI) -> Generator[TestClient, None, None]:
         """Create a test client with API key authentication."""
         with TestClientFactory.create_fastapi_client(app) as client:
             yield client
-    
+
     @pytest.fixture
     def authenticated_client(self, app: FastAPI) -> Generator[TestClient, None, None]:
         """Create an authenticated test client."""
         with TestClientFactory.create_fastapi_client(app, "valid_test_key") as client:
             yield client
-    
+
     @pytest.fixture
     def unauthenticated_client(self, app: FastAPI) -> Generator[TestClient, None, None]:
         """Create a client without authentication headers."""
@@ -84,25 +84,25 @@ class FastAPIServiceTestConfig(ServiceTestMixin):
 
 def create_service_test_config(service_name: str, app_module_path: str) -> type:
     """Factory function to create a test configuration class for a service."""
-    
+
     class ServiceTestConfig(FastAPIServiceTestConfig):
         def __init__(self) -> None:
             super().__init__(service_name, app_module_path)
-    
+
     return ServiceTestConfig
 
 
 # Pre-configured test configurations for known services
 class PKDServiceTestConfig(FastAPIServiceTestConfig):
     """Test configuration for PKD service."""
-    
+
     def __init__(self) -> None:
         super().__init__("pkd_service", "app.main")
 
 
 class DocumentProcessingTestConfig(FastAPIServiceTestConfig):
     """Test configuration for Document Processing service."""
-    
+
     def __init__(self) -> None:
         super().__init__("document_processing", "app.main")
 
@@ -137,7 +137,7 @@ def mock_service_dependencies() -> dict[str, Any]:
 # Service-specific test data factories
 class TestDataFactory:
     """Factory for creating service-specific test data."""
-    
+
     @staticmethod
     def create_test_passport_data() -> dict[str, Any]:
         """Create test passport data."""
@@ -149,7 +149,7 @@ class TestDataFactory:
             "surname": "DOE",
             "given_names": "JOHN",
         }
-    
+
     @staticmethod
     def create_test_certificate_data() -> dict[str, Any]:
         """Create test certificate data."""
@@ -162,7 +162,7 @@ class TestDataFactory:
             "key_type": "RSA",
             "key_size": 2048,
         }
-    
+
     @staticmethod
     def create_test_verification_request() -> dict[str, Any]:
         """Create test verification request data."""

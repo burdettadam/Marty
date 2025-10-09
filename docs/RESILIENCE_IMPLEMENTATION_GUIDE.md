@@ -51,7 +51,7 @@ resilience = CompositeResilienceInterceptor(
 # Use with gRPC client
 channel = grpc.insecure_channel("localhost:50051")
 channel = grpc.intercept_channel(
-    channel, 
+    channel,
     *resilience.get_client_interceptors()
 )
 
@@ -549,7 +549,7 @@ if not health["overall_healthy"]:
 def load_resilience_config():
     env = os.getenv("ENVIRONMENT", "development")
     config_file = f"config/resilience_{env}.yaml"
-    
+
     try:
         return load_config(config_file)
     except FileNotFoundError:
@@ -569,13 +569,13 @@ def load_resilience_config():
 def test_service_resilience():
     # Test circuit breaker activation
     test_circuit_breaker_opens_on_failures()
-    
+
     # Test retry behavior
     test_retries_with_exponential_backoff()
-    
+
     # Test recovery
     test_circuit_breaker_recovers_after_success()
-    
+
     # Test combined behavior
     test_circuit_breaker_and_retry_interaction()
 ```
@@ -598,7 +598,7 @@ class UserService:
     def __init__(self):
         # Load configuration
         self.config = load_config()
-        
+
         # Set up resilience
         self.resilience = CompositeResilienceInterceptor(
             service_name="user_service",
@@ -606,32 +606,32 @@ class UserService:
             client_circuit_breaker_config=self.config.circuit_breaker,
             enable_metrics=self.config.enable_metrics,
         )
-        
+
         # Register for monitoring
         register_circuit_breaker_for_monitoring(
-            "user_service", 
+            "user_service",
             self.resilience.client_interceptor.circuit_breaker
         )
         register_retry_manager_for_monitoring(
             "user_service",
             self.resilience.client_interceptor.retry_manager
         )
-    
+
     def start_server(self, port=50051):
         server = grpc.server(
             futures.ThreadPoolExecutor(max_workers=10),
             interceptors=self.resilience.get_server_interceptors()
         )
-        
+
         # Add your service implementation
         # add_UserServiceServicer_to_server(UserServiceImplementation(), server)
-        
+
         listen_addr = f"[::]:{port}"
         server.add_insecure_port(listen_addr)
         server.start()
         print(f"User service listening on {listen_addr}")
         return server
-    
+
     def create_client(self, target="localhost:50051"):
         channel = grpc.insecure_channel(target)
         channel = grpc.intercept_channel(
@@ -655,25 +655,25 @@ from marty_common.resilience import (
 class AsyncUserServiceClient:
     def __init__(self, target="localhost:50051"):
         self.target = target
-        
+
         # Configure retry behavior
         retry_config = AdvancedRetryConfig(
             max_attempts=3,
             base_delay=0.1,
             backoff_strategy=BackoffStrategy.EXPONENTIAL_JITTER,
         )
-        
+
         # Create interceptor
         self.interceptor = AsyncResilienceClientInterceptor(
             service_name="async_user_service",
             retry_config=retry_config,
         )
-    
+
     async def get_user(self, user_id: str):
         async with grpc.aio.insecure_channel(self.target) as channel:
             channel = grpc.aio.intercept_channel(channel, self.interceptor)
             stub = UserServiceStub(channel)
-            
+
             request = GetUserRequest(id=user_id)
             response = await stub.GetUser(request)
             return response

@@ -4,9 +4,11 @@ This file exists to prevent import errors before the Protocol Buffer files are c
 Run 'python compile_protos.py' to generate the actual gRPC modules.
 """
 
+
 # Placeholder classes to prevent import errors
 class TrustServiceServicer:
     pass
+
 
 class google:
     class protobuf:
@@ -15,9 +17,11 @@ class google:
                 def FromDatetime(self, dt):
                     pass
 
+
 # These will be replaced by actual generated modules
 trust_service_pb2 = None
 trust_service_pb2_grpc = None
+
 
 def add_TrustServiceServicer_to_server(servicer, server):  # noqa: ARG001
     """Placeholder function."""

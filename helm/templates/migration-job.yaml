@@ -53,17 +53,17 @@ spec:
               secretKeyRef:
                 name: {{ .Values.database.passwordSecret.name }}
                 key: {{ .Values.database.passwordSecret.key }}
-          
+
           # Service environment
           {{- range $key, $value := .Values.env }}
           - name: {{ $key }}
             value: {{ $value | quote }}
           {{- end }}
-          
+
           # Alembic configuration
           - name: ALEMBIC_CONFIG
             value: {{ .Values.migration.alembic.config_file | quote }}
-        
+
         # Volume mounts for configuration
         volumeMounts:
         {{- if .Values.migration.alembic.config_file }}
@@ -72,10 +72,10 @@ spec:
           subPath: alembic.ini
           readOnly: true
         {{- end }}
-        
+
         resources:
           {{- toYaml .Values.migration.resources | nindent 12 }}
-      
+
       # Volumes
       volumes:
       {{- if .Values.migration.alembic.config_file }}
@@ -83,7 +83,7 @@ spec:
         configMap:
           name: {{ include "marty-service.fullname" . }}-alembic-config
       {{- end }}
-      
+
       {{- with .Values.nodeSelector }}
       nodeSelector:
         {{- toYaml . | nindent 8 }}

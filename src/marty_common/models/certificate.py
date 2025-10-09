@@ -1,6 +1,7 @@
 """
 Certificate data models for Marty services.
 """
+
 from __future__ import annotations
 
 from dataclasses import dataclass

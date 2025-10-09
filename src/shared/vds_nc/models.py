@@ -27,7 +27,9 @@ class VDSNCHeader(BaseModel):
 
     version: VDSNCVersion = Field(default=VDSNCVersion.V1_0, description="VDS-NC version")
     doc_type: DocumentType = Field(..., description="Document type")
-    issuing_country: str = Field(..., min_length=3, max_length=3, description="3-letter country code")
+    issuing_country: str = Field(
+        ..., min_length=3, max_length=3, description="3-letter country code"
+    )
     signer_id: str = Field(..., max_length=16, description="Signer identifier")
     certificate_reference: str = Field(..., max_length=16, description="Certificate reference")
 
@@ -50,8 +52,7 @@ class VDSNCSignatureInfo(BaseModel):
 
     algorithm: SignatureAlgorithm = Field(..., description="Signature algorithm")
     created_at: datetime = Field(
-        default_factory=lambda: datetime.now(timezone.utc),
-        description="Signature creation time"
+        default_factory=lambda: datetime.now(timezone.utc), description="Signature creation time"
     )
     key_id: str | None = Field(None, description="Key identifier")
     certificate_chain: list[str] | None = Field(None, description="Certificate chain")
@@ -75,6 +76,7 @@ class VDSNCPayload(BaseModel):
     def get_canonical_message(self) -> str:
         """Get canonical representation of message data."""
         from .canonicalization import VDSNCCanonicalizer
+
         return VDSNCCanonicalizer.canonicalize(self.message, self.header.doc_type)
 
     def get_signature_data(self) -> bytes:
@@ -99,12 +101,10 @@ class VDSNCDocument(BaseModel):
 
     # Metadata
     document_id: str = Field(
-        default_factory=lambda: str(uuid.uuid4()),
-        description="Unique document ID"
+        default_factory=lambda: str(uuid.uuid4()), description="Unique document ID"
     )
     created_at: datetime = Field(
-        default_factory=lambda: datetime.now(timezone.utc),
-        description="Creation timestamp"
+        default_factory=lambda: datetime.now(timezone.utc), description="Creation timestamp"
     )
 
     def verify_signature(self, public_key_pem: str) -> bool:
@@ -223,9 +223,7 @@ class VDSNCVerificationResult(BaseModel):
     # Overall result
     is_valid: bool = Field(..., description="Overall verification result")
     document: VDSNCDocument | None = Field(None, description="Verified document")
-    verification_timestamp: datetime = Field(
-        default_factory=lambda: datetime.now(timezone.utc)
-    )
+    verification_timestamp: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
     # Detailed results
     signature_valid: bool = Field(default=False, description="Signature verification result")
@@ -239,6 +237,5 @@ class VDSNCVerificationResult(BaseModel):
 
     # Additional details
     verification_details: dict[str, Any] = Field(
-        default_factory=dict,
-        description="Additional verification data"
+        default_factory=dict, description="Additional verification data"
     )

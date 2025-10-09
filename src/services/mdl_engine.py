@@ -48,15 +48,19 @@ DEFAULT_DISCLOSURE_POLICIES = {
 DEVICE_ENGAGEMENT_VERSION = "1.0"
 SESSION_ESTABLISHMENT_VERSION = "1.0"
 
+
 class DeviceEngagementMethod:
     """Supported device engagement methods per ISO 18013-5."""
+
     QR_CODE = "qr_code"
     NFC = "nfc"
     BLUETOOTH = "bluetooth"
     WIFI_AWARE = "wifi_aware"
 
+
 class SessionTransportMethod:
     """Supported session transport methods per ISO 18013-5."""
+
     BLE = "ble"
     WIFI_AWARE = "wifi_aware"
     NFC = "nfc"
@@ -594,28 +598,32 @@ class MDLEngineServicer(mdl_engine_pb2_grpc.MDLEngineServicer):
         """Establish an ISO 18013-5 session with device engagement."""
         try:
             session_id = str(uuid.uuid4())
-            
+
             # Create device engagement data
             device_engagement = {
                 "version": DEVICE_ENGAGEMENT_VERSION,
-                "device_engagement_method": getattr(request, 'engagement_method', DeviceEngagementMethod.QR_CODE),
-                "transport_methods": getattr(request, 'transport_methods', [SessionTransportMethod.BLE]),
+                "device_engagement_method": getattr(
+                    request, "engagement_method", DeviceEngagementMethod.QR_CODE
+                ),
+                "transport_methods": getattr(
+                    request, "transport_methods", [SessionTransportMethod.BLE]
+                ),
                 "device_key": {
                     "kty": "EC",
                     "crv": "P-256",
                     "x": base64.b64encode(b"device_key_x").decode(),
-                    "y": base64.b64encode(b"device_key_y").decode()
+                    "y": base64.b64encode(b"device_key_y").decode(),
                 },
                 "session_id": session_id,
                 "timestamp": datetime.now(timezone.utc).isoformat(),
                 "reader_key": {
-                    "kty": "EC", 
+                    "kty": "EC",
                     "crv": "P-256",
                     "x": base64.b64encode(b"reader_key_x").decode(),
-                    "y": base64.b64encode(b"reader_key_y").decode()
-                }
+                    "y": base64.b64encode(b"reader_key_y").decode(),
+                },
             }
-            
+
             # Store session information
             session_data = {
                 "session_id": session_id,
@@ -624,13 +632,13 @@ class MDLEngineServicer(mdl_engine_pb2_grpc.MDLEngineServicer):
                 "created_at": datetime.now(timezone.utc).isoformat(),
                 "transport_method": device_engagement["transport_methods"][0],
                 "mdl_request": None,
-                "response_sent": False
+                "response_sent": False,
             }
-            
+
             # Store in object storage
             session_key = f"mdl/sessions/{session_id}.json"
             await self._persist_payload(session_key, session_data)
-            
+
             # Log session establishment with clear details
             self.logger.info(
                 f"✓ ISO 18013-5 Session Established: "
@@ -638,7 +646,7 @@ class MDLEngineServicer(mdl_engine_pb2_grpc.MDLEngineServicer):
                 f"Method={device_engagement['device_engagement_method']}, "
                 f"Transport={device_engagement['transport_methods']}"
             )
-            
+
             # Publish event
             await self._publish_event(
                 "mdl.session.established",
@@ -647,11 +655,11 @@ class MDLEngineServicer(mdl_engine_pb2_grpc.MDLEngineServicer):
                     "session_id": session_id,
                     "engagement_method": device_engagement["device_engagement_method"],
                     "transport_methods": device_engagement["transport_methods"],
-                    "timestamp": datetime.now(timezone.utc).isoformat()
+                    "timestamp": datetime.now(timezone.utc).isoformat(),
                 },
-                key=session_id
+                key=session_id,
             )
-            
+
             # Generate engagement data based on method
             qr_code_data = ""
             nfc_data = ""
@@ -661,93 +669,85 @@ class MDLEngineServicer(mdl_engine_pb2_grpc.MDLEngineServicer):
             elif device_engagement["device_engagement_method"] == DeviceEngagementMethod.NFC:
                 nfc_data = self._generate_nfc_data(device_engagement)
                 self.logger.info(f"✓ NFC data generated for session {session_id[:8]}...")
-            
+
             return {
                 "status": "SUCCESS",
                 "session_id": session_id,
                 "device_engagement": json.dumps(device_engagement),
                 "qr_code_data": qr_code_data,
-                "nfc_data": nfc_data
+                "nfc_data": nfc_data,
             }
-            
+
         except Exception as exc:
             self.logger.exception("✗ Failed to establish session")
-            return {
-                "status": "ERROR",
-                "error_message": str(exc)
-            }
+            return {"status": "ERROR", "error_message": str(exc)}
 
     async def ProcessMDLRequest(self, request: Any, context: Any) -> Any:
         """Process an mDL request within an established session."""
         try:
-            session_id = getattr(request, 'session_id', '')
+            session_id = getattr(request, "session_id", "")
             if not session_id:
-                return {
-                    "status": "ERROR",
-                    "error_message": "session_id is required"
-                }
-            
+                return {"status": "ERROR", "error_message": "session_id is required"}
+
             # Load session data
             session_key = f"mdl/sessions/{session_id}.json"
             try:
                 session_payload = await self._object_storage.get_object(session_key)
                 session_data = json.loads(session_payload.decode("utf-8"))
             except Exception:
-                return {
-                    "status": "ERROR", 
-                    "error_message": "Session not found or expired"
-                }
-            
+                return {"status": "ERROR", "error_message": "Session not found or expired"}
+
             # Parse mDL request
             mdl_request_data = {
-                "doc_type": getattr(request, 'doc_type', 'org.iso.18013.5.1.mDL'),
-                "name_spaces": getattr(request, 'name_spaces', ['org.iso.18013.5.1']),
-                "intent_to_retain": getattr(request, 'intent_to_retain', False),
-                "reader_auth": getattr(request, 'reader_auth', ''),
-                "requested_elements": self._parse_requested_elements(getattr(request, 'name_spaces', ['org.iso.18013.5.1']))
+                "doc_type": getattr(request, "doc_type", "org.iso.18013.5.1.mDL"),
+                "name_spaces": getattr(request, "name_spaces", ["org.iso.18013.5.1"]),
+                "intent_to_retain": getattr(request, "intent_to_retain", False),
+                "reader_auth": getattr(request, "reader_auth", ""),
+                "requested_elements": self._parse_requested_elements(
+                    getattr(request, "name_spaces", ["org.iso.18013.5.1"])
+                ),
             }
-            
+
             # Apply disclosure policy
-            disclosure_policy = getattr(request, 'disclosure_policy', 'STANDARD')
-            allowed_elements = DEFAULT_DISCLOSURE_POLICIES.get(disclosure_policy, DEFAULT_DISCLOSURE_POLICIES["STANDARD"])
-            
+            disclosure_policy = getattr(request, "disclosure_policy", "STANDARD")
+            allowed_elements = DEFAULT_DISCLOSURE_POLICIES.get(
+                disclosure_policy, DEFAULT_DISCLOSURE_POLICIES["STANDARD"]
+            )
+
             # Filter requested elements based on policy
             disclosed_elements = self._apply_disclosure_policy(
-                mdl_request_data["requested_elements"], 
-                allowed_elements
+                mdl_request_data["requested_elements"], allowed_elements
             )
-            
+
             # Generate response with disclosed elements
             mdl_response = {
                 "version": SESSION_ESTABLISHMENT_VERSION,
                 "documents": [
                     {
                         "doc_type": "org.iso.18013.5.1.mDL",
-                        "issuer_signed": {
-                            "name_spaces": {
-                                "org.iso.18013.5.1": disclosed_elements
-                            }
-                        },
+                        "issuer_signed": {"name_spaces": {"org.iso.18013.5.1": disclosed_elements}},
                         "device_signed": {
                             "name_spaces": {},
                             "device_auth": {
-                                "device_signature": base64.b64encode(b"mock_device_signature").decode()
-                            }
-                        }
+                                "device_signature": base64.b64encode(
+                                    b"mock_device_signature"
+                                ).decode()
+                            },
+                        },
                     }
                 ],
-                "status": 0  # Success
+                "status": 0,  # Success
             }
-            
+
             # Update session with request and response
             session_data["mdl_request"] = mdl_request_data
             session_data["mdl_response"] = mdl_response
             session_data["response_sent"] = True
             session_data["completed_at"] = datetime.now(timezone.utc).isoformat()
-            
+
             # Store updated session
             await self._persist_payload(session_key, session_data)
-            
+
             # Log the transaction with clear details
             disclosed_fields = list(disclosed_elements.keys())
             self.logger.info(
@@ -756,7 +756,7 @@ class MDLEngineServicer(mdl_engine_pb2_grpc.MDLEngineServicer):
                 f"Policy={disclosure_policy}, "
                 f"Disclosed={len(disclosed_fields)} fields: {', '.join(disclosed_fields[:3])}{'...' if len(disclosed_fields) > 3 else ''}"
             )
-            
+
             # Publish event
             await self._publish_event(
                 "mdl.request.processed",
@@ -766,24 +766,21 @@ class MDLEngineServicer(mdl_engine_pb2_grpc.MDLEngineServicer):
                     "doc_type": mdl_request_data["doc_type"],
                     "disclosed_elements": disclosed_fields,
                     "disclosure_policy": disclosure_policy,
-                    "timestamp": datetime.now(timezone.utc).isoformat()
+                    "timestamp": datetime.now(timezone.utc).isoformat(),
                 },
-                key=session_id
+                key=session_id,
             )
-            
+
             return {
                 "status": "SUCCESS",
                 "mdl_response": json.dumps(mdl_response),
                 "disclosed_elements": json.dumps(disclosed_elements),
-                "session_transcript": json.dumps(session_data)
+                "session_transcript": json.dumps(session_data),
             }
-            
+
         except Exception as exc:
             self.logger.exception("✗ Failed to process mDL request")
-            return {
-                "status": "ERROR",
-                "error_message": str(exc)
-            }
+            return {"status": "ERROR", "error_message": str(exc)}
 
     def _generate_qr_code_data(self, device_engagement: dict[str, Any]) -> str:
         """Generate QR code data for device engagement."""
@@ -792,18 +789,15 @@ class MDLEngineServicer(mdl_engine_pb2_grpc.MDLEngineServicer):
             "mdoc": device_engagement,
             "handover": {
                 "transport": device_engagement["transport_methods"][0],
-                "uuid": device_engagement["session_id"]
-            }
+                "uuid": device_engagement["session_id"],
+            },
         }
         return base64.b64encode(json.dumps(qr_data).encode()).decode()
 
     def _generate_nfc_data(self, device_engagement: dict[str, Any]) -> str:
         """Generate NFC data for device engagement."""
         # In a real implementation, this would generate proper NFC NDEF records
-        nfc_data = {
-            "mdoc_engagement": device_engagement,
-            "transport": "nfc"
-        }
+        nfc_data = {"mdoc_engagement": device_engagement, "transport": "nfc"}
         return base64.b64encode(json.dumps(nfc_data).encode()).decode()
 
     def _parse_requested_elements(self, name_spaces: list[str]) -> dict[str, Any]:
@@ -813,21 +807,25 @@ class MDLEngineServicer(mdl_engine_pb2_grpc.MDLEngineServicer):
         for ns in name_spaces:
             if "org.iso.18013.5.1" in ns:
                 # Parse standard mDL elements
-                requested.update({
-                    "family_name": True,
-                    "given_name": True,
-                    "birth_date": True,
-                    "issue_date": True,
-                    "expiry_date": True,
-                    "issuing_country": True,
-                    "issuing_authority": True,
-                    "document_number": True,
-                    "portrait": True,
-                    "driving_privileges": True
-                })
+                requested.update(
+                    {
+                        "family_name": True,
+                        "given_name": True,
+                        "birth_date": True,
+                        "issue_date": True,
+                        "expiry_date": True,
+                        "issuing_country": True,
+                        "issuing_authority": True,
+                        "document_number": True,
+                        "portrait": True,
+                        "driving_privileges": True,
+                    }
+                )
         return requested
 
-    def _apply_disclosure_policy(self, requested: dict[str, Any], allowed: list[str]) -> dict[str, Any]:
+    def _apply_disclosure_policy(
+        self, requested: dict[str, Any], allowed: list[str]
+    ) -> dict[str, Any]:
         """Apply disclosure policy to filter requested elements."""
         # Demo data - in production this would come from actual mDL data
         demo_mdl_data = {
@@ -844,25 +842,25 @@ class MDLEngineServicer(mdl_engine_pb2_grpc.MDLEngineServicer):
                 {
                     "vehicle_category_code": "A",
                     "issue_date": "2023-01-01",
-                    "expiry_date": "2028-01-01"
+                    "expiry_date": "2028-01-01",
                 }
-            ]
+            ],
         }
-        
+
         disclosed = {}
         for element in requested:
             # Map field names (simplified mapping)
             mapped_field = self._map_element_name(element)
             if mapped_field in allowed and element in demo_mdl_data:
                 disclosed[element] = demo_mdl_data[element]
-        
+
         return disclosed
 
     def _map_element_name(self, element: str) -> str:
         """Map ISO 18013-5 element names to policy field names."""
         mapping = {
             "family_name": "last_name",
-            "given_name": "first_name", 
+            "given_name": "first_name",
             "document_number": "license_number",
             "birth_date": "date_of_birth",
             "issuing_authority": "issuing_authority",
@@ -870,6 +868,6 @@ class MDLEngineServicer(mdl_engine_pb2_grpc.MDLEngineServicer):
             "portrait": "additional_fields",
             "issue_date": "additional_fields",
             "expiry_date": "additional_fields",
-            "issuing_country": "additional_fields"
+            "issuing_country": "additional_fields",
         }
         return mapping.get(element, element)

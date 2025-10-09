@@ -42,7 +42,7 @@ load_environment() {
     local tunnel_env_file="$CONFIG_DIR/.env.tunnel"
     local k8s_env_file="$CONFIG_DIR/.env.k8s"
     local env_file="$CONFIG_DIR/.env.demo"
-    
+
     # Check for tunnel environment first (for development tunnels)
     if [ -f "$tunnel_env_file" ]; then
         # shellcheck source=/dev/null
@@ -50,7 +50,7 @@ load_environment() {
         print_info "Development tunnel environment loaded from $tunnel_env_file"
         return 0
     fi
-    
+
     # Check if Kubernetes cluster is running and use K8s config
     if kind get clusters 2>/dev/null | grep -q "marty-microsoft-demo"; then
         if [ -f "$k8s_env_file" ]; then
@@ -60,7 +60,7 @@ load_environment() {
             return 0
         fi
     fi
-    
+
     # Fall back to demo environment
     if [ -f "$env_file" ]; then
         # shellcheck source=/dev/null
@@ -71,7 +71,7 @@ load_environment() {
         print_info "Please run 'make setup-env' first"
         exit 1
     fi
-    
+
     # Set defaults if not provided
     ISSUER_BASE_URL=${ISSUER_BASE_URL:-http://localhost:8000}
     VERIFIER_BASE_URL=${VERIFIER_BASE_URL:-http://localhost:8001}
@@ -82,10 +82,10 @@ test_connectivity() {
     print_header "Testing Basic Connectivity"
     echo "=========================="
     echo ""
-    
+
     local success_count=0
     local total_count=2
-    
+
     # Test issuer API connectivity
     print_info "Testing Issuer API connectivity..."
     if curl -f -s --max-time 10 "$ISSUER_BASE_URL" > /dev/null 2>&1; then
@@ -94,7 +94,7 @@ test_connectivity() {
     else
         print_error "❌ Issuer API is not reachable at $ISSUER_BASE_URL"
     fi
-    
+
     # Test verifier API connectivity
     print_info "Testing Verifier API connectivity..."
     if curl -f -s --max-time 10 "$VERIFIER_BASE_URL" > /dev/null 2>&1; then
@@ -103,7 +103,7 @@ test_connectivity() {
     else
         print_error "❌ Verifier API is not reachable at $VERIFIER_BASE_URL"
     fi
-    
+
     echo ""
     echo "Connectivity: $success_count/$total_count tests passed"
     return $((total_count - success_count))
@@ -114,15 +114,15 @@ test_health_endpoints() {
     print_header "Testing Health Endpoints"
     echo "========================"
     echo ""
-    
+
     local success_count=0
     local total_count=2
-    
+
     # Test issuer health
     print_info "Testing Issuer API health endpoint..."
     local issuer_health
     issuer_health=$(curl -f -s --max-time 10 "$ISSUER_BASE_URL/health" 2>/dev/null || echo "ERROR")
-    
+
     if [ "$issuer_health" != "ERROR" ]; then
         print_success "✅ Issuer API health check passed"
         echo "   Response: $issuer_health"
@@ -130,12 +130,12 @@ test_health_endpoints() {
     else
         print_error "❌ Issuer API health check failed"
     fi
-    
+
     # Test verifier health
     print_info "Testing Verifier API health endpoint..."
     local verifier_health
     verifier_health=$(curl -f -s --max-time 10 "$VERIFIER_BASE_URL/health" 2>/dev/null || echo "ERROR")
-    
+
     if [ "$verifier_health" != "ERROR" ]; then
         print_success "✅ Verifier API health check passed"
         echo "   Response: $verifier_health"
@@ -143,7 +143,7 @@ test_health_endpoints() {
     else
         print_error "❌ Verifier API health check failed"
     fi
-    
+
     echo ""
     echo "Health checks: $success_count/$total_count tests passed"
     return $((total_count - success_count))
@@ -154,10 +154,10 @@ test_documentation() {
     print_header "Testing API Documentation"
     echo "========================="
     echo ""
-    
+
     local success_count=0
     local total_count=2
-    
+
     # Test issuer documentation
     print_info "Testing Issuer API documentation..."
     if curl -f -s --max-time 10 "$ISSUER_BASE_URL/docs" > /dev/null 2>&1; then
@@ -167,7 +167,7 @@ test_documentation() {
     else
         print_error "❌ Issuer API documentation is not available"
     fi
-    
+
     # Test verifier documentation
     print_info "Testing Verifier API documentation..."
     if curl -f -s --max-time 10 "$VERIFIER_BASE_URL/docs" > /dev/null 2>&1; then
@@ -177,7 +177,7 @@ test_documentation() {
     else
         print_error "❌ Verifier API documentation is not available"
     fi
-    
+
     echo ""
     echo "Documentation: $success_count/$total_count tests passed"
     return $((total_count - success_count))
@@ -188,17 +188,17 @@ test_api_functionality() {
     print_header "Testing API Functionality"
     echo "========================="
     echo ""
-    
+
     local success_count=0
     local total_count=0
-    
+
     # Test issuer credential offer endpoint
     print_info "Testing Issuer API credential offer..."
     local offer_response
     offer_response=$(curl -f -s --max-time 10 -X POST "$ISSUER_BASE_URL/credential-offer" \
         -H "Content-Type: application/json" \
         -d '{"type":"EmployeeCredential","subject_data":{"name":"Test User","email":"test@example.com"}}' 2>/dev/null || echo "ERROR")
-    
+
     ((total_count++))
     if [ "$offer_response" != "ERROR" ] && [ -n "$offer_response" ]; then
         print_success "✅ Issuer API credential offer endpoint working"
@@ -207,14 +207,14 @@ test_api_functionality() {
     else
         print_error "❌ Issuer API credential offer endpoint failed"
     fi
-    
+
     # Test verifier presentation request endpoint
     print_info "Testing Verifier API presentation request..."
     local presentation_response
     presentation_response=$(curl -f -s --max-time 10 -X POST "$VERIFIER_BASE_URL/presentation-request" \
         -H "Content-Type: application/json" \
         -d '{"presentation_definition":{"id":"test_request","input_descriptors":[{"id":"employee_credential","schema":[{"uri":"EmployeeCredential"}]}]}}' 2>/dev/null || echo "ERROR")
-    
+
     ((total_count++))
     if [ "$presentation_response" != "ERROR" ] && [ -n "$presentation_response" ]; then
         print_success "✅ Verifier API presentation request endpoint working"
@@ -223,7 +223,7 @@ test_api_functionality() {
     else
         print_error "❌ Verifier API presentation request endpoint failed"
     fi
-    
+
     echo ""
     echo "API functionality: $success_count/$total_count tests passed"
     return $((total_count - success_count))
@@ -234,13 +234,13 @@ test_https_requirements() {
     print_header "Testing Microsoft Authenticator Requirements"
     echo "==========================================="
     echo ""
-    
+
     local success_count=0
     local total_count=2
-    
+
     # Check if URLs use HTTPS (required for Microsoft Authenticator)
     print_info "Checking HTTPS requirements..."
-    
+
     if [[ "$ISSUER_BASE_URL" =~ ^https:// ]]; then
         print_success "✅ Issuer URL uses HTTPS (required for Microsoft Authenticator)"
         ((success_count++))
@@ -250,7 +250,7 @@ test_https_requirements() {
     else
         print_error "❌ Issuer URL must use HTTPS for Microsoft Authenticator"
     fi
-    
+
     if [[ "$VERIFIER_BASE_URL" =~ ^https:// ]]; then
         print_success "✅ Verifier URL uses HTTPS (required for Microsoft Authenticator)"
         ((success_count++))
@@ -260,7 +260,7 @@ test_https_requirements() {
     else
         print_error "❌ Verifier URL must use HTTPS for Microsoft Authenticator"
     fi
-    
+
     echo ""
     echo "HTTPS requirements: $success_count/$total_count tests passed"
     return $((total_count - success_count))
@@ -269,11 +269,11 @@ test_https_requirements() {
 # Show test summary
 show_summary() {
     local total_failures=$1
-    
+
     print_header "Test Summary"
     echo "============"
     echo ""
-    
+
     if [ "$total_failures" -eq 0 ]; then
         print_success "🎉 All tests passed! Your Microsoft demo is ready."
         echo ""
@@ -291,7 +291,7 @@ show_summary() {
         echo "  3. Verify configuration: make show-config"
         echo "  4. Restart services: make docker-restart (or make k8s-restart)"
     fi
-    
+
     echo ""
     echo -e "${YELLOW}📖 Useful commands:${NC}"
     echo "  make status         - Check overall status"
@@ -305,29 +305,29 @@ main() {
     print_header "Microsoft Demo - Endpoint Testing"
     echo "================================="
     echo ""
-    
+
     load_environment
-    
+
     local total_failures=0
-    
+
     # Run all tests
     test_connectivity || ((total_failures += $?))
     echo ""
-    
+
     test_health_endpoints || ((total_failures += $?))
     echo ""
-    
+
     test_documentation || ((total_failures += $?))
     echo ""
-    
+
     test_api_functionality || ((total_failures += $?))
     echo ""
-    
+
     test_https_requirements || ((total_failures += $?))
     echo ""
-    
+
     show_summary "$total_failures"
-    
+
     # Return appropriate exit code
     exit "$total_failures"
 }

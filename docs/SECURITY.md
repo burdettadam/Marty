@@ -7,7 +7,7 @@ The Marty Platform team takes security seriously. If you discover a security vul
 ### How to Report
 
 1. **DO NOT** create a public GitHub issue for security vulnerabilities
-2. Send details to: security@marty-platform.com
+2. Send details to: <security@marty-platform.com>
 3. Include as much information as possible:
    - Description of the vulnerability
    - Steps to reproduce
@@ -24,6 +24,7 @@ The Marty Platform team takes security seriously. If you discover a security vul
 ### Scope
 
 This security policy applies to:
+
 - All Marty Platform services and components
 - Associated infrastructure and deployment configurations
 - Third-party dependencies and integrations
@@ -45,6 +46,7 @@ We implement comprehensive automated security testing including:
 Our platform implements multiple layers of security:
 
 #### Authentication & Authorization
+
 - Multi-factor authentication (MFA) support
 - Role-based access control (RBAC)
 - JWT token-based authentication with RS256 signing
@@ -52,18 +54,21 @@ Our platform implements multiple layers of security:
 - Rate limiting and IP filtering
 
 #### Data Protection
+
 - Encryption at rest and in transit (AES-256-GCM, TLS 1.3)
 - Automated key rotation
 - Data classification and retention policies
 - GDPR compliance features
 
 #### Network Security
+
 - TLS 1.2+ enforcement
 - Comprehensive CORS policies
 - Security headers (CSP, HSTS, X-Frame-Options, etc.)
 - Network segmentation and access controls
 
 #### Infrastructure Security
+
 - Container security best practices
 - Secrets management integration
 - Infrastructure as Code (IaC) security scanning
@@ -80,6 +85,7 @@ Our platform implements multiple layers of security:
 ### Compliance & Governance
 
 We maintain compliance with industry standards:
+
 - OWASP Top 10 security controls
 - NIST Cybersecurity Framework
 - ISO 27001 security management
@@ -98,6 +104,7 @@ Security configurations are environment-specific:
 ### Configuration Files
 
 Security settings are managed through:
+
 - `config/security/security_policy.yaml` - Main security policy
 - `config/security/bandit.yaml` - Code analysis configuration
 - `config/security/automation.yaml` - CI/CD security automation
@@ -170,6 +177,7 @@ Security settings are managed through:
 ## Security Training
 
 All team members are required to complete:
+
 - Secure coding training
 - Security awareness training
 - Incident response training
@@ -178,6 +186,7 @@ All team members are required to complete:
 ## Security Metrics
 
 We track and report on:
+
 - Vulnerability discovery and remediation times
 - Security scan coverage and results
 - Incident response metrics
@@ -186,9 +195,9 @@ We track and report on:
 
 ## Contact Information
 
-- **Security Team**: security@marty-platform.com
-- **Emergency Contact**: security-emergency@marty-platform.com
-- **Compliance Team**: compliance@marty-platform.com
+- **Security Team**: <security@marty-platform.com>
+- **Emergency Contact**: <security-emergency@marty-platform.com>
+- **Compliance Team**: <compliance@marty-platform.com>
 
 ## Legal
 
@@ -204,6 +213,7 @@ This security policy is subject to change. For the most current version, please 
 Refer to `docs/SECRETS_MANAGEMENT.md` for the authoritative guidance on handling credentials.
 
 Key points:
+
 - No hard-coded production credentials (searches for `pkiadmin / secret` must not appear outside docs/examples)
 - Use environment variable indirection or `_FILE` pattern
 - Prefer Docker / Kubernetes secrets in non-prod, Vault or cloud secret managers in prod

@@ -10,14 +10,14 @@
             <h4 class="alert-heading"><i class="bi bi-exclamation-triangle"></i> Verification Failed</h4>
             <p>{{ error }}</p>
         </div>
-        
+
         <div class="d-grid gap-2 d-md-flex justify-content-md-end">
             <a href="/verify" class="btn btn-primary">Try Again</a>
             <a href="/" class="btn btn-secondary">Back to Home</a>
         </div>
-        
+
         {% else %}
-        
+
         {% if verification_result.verified %}
         <div class="alert alert-success">
             <h4 class="alert-heading"><i class="bi bi-check-circle"></i> Presentation Verified Successfully!</h4>
@@ -31,7 +31,7 @@
             <p>The presentation contains some issues that prevented full verification.</p>
         </div>
         {% endif %}
-        
+
         <div class="row">
             <div class="col-md-6">
                 <div class="card">
@@ -54,7 +54,7 @@
                     </div>
                 </div>
             </div>
-            
+
             <div class="col-md-6">
                 <div class="card">
                     <div class="card-header">
@@ -83,7 +83,7 @@
                 </div>
             </div>
         </div>
-        
+
         <div class="card mt-3">
             <div class="card-header">
                 <h5 class="mb-0"><i class="bi bi-file-earmark-text"></i> Presentation Summary</h5>
@@ -92,12 +92,12 @@
                 <pre class="bg-light p-3 rounded"><code>{{ presentation_summary }}</code></pre>
             </div>
         </div>
-        
+
         <div class="d-grid gap-2 d-md-flex justify-content-md-end mt-3">
             <a href="/verify" class="btn btn-primary">Verify Another</a>
             <a href="/traces" class="btn btn-outline-info">View Trace</a>
         </div>
-        
+
         {% endif %}
     </div>
 </div>

@@ -41,7 +41,7 @@ def main() -> None:
             port=config.grpc_port,
             max_workers=config.grpc_max_workers,
             enable_health_check=config.grpc_enable_health_check,
-            enable_logging_streamer=config.grpc_enable_logging_streamer
+            enable_logging_streamer=config.grpc_enable_logging_streamer,
         )
 
         server.serve()

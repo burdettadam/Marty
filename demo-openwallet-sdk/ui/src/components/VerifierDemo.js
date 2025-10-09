@@ -38,7 +38,7 @@ const VerifierDemo = () => {
 
   const simulateQRScan = () => {
     setVerificationState('scanning');
-    
+
     // Simulate QR code scan delay
     setTimeout(() => {
       const mockPresentation = {
@@ -59,7 +59,7 @@ const VerifierDemo = () => {
           }
         }]
       };
-      
+
       setPresentationData(JSON.stringify(mockPresentation, null, 2));
       setVerificationState('ready');
     }, 2000);
@@ -73,7 +73,7 @@ const VerifierDemo = () => {
 
     setLoading(true);
     setVerificationState('verifying');
-    
+
     try {
       const response = await fetch('/api/verifier/verify', {
         method: 'POST',
@@ -86,7 +86,7 @@ const VerifierDemo = () => {
           nonce: Math.random().toString(36).substring(7)
         })
       });
-      
+
       const result = await response.json();
       setVerificationResult(result);
       setVerificationState('complete');
@@ -142,7 +142,7 @@ const VerifierDemo = () => {
           <VerifiedIcon sx={{ fontSize: 48, mr: 2, verticalAlign: 'middle' }} />
           Credential Verifier Demo
         </Typography>
-        
+
         <Typography variant="body1" color="text.secondary" paragraph align="center">
           Verify mobile driving license (mDL) presentations using the OpenWallet Foundation SDK.
           Scan a QR code or paste presentation data to verify credentials.
@@ -156,7 +156,7 @@ const VerifierDemo = () => {
                   <ScanIcon sx={{ mr: 1, verticalAlign: 'middle' }} />
                   1. Capture Presentation
                 </Typography>
-                
+
                 <Box sx={{ mb: 2 }}>
                   <Button
                     variant="outlined"
@@ -174,11 +174,11 @@ const VerifierDemo = () => {
                       'Simulate QR Code Scan'
                     )}
                   </Button>
-                  
+
                   <Typography variant="body2" color="text.secondary" align="center">
                     OR
                   </Typography>
-                  
+
                   <TextField
                     fullWidth
                     multiline
@@ -201,7 +201,7 @@ const VerifierDemo = () => {
                   <SecurityIcon sx={{ mr: 1, verticalAlign: 'middle' }} />
                   2. Verify Credential
                 </Typography>
-                
+
                 <Button
                   variant="contained"
                   onClick={verifyPresentation}
@@ -218,7 +218,7 @@ const VerifierDemo = () => {
                     'Verify Presentation'
                   )}
                 </Button>
-                
+
                 {verificationState === 'complete' && (
                   <Button
                     variant="outlined"
@@ -267,7 +267,7 @@ const VerifierDemo = () => {
                   <Typography variant="h6" gutterBottom>
                     Verification Result
                   </Typography>
-                  
+
                   <Box sx={{ mb: 2 }}>
                     <Chip
                       label={verificationResult.verified ? 'VERIFIED' : 'VERIFICATION FAILED'}

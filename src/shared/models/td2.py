@@ -10,6 +10,7 @@ This module implements comprehensive TD-2 models supporting:
 TD-2 documents are primarily used for official identity documents
 such as national ID cards, residence permits, and other official documents.
 """
+
 from __future__ import annotations
 
 import uuid
@@ -23,15 +24,16 @@ from pydantic import BaseModel, Field, field_validator, model_validator
 
 class TD2DocumentType(str, Enum):
     """TD-2 document types per ICAO Part 6."""
+
     # Identity documents
-    ID = "I"       # National identity card
-    AC = "AC"      # Crew member certificate
-    IA = "IA"      # Residence permit type A
-    IC = "IC"      # Residence permit type C
-    IF = "IF"      # Residence permit type F
-    IP = "IP"      # Residence permit type P
-    IR = "IR"      # Residence permit type R
-    IV = "IV"      # Residence permit type V
+    ID = "I"  # National identity card
+    AC = "AC"  # Crew member certificate
+    IA = "IA"  # Residence permit type A
+    IC = "IC"  # Residence permit type C
+    IF = "IF"  # Residence permit type F
+    IP = "IP"  # Residence permit type P
+    IR = "IR"  # Residence permit type R
+    IV = "IV"  # Residence permit type V
 
     # Official documents
     OFFICIAL = "O"  # Other official document
@@ -39,6 +41,7 @@ class TD2DocumentType(str, Enum):
 
 class Gender(str, Enum):
     """Gender codes per ICAO standards."""
+
     MALE = "M"
     FEMALE = "F"
     UNSPECIFIED = "X"
@@ -46,6 +49,7 @@ class Gender(str, Enum):
 
 class TD2Status(str, Enum):
     """TD-2 document status."""
+
     DRAFT = "DRAFT"
     ISSUED = "ISSUED"
     ACTIVE = "ACTIVE"
@@ -56,6 +60,7 @@ class TD2Status(str, Enum):
 
 class SecurityModel(str, Enum):
     """Security model for TD-2 documents."""
+
     MRZ_ONLY = "MRZ_ONLY"
     MINIMAL_CHIP = "MINIMAL_CHIP"
     EXTENDED_CHIP = "EXTENDED_CHIP"
@@ -85,10 +90,14 @@ class PersonalData(BaseModel):
 
     # Primary identifiers (mandatory)
     primary_identifier: str = Field(..., max_length=39, description="Primary identifier (surname)")
-    secondary_identifier: str | None = Field(None, max_length=39, description="Secondary identifier (given names)")
+    secondary_identifier: str | None = Field(
+        None, max_length=39, description="Secondary identifier (given names)"
+    )
 
     # Personal details
-    nationality: str = Field(..., min_length=3, max_length=3, description="Nationality (3-letter country code)")
+    nationality: str = Field(
+        ..., min_length=3, max_length=3, description="Nationality (3-letter country code)"
+    )
     date_of_birth: date = Field(..., description="Date of birth")
     gender: Gender = Field(..., description="Gender")
     place_of_birth: str | None = Field(None, max_length=50, description="Place of birth")
@@ -110,7 +119,9 @@ class PersonalData(BaseModel):
             return v
         allowed_chars = set("ABCDEFGHIJKLMNOPQRSTUVWXYZ '<>-")
         if not all(c in allowed_chars for c in v.upper()):
-            msg = "Names must contain only letters, spaces, apostrophes, angle brackets, and hyphens"
+            msg = (
+                "Names must contain only letters, spaces, apostrophes, angle brackets, and hyphens"
+            )
             raise ValueError(msg)
         return v.upper()
 
@@ -121,7 +132,9 @@ class TD2DocumentData(BaseModel):
     # Document identifiers
     document_type: TD2DocumentType = Field(..., description="Document type code")
     document_number: str = Field(..., max_length=9, description="Document number")
-    issuing_state: str = Field(..., min_length=3, max_length=3, description="Issuing state (3-letter country code)")
+    issuing_state: str = Field(
+        ..., min_length=3, max_length=3, description="Issuing state (3-letter country code)"
+    )
     issuing_authority: str | None = Field(None, max_length=50, description="Issuing authority")
 
     # Validity dates
@@ -167,10 +180,16 @@ class TD2MRZData(BaseModel):
     line2: str = Field(..., min_length=36, max_length=36, description="TD-2 MRZ line 2")
 
     # Check digits
-    check_digit_document: str | None = Field(None, max_length=1, description="Document number check digit")
+    check_digit_document: str | None = Field(
+        None, max_length=1, description="Document number check digit"
+    )
     check_digit_dob: str | None = Field(None, max_length=1, description="Date of birth check digit")
-    check_digit_expiry: str | None = Field(None, max_length=1, description="Expiry date check digit")
-    check_digit_composite: str | None = Field(None, max_length=1, description="Composite check digit")
+    check_digit_expiry: str | None = Field(
+        None, max_length=1, description="Expiry date check digit"
+    )
+    check_digit_composite: str | None = Field(
+        None, max_length=1, description="Composite check digit"
+    )
 
     @field_validator("line1", "line2")
     @classmethod
@@ -199,7 +218,9 @@ class PolicyConstraints(BaseModel):
     renewable: bool = Field(False, description="Whether document is renewable")
 
     # Verification requirements
-    requires_biometric_verification: bool = Field(False, description="Requires biometric verification")
+    requires_biometric_verification: bool = Field(
+        False, description="Requires biometric verification"
+    )
     requires_online_check: bool = Field(False, description="Requires online verification")
     verification_url: str | None = Field(None, description="URL for online verification")
 
@@ -209,7 +230,9 @@ class VerificationResult(BaseModel):
 
     # Overall result
     is_valid: bool = Field(False, description="Overall validity status")
-    verification_timestamp: datetime = Field(default_factory=datetime.utcnow, description="Verification timestamp")
+    verification_timestamp: datetime = Field(
+        default_factory=datetime.utcnow, description="Verification timestamp"
+    )
 
     # Verification details
     mrz_valid: bool = Field(False, description="MRZ validation status")
@@ -228,7 +251,9 @@ class VerificationResult(BaseModel):
     warnings: list[str] = Field(default_factory=list, description="List of validation warnings")
 
     # Hash verification (for chip documents)
-    dg_hash_results: dict[str, bool] | None = Field(None, description="Data group hash verification results")
+    dg_hash_results: dict[str, bool] | None = Field(
+        None, description="Data group hash verification results"
+    )
 
     @model_validator(mode="after")
     def validate_verification_result(self):
@@ -243,7 +268,9 @@ class TD2Document(BaseModel):
     """Main TD-2 document model."""
 
     # Identifiers
-    document_id: str = Field(default_factory=lambda: str(uuid.uuid4()), description="Unique document identifier")
+    document_id: str = Field(
+        default_factory=lambda: str(uuid.uuid4()), description="Unique document identifier"
+    )
 
     # Core data
     personal_data: PersonalData = Field(..., description="Personal information")
@@ -259,7 +286,9 @@ class TD2Document(BaseModel):
     # Status and lifecycle
     status: TD2Status = Field(TD2Status.DRAFT, description="Document status")
     created_at: datetime = Field(default_factory=datetime.utcnow, description="Creation timestamp")
-    updated_at: datetime = Field(default_factory=datetime.utcnow, description="Last update timestamp")
+    updated_at: datetime = Field(
+        default_factory=datetime.utcnow, description="Last update timestamp"
+    )
     issued_at: datetime | None = Field(None, description="Issuance timestamp")
     last_verified_at: datetime | None = Field(None, description="Last verification timestamp")
 
@@ -281,8 +310,10 @@ class TD2Document(BaseModel):
 
 # Request/Response models for API operations
 
+
 class TD2CreateRequest(BaseModel):
     """Request model for creating TD-2 documents."""
+
     personal_data: PersonalData
     document_data: TD2DocumentData
     policy_constraints: PolicyConstraints | None = None
@@ -292,6 +323,7 @@ class TD2CreateRequest(BaseModel):
 
 class TD2VerifyRequest(BaseModel):
     """Request model for verifying TD-2 documents."""
+
     document_id: str | None = None
     mrz_line1: str | None = None
     mrz_line2: str | None = None
@@ -302,6 +334,7 @@ class TD2VerifyRequest(BaseModel):
 
 class TD2SearchRequest(BaseModel):
     """Request model for searching TD-2 documents."""
+
     document_type: TD2DocumentType | None = None
     issuing_state: str | None = None
     nationality: str | None = None
@@ -314,6 +347,7 @@ class TD2SearchRequest(BaseModel):
 
 class TD2SearchResponse(BaseModel):
     """Response model for TD-2 document search."""
+
     documents: list[TD2Document]
     total_count: int
     has_more: bool
@@ -322,6 +356,7 @@ class TD2SearchResponse(BaseModel):
 # Additional request/response models needed for service layer
 class TD2DocumentCreateRequest(BaseModel):
     """Request model for creating TD-2 documents."""
+
     personal_data: PersonalData
     document_data: TD2DocumentData
     security_model: SecurityModel | None = SecurityModel.MRZ_ONLY
@@ -331,6 +366,7 @@ class TD2DocumentCreateRequest(BaseModel):
 
 class TD2DocumentVerifyRequest(BaseModel):
     """Request model for verifying TD-2 documents."""
+
     document_id: str | None = None
     document: TD2Document | None = None
     mrz_data: TD2MRZData | None = None
@@ -341,6 +377,7 @@ class TD2DocumentVerifyRequest(BaseModel):
 
 class TD2DocumentSearchRequest(BaseModel):
     """Request model for searching TD-2 documents."""
+
     query: str | None = None
     document_type: TD2DocumentType | None = None
     status: TD2Status | None = None
@@ -354,6 +391,7 @@ class TD2DocumentSearchRequest(BaseModel):
 
 class TD2DocumentSearchResponse(BaseModel):
     """Response model for TD-2 document search."""
+
     documents: list[TD2Document]
     total_count: int
     success: bool = True

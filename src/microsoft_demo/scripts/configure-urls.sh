@@ -42,7 +42,7 @@ print_header() {
 parse_args() {
     ISSUER_URL=""
     VERIFIER_URL=""
-    
+
     while [[ $# -gt 0 ]]; do
         case $1 in
             --issuer-url)
@@ -64,7 +64,7 @@ parse_args() {
                 ;;
         esac
     done
-    
+
     # Validate required parameters
     if [ -z "$ISSUER_URL" ] || [ -z "$VERIFIER_URL" ]; then
         print_error "Both --issuer-url and --verifier-url are required"
@@ -92,45 +92,45 @@ show_usage() {
 # Validate URLs
 validate_urls() {
     print_info "Validating URLs..."
-    
+
     # Check URL format
     if [[ ! "$ISSUER_URL" =~ ^https?:// ]]; then
         print_error "Issuer URL must start with http:// or https://"
         exit 1
     fi
-    
+
     if [[ ! "$VERIFIER_URL" =~ ^https?:// ]]; then
         print_error "Verifier URL must start with http:// or https://"
         exit 1
     fi
-    
+
     # For Microsoft Authenticator, URLs should be HTTPS
     if [[ "$ISSUER_URL" =~ ^http:// ]] && [[ ! "$ISSUER_URL" =~ localhost ]]; then
         print_warning "Microsoft Authenticator requires HTTPS URLs. Your issuer URL should use HTTPS."
     fi
-    
+
     if [[ "$VERIFIER_URL" =~ ^http:// ]] && [[ ! "$VERIFIER_URL" =~ localhost ]]; then
         print_warning "Microsoft Authenticator requires HTTPS URLs. Your verifier URL should use HTTPS."
     fi
-    
+
     print_success "URLs validated"
 }
 
 # Update environment file
 update_environment_file() {
     print_info "Updating environment configuration..."
-    
+
     local env_file="$CONFIG_DIR/.env.demo"
-    
+
     # Create config directory if it doesn't exist
     mkdir -p "$CONFIG_DIR"
-    
+
     # Backup existing env file
     if [ -f "$env_file" ]; then
         cp "$env_file" "${env_file}.backup.$(date +%Y%m%d_%H%M%S)"
         print_info "Backed up existing environment file"
     fi
-    
+
     # Update or create environment file
     {
         echo "# Microsoft Authenticator Demo Environment Configuration"
@@ -139,14 +139,14 @@ update_environment_file() {
         echo "# API Configuration"
         echo "ISSUER_BASE_URL=$ISSUER_URL"
         echo "VERIFIER_BASE_URL=$VERIFIER_URL"
-        
+
         # Extract DID from issuer URL
         local issuer_host
         issuer_host=$(echo "$ISSUER_URL" | sed -E 's|^https?://([^/]+).*|\1|')
         # URL encode the colon if present
         issuer_host=$(echo "$issuer_host" | sed 's/:/%3A/g')
         echo "CREDENTIAL_ISSUER_DID=did:web:$issuer_host"
-        
+
         echo ""
         echo "# Service Ports (for local development)"
         echo "ISSUER_PORT=8000"
@@ -170,7 +170,7 @@ update_environment_file() {
         echo "MINIO_PORT=9000"
         echo "MINIO_CONSOLE_PORT=9001"
     } > "$env_file"
-    
+
     print_success "Environment file updated: $env_file"
 }
 
@@ -178,12 +178,12 @@ update_environment_file() {
 update_k8s_config() {
     if command -v kubectl &> /dev/null && kubectl get namespace "$NAMESPACE" &> /dev/null; then
         print_info "Updating Kubernetes ConfigMap..."
-        
+
         # Extract DID from issuer URL
         local issuer_host
         issuer_host=$(echo "$ISSUER_URL" | sed -E 's|^https?://([^/]+).*|\1|')
         issuer_host=$(echo "$issuer_host" | sed 's/:/%3A/g')
-        
+
         # Update ConfigMap
         kubectl patch configmap microsoft-demo-config -n "$NAMESPACE" --patch="
 data:
@@ -192,7 +192,7 @@ data:
   CREDENTIAL_ISSUER_DID: \"did:web:$issuer_host\"
   CORS_ORIGINS: \"$ISSUER_URL,$VERIFIER_URL,http://localhost:3000\"
 " 2>/dev/null && print_success "Kubernetes ConfigMap updated" || print_warning "Could not update Kubernetes ConfigMap (this is OK if not using K8s)"
-        
+
         # Restart deployments to pick up new configuration
         if kubectl get deployment issuer-api-microsoft-demo -n "$NAMESPACE" &> /dev/null; then
             print_info "Restarting Kubernetes deployments..."
@@ -208,17 +208,17 @@ data:
 # Test connectivity
 test_connectivity() {
     print_info "Testing connectivity to configured URLs..."
-    
+
     # Wait a moment for services to restart
     sleep 5
-    
+
     # Test issuer URL
     if curl -f -s --max-time 10 "$ISSUER_URL/health" > /dev/null 2>&1; then
         print_success "Issuer API is accessible at $ISSUER_URL"
     else
         print_warning "Issuer API may not be ready yet at $ISSUER_URL"
     fi
-    
+
     # Test verifier URL
     if curl -f -s --max-time 10 "$VERIFIER_URL/health" > /dev/null 2>&1; then
         print_success "Verifier API is accessible at $VERIFIER_URL"
@@ -256,14 +256,14 @@ main() {
     print_header "Microsoft Demo - URL Configuration"
     echo "=================================="
     echo ""
-    
+
     parse_args "$@"
     validate_urls
     update_environment_file
     update_k8s_config
     test_connectivity
     show_summary
-    
+
     print_success "URL configuration complete!"
 }
 

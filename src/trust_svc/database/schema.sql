@@ -28,7 +28,7 @@ CREATE TABLE trust_anchors (
     status VARCHAR(20) DEFAULT 'active', -- active, inactive, revoked
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-    
+
     CONSTRAINT valid_trust_level CHECK (trust_level IN ('standard', 'high', 'emergency')),
     CONSTRAINT valid_status CHECK (status IN ('active', 'inactive', 'revoked'))
 );
@@ -48,7 +48,7 @@ CREATE TABLE dsc_certificates (
     key_usage TEXT[],
     signature_algorithm TEXT,
     public_key_algorithm TEXT,
-    
+
     -- Revocation status tracking
     revocation_status VARCHAR(20) DEFAULT 'unknown', -- good, bad, unknown
     revocation_checked_at TIMESTAMP WITH TIME ZONE,
@@ -57,17 +57,17 @@ CREATE TABLE dsc_certificates (
     crl_source TEXT,
     ocsp_source TEXT,
     ocsp_checked_at TIMESTAMP WITH TIME ZONE,
-    
+
     -- Trust chain information
     chain_valid BOOLEAN,
     chain_validated_at TIMESTAMP WITH TIME ZONE,
     trust_path TEXT[], -- Array of certificate hashes in chain
-    
+
     immutable_flag BOOLEAN DEFAULT false,
     status VARCHAR(20) DEFAULT 'active',
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-    
+
     CONSTRAINT valid_revocation_status CHECK (revocation_status IN ('good', 'bad', 'unknown')),
     CONSTRAINT valid_dsc_status CHECK (status IN ('active', 'inactive', 'revoked'))
 );
@@ -88,7 +88,7 @@ CREATE TABLE crl_cache (
     fetched_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
     status VARCHAR(20) DEFAULT 'active',
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-    
+
     CONSTRAINT valid_crl_status CHECK (status IN ('active', 'expired', 'invalid'))
 );
 
@@ -102,7 +102,7 @@ CREATE TABLE revoked_certificates (
     certificate_hash VARCHAR(64), -- if we can match to DSC
     dsc_id UUID REFERENCES dsc_certificates(id),
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-    
+
     UNIQUE(crl_id, serial_number)
 );
 
@@ -124,7 +124,7 @@ CREATE TABLE master_lists (
     source_type VARCHAR(20) DEFAULT 'manual', -- manual, synthetic, pkd_sync
     source_url TEXT,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-    
+
     CONSTRAINT valid_ml_status CHECK (status IN ('active', 'superseded', 'invalid')),
     CONSTRAINT valid_source_type CHECK (source_type IN ('manual', 'synthetic', 'pkd_sync'))
 );
@@ -144,7 +144,7 @@ CREATE TABLE trust_snapshots (
     immutable_flag BOOLEAN DEFAULT true,
     expires_at TIMESTAMP WITH TIME ZONE,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-    
+
     UNIQUE(snapshot_hash)
 );
 
@@ -160,7 +160,7 @@ CREATE TABLE job_executions (
     records_processed INTEGER DEFAULT 0,
     errors_count INTEGER DEFAULT 0,
     metadata JSONB,
-    
+
     CONSTRAINT valid_job_status CHECK (status IN ('running', 'completed', 'failed'))
 );
 
@@ -180,7 +180,7 @@ CREATE TABLE pkd_sources (
     authentication_config JSONB,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-    
+
     CONSTRAINT valid_source_type CHECK (source_type IN ('icao_pkd', 'national_pki', 'manual'))
 );
 
@@ -229,25 +229,25 @@ DECLARE
 BEGIN
     -- Get DSC record
     SELECT * INTO dsc_record FROM dsc_certificates WHERE certificate_hash = dsc_hash;
-    
+
     IF NOT FOUND THEN
         RETURN QUERY SELECT false, NULL::UUID, 0, ARRAY['DSC not found'];
         RETURN;
     END IF;
-    
+
     -- Get trust anchor
     SELECT * INTO ta_record FROM trust_anchors WHERE id = dsc_record.issuer_trust_anchor_id;
-    
+
     IF NOT FOUND THEN
         RETURN QUERY SELECT false, NULL::UUID, 1, ARRAY['Trust anchor not found'];
         RETURN;
     END IF;
-    
+
     -- Basic chain validation (extend with cryptographic verification)
-    RETURN QUERY SELECT 
-        true, 
-        ta_record.id, 
-        2, 
+    RETURN QUERY SELECT
+        true,
+        ta_record.id,
+        2,
         ARRAY[]::TEXT[];
 END;
 $$ LANGUAGE plpgsql;
@@ -261,20 +261,20 @@ RETURNS TABLE(
     source TEXT
 ) AS $$
 BEGIN
-    RETURN QUERY 
-    SELECT 
+    RETURN QUERY
+    SELECT
         true as is_revoked,
         rc.revocation_date,
         rc.reason_code,
         'CRL' as source
     FROM revoked_certificates rc
     JOIN crl_cache cc ON rc.crl_id = cc.id
-    WHERE rc.serial_number = cert_serial 
+    WHERE rc.serial_number = cert_serial
     AND cc.issuer_dn = issuer_dn
     AND cc.status = 'active'
     AND NOW() BETWEEN cc.this_update AND cc.next_update
     LIMIT 1;
-    
+
     -- If not found in CRL, return not revoked
     IF NOT FOUND THEN
         RETURN QUERY SELECT false, NULL::TIMESTAMP WITH TIME ZONE, NULL::INTEGER, NULL::TEXT;
@@ -291,21 +291,21 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
-CREATE TRIGGER update_trust_anchors_modtime 
+CREATE TRIGGER update_trust_anchors_modtime
     BEFORE UPDATE ON trust_anchors
     FOR EACH ROW EXECUTE FUNCTION update_modified_column();
 
-CREATE TRIGGER update_dsc_certificates_modtime 
+CREATE TRIGGER update_dsc_certificates_modtime
     BEFORE UPDATE ON dsc_certificates
     FOR EACH ROW EXECUTE FUNCTION update_modified_column();
 
-CREATE TRIGGER update_pkd_sources_modtime 
+CREATE TRIGGER update_pkd_sources_modtime
     BEFORE UPDATE ON pkd_sources
     FOR EACH ROW EXECUTE FUNCTION update_modified_column();
 
 -- Views for common queries
 CREATE VIEW current_trust_anchors AS
-SELECT 
+SELECT
     ta.*,
     COUNT(dsc.id) as dsc_count
 FROM trust_anchors ta
@@ -315,7 +315,7 @@ AND NOW() BETWEEN ta.valid_from AND ta.valid_to
 GROUP BY ta.id;
 
 CREATE VIEW certificate_status_summary AS
-SELECT 
+SELECT
     country_code,
     COUNT(*) as total_certificates,
     COUNT(CASE WHEN revocation_status = 'good' THEN 1 END) as good_certificates,

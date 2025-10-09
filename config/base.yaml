@@ -49,7 +49,7 @@ common_database: &common_database
   pool_timeout: 30
   pool_recycle: 3600
 
-# Common logging configuration  
+# Common logging configuration
 common_logging: &common_logging
   level: INFO
   format: "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
@@ -68,7 +68,7 @@ common_security: &common_security
     client_ca: "/etc/tls/ca/ca.crt"
     client_cert: "/etc/tls/client/tls.crt"
     client_key: "/etc/tls/client/tls.key"
-  
+
   auth:
     required: true
     jwt:
@@ -78,7 +78,7 @@ common_security: &common_security
     client_cert:
       enabled: true
       extract_subject: true
-  
+
   authz:
     enabled: true
     policy_config: "/etc/config/policy.yaml"
@@ -90,7 +90,7 @@ common_resilience: &common_resilience
     failure_threshold: 5
     recovery_timeout: 60
     half_open_max_calls: 3
-  
+
   retry_policy:
     max_attempts: 3
     backoff_multiplier: 1.5

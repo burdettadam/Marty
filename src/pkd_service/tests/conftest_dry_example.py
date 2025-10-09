@@ -6,38 +6,33 @@ using the shared Marty testing infrastructure.
 """
 
 import pytest
-from fastapi import FastAPI
-
-# DRY: Import shared testing infrastructure
-from marty_common.testing import (
-    # Core utilities
-    MockFactory,
-    ServiceHealthChecker, 
-    TempResourceManager,
-    TestClientFactory,
-    CommonTestData,
-    
-    # Enhanced fixtures
-    enhanced_test_environment,
-    mock_service_dependencies,
-    test_data_factory,
-    
-    # Service-specific config
-    PKDServiceTestConfig,
-)
 
 # Import service app
 from app.main import app as pkd_app
+from fastapi import FastAPI
 
+# DRY: Import shared testing infrastructure
+from marty_common.testing import (  # Core utilities; Enhanced fixtures; Service-specific config
+    CommonTestData,
+    MockFactory,
+    PKDServiceTestConfig,
+    ServiceHealthChecker,
+    TempResourceManager,
+    TestClientFactory,
+    enhanced_test_environment,
+    mock_service_dependencies,
+    test_data_factory,
+)
 
 # Create test configuration instance
 test_config = PKDServiceTestConfig()
 
 # Export common fixtures (replaces manual fixture definitions)
 app = test_config.app
-client = test_config.client  
+client = test_config.client
 authenticated_client = test_config.authenticated_client
 unauthenticated_client = test_config.unauthenticated_client
+
 
 # Service-specific fixtures (only define what's unique to this service)
 @pytest.fixture
@@ -45,35 +40,30 @@ def sample_masterlist_data(test_data_factory):
     """Sample CSCA masterlist data for PKD testing."""
     return {
         "version": "1",
-        "seqNumber": "1", 
+        "seqNumber": "1",
         "contents": [
-            {
-                "country": "USA",
-                "certificates": [test_data_factory.create_test_certificate_data()]
-            }
-        ]
+            {"country": "USA", "certificates": [test_data_factory.create_test_certificate_data()]}
+        ],
     }
 
 
-@pytest.fixture  
+@pytest.fixture
 def sample_pkd_request():
     """Sample PKD API request data."""
-    return {
-        "country": "USA",
-        "certificate_type": "csca",
-        "format": "pem"
-    }
+    return {"country": "USA", "certificate_type": "csca", "format": "pem"}
 
 
 @pytest.fixture
 def mock_pkd_services(mock_service_dependencies):
     """Mock PKD-specific services."""
     services = mock_service_dependencies.copy()
-    services.update({
-        "masterlist_service": MockFactory.create_async_mock(),
-        "crl_service": MockFactory.create_async_mock(), 
-        "sync_service": MockFactory.create_async_mock(),
-    })
+    services.update(
+        {
+            "masterlist_service": MockFactory.create_async_mock(),
+            "crl_service": MockFactory.create_async_mock(),
+            "sync_service": MockFactory.create_async_mock(),
+        }
+    )
     return services
 
 
@@ -83,7 +73,7 @@ def test_get_masterlist(client, sample_masterlist_data, mock_pkd_services):
     '''Test getting CSCA masterlist - using DRY fixtures.'''
     # No need to manually create client or mock services
     # All provided by shared infrastructure
-    
+
     response = client.get("/v1/pkd/masterlist/USA")
     assert response.status_code == 200
 
@@ -161,7 +151,7 @@ DRY approach - minimal service-specific code
 from marty_common.testing import PKDServiceTestConfig, test_data_factory
 from app.main import app as pkd_app
 
-# Create test configuration instance  
+# Create test configuration instance
 test_config = PKDServiceTestConfig()
 
 # Export common fixtures (gets app, client, auth, mocks, etc.)
@@ -177,7 +167,7 @@ def sample_masterlist_data(test_data_factory):
 
 print("DRY Test Infrastructure Benefits:")
 print("- Reduced test configuration from ~94 to ~20 lines per service")
-print("- Consistent test patterns across all services") 
+print("- Consistent test patterns across all services")
 print("- Shared mocks, utilities, and health checks")
 print("- Automatic cleanup and resource management")
 print("- Easy to add new common test functionality")

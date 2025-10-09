@@ -13,26 +13,33 @@ Environment variables:
 Client metadata key (for targeted tests):
  x-failure-inject: true (forces failure for that request if enabled)
 """
+
 from __future__ import annotations
 
+import logging
 import os
 import random
-import logging
 from collections import defaultdict
-from typing import Callable, Dict
+from collections.abc import Callable
+from typing import Dict
 
 import grpc
 from grpc import aio as grpc_aio
 
-from .error_codes import map_exception_to_status, TransientBackendError
 from .circuit_breaker import CircuitBreaker, CircuitBreakerConfig
+from .error_codes import TransientBackendError, map_exception_to_status
 
 LOGGER = logging.getLogger(__name__)
 
 
 class FailureInjectionConfig:
     def __init__(self) -> None:
-        self.enabled = os.environ.get("MARTY_FAILURE_INJECTION", "false").lower() in {"1", "true", "yes", "enabled"}
+        self.enabled = os.environ.get("MARTY_FAILURE_INJECTION", "false").lower() in {
+            "1",
+            "true",
+            "yes",
+            "enabled",
+        }
         try:
             self.rate = float(os.environ.get("MARTY_FAILURE_INJECTION_RATE", "0.0"))
         except ValueError:
@@ -47,15 +54,21 @@ class FailureInjectionConfig:
         return random.random() < self.rate  # noqa: S311 (acceptable for testing)
 
 
-_CIRCUIT_BREAKERS: Dict[str, CircuitBreaker] = {}
+_CIRCUIT_BREAKERS: dict[str, CircuitBreaker] = {}
 
 
 def get_circuit_breaker(method_name: str) -> CircuitBreaker:
-    enabled = os.environ.get("MARTY_CIRCUIT_BREAKER_ENABLED", "true").lower() in {"1", "true", "yes"}
+    enabled = os.environ.get("MARTY_CIRCUIT_BREAKER_ENABLED", "true").lower() in {
+        "1",
+        "true",
+        "yes",
+    }
     if not enabled:
         # return a no-op breaker
         if method_name not in _CIRCUIT_BREAKERS:
-            _CIRCUIT_BREAKERS[method_name] = CircuitBreaker(method_name, CircuitBreakerConfig(failure_threshold=10, recovery_timeout=5))
+            _CIRCUIT_BREAKERS[method_name] = CircuitBreaker(
+                method_name, CircuitBreakerConfig(failure_threshold=10, recovery_timeout=5)
+            )
         return _CIRCUIT_BREAKERS[method_name]
     if method_name not in _CIRCUIT_BREAKERS:
         _CIRCUIT_BREAKERS[method_name] = CircuitBreaker(method_name)
@@ -132,6 +145,7 @@ class ResilienceServerInterceptor(grpc_aio.ServerInterceptor):
             else:
                 breaker.record_success()
                 return result
+
         return _wrapper
 
     def _wrap_unary_stream(self, func: Callable, breaker: CircuitBreaker, method: str):
@@ -155,6 +169,7 @@ class ResilienceServerInterceptor(grpc_aio.ServerInterceptor):
                 await context.abort(status, message)
             else:
                 breaker.record_success()
+
         return _wrapper
 
     def _wrap_stream_unary(self, func: Callable, breaker: CircuitBreaker, method: str):
@@ -175,6 +190,7 @@ class ResilienceServerInterceptor(grpc_aio.ServerInterceptor):
             else:
                 breaker.record_success()
                 return result
+
         return _wrapper
 
     def _wrap_stream_stream(self, func: Callable, breaker: CircuitBreaker, method: str):
@@ -198,7 +214,9 @@ class ResilienceServerInterceptor(grpc_aio.ServerInterceptor):
                 await context.abort(status, message)
             else:
                 breaker.record_success()
+
         return _wrapper
+
 
 __all__ = [
     "ResilienceServerInterceptor",

@@ -11,9 +11,9 @@ This service provides functionality for:
 
 import logging
 import sys
+from collections.abc import Callable
 from datetime import datetime
 from pathlib import Path
-from typing import Callable
 
 # Add project root to path for imports
 # This needs to be done before attempting to import from 'src'
@@ -21,9 +21,11 @@ _project_root = Path(__file__).resolve().parents[3]
 if str(_project_root) not in sys.path:
     sys.path.insert(0, str(_project_root))
 
+from marty_common.logging_config import get_logger, setup_logging
+from marty_common.service_config_factory import get_config_manager
+
 # Import shared utilities
 from marty_common.services import BaseGrpcService
-from marty_common.service_config_factory import get_config_manager
 
 # Local application/library specific imports
 # Import gRPC generated modules
@@ -44,7 +46,6 @@ from src.proto.trust_anchor_pb2_grpc import TrustAnchorServicer, add_TrustAnchor
 # Import our services
 from src.trust_anchor.app.services.certificate_expiry_service import CertificateExpiryService
 from src.trust_anchor.app.services.openxpki_service import OpenXPKIService
-from marty_common.logging_config import setup_logging, get_logger
 
 # Configure logging using shared utility
 setup_logging(service_name="trust-anchor")
@@ -339,9 +340,7 @@ def start_server(server_port=50051, max_workers=10) -> None:
     """
     # Create the service
     service = TrustAnchorGrpcService(
-        service_name="trust-anchor",
-        default_port=server_port,
-        max_workers=max_workers
+        service_name="trust-anchor", default_port=server_port, max_workers=max_workers
     )
 
     # Start the server

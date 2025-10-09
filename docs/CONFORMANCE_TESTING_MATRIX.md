@@ -7,7 +7,9 @@ This document defines comprehensive acceptance criteria and negative test scenar
 ## Document Types and Verification Paths
 
 ### Verification Protocol Hierarchy
+
 The system implements a 5-layer hierarchical verification approach:
+
 1. **Document Class Detection** - MRZ pattern matching
 2. **MRZ Validation** - Structure and check digit verification
 3. **Authenticity Layer** - Cryptographic verification (chip/VDS-NC)
@@ -15,6 +17,7 @@ The system implements a 5-layer hierarchical verification approach:
 5. **Trust Verification** - Certificate chain and PKD validation
 
 ### Supported Document Types
+
 - **CMC (TD-1)** - Crew Member Certificates
 - **MRV Type A/B** - Machine Readable Visas (sticker format)
 - **TD-2** - Travel Documents (ID cards, permits)
@@ -24,6 +27,7 @@ The system implements a 5-layer hierarchical verification approach:
 ## CMC (TD-1) Conformance Criteria
 
 ### 1. MRZ Correctness
+
 | Check | Requirement | Acceptance Criteria |
 |-------|-------------|-------------------|
 | Structure | 3 lines × 30 characters | All lines exactly 30 chars |
@@ -33,6 +37,7 @@ The system implements a 5-layer hierarchical verification approach:
 | Padding | < character for empty spaces | Proper filler character usage |
 
 ### 2. Chip Path (SOD/DG1/DG2) Verification
+
 | Component | Requirement | Acceptance Criteria |
 |-----------|-------------|-------------------|
 | SOD Presence | Security Object Document exists | SOD data available and parseable |
@@ -43,6 +48,7 @@ The system implements a 5-layer hierarchical verification approach:
 | Active Authentication | Optional chip challenge | If present, AA signature validates |
 
 ### 3. VDS-NC Path Verification
+
 | Component | Requirement | Acceptance Criteria |
 |-----------|-------------|-------------------|
 | Barcode Format | VDS-NC structure | Valid JSON payload with required fields |
@@ -52,6 +58,7 @@ The system implements a 5-layer hierarchical verification approach:
 | Timestamp Validity | Issue/expiry within bounds | Current time within validity window |
 
 ### 4. Annex 9 Policy Pre-checks
+
 | Policy | Requirement | Acceptance Criteria |
 |--------|-------------|-------------------|
 | Background Check | Annex 9 compliance flag | background_check_verified = true |
@@ -61,6 +68,7 @@ The system implements a 5-layer hierarchical verification approach:
 | Security Model | Chip or VDS-NC required | Either chip_data OR vds_nc_data present |
 
 ### 5. Expiry Handling
+
 | Scenario | Requirement | Acceptance Criteria |
 |----------|-------------|-------------------|
 | Valid Document | Current date < expiry | Document passes temporal checks |
@@ -73,6 +81,7 @@ The system implements a 5-layer hierarchical verification approach:
 ## MRV Type A/B Conformance Criteria
 
 ### 1. MRZ Correctness
+
 | Check | Type A (44 chars) | Type B (36 chars) | Acceptance Criteria |
 |-------|------------------|------------------|-------------------|
 | Structure | 2 lines × 44 chars | 2 lines × 36 chars | Exact character count per type |
@@ -81,6 +90,7 @@ The system implements a 5-layer hierarchical verification approach:
 | Character Set | A-Z, 0-9, < only | A-Z, 0-9, < only | No invalid characters |
 
 ### 2. VDS-NC E-visa Path
+
 | Component | Requirement | Acceptance Criteria |
 |-----------|-------------|-------------------|
 | Barcode Decode | QR/DataMatrix format | Successfully decode to JSON payload |
@@ -90,6 +100,7 @@ The system implements a 5-layer hierarchical verification approach:
 | Temporal Validity | Issue/expiry dates | Current time within validity window |
 
 ### 3. Mismatch Detection (Printed vs VDS-NC)
+
 | Field | Printed Source | VDS-NC Source | Acceptance Criteria |
 |-------|---------------|---------------|-------------------|
 | Document Number | MRZ line 1 | JSON.doc | Values must match exactly |
@@ -106,6 +117,7 @@ The system implements a 5-layer hierarchical verification approach:
 ## TD-2 Conformance Criteria
 
 ### 1. MRZ Correctness
+
 | Check | Requirement | Acceptance Criteria |
 |-------|-------------|-------------------|
 | Structure | 2 lines × 36 characters | Both lines exactly 36 chars |
@@ -114,6 +126,7 @@ The system implements a 5-layer hierarchical verification approach:
 | Character Set | A-Z, 0-9, < only | No invalid characters present |
 
 ### 2. Optional Chip Path
+
 | Component | Requirement | Acceptance Criteria |
 |-----------|-------------|-------------------|
 | Chip Detection | RFID/contactless presence | If present, chip data readable |
@@ -122,6 +135,7 @@ The system implements a 5-layer hierarchical verification approach:
 | Fallback Mode | Chip failure handling | System continues without chip if unavailable |
 
 ### 3. Truncation/Name Rules
+
 | Rule | Requirement | Acceptance Criteria |
 |------|-------------|-------------------|
 | Name Truncation | Surname priority | Surname fits, given names truncated if needed |
@@ -134,6 +148,7 @@ The system implements a 5-layer hierarchical verification approach:
 ## Negative Testing Matrix
 
 ### 1. MRZ Check Digit Failures
+
 | Test Case | Invalid Field | Expected Result |
 |-----------|---------------|------------------|
 | Wrong Document Check | Corrupt document number check digit | MRZ_INVALID, check_digit_error |
@@ -143,6 +158,7 @@ The system implements a 5-layer hierarchical verification approach:
 | Multiple Errors | Multiple check digits wrong | MRZ_INVALID, multiple_errors |
 
 ### 2. Altered Printed Fields vs VDS-NC
+
 | Test Case | Altered Field | Expected Result |
 |-----------|---------------|------------------|
 | Document Number Mismatch | Printed ≠ VDS-NC document number | FIELD_MISMATCH, document_number |
@@ -152,6 +168,7 @@ The system implements a 5-layer hierarchical verification approach:
 | Expiry Mismatch | Printed ≠ VDS-NC expiry date | FIELD_MISMATCH, expiry_date |
 
 ### 3. Temporal Validity Issues
+
 | Test Case | Scenario | Expected Result |
 |-----------|----------|------------------|
 | Expired Document | Current date > expiry date | DOCUMENT_EXPIRED |
@@ -160,6 +177,7 @@ The system implements a 5-layer hierarchical verification approach:
 | Invalid Date Format | Malformed date fields | DATE_FORMAT_ERROR |
 
 ### 4. Unknown/Invalid Signer Keys
+
 | Test Case | Scenario | Expected Result |
 |-----------|----------|------------------|
 | Unknown CSCA | Certificate not in trust store | UNKNOWN_ISSUER |
@@ -169,6 +187,7 @@ The system implements a 5-layer hierarchical verification approach:
 | Untrusted Root | No path to trust anchor | UNTRUSTED_CERTIFICATE |
 
 ### 5. Altered SOD Hashes
+
 | Test Case | Scenario | Expected Result |
 |-----------|----------|------------------|
 | DG1 Hash Mismatch | SOD.DG1 ≠ actual MRZ hash | DG1_HASH_MISMATCH |
@@ -178,6 +197,7 @@ The system implements a 5-layer hierarchical verification approach:
 | Wrong Hash Algorithm | Unexpected hash algorithm | UNSUPPORTED_HASH_ALGORITHM |
 
 ### 6. Barcode Re-encoding Drift
+
 | Test Case | Scenario | Expected Result |
 |-----------|----------|------------------|
 | Encoding Artifacts | QR/DataMatrix decode errors | BARCODE_DECODE_ERROR |
@@ -191,24 +211,28 @@ The system implements a 5-layer hierarchical verification approach:
 ## Implementation Guidelines
 
 ### Test Execution Framework
+
 1. **Automated Test Suite**: Implement all conformance and negative tests as automated test cases
 2. **Test Data Generation**: Create valid and invalid test documents for each scenario
 3. **Assertion Framework**: Define clear pass/fail criteria for each test case
 4. **Coverage Metrics**: Ensure all verification paths and error conditions are tested
 
 ### Integration Points
+
 1. **MRZ Validation Engine**: Test all MRZ parsing and check digit validation
 2. **Cryptographic Services**: Test signature verification and certificate validation
 3. **Policy Engine**: Test Annex 9 compliance and business rule validation
 4. **Trust Store**: Test certificate chain validation and revocation checking
 
 ### Continuous Testing
+
 1. **Regression Testing**: Run full test suite on each code change
 2. **Performance Testing**: Measure verification throughput and latency
 3. **Security Testing**: Test against adversarial documents and attacks
 4. **Interoperability Testing**: Test with real-world document samples
 
 ### Monitoring and Alerting
+
 1. **Test Results Dashboard**: Real-time visibility into test execution
 2. **Failure Analysis**: Detailed logging and error classification
 3. **Trend Analysis**: Track test success rates over time

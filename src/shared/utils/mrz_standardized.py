@@ -28,16 +28,18 @@ from typing import ClassVar
 
 class MRZDocumentType(str, Enum):
     """MRZ document types according to Doc 9303."""
-    PASSPORT = "P"           # TD3 passport
-    VISA_TYPE_A = "V"        # Type A visa (2-line)
-    VISA_TYPE_B = "VB"       # Type B visa (3-line)
-    ID_CARD_TD1 = "I"        # TD1 ID card
-    ID_CARD_TD2 = "ID"       # TD2 ID card
-    OTHER = "O"              # Other travel documents
+
+    PASSPORT = "P"  # TD3 passport
+    VISA_TYPE_A = "V"  # Type A visa (2-line)
+    VISA_TYPE_B = "VB"  # Type B visa (3-line)
+    ID_CARD_TD1 = "I"  # TD1 ID card
+    ID_CARD_TD2 = "ID"  # TD2 ID card
+    OTHER = "O"  # Other travel documents
 
 
 class MRZFieldLength:
     """Standard MRZ field lengths according to Doc 9303."""
+
     # TD3 (Passport) field lengths
     TD3_LINE_LENGTH = 44
     TD3_NAME_FIELD = 39
@@ -70,10 +72,43 @@ class MRZStandardizedUtils:
 
     # Character mapping for check digit calculation
     CHARACTER_VALUES: ClassVar[dict[str, int]] = {
-        "0": 0, "1": 1, "2": 2, "3": 3, "4": 4, "5": 5, "6": 6, "7": 7, "8": 8, "9": 9,
-        "A": 10, "B": 11, "C": 12, "D": 13, "E": 14, "F": 15, "G": 16, "H": 17, "I": 18,
-        "J": 19, "K": 20, "L": 21, "M": 22, "N": 23, "O": 24, "P": 25, "Q": 26, "R": 27,
-        "S": 28, "T": 29, "U": 30, "V": 31, "W": 32, "X": 33, "Y": 34, "Z": 35, "<": 0
+        "0": 0,
+        "1": 1,
+        "2": 2,
+        "3": 3,
+        "4": 4,
+        "5": 5,
+        "6": 6,
+        "7": 7,
+        "8": 8,
+        "9": 9,
+        "A": 10,
+        "B": 11,
+        "C": 12,
+        "D": 13,
+        "E": 14,
+        "F": 15,
+        "G": 16,
+        "H": 17,
+        "I": 18,
+        "J": 19,
+        "K": 20,
+        "L": 21,
+        "M": 22,
+        "N": 23,
+        "O": 24,
+        "P": 25,
+        "Q": 26,
+        "R": 27,
+        "S": 28,
+        "T": 29,
+        "U": 30,
+        "V": 31,
+        "W": 32,
+        "X": 33,
+        "Y": 34,
+        "Z": 35,
+        "<": 0,
     }
 
     # Check digit weights according to Doc 9303
@@ -84,14 +119,66 @@ class MRZStandardizedUtils:
 
     # ASCII transliteration mapping for common characters
     TRANSLITERATION_MAP: ClassVar[dict[str, str]] = {
-        "À": "A", "Á": "A", "Â": "A", "Ã": "A", "Ä": "AE", "Å": "AA", "Æ": "AE",
-        "Ç": "C", "È": "E", "É": "E", "Ê": "E", "Ë": "E", "Ì": "I", "Í": "I", "Î": "I", "Ï": "I",
-        "Ñ": "N", "Ò": "O", "Ó": "O", "Ô": "O", "Õ": "O", "Ö": "OE", "Ø": "OE",
-        "Ù": "U", "Ú": "U", "Û": "U", "Ü": "UE", "Ý": "Y", "Þ": "TH", "ß": "SS",
-        "à": "A", "á": "A", "â": "A", "ã": "A", "ä": "AE", "å": "AA", "æ": "AE",
-        "ç": "C", "è": "E", "é": "E", "ê": "E", "ë": "E", "ì": "I", "í": "I", "î": "I", "ï": "I",
-        "ñ": "N", "ò": "O", "ó": "O", "ô": "O", "õ": "O", "ö": "OE", "ø": "OE",
-        "ù": "U", "ú": "U", "û": "U", "ü": "UE", "ý": "Y", "þ": "TH", "ÿ": "Y"
+        "À": "A",
+        "Á": "A",
+        "Â": "A",
+        "Ã": "A",
+        "Ä": "AE",
+        "Å": "AA",
+        "Æ": "AE",
+        "Ç": "C",
+        "È": "E",
+        "É": "E",
+        "Ê": "E",
+        "Ë": "E",
+        "Ì": "I",
+        "Í": "I",
+        "Î": "I",
+        "Ï": "I",
+        "Ñ": "N",
+        "Ò": "O",
+        "Ó": "O",
+        "Ô": "O",
+        "Õ": "O",
+        "Ö": "OE",
+        "Ø": "OE",
+        "Ù": "U",
+        "Ú": "U",
+        "Û": "U",
+        "Ü": "UE",
+        "Ý": "Y",
+        "Þ": "TH",
+        "ß": "SS",
+        "à": "A",
+        "á": "A",
+        "â": "A",
+        "ã": "A",
+        "ä": "AE",
+        "å": "AA",
+        "æ": "AE",
+        "ç": "C",
+        "è": "E",
+        "é": "E",
+        "ê": "E",
+        "ë": "E",
+        "ì": "I",
+        "í": "I",
+        "î": "I",
+        "ï": "I",
+        "ñ": "N",
+        "ò": "O",
+        "ó": "O",
+        "ô": "O",
+        "õ": "O",
+        "ö": "OE",
+        "ø": "OE",
+        "ù": "U",
+        "ú": "U",
+        "û": "U",
+        "ü": "UE",
+        "ý": "Y",
+        "þ": "TH",
+        "ÿ": "Y",
     }
 
     # Disallowed punctuation characters (stripped from names)
@@ -358,8 +445,9 @@ class MRZStandardizedUtils:
         return True
 
     @classmethod
-    def validate_date_policy(cls, date_str: str, document_type: MRZDocumentType,
-                           is_expiry: bool = False) -> tuple[bool, str]:
+    def validate_date_policy(
+        cls, date_str: str, document_type: MRZDocumentType, is_expiry: bool = False
+    ) -> tuple[bool, str]:
         """
         Validate date according to document-specific policies.
 
@@ -393,8 +481,9 @@ class MRZStandardizedUtils:
             return False, f"Date validation error: {e!s}"
 
     @classmethod
-    def _validate_expiry_date(cls, date_obj: date, today: date,
-                            document_type: MRZDocumentType) -> tuple[bool, str]:
+    def _validate_expiry_date(
+        cls, date_obj: date, today: date, document_type: MRZDocumentType
+    ) -> tuple[bool, str]:
         """Validate expiry date according to document policies."""
         # Check if already expired (with grace period)
         if date_obj < today:
@@ -512,34 +601,54 @@ class MRZCompositeValidator:
     """Validator for composite check digits across different document types."""
 
     @classmethod
-    def validate_td3_composite(cls, document_number: str, doc_check: str,
-                             birth_date: str, birth_check: str,
-                             expiry_date: str, expiry_check: str,
-                             personal_number: str, personal_check: str,
-                             composite_check: str) -> bool:
+    def validate_td3_composite(
+        cls,
+        document_number: str,
+        doc_check: str,
+        birth_date: str,
+        birth_check: str,
+        expiry_date: str,
+        expiry_check: str,
+        personal_number: str,
+        personal_check: str,
+        composite_check: str,
+    ) -> bool:
         """Validate TD3 passport composite check digit."""
         # Pad personal number field to 14 characters
         personal_padded = personal_number.ljust(14, "<")
 
         composite_data = (
-            document_number + doc_check +
-            birth_date + birth_check +
-            expiry_date + expiry_check +
-            personal_padded + personal_check
+            document_number
+            + doc_check
+            + birth_date
+            + birth_check
+            + expiry_date
+            + expiry_check
+            + personal_padded
+            + personal_check
         )
 
         return MRZStandardizedUtils.validate_check_digit(composite_data, composite_check)
 
     @classmethod
-    def validate_visa_composite(cls, document_number: str, doc_check: str,
-                              birth_date: str, birth_check: str,
-                              expiry_date: str, expiry_check: str,
-                              composite_check: str) -> bool:
+    def validate_visa_composite(
+        cls,
+        document_number: str,
+        doc_check: str,
+        birth_date: str,
+        birth_check: str,
+        expiry_date: str,
+        expiry_check: str,
+        composite_check: str,
+    ) -> bool:
         """Validate visa composite check digit (simpler than TD3)."""
         composite_data = (
-            document_number.rstrip("<") + doc_check +
-            birth_date + birth_check +
-            expiry_date + expiry_check
+            document_number.rstrip("<")
+            + doc_check
+            + birth_date
+            + birth_check
+            + expiry_date
+            + expiry_check
         )
 
         return MRZStandardizedUtils.validate_check_digit(composite_data, composite_check)

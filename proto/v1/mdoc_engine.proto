@@ -8,25 +8,25 @@ import "common_services.proto";
 service MDocEngine {
   // Create a new mobile document
   rpc CreateMDoc (CreateMDocRequest) returns (CreateMDocResponse);
-  
+
   // Retrieve an mDoc by document ID
   rpc GetMDoc (GetMDocRequest) returns (MDocResponse);
-  
+
   // Sign an mDoc using Document Signer
   rpc SignMDoc (SignMDocRequest) returns (SignMDocResponse);
-  
+
   // Generate QR code for offline verification
   rpc GenerateMDocQRCode (GenerateQRCodeRequest) returns (GenerateQRCodeResponse);
-  
+
   // Transfer mDoc to device
   rpc TransferMDocToDevice (TransferMDocRequest) returns (TransferMDocResponse);
-  
+
   // Verify an mDoc
   rpc VerifyMDoc (VerifyMDocRequest) returns (VerifyMDocResponse);
-  
+
   // Create document type template
   rpc CreateDocumentTypeTemplate (CreateTemplateRequest) returns (CreateTemplateResponse);
-  
+
   // Get available document type templates
   rpc GetDocumentTemplates (GetTemplatesRequest) returns (GetTemplatesResponse);
 }
@@ -36,19 +36,19 @@ message CreateMDocRequest {
   string user_id = 1; // Added user_id
   string document_type = 2; // e.g., "ID_CARD", "RESIDENCE_PERMIT", "BIRTH_CERTIFICATE"
   string template_id = 3;   // Optional, references a predefined template
-  
+
   // Core document fields
   string document_number = 4;
   string issuing_authority = 5;
   string issue_date = 6; // ISO format: YYYY-MM-DD
   string expiry_date = 7; // ISO format: YYYY-MM-DD
-  
+
   // Person information
   PersonInfo person_info = 8;
-  
+
   // Document specific fields as key-value pairs
   repeated DocumentField document_fields = 9;
-  
+
   // Document images (ID photo, signature, fingerprints, etc.)
   repeated DocumentImage images = 10;
 }
@@ -61,7 +61,7 @@ message PersonInfo {
   string place_of_birth = 4;
   string nationality = 5;
   string gender = 6;
-  
+
   // Optional additional person details
   repeated DocumentField additional_info = 7;
 }
@@ -101,15 +101,15 @@ message MDocResponse {
   string issuing_authority = 4;
   string issue_date = 5;
   string expiry_date = 6;
-  
+
   PersonInfo person_info = 7;
   repeated DocumentField document_fields = 8;
   repeated DocumentImage images = 9;
-  
+
   SignatureInfo signature_info = 10;
   string status = 11; // Consider enum
   string error_message = 12;
-  string created_at = 13; 
+  string created_at = 13;
 }
 
 // Signature information
@@ -166,11 +166,11 @@ message VerifyMDocRequest {
     bytes qr_code_data = 2;
     bytes device_data = 3; // Data received from device via BLE/NFC
   }
-  
+
   // Which fields the verifier is authorized to see
   repeated string requested_namespaces = 4;
   repeated string requested_fields = 5;
-  
+
   string verification_level = 6; // "BASIC", "STANDARD", "ENHANCED"
 }
 

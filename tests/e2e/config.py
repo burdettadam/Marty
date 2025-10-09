@@ -52,20 +52,20 @@ SERVICES["ui"] = BASE_URL
 
 class TestConfig:
     """Configuration class for contract testing."""
-    
+
     # Use centralized service registry for all port mappings
     SERVICE_PORTS = ServiceRegistry.get_service_ports()
     GRPC_PORTS = ServiceRegistry.get_grpc_ports()
     METRICS_PORTS = ServiceRegistry.get_metrics_ports()
-    
+
     def get_service_port(self, service_name: str) -> int:
         """Get HTTP port for a service."""
         return self.SERVICE_PORTS.get(service_name, 8080)
-    
+
     def get_grpc_port(self, service_name: str) -> int:
         """Get gRPC port for a service."""
         return self.GRPC_PORTS.get(service_name, 9090)
-    
+
     def get_metrics_port(self, service_name: str) -> int:
         """Get metrics port for a service."""
         return self.METRICS_PORTS.get(service_name, 8081)

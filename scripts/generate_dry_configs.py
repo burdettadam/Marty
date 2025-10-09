@@ -25,29 +25,31 @@ except ImportError as e:
 def generate_all_configs():
     """Generate all DRY configurations."""
     print("🔧 Generating DRY configurations for Marty platform...")
-    
+
     generator = EnvironmentConfigGenerator()
     config_dir = Path("config/generated")
     config_dir.mkdir(exist_ok=True)
-    
+
     # Generate environment files
     environments = ["development", "production", "testing"]
     for env in environments:
         env_file = generator.write_env_file(env, config_dir / f".env.{env}")
         print(f"✅ Generated {env_file}")
-    
-    print(f"\n📋 Service Registry Summary:")
+
+    print("\n📋 Service Registry Summary:")
     print(f"   Total services: {len(ServiceRegistry.get_all_services())}")
-    
+
     for service_name, service_def in ServiceRegistry.get_all_services().items():
-        print(f"   {service_name:20} → {service_def.base_port:5} (gRPC: {service_def.grpc_port}, Metrics: {service_def.metrics_port})")
-    
-    print(f"\n🎯 DRY Benefits Achieved:")
-    print(f"   ✅ Centralized port management")
-    print(f"   ✅ Single source of truth for service definitions")
-    print(f"   ✅ Automatic environment file generation")
-    print(f"   ✅ Consistent port allocation pattern")
-    print(f"   ✅ Eliminated hardcoded configurations")
+        print(
+            f"   {service_name:20} → {service_def.base_port:5} (gRPC: {service_def.grpc_port}, Metrics: {service_def.metrics_port})"
+        )
+
+    print("\n🎯 DRY Benefits Achieved:")
+    print("   ✅ Centralized port management")
+    print("   ✅ Single source of truth for service definitions")
+    print("   ✅ Automatic environment file generation")
+    print("   ✅ Consistent port allocation pattern")
+    print("   ✅ Eliminated hardcoded configurations")
 
 
 if __name__ == "__main__":

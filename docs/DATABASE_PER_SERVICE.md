@@ -18,6 +18,7 @@ This implementation provides database isolation per service following the micros
 - `marty_common/config.py` - Updated `database()` method to accept service name parameter
 - `src/apps/runtime.py` - Updated `build_dependencies_async()` to accept service name
 - Configuration files now support per-service database DSNs in format:
+
   ```yaml
   database:
     document_signer: <dsn>
@@ -30,6 +31,7 @@ This implementation provides database isolation per service following the micros
 #### Migration Infrastructure
 
 Each service has its own Alembic setup:
+
 ```
 src/services/{service_name}/
 ├── alembic/
@@ -42,6 +44,7 @@ src/services/{service_name}/
 #### Makefile Targets
 
 New database migration targets:
+
 - `make db-upgrade SERVICE=<service_name>` - Run migrations for specific service
 - `make db-revision SERVICE=<service_name> MESSAGE="description"` - Create new migration
 - `make db-downgrade SERVICE=<service_name> [REVISION=<rev>]` - Downgrade migrations
@@ -54,6 +57,7 @@ New database migration targets:
 ### document_signer Service
 
 Tables:
+
 - `document_signer_outbox` - Event outbox for async messaging
 - `credential_offers` - OIDC4VCI credential offers
 - `access_tokens` - OAuth2 access tokens for credential issuance
@@ -62,6 +66,7 @@ Tables:
 ### csca_service Service  
 
 Tables:
+
 - `csca_outbox` - Event outbox for async messaging
 - `csca_certificates` - CSCA certificate storage and metadata
 - `certificate_chains` - Certificate chain validation data
@@ -71,6 +76,7 @@ Tables:
 ### pkd_service Service
 
 Tables:
+
 - `pkd_outbox` - Event outbox for async messaging  
 - `pkd_download_manifest` - PKD manifest tracking
 - `pkd_certificate_entries` - Individual certificate entries from PKD
@@ -79,6 +85,7 @@ Tables:
 ### passport_engine Service
 
 Tables:
+
 - `passport_engine_outbox` - Event outbox for async messaging
 - `passport_validation_requests` - Passport validation request tracking
 - `passport_validation_cache` - Validation result caching
@@ -142,6 +149,7 @@ database:
 ## Outbox Pattern
 
 Each service implements the outbox pattern for reliable event publishing:
+
 - Events are written to the service's outbox table in the same transaction as business data
 - Background dispatcher reads from outbox and publishes to event bus
 - Ensures exactly-once delivery semantics across service boundaries

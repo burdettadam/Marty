@@ -224,7 +224,7 @@ if [ "$ISSUER_HEALTHY" = true ]; then
     OFFER_RESPONSE=$(curl -s -X POST http://localhost:${ISSUER_NODEPORT}/credential-offer \
         -H "Content-Type: application/json" \
         -d '{"credential_type": "EmployeeCredential", "claims": {"given_name": "John", "family_name": "Doe", "employee_id": "EMP001"}}')
-    
+
     if echo "$OFFER_RESPONSE" | jq . >/dev/null 2>&1; then
         print_success "✅ Credential offer created successfully!"
         echo "$OFFER_RESPONSE" | jq .

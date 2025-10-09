@@ -12,10 +12,11 @@ import logging
 import statistics
 import threading
 from collections import defaultdict
+from collections.abc import Callable
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta, timezone
 from enum import Enum
-from typing import Any, Callable
+from typing import Any
 
 logger = logging.getLogger(__name__)
 
@@ -425,8 +426,7 @@ class AnomalyDetector:
         # Check against allowed operations
         if key_info and key_info.allowed_operations:
             unauthorized_ops = [
-                event for event in events
-                if event.operation not in key_info.allowed_operations
+                event for event in events if event.operation not in key_info.allowed_operations
             ]
 
             if unauthorized_ops:
@@ -450,8 +450,7 @@ class AnomalyDetector:
         # Check against historical patterns
         if pattern and pattern.common_operations:
             unusual_ops = [
-                event for event in events
-                if event.operation not in pattern.common_operations
+                event for event in events if event.operation not in pattern.common_operations
             ]
 
             if len(unusual_ops) > len(events) * 0.5:  # More than 50% unusual operations
@@ -487,8 +486,7 @@ class AnomalyDetector:
         # Check against allowed users
         if key_info and key_info.allowed_users:
             unauthorized_events = [
-                event for event in events
-                if event.user_id not in key_info.allowed_users
+                event for event in events if event.user_id not in key_info.allowed_users
             ]
 
             if unauthorized_events:

@@ -967,6 +967,7 @@ def create_app(settings: UiSettings | None = None) -> FastAPI:
 
     @app.post("/cmc/create")
     async def create_cmc(
+        request: Request,
         document_number: str = Form(),
         issuing_country: str = Form(),
         surname: str = Form(),
@@ -1089,7 +1090,11 @@ def create_app(settings: UiSettings | None = None) -> FastAPI:
                     "is_valid": result_data.get("is_valid", False),
                     "cmc_data": result_data.get("cmc_data"),
                     "verification_results": result_data.get("verification_results", []),
-                    "error_message": result_data.get("error_message") if not result_data.get("success", True) else None,
+                    "error_message": (
+                        result_data.get("error_message")
+                        if not result_data.get("success", True)
+                        else None
+                    ),
                 }
             else:
                 verify_result = {
@@ -1146,7 +1151,11 @@ def create_app(settings: UiSettings | None = None) -> FastAPI:
                 sign_result = {
                     "success": result_data.get("success", False),
                     "signature_info": result_data.get("signature_info"),
-                    "error_message": result_data.get("error_message") if not result_data.get("success", True) else None,
+                    "error_message": (
+                        result_data.get("error_message")
+                        if not result_data.get("success", True)
+                        else None
+                    ),
                 }
             else:
                 sign_result = {
@@ -1198,7 +1207,9 @@ def create_app(settings: UiSettings | None = None) -> FastAPI:
             }
 
             api_base = getattr(settings, "cmc_api_base", "http://localhost:8000")
-            response = requests.post(f"{api_base}/api/cmc/background-check", json=api_payload, timeout=30)
+            response = requests.post(
+                f"{api_base}/api/cmc/background-check", json=api_payload, timeout=30
+            )
 
             if response.status_code == 200:
                 result_data = response.json()
@@ -1208,7 +1219,11 @@ def create_app(settings: UiSettings | None = None) -> FastAPI:
                     "check_authority": result_data.get("check_authority"),
                     "check_reference": result_data.get("check_reference"),
                     "check_date": result_data.get("check_date"),
-                    "error_message": result_data.get("error_message") if not result_data.get("success", True) else None,
+                    "error_message": (
+                        result_data.get("error_message")
+                        if not result_data.get("success", True)
+                        else None
+                    ),
                 }
             else:
                 bg_check_result = {
@@ -1264,7 +1279,9 @@ def create_app(settings: UiSettings | None = None) -> FastAPI:
             }
 
             api_base = getattr(settings, "cmc_api_base", "http://localhost:8000")
-            response = requests.post(f"{api_base}/api/cmc/visa-free-status", json=api_payload, timeout=30)
+            response = requests.post(
+                f"{api_base}/api/cmc/visa-free-status", json=api_payload, timeout=30
+            )
 
             if response.status_code == 200:
                 result_data = response.json()
@@ -1272,7 +1289,11 @@ def create_app(settings: UiSettings | None = None) -> FastAPI:
                     "success": result_data.get("success", False),
                     "visa_free_eligible": result_data.get("visa_free_eligible"),
                     "updated_at": result_data.get("updated_at"),
-                    "error_message": result_data.get("error_message") if not result_data.get("success", True) else None,
+                    "error_message": (
+                        result_data.get("error_message")
+                        if not result_data.get("success", True)
+                        else None
+                    ),
                 }
             else:
                 visa_free_result = {
@@ -1377,8 +1398,7 @@ def create_app(settings: UiSettings | None = None) -> FastAPI:
         factory: GrpcClientFactory = Depends(get_factory),
         grant_type: str = Form(...),
         pre_authorized_code: str = Form(...),
-        user_pin: str
-        | None = Form(default=None),
+        user_pin: str | None = Form(default=None),
         wallet_attestation: str | None = Form(default=None),
     ) -> dict[str, Any]:
         if grant_type != "urn:ietf:params:oauth:grant-type:pre-authorized_code":

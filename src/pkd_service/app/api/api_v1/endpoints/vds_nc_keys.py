@@ -19,7 +19,18 @@ from marty_common.crypto.database_vds_nc_manager import (
 from marty_common.crypto.vds_nc_keys import (
     KeyRole,
     KeyStatus,
+    VDSNCKeyManager,
+    VDSNCKeyDistributor,  # type: ignore
 )
+
+
+def get_key_distributor() -> VDSNCKeyDistributor:  # type: ignore
+    """Placeholder dependency provider for key distributor.
+
+    In full implementation this would resolve an instance from the application
+    container. For now we raise a 501 to indicate it's not wired.
+    """
+    raise HTTPException(status_code=501, detail="Key distributor not configured")
 
 logger = logging.getLogger(__name__)
 
@@ -79,7 +90,9 @@ async def get_db_session() -> AsyncSession:
     raise HTTPException(status_code=501, detail="Database session not configured")
 
 
-async def get_key_manager(session: AsyncSession = Depends(get_db_session)) -> DatabaseVDSNCKeyManager:
+async def get_key_manager(
+    session: AsyncSession = Depends(get_db_session),
+) -> DatabaseVDSNCKeyManager:
     """Get database-backed VDS-NC key manager instance."""
     return DatabaseVDSNCKeyManager(session)
 
@@ -134,24 +147,27 @@ async def get_vds_nc_keys_by_country(
         # Convert to response format
         keys = []
         for jwk in jwks_data["keys"]:
-            keys.append(VDSNCKeyResponse(
-                kid=jwk["kid"],
-                kty=jwk["kty"],
-                crv=jwk["crv"],
-                x=jwk["x"],
-                y=jwk["y"],
-                use=jwk["use"],
-                alg=jwk["alg"],
-                issuer=jwk["country"],
-                role=jwk["role"],
-                not_before=jwk.get("nbf", ""),
-                not_after=jwk.get("exp", ""),
-                status="active",
-                rotation_generation=1,
-            ))
+            keys.append(
+                VDSNCKeyResponse(
+                    kid=jwk["kid"],
+                    kty=jwk["kty"],
+                    crv=jwk["crv"],
+                    x=jwk["x"],
+                    y=jwk["y"],
+                    use=jwk["use"],
+                    alg=jwk["alg"],
+                    issuer=jwk["country"],
+                    role=jwk["role"],
+                    not_before=jwk.get("nbf", ""),
+                    not_after=jwk.get("exp", ""),
+                    status="active",
+                    rotation_generation=1,
+                )
+            )
 
         metadata = VDSNCKeysMetadata(
             last_updated=jwks_data["metadata"]["last_updated"],
+            next_update=jwks_data["metadata"].get("next_update"),
             total_count=jwks_data["metadata"]["total_count"],
             country=country_code,
             role=role,
@@ -163,9 +179,7 @@ async def get_vds_nc_keys_by_country(
         raise HTTPException(status_code=400, detail=f"Invalid role: {role}") from None
     except Exception as e:
         logger.exception("Error retrieving VDS-NC keys")
-        raise HTTPException(
-            status_code=500, detail=f"Failed to retrieve VDS-NC keys: {e!s}"
-        ) from e
+        raise HTTPException(status_code=500, detail=f"Failed to retrieve VDS-NC keys: {e!s}") from e
 
 
 @router.get(
@@ -194,9 +208,7 @@ async def get_all_vds_nc_keys(
         raise HTTPException(status_code=400, detail=f"Invalid role: {role}")
     except Exception as e:
         logger.exception("Error retrieving all VDS-NC keys")
-        raise HTTPException(
-            status_code=500, detail=f"Failed to retrieve VDS-NC keys: {e!s}"
-        )
+        raise HTTPException(status_code=500, detail=f"Failed to retrieve VDS-NC keys: {e!s}")
 
 
 @router.get(
@@ -277,9 +289,7 @@ async def get_unified_trust_store(
 
     except Exception as e:
         logger.exception(f"Error retrieving unified trust store: {e}")
-        raise HTTPException(
-            status_code=500, detail=f"Failed to retrieve trust store: {e!s}"
-        )
+        raise HTTPException(status_code=500, detail=f"Failed to retrieve trust store: {e!s}")
 
 
 @router.get(
@@ -319,9 +329,7 @@ async def get_vds_nc_revocation_list(
 
     except Exception as e:
         logger.exception(f"Error retrieving revocation list: {e}")
-        raise HTTPException(
-            status_code=500, detail=f"Failed to retrieve revocation list: {e!s}"
-        )
+        raise HTTPException(status_code=500, detail=f"Failed to retrieve revocation list: {e!s}")
 
 
 # Health check

@@ -50,7 +50,6 @@ class MRZGenerator:
         # Truncate or pad to required length
         return text[:max_length] if len(text) > max_length else text.ljust(max_length, filler)
 
-
     @classmethod
     def compute_check_digit(cls, data: str) -> str:
         """
@@ -231,9 +230,7 @@ class MRZGenerator:
 
         # Composite check digit (calculated from specific fields)
         composite_data = (
-            doc_number.rstrip("<") + doc_check +
-            dob + dob_check +
-            expiry + expiry_check
+            doc_number.rstrip("<") + doc_check + dob + dob_check + expiry + expiry_check
         )
         composite_check = cls.compute_check_digit(composite_data)
         line2_parts.append(composite_check)
@@ -247,7 +244,7 @@ class MRZGenerator:
             check_digit_document=doc_check,
             check_digit_dob=dob_check,
             check_digit_expiry=expiry_check,
-            check_digit_composite=composite_check
+            check_digit_composite=composite_check,
         )
 
         return line1, line2, mrz_data
@@ -345,18 +342,12 @@ class MRZGenerator:
         used_length = len(visa_category) + 1  # +1 for composite check
         name_length = 36 - used_length
 
-        name_field = cls.format_name_for_mrz(
-            personal.surname,
-            personal.given_names,
-            name_length
-        )
+        name_field = cls.format_name_for_mrz(personal.surname, personal.given_names, name_length)
         line3_parts.append(name_field)
 
         # Composite check digit
         composite_data = (
-            doc_number.rstrip("<") + doc_check +
-            dob + dob_check +
-            expiry + expiry_check
+            doc_number.rstrip("<") + doc_check + dob + dob_check + expiry + expiry_check
         )
         composite_check = cls.compute_check_digit(composite_data)
         line3_parts.append(composite_check)
@@ -371,7 +362,7 @@ class MRZGenerator:
             check_digit_document=doc_check,
             check_digit_dob=dob_check,
             check_digit_expiry=expiry_check,
-            check_digit_composite=composite_check
+            check_digit_composite=composite_check,
         )
 
         return line1, line2, line3, mrz_data
@@ -445,9 +436,9 @@ class MRZParser:
                 "document": doc_check,
                 "dob": dob_check,
                 "expiry": expiry_check,
-                "composite": composite_check
+                "composite": composite_check,
             },
-            "optional_data": optional_data1 + optional_data2
+            "optional_data": optional_data1 + optional_data2,
         }
 
     @classmethod
@@ -503,9 +494,9 @@ class MRZParser:
                 "document": doc_check,
                 "dob": dob_check,
                 "expiry": expiry_check,
-                "composite": composite_check
+                "composite": composite_check,
             },
-            "optional_data": optional_data1 + optional_data2 + optional_data3
+            "optional_data": optional_data1 + optional_data2 + optional_data3,
         }
 
     @classmethod
@@ -535,20 +526,27 @@ class MRZParser:
 
         # Validate composite check digit
         composite_data = (
-            parsed_data["document_number"] + parsed_data["check_digits"]["document"] +
-            parsed_data["date_of_birth"] + parsed_data["check_digits"]["dob"] +
-            parsed_data["date_of_expiry"] + parsed_data["check_digits"]["expiry"]
+            parsed_data["document_number"]
+            + parsed_data["check_digits"]["document"]
+            + parsed_data["date_of_birth"]
+            + parsed_data["check_digits"]["dob"]
+            + parsed_data["date_of_expiry"]
+            + parsed_data["check_digits"]["expiry"]
         )
         expected_composite_check = MRZGenerator.compute_check_digit(composite_data)
-        results["composite_valid"] = expected_composite_check == parsed_data["check_digits"]["composite"]
+        results["composite_valid"] = (
+            expected_composite_check == parsed_data["check_digits"]["composite"]
+        )
 
         # Overall validity
-        results["all_valid"] = all([
-            results["document_valid"],
-            results["dob_valid"],
-            results["expiry_valid"],
-            results["composite_valid"]
-        ])
+        results["all_valid"] = all(
+            [
+                results["document_valid"],
+                results["dob_valid"],
+                results["expiry_valid"],
+                results["composite_valid"],
+            ]
+        )
 
         return results
 

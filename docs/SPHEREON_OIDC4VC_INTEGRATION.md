@@ -9,12 +9,14 @@ The integration adds support for testing OIDC4VC (OpenID for Verifiable Credenti
 ## Dependencies Added
 
 ### Main Dependencies (pyproject.toml)
+
 - `oidc4vc>=0.2.1` - Core OIDC4VC protocol implementation
 - `did-resolver>=1.0.0` - DID resolution capabilities  
 - `jwcrypto>=1.5.4` - Enhanced JWT/JWE/JWK cryptographic operations
 - `didcomm-messaging>=0.5.0` - DIDComm messaging protocol support
 
 ### Development Dependencies
+
 - `httpx>=0.25.0` - Modern HTTP client for testing
 - `websockets>=12.0` - WebSocket support for real-time communication
 - `mock-server>=0.8.0` - Mock server for testing external services
@@ -25,6 +27,7 @@ The integration adds support for testing OIDC4VC (OpenID for Verifiable Credenti
 ### Integration Test Structure
 
 The integration tests are located in:
+
 ```
 tests/integration/test_sphereon_oidc4vc_integration.py
 ```
@@ -46,17 +49,20 @@ tests/integration/test_sphereon_oidc4vc_integration.py
 ### Test Features
 
 #### Supported Credential Types
+
 - **Passport Credentials**: Digital passport credentials in VC+SD-JWT format
 - **Mobile Driver License (mDL)**: ISO 18013-5 compliant mDoc credentials
 - **Custom Credential Types**: Extensible framework for additional credential types
 
 #### Protocol Support
+
 - **OIDC4VCI**: OpenID for Verifiable Credential Issuance
 - **Pre-authorized Code Flow**: PIN-less credential issuance
 - **Proof of Possession**: JWT-based cryptographic binding
 - **Selective Disclosure**: SD-JWT format for privacy-preserving credentials
 
 #### Sphereon Compatibility
+
 - Metadata format compatibility with Sphereon issuer/verifier
 - Wallet simulation matching Sphereon wallet behavior
 - Error response formats compatible with Sphereon standards
@@ -65,6 +71,7 @@ tests/integration/test_sphereon_oidc4vc_integration.py
 ## Running Tests
 
 ### Setup Dependencies
+
 ```bash
 # Install dependencies
 python setup_sphereon_oidc4vc.py
@@ -74,6 +81,7 @@ pip install -e .
 ```
 
 ### Run Integration Tests
+
 ```bash
 # Run all Sphereon OIDC4VC tests
 pytest tests/integration/test_sphereon_oidc4vc_integration.py -v
@@ -87,6 +95,7 @@ pytest tests/integration/test_sphereon_oidc4vc_integration.py::TestSphereonOIDC4
 ```
 
 ### Test Runner Script
+
 ```bash
 # Use the provided test runner
 python run_sphereon_tests.py
@@ -95,6 +104,7 @@ python run_sphereon_tests.py
 ## Configuration
 
 ### Test Environment Variables
+
 ```bash
 # Optional: Set custom base URL for testing
 export OIDC4VC_BASE_URL="http://localhost:8000"
@@ -104,7 +114,9 @@ export OIDC4VC_DEBUG=true
 ```
 
 ### pytest Markers
+
 The following markers are available for test selection:
+
 - `@pytest.mark.integration` - Integration tests
 - `@pytest.mark.oidc4vc` - OIDC4VC specific tests  
 - `@pytest.mark.sphereon` - Sphereon compatibility tests
@@ -112,6 +124,7 @@ The following markers are available for test selection:
 ## Integration Points
 
 ### Existing System Integration
+
 The tests integrate with existing Marty system components:
 
 - **UI App**: Tests the OIDC4VC endpoints in `src/ui_app/app.py`
@@ -119,6 +132,7 @@ The tests integrate with existing Marty system components:
 - **Models**: Leverages `Oidc4VciSessionRecord` for data persistence
 
 ### Credential Formats
+
 - **VC+SD-JWT**: Verifiable Credentials with Selective Disclosure
 - **mso_mdoc**: Mobile Security Object for mDoc credentials
 - **Custom Formats**: Extensible for additional credential types
@@ -126,11 +140,13 @@ The tests integrate with existing Marty system components:
 ## Security Considerations
 
 ### Key Management
+
 - Tests use ephemeral keys for testing (P-256 elliptic curve)
 - Production implementations should use proper key management
 - Hardware Security Module (HSM) integration recommended for production
 
 ### Protocol Security
+
 - JWT proof of possession prevents credential theft
 - Pre-authorized codes are single-use and time-limited
 - All communications should use HTTPS in production
@@ -140,6 +156,7 @@ The tests integrate with existing Marty system components:
 ### Common Issues
 
 1. **Dependency Installation Failures**
+
    ```bash
    # Try upgrading pip first
    pip install --upgrade pip
@@ -147,10 +164,11 @@ The tests integrate with existing Marty system components:
    ```
 
 2. **Test Connection Failures**
+
    ```bash
    # Ensure the Marty services are running
    docker-compose up -d
-   
+
    # Check service health
    curl http://localhost:8000/health
    ```
@@ -161,7 +179,9 @@ The tests integrate with existing Marty system components:
    - Verify audience and issuer claims
 
 ### Debug Mode
+
 Enable verbose logging by setting environment variables:
+
 ```bash
 export PYTHONPATH=.
 export LOG_LEVEL=DEBUG
@@ -171,11 +191,13 @@ pytest tests/integration/test_sphereon_oidc4vc_integration.py -v -s
 ## Extending the Tests
 
 ### Adding New Credential Types
+
 1. Define credential configuration in test metadata
 2. Add test cases for the new credential type
 3. Update parametrized tests to include new type
 
 ### Adding New Protocol Flows
+
 1. Implement flow logic in test methods
 2. Add mock responses for external services
 3. Validate against Sphereon compatibility requirements
@@ -190,6 +212,7 @@ pytest tests/integration/test_sphereon_oidc4vc_integration.py -v -s
 ## Support
 
 For issues related to Sphereon OIDC4VC integration:
+
 1. Check existing test documentation
 2. Review Sphereon compatibility requirements
 3. Consult the OpenID4VC specification

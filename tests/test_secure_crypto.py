@@ -11,10 +11,14 @@ assert spec.loader is not None
 crypto_module = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(crypto_module)  # type: ignore[attr-defined]
 
-@pytest.mark.parametrize(("algorithm", "key_size"), [
-    ("RSA", 2048),
-    ("EC", 256),
-])
+
+@pytest.mark.parametrize(
+    ("algorithm", "key_size"),
+    [
+        ("RSA", 2048),
+        ("EC", 256),
+    ],
+)
 def test_generate_and_sign_verify(algorithm, key_size):
     priv, pub = crypto_module.generate_key_pair(algorithm=algorithm, key_size=key_size)
     data = b"test message"
@@ -71,7 +75,7 @@ def test_invalid_length_random():
     # Test that invalid lengths raise ValueError
     with pytest.raises(ValueError, match="Length must be positive"):
         crypto_module.generate_secure_random_bytes(0)
-    
+
     with pytest.raises(ValueError, match="Length must be positive"):
         crypto_module.generate_secure_token(-1)
 

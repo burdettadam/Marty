@@ -13,7 +13,7 @@ from .utilities import (
 
 __all__ = [
     "DatabaseOperations",
-    "RepositoryBase", 
+    "RepositoryBase",
     "TransactionManager",
     "create_database_operations",
     "create_repository",

@@ -102,7 +102,7 @@ database:
   # Default database (backward compatibility)
   default:
     url: "postgresql+asyncpg://dev_user:dev_password@localhost:5432/marty_dev"
-    
+
   # Service-specific databases
   document_signer:
     url: "postgresql+asyncpg://dev_user:dev_password@localhost:5432/marty_document_signer"
@@ -137,12 +137,14 @@ docker-compose -f docker/docker-compose.test-db.yml down     # Stop test DB
 ## Service Schemas Overview
 
 ### document_signer
+
 - `document_signer_outbox` - Event outbox
 - `credential_offers` - OIDC4VCI offers
 - `access_tokens` - OAuth2 tokens
 - `issued_credential_audit` - Audit trail
 
 ### csca_service
+
 - `csca_outbox` - Event outbox
 - `csca_certificates` - CSCA certificates
 - `certificate_chains` - Certificate chains
@@ -150,12 +152,14 @@ docker-compose -f docker/docker-compose.test-db.yml down     # Stop test DB
 - `ocsp_cache` - OCSP cache
 
 ### pkd_service
+
 - `pkd_outbox` - Event outbox
 - `pkd_download_manifest` - PKD manifests
 - `pkd_certificate_entries` - PKD certificates
 - `pkd_sync_jobs` - Sync jobs
 
 ### passport_engine
+
 - `passport_engine_outbox` - Event outbox
 - `passport_validation_requests` - Validation requests
 - `passport_validation_cache` - Validation cache

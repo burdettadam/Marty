@@ -8,13 +8,13 @@ global:
   smtp_auth_username: "${SMTP_USERNAME:-}"
   smtp_auth_password: "${SMTP_PASSWORD:-}"
   smtp_require_tls: true
-  
+
   # Slack webhook configuration
   slack_api_url: "${SLACK_API_URL:-}"
-  
+
   # PagerDuty integration key
   pagerduty_url: "https://events.pagerduty.com/v2/enqueue"
-  
+
   # Default values for all alerts
   resolve_timeout: 5m
 
@@ -25,7 +25,7 @@ route:
   group_interval: 5m
   repeat_interval: 12h
   receiver: 'default-notifications'
-  
+
   routes:
     # Critical security alerts - immediate escalation
     - match:
@@ -36,7 +36,7 @@ route:
       group_interval: 1m
       repeat_interval: 5m
       continue: true
-    
+
     # Critical system alerts - immediate escalation
     - match:
         severity: critical
@@ -45,7 +45,7 @@ route:
       group_interval: 1m
       repeat_interval: 30m
       continue: true
-    
+
     # SLA violations - business team notification
     - match:
         alert_type: sla
@@ -53,7 +53,7 @@ route:
       group_wait: 2m
       group_interval: 10m
       repeat_interval: 1h
-    
+
     # Security warnings
     - match:
         team: security
@@ -62,7 +62,7 @@ route:
       group_wait: 1m
       group_interval: 5m
       repeat_interval: 2h
-    
+
     # Platform warnings
     - match:
         team: platform
@@ -71,7 +71,7 @@ route:
       group_wait: 2m
       group_interval: 10m
       repeat_interval: 4h
-    
+
     # Business alerts
     - match:
         team: business
@@ -79,7 +79,7 @@ route:
       group_wait: 5m
       group_interval: 15m
       repeat_interval: 6h
-    
+
     # Compliance alerts
     - match:
         team: compliance
@@ -87,7 +87,7 @@ route:
       group_wait: 1m
       group_interval: 5m
       repeat_interval: 1h
-    
+
     # Escalation alerts
     - match:
         escalation: "true"
@@ -104,14 +104,14 @@ inhibit_rules:
     target_match:
       severity: warning
     equal: ['service', 'alertname']
-  
+
   # Suppress individual service alerts when multiple failures detected
   - source_match:
       alertname: MultipleSystemFailures
     target_match_re:
       alertname: ^(TrustService|Database|GRPC).*
     equal: ['service']
-  
+
   # Suppress performance alerts when service is down
   - source_match:
       alertname: TrustServiceDown
@@ -137,7 +137,7 @@ receivers:
           {{ end }}
         headers:
           X-Alert-Priority: 'low'
-    
+
     slack_configs:
       - api_url: '${SLACK_WEBHOOK_DEFAULT:-}'
         channel: '#trust-service-alerts'
@@ -162,7 +162,7 @@ receivers:
         severity: 'critical'
         class: 'security'
         component: 'trust-service'
-    
+
     slack_configs:
       - api_url: '${SLACK_WEBHOOK_SECURITY:-}'
         channel: '#security-critical'
@@ -171,39 +171,39 @@ receivers:
           {{ range .Alerts }}
           *{{ .Annotations.summary }}*
           {{ .Annotations.description }}
-          
+
           📊 *Details:*
           • Service: {{ .Labels.service }}
           • Source IP: {{ .Labels.source_ip }}
           • Event Type: {{ .Labels.event_type }}
-          
+
           📚 [Runbook]({{ .Annotations.runbook_url }})
           📈 [Dashboard]({{ .Annotations.dashboard_url }})
           {{ end }}
         color: 'danger'
-    
+
     email_configs:
       - to: '${SECURITY_EMAIL:-security@marty.com}'
         subject: '🚨 CRITICAL SECURITY ALERT: {{ .GroupLabels.alertname }}'
         body: |
           CRITICAL SECURITY ALERT
-          
+
           {{ range .Alerts }}
           Summary: {{ .Annotations.summary }}
           Description: {{ .Annotations.description }}
-          
+
           Details:
           - Service: {{ .Labels.service }}
           - Severity: {{ .Labels.severity }}
           - Source IP: {{ .Labels.source_ip }}
           - Event Type: {{ .Labels.event_type }}
           - User Agent: {{ .Labels.user_agent }}
-          
+
           Actions Required:
           1. Review the security dashboard immediately
           2. Follow the runbook procedures
           3. Escalate to security team lead if needed
-          
+
           Runbook: {{ .Annotations.runbook_url }}
           Dashboard: {{ .Annotations.dashboard_url }}
           {{ end }}
@@ -224,7 +224,7 @@ receivers:
         severity: 'critical'
         class: 'platform'
         component: 'trust-service'
-    
+
     slack_configs:
       - api_url: '${SLACK_WEBHOOK_PLATFORM:-}'
         channel: '#platform-critical'
@@ -233,17 +233,17 @@ receivers:
           {{ range .Alerts }}
           *{{ .Annotations.summary }}*
           {{ .Annotations.description }}
-          
+
           📊 *Metrics:*
           • Service: {{ .Labels.service }}
           • Instance: {{ .Labels.instance }}
           • Team: {{ .Labels.team }}
-          
+
           🛠️ [Runbook]({{ .Annotations.runbook_url }})
           📈 [Dashboard]({{ .Annotations.dashboard_url }})
           {{ end }}
         color: 'danger'
-    
+
     webhook_configs:
       - url: '${WEBHOOK_INCIDENT_MANAGEMENT:-}'
         http_config:
@@ -262,12 +262,12 @@ receivers:
           {{ range .Alerts }}
           *{{ .Annotations.summary }}*
           {{ .Annotations.description }}
-          
+
           Service: {{ .Labels.service }} | Severity: {{ .Labels.severity }}
           {{ if .Annotations.runbook_url }}[Runbook]({{ .Annotations.runbook_url }}){{ end }}
           {{ end }}
         color: 'warning'
-    
+
     email_configs:
       - to: '${SECURITY_EMAIL:-security@marty.com}'
         subject: '[SECURITY WARNING] {{ .GroupLabels.alertname }}'
@@ -276,7 +276,7 @@ receivers:
           Security Warning: {{ .Annotations.summary }}
           Description: {{ .Annotations.description }}
           Service: {{ .Labels.service }}
-          
+
           {{ if .Annotations.runbook_url }}Runbook: {{ .Annotations.runbook_url }}{{ end }}
           {{ end }}
 
@@ -303,30 +303,30 @@ receivers:
           {{ range .Alerts }}
           *{{ .Annotations.summary }}*
           {{ .Annotations.description }}
-          
+
           📈 *Business Impact:*
           • Service: {{ .Labels.service }}
           • Alert Type: {{ .Labels.alert_type }}
-          
+
           {{ if .Annotations.dashboard_url }}[Business Dashboard]({{ .Annotations.dashboard_url }}){{ end }}
           {{ end }}
         color: '{{ if eq .Status "firing" }}warning{{ else }}good{{ end }}'
-    
+
     email_configs:
       - to: '${BUSINESS_EMAIL:-business@marty.com}'
         subject: '[BUSINESS ALERT] {{ .GroupLabels.alertname }}'
         body: |
           Business Alert
-          
+
           {{ range .Alerts }}
           Summary: {{ .Annotations.summary }}
           Description: {{ .Annotations.description }}
           Service: {{ .Labels.service }}
-          
+
           Business Impact:
           - Alert Type: {{ .Labels.alert_type }}
           - Severity: {{ .Labels.severity }}
-          
+
           {{ if .Annotations.dashboard_url }}Dashboard: {{ .Annotations.dashboard_url }}{{ end }}
           {{ if .Annotations.runbook_url }}Runbook: {{ .Annotations.runbook_url }}{{ end }}
           {{ end }}
@@ -338,24 +338,24 @@ receivers:
         subject: '[COMPLIANCE ALERT] {{ .GroupLabels.alertname }}'
         body: |
           Compliance Alert
-          
+
           {{ range .Alerts }}
           Summary: {{ .Annotations.summary }}
           Description: {{ .Annotations.description }}
-          
+
           Compliance Details:
           - Service: {{ .Labels.service }}
           - Regulation: {{ .Labels.regulation }}
           - Check Type: {{ .Labels.check_type }}
           - Result: {{ .Labels.result }}
-          
+
           Action Required: Review compliance status and take corrective action
-          
+
           {{ if .Annotations.runbook_url }}Runbook: {{ .Annotations.runbook_url }}{{ end }}
           {{ end }}
         headers:
           X-Alert-Type: 'compliance'
-    
+
     slack_configs:
       - api_url: '${SLACK_WEBHOOK_COMPLIANCE:-}'
         channel: '#compliance-alerts'
@@ -364,7 +364,7 @@ receivers:
           {{ range .Alerts }}
           *{{ .Annotations.summary }}*
           {{ .Annotations.description }}
-          
+
           Regulation: {{ .Labels.regulation }}
           {{ end }}
         color: 'danger'
@@ -380,7 +380,7 @@ receivers:
           service: '{{ .GroupLabels.service }}'
         severity: 'critical'
         class: 'escalation'
-    
+
     slack_configs:
       - api_url: '${SLACK_WEBHOOK_ESCALATION:-}'
         channel: '#escalation'
@@ -388,42 +388,42 @@ receivers:
         text: |
           {{ range .Alerts }}
           *ESCALATION: {{ .Annotations.summary }}*
-          
+
           🔥 This critical alert has been firing for an extended period
-          
+
           Original Alert: {{ .Labels.alertname }}
           Service: {{ .Labels.service }}
           Duration: Extended (>15 minutes)
-          
+
           **IMMEDIATE ACTION REQUIRED**
-          
+
           {{ if .Annotations.runbook_url }}[Runbook]({{ .Annotations.runbook_url }}){{ end }}
           {{ end }}
         color: 'danger'
-    
+
     email_configs:
       - to: '${ESCALATION_EMAIL:-escalation@marty.com}'
         subject: '🚨 ESCALATION: {{ .GroupLabels.alertname }} - IMMEDIATE ACTION REQUIRED'
         body: |
           ESCALATION ALERT - IMMEDIATE ACTION REQUIRED
-          
+
           {{ range .Alerts }}
           A critical alert has been firing for an extended period and requires immediate escalation.
-          
+
           Original Alert: {{ .Labels.alertname }}
           Summary: {{ .Annotations.summary }}
           Description: {{ .Annotations.description }}
           Service: {{ .Labels.service }}
           Severity: {{ .Labels.severity }}
-          
+
           Escalation Reason: Critical alert firing for more than 15 minutes
-          
+
           REQUIRED ACTIONS:
           1. Acknowledge this escalation immediately
           2. Assemble incident response team
           3. Follow escalation procedures in runbook
           4. Provide status updates every 15 minutes
-          
+
           {{ if .Annotations.runbook_url }}Runbook: {{ .Annotations.runbook_url }}{{ end }}
           {{ if .Annotations.dashboard_url }}Dashboard: {{ .Annotations.dashboard_url }}{{ end }}
           {{ end }}
@@ -440,7 +440,7 @@ time_intervals:
           - start_time: '09:00'
             end_time: '18:00'
         weekdays: ['monday:friday']
-  
+
   # Off hours
   - name: off_hours
     time_intervals:

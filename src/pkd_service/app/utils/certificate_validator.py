@@ -4,6 +4,7 @@ Certificate Validator utility for validating X.509 certificates
 This module provides functionality to validate X.509 certificates
 used in eMRTD (electronic Machine Readable Travel Documents) systems.
 """
+
 from __future__ import annotations
 
 import logging

@@ -1,6 +1,7 @@
 """
 API endpoints for Certificate Revocation List (CRL) operations
 """
+
 from __future__ import annotations
 
 import io
@@ -15,9 +16,7 @@ router = APIRouter()
 
 
 @router.get("/", response_model=CRLResponse)
-async def get_crl_list(
-    country: str | None = None, service: CRLService = Depends(get_crl_service)
-):
+async def get_crl_list(country: str | None = None, service: CRLService = Depends(get_crl_service)):
     """
     Get the Certificate Revocation List (CRL) in JSON format, optionally filtered by country.
 
@@ -27,9 +26,7 @@ async def get_crl_list(
 
 
 @router.get("/download", response_class=StreamingResponse)
-async def download_crl(
-    country: str | None = None, service: CRLService = Depends(get_crl_service)
-):
+async def download_crl(country: str | None = None, service: CRLService = Depends(get_crl_service)):
     """
     Download the CRL in binary format, optionally filtered by country.
 

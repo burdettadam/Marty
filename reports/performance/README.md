@@ -13,18 +13,21 @@ This directory contains performance test results and reports for the Marty platf
 ## File Naming Convention
 
 Performance test files follow this naming pattern:
+
 ```
 {service}_{test_type}_{timestamp}.csv
 {service}_{test_type}_{timestamp}_summary.json
 ```
 
 Examples:
+
 - `pkd_service_load_20251004_143022.csv`
 - `trust-svc_stress_20251004_143022_summary.json`
 
 ## Metrics Included
 
 ### Raw Data (CSV)
+
 - `timestamp`: Request timestamp
 - `endpoint`: Target endpoint
 - `method`: HTTP method
@@ -35,6 +38,7 @@ Examples:
 - `error_message`: Error details (if any)
 
 ### Summary Metrics (JSON)
+
 - `total_requests`: Total number of requests
 - `successful_requests`: Number of successful requests
 - `success_rate`: Success rate percentage
@@ -75,6 +79,7 @@ Performance tests are integrated into the CI pipeline with threshold validation:
 ## Usage
 
 ### Run Performance Test
+
 ```bash
 # Basic load test
 ./scripts/run_perf_test.sh <service> <test_type> <users> <duration>
@@ -84,6 +89,7 @@ Performance tests are integrated into the CI pipeline with threshold validation:
 ```
 
 ### View Results
+
 ```bash
 # Latest results for a service
 ls -la reports/performance/pkd_service_*
@@ -93,6 +99,7 @@ cat reports/performance/pkd_service_load_latest_summary.json
 ```
 
 ### Analyze Trends
+
 ```bash
 # Generate trend report (future enhancement)
 python scripts/analyze_performance_trends.py --service=pkd_service --days=30

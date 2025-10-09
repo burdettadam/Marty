@@ -73,10 +73,7 @@ class VDSNCPublicKey:
     def is_valid_now(self) -> bool:
         """Check if key is currently valid."""
         now = datetime.now(timezone.utc)
-        return (
-            self.status in ["active", "rotating"]
-            and self.not_before <= now <= self.not_after
-        )
+        return self.status in ["active", "rotating"] and self.not_before <= now <= self.not_after
 
 
 @dataclass
@@ -115,8 +112,7 @@ class TrustList:
             "dsc_count": sum(len(dscs) for dscs in self.dsc_certificates.values()),
             "vds_nc_key_count": len(self.vds_nc_keys),
             "last_updated": self.last_updated.isoformat(),
-            "age_hours": (datetime.now(timezone.utc) - self.last_updated).total_seconds()
-            / 3600,
+            "age_hours": (datetime.now(timezone.utc) - self.last_updated).total_seconds() / 3600,
         }
 
 
@@ -144,8 +140,7 @@ class TrustListCache:
             },
             "dsc_certificates": {
                 country: [
-                    cert.public_bytes(serialization.Encoding.PEM).decode("utf-8")
-                    for cert in certs
+                    cert.public_bytes(serialization.Encoding.PEM).decode("utf-8") for cert in certs
                 ]
                 for country, certs in trust_list.dsc_certificates.items()
             },
@@ -227,9 +222,11 @@ class TrustListCache:
                 dsc_certificates=dsc_certs,
                 vds_nc_keys=vds_nc_keys,
                 last_updated=datetime.fromisoformat(cache_data["last_updated"]),
-                next_update=datetime.fromisoformat(cache_data["next_update"])
-                if cache_data.get("next_update")
-                else None,
+                next_update=(
+                    datetime.fromisoformat(cache_data["next_update"])
+                    if cache_data.get("next_update")
+                    else None
+                ),
                 source=cache_data.get("source", ""),
             )
 
@@ -257,9 +254,7 @@ class PKDClient:
         self.pkd_base_url = pkd_base_url.rstrip("/")
         self.timeout = aiohttp.ClientTimeout(total=timeout)
 
-    async def fetch_vds_nc_keys(
-        self, country_code: str | None = None
-    ) -> dict[str, VDSNCPublicKey]:
+    async def fetch_vds_nc_keys(self, country_code: str | None = None) -> dict[str, VDSNCPublicKey]:
         """Fetch VDS-NC keys from PKD.
 
         Args:
@@ -432,9 +427,7 @@ class TrustListManager:
             # Save to cache
             await self.cache.save(new_trust_list)
 
-            logger.info(
-                f"Trust list refreshed: {new_trust_list.get_stats()}"
-            )
+            logger.info(f"Trust list refreshed: {new_trust_list.get_stats()}")
 
         except Exception as e:
             logger.exception(f"Failed to refresh trust list: {e}")
@@ -449,9 +442,7 @@ class TrustListManager:
             return
 
         self._refresh_task = asyncio.create_task(self._periodic_refresh_loop())
-        logger.info(
-            f"Started periodic trust list refresh (interval: {self.refresh_interval})"
-        )
+        logger.info(f"Started periodic trust list refresh (interval: {self.refresh_interval})")
 
     async def _periodic_refresh_loop(self) -> None:
         """Periodic refresh loop."""

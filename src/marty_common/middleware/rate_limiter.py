@@ -4,9 +4,11 @@ Rate limiting middleware for Marty services.
 Provides rate limiting functionality to protect services from excessive requests
 and ensure fair resource allocation across clients.
 """
+
 from __future__ import annotations
 
 import hashlib
+import grpc  # Needed for StatusCode in interceptor
 import logging
 import threading
 import time

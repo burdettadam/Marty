@@ -7,6 +7,7 @@ The Cross-Zone Consistency Engine is a comprehensive service that performs deter
 ## Features
 
 ### Core Functionality
+
 - **Multi-Zone Validation**: Supports Visual OCR, MRZ, 1D/2D Barcodes, RFID chip, and magnetic stripe data
 - **Canonical Field Mapping**: Standardized field mappings across all document zones
 - **Rule-Based Validation**: Configurable consistency rules with exact and fuzzy matching
@@ -14,6 +15,7 @@ The Cross-Zone Consistency Engine is a comprehensive service that performs deter
 - **Comprehensive Audit Trail**: Full audit logging for compliance and debugging
 
 ### Supported Consistency Rules
+
 1. **Field Exact Match**: Fields must match exactly across zones
 2. **Field Fuzzy Match**: Fields must match within similarity threshold
 3. **Date Format Validation**: Date consistency and format validation
@@ -21,6 +23,7 @@ The Cross-Zone Consistency Engine is a comprehensive service that performs deter
 5. **Cross-Reference Validation**: Complex cross-zone validation logic
 
 ### API Interfaces
+
 - **gRPC Service**: High-performance primary interface
 - **REST API**: HTTP wrapper for easier integration
 - **OpenAPI Documentation**: Auto-generated API documentation
@@ -245,6 +248,7 @@ performance:
 ### Date Format Handling
 
 The service automatically handles various date formats:
+
 - **ISO Format**: `YYYY-MM-DD` (e.g., `1985-03-15`)
 - **MRZ Format**: `YYMMDD` (e.g., `850315`)
 - **Short Century**: Automatically determines century for 2-digit years
@@ -252,21 +256,25 @@ The service automatically handles various date formats:
 ## Consistency Rules
 
 ### Exact Match Rules
+
 - Document numbers must match exactly
 - Country codes must match exactly
 - Gender codes must match exactly
 
 ### Fuzzy Match Rules
+
 - Name fields allow minor variations (OCR errors, formatting)
 - Configurable similarity threshold (default: 0.8)
 - Handles common OCR issues (O/0, I/l, etc.)
 
 ### Date Validation Rules
+
 - Format consistency across zones
 - Logical date validation (birth < expiry)
 - Century inference for 2-digit years
 
 ### Checksum Validation
+
 - MRZ check digit validation
 - Document number checksums
 - Date field checksums
@@ -437,6 +445,7 @@ python -m src.services.consistency_engine_server
 ### Monitoring
 
 Key metrics to monitor:
+
 - `consistency_check_duration_seconds` - Processing performance
 - `field_mismatches_total` - Data quality issues
 - `confidence_score_distribution` - Overall system reliability

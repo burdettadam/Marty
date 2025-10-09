@@ -4,6 +4,7 @@ HTTP Client utility for making HTTP requests
 This module provides a simple wrapper around the requests library
 for making HTTP requests with consistent error handling and logging.
 """
+
 from __future__ import annotations
 
 import logging

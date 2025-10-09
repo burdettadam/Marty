@@ -28,31 +28,37 @@ Trust Service → Prometheus Metrics → Grafana Dashboards
 The `TrustServiceMetrics` class provides comprehensive metrics collection:
 
 #### HTTP Request Metrics
+
 - **Request count**: Total HTTP requests by method, endpoint, status
 - **Request duration**: Histogram of request latencies
 - **Active requests**: Currently processing requests
 
 #### Certificate Operations
+
 - **Validation operations**: Certificate validation attempts and results
 - **Signing operations**: Document signing operations
 - **Certificate lifecycle**: Issuance, renewal, revocation tracking
 
 #### Security Events
+
 - **Authentication events**: Login attempts, failures, MFA usage
 - **Authorization events**: Access grants/denials
 - **Security incidents**: Suspicious activities, rate limiting triggers
 
 #### Business Metrics
+
 - **Document processing**: Volume, types, success rates
 - **Revenue tracking**: Transaction values, fee calculations
 - **SLA compliance**: Response times, availability metrics
 
 #### gRPC Metrics
+
 - **RPC calls**: Method-specific call counts and durations
 - **Stream metrics**: Streaming RPC performance
 - **Error tracking**: gRPC error codes and frequencies
 
 #### Database Metrics
+
 - **Connection pool**: Active, idle, max connections
 - **Query performance**: Execution times, slow queries
 - **Transaction metrics**: Commit/rollback rates
@@ -80,6 +86,7 @@ metrics.record_business_metric("revenue", amount, {"currency": "USD"})
 **Purpose**: Real-time operational monitoring for platform teams
 
 **Key Panels**:
+
 - Service health overview table
 - HTTP request rate and latency trends
 - Error rate monitoring
@@ -97,6 +104,7 @@ metrics.record_business_metric("revenue", amount, {"currency": "USD"})
 **Purpose**: Security monitoring and threat detection
 
 **Key Panels**:
+
 - Real-time security events table
 - Authentication success/failure rates
 - Geographic authentication distribution
@@ -115,6 +123,7 @@ metrics.record_business_metric("revenue", amount, {"currency": "USD"})
 **Purpose**: Business metrics and KPI tracking
 
 **Key Panels**:
+
 - Business KPIs overview
 - Document processing volume trends
 - Revenue metrics by country/client
@@ -133,6 +142,7 @@ metrics.record_business_metric("revenue", amount, {"currency": "USD"})
 ### Alert Rules (`monitoring/prometheus/trust-service-alerts.yml`)
 
 #### Critical System Alerts
+
 - **Service Down**: Service unavailable for >1 minute
 - **High Error Rate**: >5% error rate for >2 minutes
 - **High Latency**: >2s 95th percentile for >3 minutes
@@ -141,6 +151,7 @@ metrics.record_business_metric("revenue", amount, {"currency": "USD"})
 - **Disk Space**: <10% disk space remaining
 
 #### Security Alerts
+
 - **Authentication Failures**: >10 failures/minute from single IP
 - **Brute Force Detection**: >50 failures/hour from single IP
 - **Suspicious Activity**: Anomalous access patterns
@@ -148,28 +159,33 @@ metrics.record_business_metric("revenue", amount, {"currency": "USD"})
 - **Rate Limiting**: Excessive rate limiting triggers
 
 #### Certificate Operation Alerts
+
 - **Validation Errors**: >10% validation failure rate
 - **Certificate Expiry**: Certificates expiring in <7 days
 - **Signing Failures**: Document signing errors
 - **PKI Unavailable**: PKI service connectivity issues
 
 #### Business Metric Alerts
+
 - **SLA Violations**: Response time SLA breaches
 - **Processing Volume**: Unusual processing volume changes
 - **Revenue Impact**: Significant revenue drops
 - **Compliance Failures**: Regulatory compliance violations
 
 #### gRPC Service Alerts
+
 - **gRPC Errors**: High gRPC error rates
 - **Stream Failures**: gRPC streaming failures
 - **Method Latency**: High latency for critical methods
 
 #### Database Alerts
+
 - **Query Performance**: Slow query detection
 - **Connection Issues**: Database connection problems
 - **Replication Lag**: Database replication delays
 
 #### Infrastructure Alerts
+
 - **Node Health**: Kubernetes node issues
 - **Pod Failures**: Container restart loops
 - **Network Issues**: Network connectivity problems
@@ -219,6 +235,7 @@ metrics.record_business_metric("revenue", amount, {"currency": "USD"})
 The monitoring stack is deployed as a comprehensive Kubernetes configuration:
 
 #### Components
+
 - **Prometheus Server**: Metrics collection and storage (50GB storage)
 - **Alertmanager**: Alert routing and notifications (5GB storage)
 - **Grafana**: Visualization platform (10GB storage)
@@ -227,11 +244,13 @@ The monitoring stack is deployed as a comprehensive Kubernetes configuration:
 - **Redis Exporter**: Cache metrics
 
 #### Access Control
+
 - RBAC configuration for Prometheus cluster access
 - Service accounts with minimal required permissions
 - Ingress with TLS termination and basic auth
 
 #### Persistence
+
 - Persistent volumes for data retention
 - 15-day metrics retention policy
 - Automated backup configurations
@@ -331,11 +350,12 @@ kubectl create secret generic monitoring-secrets \
 
 After deployment, access the monitoring services:
 
-- **Grafana**: https://grafana.marty.com
-- **Prometheus**: https://prometheus.marty.com
-- **Alertmanager**: https://alertmanager.marty.com
+- **Grafana**: <https://grafana.marty.com>
+- **Prometheus**: <https://prometheus.marty.com>
+- **Alertmanager**: <https://alertmanager.marty.com>
 
 Default credentials:
+
 - Grafana: admin / admin123 (change immediately)
 - Prometheus/Alertmanager: Basic auth (configure in deployment)
 
@@ -488,16 +508,19 @@ Default credentials:
 ## Security Considerations
 
 ### Access Control
+
 - Dashboard access based on role requirements
 - API key management for integrations
 - Regular access review procedures
 
 ### Data Protection
+
 - Metrics data encryption at rest
 - Secure communication channels
 - Audit logging for administrative actions
 
 ### Compliance
+
 - Data retention policies
 - Privacy impact assessments
 - Regulatory requirement mapping

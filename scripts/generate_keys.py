@@ -26,11 +26,7 @@ def main() -> NoReturn:
         key_type=KeyType.EC,
         key_usage=KeyUsage.DOCUMENT_SIGNING,
         curve_name="secp256r1",  # ES256 uses secp256r1
-        metadata={
-            "service": "document-signer",
-            "algorithm": "ES256",
-            "purpose": "sd-jwt-signing"
-        }
+        metadata={"service": "document-signer", "algorithm": "ES256", "purpose": "sd-jwt-signing"},
     )
 
     print(f"Generated key: {key_info}")

@@ -1,6 +1,7 @@
 """
 Data models for the PKD service
 """
+
 from __future__ import annotations
 
 from datetime import datetime

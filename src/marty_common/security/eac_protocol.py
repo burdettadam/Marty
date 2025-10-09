@@ -14,6 +14,7 @@ Key Features:
 - Secure channel establishment with MAC protection
 - Support for multiple cryptographic algorithms (P-256, P-384, brainpoolP256r1)
 """
+
 from __future__ import annotations
 
 import hashlib
@@ -87,9 +88,7 @@ class EACCertificate:
         """Validate certificate dates and structure"""
         if self.certificate_expiration_date <= self.certificate_effective_date:
             msg = "Certificate expiration date must be after effective date"
-            raise CertificateValidationError(
-                msg
-            )
+            raise CertificateValidationError(msg)
 
     def is_valid_at(self, check_date: datetime | None = None) -> bool:
         """Check if certificate is valid at given date"""
@@ -170,9 +169,7 @@ class EACTerminalAuthentication:
             # Verify signature chain
             if not self._verify_certificate_signature(current_cert, next_cert):
                 msg = f"Invalid signature in certificate chain at position {i}"
-                raise CertificateValidationError(
-                    msg
-                )
+                raise CertificateValidationError(msg)
 
         self.certificate_chain = chain
         logger.info(f"Certificate chain set with {len(chain)} certificates")
@@ -566,7 +563,6 @@ class EACSecureMessaging:
         return hmac.new(self.secure_channel.mac_key, data, hashlib.sha256).digest()
 
 
-
 class EACProtocol:
     """Main EAC Protocol coordinator"""
 
@@ -660,9 +656,11 @@ class EACProtocol:
         return {
             "current_step": self.protocol_step.name,
             "terminal_certificate": self.terminal_auth.terminal_certificate.get_certificate_fingerprint(),
-            "secure_channel_established": self.secure_messaging.secure_channel.is_established()
-            if self.secure_messaging
-            else False,
+            "secure_channel_established": (
+                self.secure_messaging.secure_channel.is_established()
+                if self.secure_messaging
+                else False
+            ),
             "session_log_entries": len(self.session_log),
             "algorithm": self.chip_auth.algorithm.value,
             "last_activity": self.session_log[-1]["timestamp"] if self.session_log else None,
@@ -733,7 +731,7 @@ if __name__ == "__main__":
         )
 
         # Test secure messaging
-        test_apdu = b"\x00\xA4\x02\x0C\x02\x01\x1E"  # SELECT FILE command
+        test_apdu = b"\x00\xa4\x02\x0c\x02\x01\x1e"  # SELECT FILE command
         encrypted_apdu = secure_messaging.encrypt_apdu(test_apdu)
         decrypted_apdu = secure_messaging.decrypt_apdu(encrypted_apdu)
 

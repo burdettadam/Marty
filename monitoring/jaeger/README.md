@@ -95,7 +95,7 @@ The Marty services are configured to automatically instrument gRPC calls when tr
 1. Start the observability stack: `docker-compose up -d`
 2. Run your Marty services with tracing enabled
 3. Generate some traffic to create traces
-4. Visit http://localhost:16686 to view traces in Jaeger UI
+4. Visit <http://localhost:16686> to view traces in Jaeger UI
 
 ## Troubleshooting
 

@@ -11,7 +11,7 @@ info:
     email: support@marty.example.com
   license:
     name: Proprietary
-    
+
 servers:
   - url: http://localhost:8080
     description: Local development server

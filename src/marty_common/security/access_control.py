@@ -4,6 +4,7 @@ Access control and audit logging system for Marty services.
 Provides comprehensive access control management with role-based permissions
 and detailed audit logging for security compliance and monitoring.
 """
+
 from __future__ import annotations
 
 import json
@@ -11,11 +12,12 @@ import logging
 import threading
 import uuid
 from abc import ABC, abstractmethod
+from collections.abc import Callable
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta
 from enum import Enum
 from functools import wraps
-from typing import Any, Callable
+from typing import Any
 
 logger = logging.getLogger(__name__)
 

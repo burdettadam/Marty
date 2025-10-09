@@ -44,18 +44,20 @@ Microsoft Authenticator uses Microsoft Entra Verified ID (previously Azure AD Ve
 Microsoft Authenticator requires HTTPS endpoints accessible from the internet. VS Code tunnel provides a simple way to expose local services publicly:
 
 1. **Install VS Code CLI** (if not already installed):
+
    ```bash
    # macOS
    brew install --cask visual-studio-code
-   
+
    # Or download from https://code.visualstudio.com/
    ```
 
 2. **Start VS Code Tunnel**:
+
    ```bash
    code tunnel --name marty-demo --accept-server-license-terms
    ```
-   
+
    This will:
    - Create a public tunnel named "marty-demo"
    - Generate URLs like `https://8000-marty-demo.githubpreview.dev`
@@ -64,7 +66,7 @@ Microsoft Authenticator requires HTTPS endpoints accessible from the internet. V
 3. **Note Your Tunnel URLs**:
    - Issuer API: `https://8000-YOUR_TUNNEL_NAME.githubpreview.dev`
    - Verifier API: `https://8001-YOUR_TUNNEL_NAME.githubpreview.dev`
-   
+
    Replace `YOUR_TUNNEL_NAME` with your actual tunnel name.
 
 ## Quick Start with VS Code Tunnel
@@ -82,6 +84,7 @@ cd /path/to/Marty
 ```
 
 The script will:
+
 - Start the demo services  
 - Guide you through VS Code port forwarding setup
 - Provide step-by-step instructions for configuration
@@ -106,6 +109,7 @@ docker-compose -f docker/docker-compose.demo-microsoft-simple.yml ps
 ### 2. Set Up Port Forwarding
 
 In VS Code:
+
 1. Open Command Palette (`Cmd+Shift+P`)
 2. Type "Ports: Focus on Ports View"
 3. Click "Forward a Port"
@@ -174,6 +178,7 @@ curl https://your-port-8000.preview.app.github.dev/.well-known/openid-credential
 ### Step 1: Issue a Verifiable Credential
 
 1. **Create Credential Offer** (replace URLs with your forwarded port URLs):
+
    ```bash
    curl -X POST https://your-port-8000.preview.app.github.dev/offer \
      -H "Content-Type: application/json" \
@@ -202,6 +207,7 @@ curl https://your-port-8000.preview.app.github.dev/.well-known/openid-credential
 ### Step 2: Verify the Credential
 
 1. **Open Verifier Demo Page** (replace URL with your forwarded port URL):
+
    ```bash
    # On mobile device, navigate to:
    https://your-port-8001.preview.app.github.dev/demo
@@ -209,7 +215,7 @@ curl https://your-port-8000.preview.app.github.dev/.well-known/openid-credential
 
 2. **Initiate Verification**:
    - Open the verifier demo page on your mobile browser
-   - Click "Verify Credential" 
+   - Click "Verify Credential"
    - A new QR code appears for verification
 
 3. **Present Credential**: In Microsoft Authenticator:
@@ -245,12 +251,15 @@ curl https://your-port-8000.preview.app.github.dev/.well-known/openid-credential
 ### Issuer API (Port 8000)
 
 #### Metadata Discovery
+
 ```
 GET /.well-known/openid-credential-issuer
 ```
+
 Returns OpenID Credential Issuer metadata compatible with Microsoft Authenticator.
 
 #### Create Credential Offer
+
 ```
 POST /offer
 Content-Type: application/json
@@ -266,6 +275,7 @@ Content-Type: application/json
 ```
 
 #### Token Exchange
+
 ```
 POST /token
 Content-Type: application/x-www-form-urlencoded
@@ -275,6 +285,7 @@ pre-authorized_code=<code>
 ```
 
 #### Credential Issuance
+
 ```
 POST /credential
 Authorization: Bearer <token>
@@ -288,6 +299,7 @@ Content-Type: application/json
 ### Verifier API (Port 8001)
 
 #### Create Verification Request
+
 ```
 POST /verification-requests
 Content-Type: application/json
@@ -302,6 +314,7 @@ Content-Type: application/json
 ```
 
 #### Handle Verification Response
+
 ```
 POST /verification-response
 Content-Type: application/x-www-form-urlencoded
@@ -312,6 +325,7 @@ state=<state>
 ```
 
 #### Direct Verification
+
 ```
 POST /verify
 Content-Type: application/json
@@ -327,9 +341,11 @@ Content-Type: application/json
 ### Common Issues
 
 #### 1. VS Code Port Forwarding Issues
+
 **Problem**: Cannot access services via forwarded port URLs.
 
 **Solutions**:
+
 - Verify ports are forwarded in VS Code Ports panel (View → Command Palette → "Ports: Focus on Ports View")
 - Ensure port visibility is set to **"Public"** (not "Private")
 - Check that the forwarded URLs in `.env.microsoft` match exactly what VS Code shows
@@ -337,35 +353,43 @@ Content-Type: application/json
 - Restart port forwarding if needed (remove and re-add ports)
 
 #### 2. QR Code Not Recognized
+
 **Problem**: Microsoft Authenticator doesn't recognize the QR code.
 
 **Solutions**:
+
 - Ensure the QR code contains `openid-credential-offer://` URL scheme
 - Verify the credential offer JSON is properly formatted
 - Check that the issuer metadata endpoint is accessible via forwarded port
 - Confirm the forwarded URLs are properly configured in environment variables
 
 #### 3. HTTPS Required
+
 **Problem**: Microsoft Authenticator requires HTTPS endpoints.
 
 **Solutions**:
+
 - VS Code port forwarding automatically provides HTTPS endpoints
 - No additional SSL configuration needed with port forwarding
 - For production, use proper SSL certificates on your domain
 
 #### 4. Credential Not Appearing
+
 **Problem**: Credential doesn't appear in Microsoft Authenticator after scanning.
 
 **Solutions**:
+
 - Check the `credentials_supported` in issuer metadata
 - Verify the `jwt_vc_json` format is supported
 - Ensure credential type matches what's declared in metadata
 - Test the issuer metadata endpoint: `curl https://your-port-8000.preview.app.github.dev/.well-known/openid-credential-issuer`
 
 #### 5. Verification Fails
+
 **Problem**: Credential verification returns invalid results.
 
 **Solutions**:
+
 - Check signature validation in inspection system
 - Verify trust chain configuration
 - Ensure proper certificate management

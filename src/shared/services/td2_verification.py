@@ -13,6 +13,7 @@ Verification Protocol:
 3. Validity window checks (dates, expiry)
 4. Policy validation (work authorization, geographic constraints)
 """
+
 from __future__ import annotations
 
 import hashlib
@@ -20,11 +21,7 @@ import logging
 from datetime import date, datetime, timezone
 from typing import Any
 
-from src.shared.models.td2 import (
-    ChipData,
-    TD2Document,
-    VerificationResult,
-)
+from src.shared.models.td2 import ChipData, TD2Document, VerificationResult
 from src.shared.utils.td2_mrz import TD2MRZGenerator, TD2MRZParser
 
 logger = logging.getLogger(__name__)
@@ -54,7 +51,7 @@ class TD2VerificationEngine:
         document: TD2Document,
         verify_chip: bool = False,
         check_policy: bool = True,
-        online_verification: bool = False
+        online_verification: bool = False,
     ) -> VerificationResult:
         """
         Verify complete TD-2 document.
@@ -130,10 +127,10 @@ class TD2VerificationEngine:
 
             # Overall validation
             result.is_valid = (
-                result.mrz_valid and
-                result.dates_valid and
-                result.policy_valid and
-                (not verify_chip or not result.chip_present or result.chip_valid)
+                result.mrz_valid
+                and result.dates_valid
+                and result.policy_valid
+                and (not verify_chip or not result.chip_present or result.chip_valid)
             )
 
             result.errors = errors
@@ -148,10 +145,7 @@ class TD2VerificationEngine:
         return result
 
     async def verify_mrz_lines(
-        self,
-        line1: str,
-        line2: str,
-        verify_check_digits: bool = True
+        self, line1: str, line2: str, verify_check_digits: bool = True
     ) -> VerificationResult:
         """
         Verify TD-2 MRZ lines directly.
@@ -212,12 +206,7 @@ class TD2VerificationEngine:
 
     async def _verify_mrz(self, document: TD2Document) -> dict[str, Any]:
         """Verify MRZ data and check digits."""
-        result = {
-            "valid": False,
-            "present": False,
-            "errors": [],
-            "warnings": []
-        }
+        result = {"valid": False, "present": False, "errors": [], "warnings": []}
 
         if not document.mrz_data:
             result["errors"].append("MRZ data not present")
@@ -228,8 +217,7 @@ class TD2VerificationEngine:
         try:
             # Parse the MRZ lines
             parsed_data = self.parser.parse_td2_mrz(
-                document.mrz_data.line1,
-                document.mrz_data.line2
+                document.mrz_data.line1, document.mrz_data.line2
             )
 
             # Validate check digits
@@ -287,7 +275,7 @@ class TD2VerificationEngine:
             "sod_valid": False,
             "dg_hash_results": {},
             "errors": [],
-            "warnings": []
+            "warnings": [],
         }
 
         chip_data = document.chip_data
@@ -332,11 +320,7 @@ class TD2VerificationEngine:
         - Digital signature verification
         - Data group hash validation
         """
-        result = {
-            "valid": False,
-            "errors": [],
-            "warnings": []
-        }
+        result = {"valid": False, "errors": [], "warnings": []}
 
         if not chip_data.sod_signature:
             result["errors"].append("SOD signature not present")
@@ -388,11 +372,7 @@ class TD2VerificationEngine:
 
     async def _verify_sod_dg_hashes(self, sod_obj, chip_data: ChipData) -> dict[str, Any]:
         """Verify data group hashes stored in SOD match actual data."""
-        result = {
-            "valid": True,
-            "errors": [],
-            "warnings": []
-        }
+        result = {"valid": True, "errors": [], "warnings": []}
 
         try:
             # Extract data group hashes from SOD
@@ -492,11 +472,7 @@ class TD2VerificationEngine:
 
     async def _verify_dates(self, document: TD2Document) -> dict[str, Any]:
         """Verify date validity and relationships."""
-        result = {
-            "valid": True,
-            "errors": [],
-            "warnings": []
-        }
+        result = {"valid": True, "errors": [], "warnings": []}
 
         today = date.today()
         doc_data = document.document_data
@@ -533,11 +509,7 @@ class TD2VerificationEngine:
 
     async def _verify_policy(self, document: TD2Document) -> dict[str, Any]:
         """Verify policy constraints and authorizations."""
-        result = {
-            "valid": True,
-            "errors": [],
-            "warnings": []
-        }
+        result = {"valid": True, "errors": [], "warnings": []}
 
         policy = document.policy_constraints
         if not policy:
@@ -546,7 +518,9 @@ class TD2VerificationEngine:
         # Check geographic constraints
         if policy.allowed_regions:
             # This would need to be checked against current location or intended destination
-            result["warnings"].append("Geographic constraints present - manual verification required")
+            result["warnings"].append(
+                "Geographic constraints present - manual verification required"
+            )
 
         if policy.restricted_areas:
             result["warnings"].append("Area restrictions present - manual verification required")
@@ -572,17 +546,14 @@ class TD2VerificationEngine:
 
     async def _verify_online(self, document: TD2Document) -> dict[str, Any]:
         """Perform online verification if required."""
-        result = {
-            "valid": True,
-            "errors": [],
-            "warnings": []
-        }
+        result = {"valid": True, "errors": [], "warnings": []}
 
         # Check if online verification is required
-        if (document.policy_constraints and
-            document.policy_constraints.requires_online_check and
-            document.policy_constraints.verification_url):
-
+        if (
+            document.policy_constraints
+            and document.policy_constraints.requires_online_check
+            and document.policy_constraints.verification_url
+        ):
             # Placeholder for actual online verification
             # This would involve:
             # - HTTP request to verification service

@@ -11,7 +11,7 @@ wait_for_service() {
     echo "⏳ Waiting for service to be ready..."
     max_attempts=30
     attempt=1
-    
+
     while [ $attempt -le $max_attempts ]; do
         if curl -s -f http://localhost:8080/api/ping > /dev/null; then
             echo "✅ Service is ready!"
@@ -21,7 +21,7 @@ wait_for_service() {
         sleep 2
         attempt=$((attempt + 1))
     done
-    
+
     echo "❌ Service failed to start within timeout"
     return 1
 }
@@ -29,19 +29,19 @@ wait_for_service() {
 # Function to run tests
 run_tests() {
     echo "🧪 Running tests..."
-    
+
     # Run unit tests
     echo "Running unit tests..."
     python -m pytest tests/unit/ -v --tb=short || return 1
-    
+
     # Run API verification
     echo "Running API verification..."
     python scripts/verify_api.py || return 1
-    
-    # Run E2E tests  
+
+    # Run E2E tests
     echo "Running E2E tests..."
     python scripts/test_e2e_enhanced.py || return 1
-    
+
     echo "✅ All tests passed!"
 }
 

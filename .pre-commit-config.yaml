@@ -1,6 +1,8 @@
 # Pre-commit hooks for code quality and consistency
 default_language_version:
   python: python3.10
+  # Pin Node.js version to a stable LTS to avoid nodeenv attempting to fetch a non-existent version (saw 24.x 404)
+  node: 20.16.0
 
 repos:
   # Local hooks for Marty-specific checks
@@ -13,14 +15,14 @@ repos:
         files: \.proto$
         pass_filenames: false
         description: "Compiles .proto files to Python modules"
-      
+
       - id: test-import-check
         name: Test Import Validation
         entry: bash -c 'cd src && python -c "import services.trust_anchor; print(\"✓ Import validation passed\")"'
         language: system
         files: ^src/services/.*\.py$
         pass_filenames: false
-        
+
       - id: logging-validation
         name: Logging Configuration Validation
         entry: bash -c 'cd src && python -c "from marty_common.logging.structured_logging import setup_logging_for_service; setup_logging_for_service(\"test\"); print(\"✓ Logging validation passed\")"'
@@ -247,6 +249,45 @@ repos:
         name: Documentation Coverage Check
         args: [--quiet, --fail-under=50]
         files: ^src/(services|marty_common)/.*\.py$
+
+  # Enhanced framework validation hooks for newer features
+  - repo: local
+    hooks:
+      - id: validate-database-patterns
+        name: Validate Database Abstraction Layer
+        entry: python scripts/validation/validate_database_patterns.py
+        language: system
+        types: [python]
+        files: ^(src/framework/database/|templates/.*-service/.*database|marty_chassis/.*database).*\.py$
+        pass_filenames: false
+
+      - id: validate-service-isolation
+        name: Validate Service Isolation Patterns
+        entry: python scripts/validation/validate_service_isolation.py
+        language: system
+        files: ^(src/|services/|templates/).*\.(py|go|js|ts)$
+        pass_filenames: false
+
+      - id: validate-template-syntax
+        name: Validate Template Syntax and Consistency
+        entry: python scripts/validation/validate_template_syntax.py
+        language: system
+        files: ^templates/.*\.(py|go|js|ts|yaml|yml|toml|json|j2|jinja|jinja2)$
+        pass_filenames: false
+
+      - id: validate-cli-functionality
+        name: Validate CLI and Framework Integration
+        entry: python scripts/validation/validate_cli_functionality.py
+        language: system
+        files: ^(marty_cli/|src/framework/generators/|scripts/).*\.py$
+        pass_filenames: false
+
+      - id: validate-dashboard-components
+        name: Validate Dashboard and UI Components
+        entry: python scripts/validation/validate_dashboard_components.py
+        language: system
+        files: ^(dashboard/|ui/|frontend/).*\.(py|js|ts|jsx|tsx|vue|html|css)$
+        pass_filenames: false
 
 # Configuration for pre-commit ci
 ci:

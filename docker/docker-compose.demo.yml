@@ -18,7 +18,7 @@ volumes:
 
 services:
   # === Infrastructure Services ===
-  
+
   # PostgreSQL with multiple schemas for microservices
   postgres-demo:
     image: postgres:15
@@ -186,7 +186,7 @@ services:
     container_name: marty-demo-trust-svc
     ports:
       - "8090:8080"    # HTTP API
-      - "9090:9090"    # gRPC  
+      - "9090:9090"    # gRPC
       - "8091:8081"    # Metrics
     environment:
       - ENV=demo

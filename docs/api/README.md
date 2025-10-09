@@ -28,9 +28,9 @@ The `openapi/` directory contains machine-readable API specifications:
 
 When services are running, you can access live interactive documentation:
 
-- **PKD Service**: http://localhost:8088/docs
-- **Document Processing**: http://localhost:8080/docs  
-- **UI Application**: http://localhost:8000/docs
+- **PKD Service**: <http://localhost:8088/docs>
+- **Document Processing**: <http://localhost:8080/docs>  
+- **UI Application**: <http://localhost:8000/docs>
 
 ## Regenerating Documentation
 

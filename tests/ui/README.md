@@ -44,6 +44,7 @@ tests/ui/
 ## Tested UI Components
 
 ### Core Services
+
 - **CSCA Service** - Certificate authority management
 - **Document Signer** - Document signing workflows
 - **mDoc Engine** - Mobile document creation
@@ -52,6 +53,7 @@ tests/ui/
 - **Trust Anchor** - Certificate validation and trust management
 
 ### Enhanced Components
+
 - **Admin UI** - System administration dashboard
 - **Enhanced MDL** - Mobile driver's license processing
 - **Navigation System** - Cross-service navigation testing
@@ -68,12 +70,14 @@ python tests/ui/setup_tests.py
 ### Manual Setup
 
 1. **Install Dependencies**
+
    ```bash
    pip install playwright pytest pytest-asyncio pytest-html pytest-xdist
    pip install uvicorn fastapi requests
    ```
 
 2. **Install Browsers**
+
    ```bash
    playwright install
    # Or just Chromium for testing
@@ -81,6 +85,7 @@ python tests/ui/setup_tests.py
    ```
 
 3. **Verify Installation**
+
    ```bash
    playwright --version
    pytest --version
@@ -151,6 +156,7 @@ pytest tests/ui/ --html=reports/ui_tests.html --self-contained-html
 ### Pytest Configuration (`pytest.ini`)
 
 Key configuration markers:
+
 - `smoke` - Quick validation tests
 - `integration` - Cross-service integration tests
 - `slow` - Long-running tests
@@ -160,6 +166,7 @@ Key configuration markers:
 ### Browser Configuration
 
 Tests run in headless Chromium by default with:
+
 - 1920x1080 viewport
 - 30-second timeout for actions
 - Mock data enabled for consistent testing
@@ -168,6 +175,7 @@ Tests run in headless Chromium by default with:
 ### Test Data
 
 Mock data is provided for:
+
 - CSCA certificates
 - Passport documents
 - MDL credentials
@@ -198,12 +206,12 @@ Mock data is provided for:
 ```python
 class TestNewService:
     """Test class for new service functionality."""
-    
+
     def test_page_loads(self, ui_server: str, page: Page) -> None:
         """Test that the service page loads correctly."""
         page.goto(f"{ui_server}/new-service")
         assert "New Service" in page.title()
-    
+
     def test_form_submission(self, ui_server: str, page: Page, sample_data) -> None:
         """Test form submission with valid data."""
         page.goto(f"{ui_server}/new-service")
@@ -218,22 +226,26 @@ class TestNewService:
 ### Best Practices
 
 1. **Use Descriptive Test Names**
+
    ```python
    def test_csca_certificate_creation_with_valid_data(self):
    ```
 
 2. **Wait for Elements**
+
    ```python
    page.wait_for_selector(".result-panel", timeout=10000)
    ```
 
 3. **Assert Specific Elements**
+
    ```python
    assert page.locator(".success-message").count() > 0
    assert "Certificate created" in page.locator(".result-text").inner_text()
    ```
 
 4. **Handle Asynchronous Operations**
+
    ```python
    page.click("button[type='submit']")
    page.wait_for_load_state("networkidle")
@@ -272,17 +284,20 @@ jobs:
 ### Visual Debugging
 
 1. **Run in Headed Mode**
+
    ```python
    # In conftest.py
    browser = playwright.chromium.launch(headless=False)
    ```
 
 2. **Add Screenshots**
+
    ```python
    page.screenshot(path="debug.png")
    ```
 
 3. **Use Playwright Inspector**
+
    ```bash
    PWDEBUG=1 pytest tests/ui/test_smoke.py::test_specific_test
    ```
@@ -331,6 +346,7 @@ jobs:
 ### HTML Reports
 
 Generated reports include:
+
 - Test execution summary
 - Pass/fail status for each test
 - Execution times and performance metrics
@@ -344,6 +360,7 @@ Generated reports include:
    - Configure pytest as test framework
 
 2. **Debug Configuration**
+
    ```json
    {
      "name": "Debug UI Tests",
@@ -362,6 +379,7 @@ Generated reports include:
 ### Regular Tasks
 
 1. **Update Dependencies**
+
    ```bash
    pip install --upgrade playwright pytest
    playwright install
@@ -408,7 +426,7 @@ When adding new UI components:
 
 ### Getting Help
 
-- Check Playwright documentation: https://playwright.dev/python/
-- Review pytest documentation: https://docs.pytest.org/
+- Check Playwright documentation: <https://playwright.dev/python/>
+- Review pytest documentation: <https://docs.pytest.org/>
 - Open issues in the project repository
 - Review existing test implementations for patterns

@@ -13,7 +13,7 @@ echo "🚀 Setting up E2E testing environment for Marty UI..."
 check_service() {
     local port=$1
     local service_name=$2
-    
+
     if nc -z localhost $port 2>/dev/null; then
         echo "✅ $service_name is running on port $port"
         return 0
@@ -26,10 +26,10 @@ check_service() {
 # Function to start services using docker-compose
 start_services() {
     echo "🔧 Starting required backend services..."
-    
+
     # Start core services that UI depends on
     docker-compose -f docker/docker-compose.yml up -d postgres
-    
+
     # Wait for postgres to be ready
     echo "⏳ Waiting for PostgreSQL to be ready..."
     timeout=30
@@ -42,47 +42,47 @@ start_services() {
         fi
     done
     echo "✅ PostgreSQL is ready"
-    
+
     # Start services in dependency order
     echo "🔧 Starting trust-anchor service..."
     docker-compose -f docker/docker-compose.yml up -d trust-anchor
-    
-    echo "🔧 Starting CSCA service..."  
+
+    echo "🔧 Starting CSCA service..."
     docker-compose -f docker/docker-compose.yml up -d csca-service
-    
+
     echo "🔧 Starting document signer..."
     docker-compose -f docker/docker-compose.yml up -d document-signer
-    
+
     echo "🔧 Starting inspection system..."
     docker-compose -f docker/docker-compose.yml up -d inspection-system
-    
+
     echo "🔧 Starting passport engine..."
     docker-compose -f docker/docker-compose.yml up -d passport-engine
-    
+
     echo "🔧 Starting MDL engine..."
     docker-compose -f docker/docker-compose.yml up -d mdl-engine
-    
+
     echo "🔧 Starting mDoc engine..."
     docker-compose -f docker/docker-compose.yml up -d mdoc-engine
-    
+
     echo "🔧 Starting DTC engine..."
     docker-compose -f docker/docker-compose.yml up -d dtc-engine
-    
+
     # Wait for all services to be healthy
     echo "⏳ Waiting for services to be healthy..."
     sleep 30
-    
+
     # Check service health
     services_ready=true
     check_service 8080 "Trust Anchor" || services_ready=false
-    check_service 8081 "CSCA Service" || services_ready=false  
+    check_service 8081 "CSCA Service" || services_ready=false
     check_service 8082 "Document Signer" || services_ready=false
     check_service 8083 "Inspection System" || services_ready=false
     check_service 8084 "Passport Engine" || services_ready=false
     check_service 8085 "MDL Engine" || services_ready=false
     check_service 8086 "mDoc Engine" || services_ready=false
     check_service 8087 "DTC Engine" || services_ready=false
-    
+
     if [ "$services_ready" = true ]; then
         echo "✅ All services are running and healthy"
     else
@@ -93,7 +93,7 @@ start_services() {
 # Function to run tests with different strategies
 run_tests() {
     local test_mode=$1
-    
+
     case $test_mode in
         "smoke")
             echo "🧪 Running smoke tests (basic UI functionality)..."
@@ -168,7 +168,7 @@ case "${1:-help}" in
         echo ""
         echo "Commands:"
         echo "  start-services     Start all backend services"
-        echo "  test-smoke         Run smoke tests only" 
+        echo "  test-smoke         Run smoke tests only"
         echo "  test-integration   Start services and run integration tests"
         echo "  test-mock          Run tests in mock mode (no service dependencies)"
         echo "  test-full          Run complete test suite with cleanup"

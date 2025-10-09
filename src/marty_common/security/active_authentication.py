@@ -131,7 +131,8 @@ class ActiveAuthenticationProtocol:
         self.logger.debug("Parsed AA response: %d bytes signature", len(signature))
 
         return ActiveAuthenticationResponse(
-            signature=signature, is_valid=False  # Will be validated separately
+            signature=signature,
+            is_valid=False,  # Will be validated separately
         )
 
     def verify_active_authentication(
@@ -326,7 +327,7 @@ class ActiveAuthenticationProtocol:
     def _create_iso9796_message(self, challenge: ActiveAuthenticationChallenge) -> bytes:
         """Create ISO 9796-2 formatted message for signing."""
         # Header for partial recovery
-        header = b"\x6A"
+        header = b"\x6a"
 
         # Message contains the challenge
         message_data = challenge.challenge
@@ -339,7 +340,7 @@ class ActiveAuthenticationProtocol:
         hash_id = b"\x31"
 
         # Trailer
-        trailer = b"\xBC"
+        trailer = b"\xbc"
 
         return header + message_data + message_hash + hash_id + trailer
 
@@ -364,7 +365,6 @@ class ActiveAuthenticationProtocol:
 
         # Convert to bytes
         return signature_int.to_bytes(key_size_bytes, "big")
-
 
 
 class ActiveAuthenticationManager:

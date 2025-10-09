@@ -22,11 +22,7 @@ from marty_common.infrastructure import (
     PassportRepository,
 )
 from marty_common.models.passport import DataGroupType, Gender, ICaoPassport, MRZData
-from proto import (
-    document_signer_pb2_grpc,
-    passport_engine_pb2,
-    passport_engine_pb2_grpc,
-)
+from proto import document_signer_pb2_grpc, passport_engine_pb2, passport_engine_pb2_grpc
 from src.marty_common.crypto.document_signer_certificate import (
     DOCUMENT_SIGNER_KEY_ID,
     load_or_create_document_signer_certificate,

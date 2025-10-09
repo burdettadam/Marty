@@ -101,18 +101,21 @@ cedar_policies:
 ## Validation Modes
 
 ### Strict Mode
+
 - Higher confidence thresholds
 - Exact matching preferred
 - Lower tolerance for variations
 - Used for high-security documents
 
 ### Lenient Mode
+
 - Lower confidence thresholds
 - Fuzzy matching with higher tolerance
 - Accommodates OCR variations
 - Used for damaged or low-quality documents
 
 ### Adaptive Mode
+
 - Dynamic thresholds based on extraction confidence
 - Automatically adjusts based on document quality
 - Balances accuracy with usability
@@ -173,18 +176,21 @@ await cedar_engine.initialize()
 ## Sample Rule Packs
 
 ### Passport Rules (`passport_rules.yaml`)
+
 - Strict validation for passport documents
 - MRZ checksum validation
 - High confidence thresholds
 - Exact matching for critical fields
 
 ### Driver's License Rules (`drivers_license_rules.yaml`)
+
 - Lenient validation by default
 - Barcode data prioritization
 - Address fuzzy matching
 - State/province validation
 
 ### National ID Rules (`national_id_rules.yaml`)
+
 - RFID chip hash validation
 - Strict name matching
 - Multi-format date support
@@ -237,6 +243,7 @@ CEDAR_DEBUG=true
 The Cedar Policy Engine includes comprehensive observability:
 
 ### Metrics
+
 - `cedar_policies_evaluated_total`
 - `cedar_policy_evaluation_duration_ms`
 - `cedar_rule_packs_loaded_total`
@@ -244,12 +251,14 @@ The Cedar Policy Engine includes comprehensive observability:
 - `cedar_hot_reload_events_total`
 
 ### Logging
+
 - Structured JSON logging
 - Policy evaluation traces
 - Rule pack load/reload events
 - Performance metrics
 
 ### Health Checks
+
 - Rule pack validation status
 - Cedar engine health
 - Policy compilation status
@@ -268,6 +277,7 @@ The Cedar Policy Engine includes comprehensive observability:
 ### Backward Compatibility
 
 The system maintains backward compatibility:
+
 - Existing rules continue to work as fallback
 - Gradual migration supported
 - Feature flags for Cedar evaluation
@@ -314,30 +324,35 @@ logging.getLogger('cedar_policy_engine').setLevel(logging.DEBUG)
 ## Quick Start
 
 1. **Install dependencies**:
+
    ```bash
    pip install -r requirements_cedar.txt
    ```
 
 2. **Initialize Cedar engine**:
+
    ```python
    from src.services.cedar_policy_engine import CedarPolicyEngine
-   
+
    engine = CedarPolicyEngine("config/rules")
    await engine.initialize()
    ```
 
 3. **Load rule pack**:
+
    ```python
    pack_id = await engine.load_rule_pack("config/rules/passport_rules.yaml")
    ```
 
 4. **Evaluate policy**:
+
    ```python
    context = ValidationContext(...)
    result = await engine.evaluate_validation_rule("PASSPORT_EXACT_MATCH", context)
    ```
 
 5. **Run demo**:
+
    ```bash
    python examples/cedar_policy_demo.py
    ```

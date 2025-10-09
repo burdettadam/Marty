@@ -17,25 +17,27 @@ The refactoring addressed several areas of redundancy:
 ### 1. gRPC Server Framework (`marty_common/grpc_server.py`)
 
 **Before:** Each service had its own server setup with ~50 lines of duplicated code:
+
 ```python
 def serve():
     server = grpc.server(futures.ThreadPoolExecutor(max_workers=10))
     servicer = MyServicer()
     add_MyServicer_to_server(servicer, server)
-    
+
     # Add logging streamer
     try:
         logging_streamer = LoggingStreamerServicer()
         add_LoggingStreamerServicer_to_server(logging_streamer, server)
     except Exception as e:
         logger.error(f"Failed to add LoggingStreamerServicer: {e}")
-    
+
     server.add_insecure_port(f"[::]:{port}")
     server.start()
     # ... signal handling, shutdown logic
 ```
 
 **After:** Single line service startup:
+
 ```python
 from marty_common.grpc_server import run_grpc_service
 
@@ -48,6 +50,7 @@ def main():
 ```
 
 **Benefits:**
+
 - Reduced from ~50 lines to ~5 lines per service
 - Consistent error handling and graceful shutdown
 - Standardized health checks and logging integration
@@ -56,6 +59,7 @@ def main():
 ### 2. Configuration Management (`marty_common/config_manager.py`)
 
 **Before:** Each service loaded configuration differently:
+
 ```python
 # Various patterns across services
 config_env = os.environ.get("ENV", "development")
@@ -65,6 +69,7 @@ port = os.environ.get("GRPC_PORT", "50051")
 ```
 
 **After:** Standardized configuration:
+
 ```python
 from marty_common.config_manager import get_service_config
 
@@ -74,6 +79,7 @@ def __init__(self):
 ```
 
 **Benefits:**
+
 - Consistent configuration structure across all services
 - Environment variable override support
 - Validation and error handling
@@ -82,20 +88,22 @@ def __init__(self):
 ### 3. Base Verification Engine (`marty_common/verification/base_verification.py`)
 
 **Before:** Verification logic duplicated across visa, TD2, CMC services:
+
 ```python
 # Similar patterns in visa_verification.py, td2_verification.py, etc.
 class VisaVerificationEngine:
     async def verify_mrz(self, mrz_data):
         # 40+ lines of MRZ validation logic
-    
+
     async def verify_check_digits(self, fields):
         # 30+ lines of check digit validation
-    
+
     async def verify_dates(self, issue_date, expiry_date):
         # 25+ lines of date validation logic
 ```
 
 **After:** Shared base class with common patterns:
+
 ```python
 from marty_common.verification.base_verification import BaseVerificationEngine
 
@@ -108,6 +116,7 @@ class VisaVerificationEngine(BaseVerificationEngine):
 ```
 
 **Benefits:**
+
 - Eliminated ~100 lines of duplicated validation logic per verification engine
 - Consistent verification result structure
 - Standardized confidence scoring
@@ -116,6 +125,7 @@ class VisaVerificationEngine(BaseVerificationEngine):
 ### 4. Docker Infrastructure
 
 **Before:** 12 nearly identical Dockerfiles with ~50 lines each:
+
 ```dockerfile
 FROM python:3.10-slim
 # 40+ lines of repeated dependency installation
@@ -127,6 +137,7 @@ RUN pip install uv && uv pip install --system -e .
 **After:** Shared base image + service template:
 
 **Base Image (`docker/base.Dockerfile`):**
+
 ```dockerfile
 FROM python:3.10-slim
 # All common dependencies and setup
@@ -134,6 +145,7 @@ FROM python:3.10-slim
 ```
 
 **Service Template (`docker/service.Dockerfile`):**
+
 ```dockerfile
 ARG BASE_IMAGE=marty-base:latest
 FROM ${BASE_IMAGE}
@@ -143,6 +155,7 @@ ENV SERVICE_NAME=${SERVICE_NAME}
 ```
 
 **Benefits:**
+
 - Reduced Docker build time (shared layers)
 - Consistent base environment
 - Easier dependency management
@@ -153,6 +166,7 @@ ENV SERVICE_NAME=${SERVICE_NAME}
 ### Creating a New Service
 
 1. **Create the servicer class:**
+
 ```python
 # src/services/my_new_service.py
 from marty_common.grpc_server import run_grpc_service
@@ -172,6 +186,7 @@ def main():
 ```
 
 2. **Add configuration (optional):**
+
 ```yaml
 # config/my_new_service.yaml
 grpc_port: 8090
@@ -180,6 +195,7 @@ enable_metrics: true
 ```
 
 3. **Build with shared infrastructure:**
+
 ```bash
 ./scripts/build-services.sh --service my-new-service
 ```
@@ -188,7 +204,7 @@ enable_metrics: true
 
 ```python
 from marty_common.verification.base_verification import (
-    BaseVerificationEngine, 
+    BaseVerificationEngine,
     VerificationLevel,
     VerificationStep
 )
@@ -196,18 +212,18 @@ from marty_common.verification.base_verification import (
 class MyDocumentVerificationEngine(BaseVerificationEngine):
     async def verify_document(self, document, level=VerificationLevel.STANDARD):
         result = BaseVerificationResult()
-        
+
         # Use inherited common methods
         mrz_result = await self.verify_mrz_structure(document.mrz, "my_doc")
         result.add_step_result(mrz_result.step, mrz_result.status, mrz_result.message)
-        
+
         if level.value in [VerificationLevel.COMPREHENSIVE, VerificationLevel.MAXIMUM]:
             date_result = await self.verify_date_validity(
-                document.issue_date, 
+                document.issue_date,
                 document.expiry_date
             )
             result.add_step_result(date_result.step, date_result.status, date_result.message)
-        
+
         # Custom verification logic here
         result.calculate_overall_confidence()
         return result
@@ -218,11 +234,12 @@ class MyDocumentVerificationEngine(BaseVerificationEngine):
 ### Updating Existing Services
 
 1. **Replace server setup:**
+
 ```python
 # Old
 def serve():
     # 50+ lines of server setup
-    
+
 # New  
 def main():
     run_grpc_service(
@@ -233,6 +250,7 @@ def main():
 ```
 
 2. **Update configuration:**
+
 ```python
 # Old
 config_env = os.environ.get("ENV", "development")
@@ -243,6 +261,7 @@ config = get_service_config("service_name")
 ```
 
 3. **Update Dockerfile:**
+
 ```dockerfile
 # Old: Copy entire service-specific Dockerfile
 

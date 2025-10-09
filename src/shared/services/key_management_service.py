@@ -9,6 +9,7 @@ This service is responsible for:
 4. Key backup and recovery
 5. Key usage auditing and tracking
 """
+
 from __future__ import annotations
 
 import datetime

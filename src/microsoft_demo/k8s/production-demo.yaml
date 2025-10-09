@@ -18,25 +18,25 @@ data:
   # Database Configuration
   POSTGRES_DB: "martydb"
   POSTGRES_USER: "martyuser"
-  
+
   # Service URLs (will be updated by configure-urls script)
   ISSUER_BASE_URL: "https://7bmt9pc1-8000.usw3.devtunnels.ms"
-  VERIFIER_BASE_URL: "https://7bmt9pc1-8001.usw3.devtunnels.ms" 
+  VERIFIER_BASE_URL: "https://7bmt9pc1-8001.usw3.devtunnels.ms"
   CREDENTIAL_ISSUER_DID: "did:web:7bmt9pc1-8000.usw3.devtunnels.ms"
   VERIFIER_DID: "did:web:7bmt9pc1-8001.usw3.devtunnels.ms"
-  
+
   # CORS and Security
   CORS_ORIGINS: "https://7bmt9pc1-8000.usw3.devtunnels.ms,https://7bmt9pc1-8001.usw3.devtunnels.ms,http://localhost:30000,http://localhost:30001,https://localhost:30000,https://localhost:30001"
-  
+
   # Application Configuration
   LOG_LEVEL: "INFO"
   PORT_FORWARD_MODE: "false"
-  
+
   # MinIO Configuration
   MINIO_ENDPOINT: "minio-service:9000"
   MINIO_ACCESS_KEY: "minioadmin"
   MINIO_BUCKET: "credentials"
-  
+
   # Vault Configuration
   VAULT_URL: "http://vault-service:8200"
 
@@ -50,10 +50,10 @@ type: Opaque
 data:
   # Database secrets
   POSTGRES_PASSWORD: bWFydHlwYXNzd29yZA==  # "martypassword" base64 encoded
-  
+
   # MinIO secrets
   MINIO_SECRET_KEY: bWluaW9hZG1pbjEyMw==  # "minioadmin123" base64 encoded
-  
+
   # Vault secrets
   VAULT_TOKEN: bXlyb290  # "myroot" base64 encoded
 
@@ -351,11 +351,11 @@ data:
     # This will be populated by the deployment script
     from fastapi import FastAPI
     app = FastAPI(title="Microsoft Demo Issuer API", version="1.0.0")
-    
+
     @app.get("/health")
     def health():
         return {"status": "healthy", "service": "issuer-api"}
-    
+
     @app.get("/")
     def root():
         return {"message": "Microsoft Demo Issuer API", "version": "1.0.0"}
@@ -371,11 +371,11 @@ data:
     # This will be populated by the deployment script
     from fastapi import FastAPI
     app = FastAPI(title="Microsoft Demo Verifier API", version="1.0.0")
-    
+
     @app.get("/health")
     def health():
         return {"status": "healthy", "service": "verifier-api"}
-    
+
     @app.get("/")
     def root():
         return {"message": "Microsoft Demo Verifier API", "version": "1.0.0"}
@@ -430,11 +430,11 @@ spec:
               pip install --no-cache-dir \
                 fastapi uvicorn[standard] pydantic qrcode[pil] jinja2 \
                 python-multipart psycopg2-binary minio hvac sqlalchemy
-              
+
               echo "Setting up application..."
               mkdir -p /app
               cp /config/issuer_api.py /app/
-              
+
               echo "Starting issuer API..."
               cd /app
               uvicorn issuer_api:app --host 0.0.0.0 --port 8000
@@ -602,11 +602,11 @@ spec:
               pip install --no-cache-dir \
                 fastapi uvicorn[standard] pydantic qrcode[pil] jinja2 \
                 python-multipart psycopg2-binary minio hvac sqlalchemy
-              
+
               echo "Setting up application..."
               mkdir -p /app
               cp /config/verifier_api.py /app/
-              
+
               echo "Starting verifier API..."
               cd /app
               uvicorn verifier_api:app --host 0.0.0.0 --port 8001

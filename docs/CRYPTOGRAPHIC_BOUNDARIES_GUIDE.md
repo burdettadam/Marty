@@ -70,6 +70,7 @@ This document describes the comprehensive cryptographic boundaries and key manag
 ### Role Policies
 
 Each role has specific policies defining:
+
 - **Purposes**: Allowed cryptographic operations
 - **Security Level**: Required security (software/HSM)
 - **Key Lifetime**: Maximum key validity period
@@ -121,6 +122,7 @@ class KMSProvider:
 ### Audit Logging
 
 All KMS operations include:
+
 - Operation type and parameters
 - Key identifiers and roles
 - Success/failure status
@@ -149,6 +151,7 @@ class EvidenceEntry:
 ### Chain Integrity
 
 Evidence entries form a cryptographic chain:
+
 - Each entry includes hash of previous entry
 - Tampering with any entry breaks the chain
 - Chain integrity verifiable at any point
@@ -157,6 +160,7 @@ Evidence entries form a cryptographic chain:
 ### Non-Repudiation
 
 Evidence signatures provide:
+
 - **Timestamp Integrity**: Signed timestamps prevent backdating
 - **Identity Verification**: Verifier identity cryptographically bound
 - **Result Authenticity**: Verification results cannot be forged
@@ -172,12 +176,12 @@ crypto_boundaries:
   audit_all_operations: true
   require_hsm_for_authorities: true
   evidence_signing_required: true
-  
+
 kms_settings:
   default_provider: aws_kms
   key_rotation_days: 90
   audit_retention_days: 2555  # 7 years
-  
+
 role_policies:
   csca:
     security_level: hsm_required
@@ -194,7 +198,7 @@ crypto_boundaries:
   audit_all_operations: false
   require_hsm_for_authorities: false
   evidence_signing_required: false
-  
+
 kms_settings:
   default_provider: software_hsm
   key_rotation_days: 30

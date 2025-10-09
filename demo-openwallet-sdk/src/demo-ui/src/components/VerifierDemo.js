@@ -67,7 +67,7 @@ function VerifierDemo() {
 
     try {
       const response = await axios.get(`/api/verifier/presentation/status/${presentationRequest.request_id}`);
-      
+
       if (response.data.status === 'VALID' || response.data.status === 'INVALID') {
         // Get verification result
         const resultResponse = await axios.get(`/api/verifier/presentation/result/${presentationRequest.request_id}`);
@@ -115,7 +115,7 @@ function VerifierDemo() {
       <Typography variant="h4" component="h1" gutterBottom>
         Credential Verifier Demo
       </Typography>
-      
+
       <Typography variant="body1" color="text.secondary" paragraph>
         Verify mDoc and mDL credentials using OpenID4VP and ISO 18013-5 protocols.
         Create presentation requests and verify credential presentations.
@@ -128,7 +128,7 @@ function VerifierDemo() {
               <Typography variant="h6" gutterBottom>
                 Verification Scenario
               </Typography>
-              
+
               <FormControl fullWidth sx={{ mb: 2 }}>
                 <InputLabel>Select Scenario</InputLabel>
                 <Select
@@ -191,13 +191,13 @@ function VerifierDemo() {
               <Typography variant="h6" gutterBottom>
                 Presentation Request
               </Typography>
-              
+
               {error && (
                 <Alert severity="error" sx={{ mb: 2 }}>
                   {error}
                 </Alert>
               )}
-              
+
               {presentationRequest && (
                 <Box>
                   <Typography variant="subtitle2" gutterBottom>
@@ -206,7 +206,7 @@ function VerifierDemo() {
                   <Box sx={{ display: 'flex', justifyContent: 'center', mb: 2 }}>
                     <QRCode value={presentationRequest.presentation_uri} size={200} />
                   </Box>
-                  
+
                   <Paper sx={{ p: 2, bgcolor: 'grey.50' }}>
                     <Typography variant="caption" component="div">
                       Request ID: {presentationRequest.request_id}
@@ -220,10 +220,10 @@ function VerifierDemo() {
                   </Paper>
                 </Box>
               )}
-              
+
               {verificationResult && (
                 <Box sx={{ mt: 2 }}>
-                  <Alert 
+                  <Alert
                     severity={verificationResult.status === 'VALID' ? 'success' : 'error'}
                     sx={{ mb: 2 }}
                   >
@@ -234,7 +234,7 @@ function VerifierDemo() {
                       </Typography>
                     )}
                   </Alert>
-                  
+
                   {verificationResult.verified_claims && (
                     <Paper sx={{ p: 2, bgcolor: 'grey.50' }}>
                       <Typography variant="subtitle2" gutterBottom>
@@ -245,7 +245,7 @@ function VerifierDemo() {
                       </Box>
                     </Paper>
                   )}
-                  
+
                   {verificationResult.errors && verificationResult.errors.length > 0 && (
                     <Paper sx={{ p: 2, bgcolor: 'red.50', mt: 2 }}>
                       <Typography variant="subtitle2" gutterBottom color="error">
@@ -260,7 +260,7 @@ function VerifierDemo() {
                   )}
                 </Box>
               )}
-              
+
               {!presentationRequest && !error && (
                 <Typography color="text.secondary">
                   Select a scenario and create a presentation request to begin verification.

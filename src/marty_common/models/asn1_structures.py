@@ -3,6 +3,7 @@ ASN.1 data structures for e-passport chip data.
 
 These structures implement the ASN.1 formats defined in ICAO Doc 9303.
 """
+
 from __future__ import annotations
 
 from datetime import datetime

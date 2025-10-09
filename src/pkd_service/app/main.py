@@ -7,7 +7,8 @@ from app.api.csca import router as csca_router
 from app.core.config import settings
 from app.db.database import init_db
 from fastapi import FastAPI
-from marty_common.logging_config import setup_logging, get_logger
+
+from marty_common.logging_config import get_logger, setup_logging
 
 # Configure logging using shared utility
 setup_logging(service_name="pkd-service")

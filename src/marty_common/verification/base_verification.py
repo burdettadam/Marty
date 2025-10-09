@@ -19,6 +19,7 @@ logger = logging.getLogger(__name__)
 
 class VerificationStep(str, Enum):
     """Common verification step identifiers."""
+
     DOCUMENT_DETECTION = "document_detection"
     MRZ_PARSE = "mrz_parse"
     CHECK_DIGITS = "check_digits"
@@ -36,14 +37,16 @@ class VerificationStep(str, Enum):
 
 class VerificationLevel(str, Enum):
     """Standard verification thoroughness levels."""
-    BASIC = "basic"           # Document detection + MRZ only
-    STANDARD = "standard"     # Basic + authenticity
+
+    BASIC = "basic"  # Document detection + MRZ only
+    STANDARD = "standard"  # Basic + authenticity
     COMPREHENSIVE = "comprehensive"  # Standard + semantics + policy
-    MAXIMUM = "maximum"       # Comprehensive + trust + online
+    MAXIMUM = "maximum"  # Comprehensive + trust + online
 
 
 class VerificationStatus(str, Enum):
     """Status of verification steps."""
+
     PASSED = "passed"
     FAILED = "failed"
     WARNING = "warning"
@@ -54,6 +57,7 @@ class VerificationStatus(str, Enum):
 @dataclass
 class VerificationStepResult:
     """Result of a single verification step."""
+
     step: VerificationStep
     status: VerificationStatus
     message: str = ""
@@ -64,6 +68,7 @@ class VerificationStepResult:
 @dataclass
 class BaseVerificationResult:
     """Base verification result structure."""
+
     is_valid: bool = False
     overall_confidence: float = 0.0
     verification_timestamp: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
@@ -77,15 +82,11 @@ class BaseVerificationResult:
         status: VerificationStatus,
         message: str = "",
         details: dict[str, Any] | None = None,
-        confidence: float = 1.0
+        confidence: float = 1.0,
     ) -> None:
         """Add a verification step result."""
         result = VerificationStepResult(
-            step=step,
-            status=status,
-            message=message,
-            details=details or {},
-            confidence=confidence
+            step=step, status=status, message=message, details=details or {}, confidence=confidence
         )
         self.step_results.append(result)
 
@@ -129,7 +130,9 @@ class BaseVerificationResult:
             # Failed steps contribute 0
             total_weight += weight
 
-        self.overall_confidence = total_weighted_confidence / total_weight if total_weight > 0 else 0.0
+        self.overall_confidence = (
+            total_weighted_confidence / total_weight if total_weight > 0 else 0.0
+        )
         return self.overall_confidence
 
 
@@ -149,7 +152,7 @@ class BaseVerificationEngine(ABC):
         self,
         trust_store_path: str | None = None,
         enable_online_verification: bool = False,
-        verification_timeout: int = 30
+        verification_timeout: int = 30,
     ) -> None:
         self.trust_store_path = trust_store_path
         self.enable_online_verification = enable_online_verification
@@ -161,15 +164,13 @@ class BaseVerificationEngine(ABC):
         self,
         document: DocumentProtocol,
         verification_level: VerificationLevel = VerificationLevel.STANDARD,
-        **kwargs: Any
+        **kwargs: Any,
     ) -> BaseVerificationResult:
         """Verify a document with the specified level."""
         ...
 
     async def verify_mrz_structure(
-        self,
-        mrz_data: str | list[str],
-        document_type: str
+        self, mrz_data: str | list[str], document_type: str
     ) -> VerificationStepResult:
         """Common MRZ structure verification."""
         try:
@@ -180,7 +181,7 @@ class BaseVerificationEngine(ABC):
                 return VerificationStepResult(
                     step=VerificationStep.MRZ_PARSE,
                     status=VerificationStatus.FAILED,
-                    message="MRZ data is empty or invalid"
+                    message="MRZ data is empty or invalid",
                 )
 
             # Document-specific line count validation
@@ -189,13 +190,13 @@ class BaseVerificationEngine(ABC):
                 return VerificationStepResult(
                     step=VerificationStep.MRZ_PARSE,
                     status=VerificationStatus.FAILED,
-                    message=f"Expected {expected_lines} MRZ lines, got {len(lines)}"
+                    message=f"Expected {expected_lines} MRZ lines, got {len(lines)}",
                 )
 
             return VerificationStepResult(
                 step=VerificationStep.MRZ_PARSE,
                 status=VerificationStatus.PASSED,
-                message="MRZ structure validation passed"
+                message="MRZ structure validation passed",
             )
 
         except Exception as e:
@@ -203,25 +204,22 @@ class BaseVerificationEngine(ABC):
             return VerificationStepResult(
                 step=VerificationStep.MRZ_PARSE,
                 status=VerificationStatus.FAILED,
-                message=f"MRZ parsing error: {e}"
+                message=f"MRZ parsing error: {e}",
             )
 
     def _get_expected_mrz_lines(self, document_type: str) -> int:
         """Get expected number of MRZ lines for document type."""
         mrz_line_map = {
-            "passport": 2,    # TD-3
-            "visa": 2,        # MRV
-            "id_card": 3,     # TD-1
-            "td2": 2,         # TD-2
-            "cmc": 2,         # CMC
+            "passport": 2,  # TD-3
+            "visa": 2,  # MRV
+            "id_card": 3,  # TD-1
+            "td2": 2,  # TD-2
+            "cmc": 2,  # CMC
         }
         return mrz_line_map.get(document_type.lower(), 2)
 
     async def verify_date_validity(
-        self,
-        issue_date: date | None,
-        expiry_date: date | None,
-        validity_date: date | None = None
+        self, issue_date: date | None, expiry_date: date | None, validity_date: date | None = None
     ) -> VerificationStepResult:
         """Common date validity verification."""
         check_date = validity_date or date.today()
@@ -232,7 +230,7 @@ class BaseVerificationEngine(ABC):
                     step=VerificationStep.SEMANTICS_CHECK,
                     status=VerificationStatus.FAILED,
                     message=f"Document expired on {expiry_date}",
-                    details={"expiry_date": expiry_date.isoformat()}
+                    details={"expiry_date": expiry_date.isoformat()},
                 )
 
             if issue_date and issue_date > check_date:
@@ -240,7 +238,7 @@ class BaseVerificationEngine(ABC):
                     step=VerificationStep.SEMANTICS_CHECK,
                     status=VerificationStatus.FAILED,
                     message=f"Document issue date {issue_date} is in the future",
-                    details={"issue_date": issue_date.isoformat()}
+                    details={"issue_date": issue_date.isoformat()},
                 )
 
             # Check if expiring soon (within 6 months)
@@ -251,13 +249,13 @@ class BaseVerificationEngine(ABC):
                         step=VerificationStep.SEMANTICS_CHECK,
                         status=VerificationStatus.WARNING,
                         message=f"Document expires in {days_until_expiry} days",
-                        details={"days_until_expiry": days_until_expiry}
+                        details={"days_until_expiry": days_until_expiry},
                     )
 
             return VerificationStepResult(
                 step=VerificationStep.SEMANTICS_CHECK,
                 status=VerificationStatus.PASSED,
-                message="Date validity checks passed"
+                message="Date validity checks passed",
             )
 
         except Exception as e:
@@ -265,13 +263,13 @@ class BaseVerificationEngine(ABC):
             return VerificationStepResult(
                 step=VerificationStep.SEMANTICS_CHECK,
                 status=VerificationStatus.FAILED,
-                message=f"Date validation error: {e}"
+                message=f"Date validation error: {e}",
             )
 
     async def verify_check_digits(
         self,
         data_fields: list[tuple[str, str]],  # (field_name, field_value_with_check_digit)
-        algorithm: str = "mod10"
+        algorithm: str = "mod10",
     ) -> VerificationStepResult:
         """Common check digit verification."""
         try:
@@ -281,13 +279,13 @@ class BaseVerificationEngine(ABC):
                         step=VerificationStep.CHECK_DIGITS,
                         status=VerificationStatus.FAILED,
                         message=f"Check digit validation failed for {field_name}",
-                        details={"field": field_name, "value": field_value}
+                        details={"field": field_name, "value": field_value},
                     )
 
             return VerificationStepResult(
                 step=VerificationStep.CHECK_DIGITS,
                 status=VerificationStatus.PASSED,
-                message="All check digits are valid"
+                message="All check digits are valid",
             )
 
         except Exception as e:
@@ -295,7 +293,7 @@ class BaseVerificationEngine(ABC):
             return VerificationStepResult(
                 step=VerificationStep.CHECK_DIGITS,
                 status=VerificationStatus.FAILED,
-                message=f"Check digit validation error: {e}"
+                message=f"Check digit validation error: {e}",
             )
 
     def _validate_check_digit(self, value: str, algorithm: str) -> bool:
@@ -376,16 +374,11 @@ class BaseVerificationEngine(ABC):
 
 # Utility functions for common verification patterns
 def create_error_result(
-    step: VerificationStep,
-    message: str,
-    details: dict[str, Any] | None = None
+    step: VerificationStep, message: str, details: dict[str, Any] | None = None
 ) -> VerificationStepResult:
     """Create a failed verification step result."""
     return VerificationStepResult(
-        step=step,
-        status=VerificationStatus.FAILED,
-        message=message,
-        details=details or {}
+        step=step, status=VerificationStatus.FAILED, message=message, details=details or {}
     )
 
 
@@ -393,7 +386,7 @@ def create_success_result(
     step: VerificationStep,
     message: str = "",
     details: dict[str, Any] | None = None,
-    confidence: float = 1.0
+    confidence: float = 1.0,
 ) -> VerificationStepResult:
     """Create a successful verification step result."""
     return VerificationStepResult(
@@ -401,7 +394,7 @@ def create_success_result(
         status=VerificationStatus.PASSED,
         message=message or f"{step.value} verification passed",
         details=details or {},
-        confidence=confidence
+        confidence=confidence,
     )
 
 
@@ -409,7 +402,7 @@ def create_warning_result(
     step: VerificationStep,
     message: str,
     details: dict[str, Any] | None = None,
-    confidence: float = 0.7
+    confidence: float = 0.7,
 ) -> VerificationStepResult:
     """Create a warning verification step result."""
     return VerificationStepResult(
@@ -417,5 +410,5 @@ def create_warning_result(
         status=VerificationStatus.WARNING,
         message=message,
         details=details or {},
-        confidence=confidence
+        confidence=confidence,
     )

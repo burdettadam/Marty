@@ -232,9 +232,7 @@ class DTCEngineService(DTCEngineServicer):
 
         except Exception:
             logger.exception("Error creating DTC")
-            return CreateDTCResponse(
-                dtc_id="", status="ERROR", error_message="Error creating DTC"
-            )
+            return CreateDTCResponse(dtc_id="", status="ERROR", error_message="Error creating DTC")
 
     def GetDTC(self, request, context) -> DTCResponse:
         """

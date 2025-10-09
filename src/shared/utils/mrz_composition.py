@@ -25,6 +25,7 @@ from .mrz_standardized import MRZDocumentType, MRZFieldLength, MRZStandardizedUt
 @dataclass
 class MRZPersonalData:
     """Personal data for MRZ generation."""
+
     surname: str
     given_names: str
     nationality: str
@@ -35,6 +36,7 @@ class MRZPersonalData:
 @dataclass
 class MRZDocumentData:
     """Document data for MRZ generation."""
+
     document_type: str
     issuing_country: str
     document_number: str
@@ -46,6 +48,7 @@ class MRZDocumentData:
 @dataclass
 class MRZCompositionResult:
     """Result of MRZ composition with all generated lines and check digits."""
+
     line1: str
     line2: str
     line3: str | None = None
@@ -74,8 +77,9 @@ class BaseMRZComposer(ABC):
         self.utils = MRZStandardizedUtils()
 
     @abstractmethod
-    def compose_mrz(self, personal_data: MRZPersonalData,
-                   document_data: MRZDocumentData) -> MRZCompositionResult:
+    def compose_mrz(
+        self, personal_data: MRZPersonalData, document_data: MRZDocumentData
+    ) -> MRZCompositionResult:
         """Compose MRZ lines for the specific document type."""
 
     @abstractmethod
@@ -90,8 +94,9 @@ class BaseMRZComposer(ABC):
         """Compute check digit for data."""
         return self.utils.compute_check_digit(data)
 
-    def _validate_dates(self, personal_data: MRZPersonalData,
-                       document_data: MRZDocumentData) -> list[str]:
+    def _validate_dates(
+        self, personal_data: MRZPersonalData, document_data: MRZDocumentData
+    ) -> list[str]:
         """Validate dates according to document policies."""
         errors = []
 
@@ -120,8 +125,9 @@ class TD3PassportMRZComposer(BaseMRZComposer):
     def get_document_type(self) -> MRZDocumentType:
         return MRZDocumentType.PASSPORT
 
-    def compose_mrz(self, personal_data: MRZPersonalData,
-                   document_data: MRZDocumentData) -> MRZCompositionResult:
+    def compose_mrz(
+        self, personal_data: MRZPersonalData, document_data: MRZDocumentData
+    ) -> MRZCompositionResult:
         """
         Compose TD3 passport MRZ (2 lines, 44 characters each).
 
@@ -137,16 +143,12 @@ class TD3PassportMRZComposer(BaseMRZComposer):
         line1_parts.append(document_data.document_type or "P")
 
         # Issuing country (3 characters)
-        issuing_country = self.utils.clean_field_for_mrz(
-            document_data.issuing_country or ""
-        )
+        issuing_country = self.utils.clean_field_for_mrz(document_data.issuing_country or "")
         line1_parts.append(self.utils.pad_field(issuing_country, 3))
 
         # Name field (39 characters)
         name_field = self.utils.format_name_for_mrz(
-            personal_data.surname,
-            personal_data.given_names,
-            MRZFieldLength.TD3_NAME_FIELD
+            personal_data.surname, personal_data.given_names, MRZFieldLength.TD3_NAME_FIELD
         )
         line1_parts.append(name_field)
 
@@ -181,16 +183,22 @@ class TD3PassportMRZComposer(BaseMRZComposer):
 
         # Personal number (14 characters) + check digit
         personal_number = self.utils.clean_field_for_mrz(document_data.personal_number or "")
-        personal_number_padded = self.utils.pad_field(personal_number, MRZFieldLength.TD3_PERSONAL_NUMBER)
+        personal_number_padded = self.utils.pad_field(
+            personal_number, MRZFieldLength.TD3_PERSONAL_NUMBER
+        )
         personal_check = self._compute_check_digit(personal_number_padded)
         line2_parts.extend([personal_number_padded, personal_check])
 
         # Composite check digit
         composite_data = (
-            doc_number_padded + doc_check +
-            birth_date + birth_check +
-            expiry_date + expiry_check +
-            personal_number_padded + personal_check
+            doc_number_padded
+            + doc_check
+            + birth_date
+            + birth_check
+            + expiry_date
+            + expiry_check
+            + personal_number_padded
+            + personal_check
         )
         composite_check = self._compute_check_digit(composite_data)
         line2_parts.append(composite_check)
@@ -199,9 +207,13 @@ class TD3PassportMRZComposer(BaseMRZComposer):
 
         # Validate line lengths
         if len(line1) != MRZFieldLength.TD3_LINE_LENGTH:
-            errors.append(f"Line 1 length incorrect: {len(line1)} != {MRZFieldLength.TD3_LINE_LENGTH}")
+            errors.append(
+                f"Line 1 length incorrect: {len(line1)} != {MRZFieldLength.TD3_LINE_LENGTH}"
+            )
         if len(line2) != MRZFieldLength.TD3_LINE_LENGTH:
-            errors.append(f"Line 2 length incorrect: {len(line2)} != {MRZFieldLength.TD3_LINE_LENGTH}")
+            errors.append(
+                f"Line 2 length incorrect: {len(line2)} != {MRZFieldLength.TD3_LINE_LENGTH}"
+            )
 
         return MRZCompositionResult(
             line1=line1,
@@ -212,7 +224,7 @@ class TD3PassportMRZComposer(BaseMRZComposer):
             personal_check=personal_check,
             composite_check=composite_check,
             is_valid=len(errors) == 0,
-            validation_errors=errors
+            validation_errors=errors,
         )
 
 
@@ -222,8 +234,9 @@ class VisaTypeAMRZComposer(BaseMRZComposer):
     def get_document_type(self) -> MRZDocumentType:
         return MRZDocumentType.VISA_TYPE_A
 
-    def compose_mrz(self, personal_data: MRZPersonalData,
-                   document_data: MRZDocumentData) -> MRZCompositionResult:
+    def compose_mrz(
+        self, personal_data: MRZPersonalData, document_data: MRZDocumentData
+    ) -> MRZCompositionResult:
         """
         Compose Type A visa MRZ (2 lines, 44 characters each).
 
@@ -239,16 +252,14 @@ class VisaTypeAMRZComposer(BaseMRZComposer):
         line1_parts.append("V")
 
         # Issuing country (3 characters)
-        issuing_country = self.utils.clean_field_for_mrz(
-            document_data.issuing_country or ""
-        )
+        issuing_country = self.utils.clean_field_for_mrz(document_data.issuing_country or "")
         line1_parts.append(self.utils.pad_field(issuing_country, 3))
 
         # Name field (39 characters)
         name_field = self.utils.format_name_for_mrz(
             personal_data.surname,
             personal_data.given_names,
-            39  # Same as TD3
+            39,  # Same as TD3
         )
         line1_parts.append(name_field)
 
@@ -287,9 +298,12 @@ class VisaTypeAMRZComposer(BaseMRZComposer):
 
         # Composite check digit
         composite_data = (
-            doc_number.rstrip("<") + doc_check +
-            birth_date + birth_check +
-            expiry_date + expiry_check
+            doc_number.rstrip("<")
+            + doc_check
+            + birth_date
+            + birth_check
+            + expiry_date
+            + expiry_check
         )
         composite_check = self._compute_check_digit(composite_data)
 
@@ -299,9 +313,13 @@ class VisaTypeAMRZComposer(BaseMRZComposer):
 
         # Validate line lengths
         if len(line1) != MRZFieldLength.VISA_A_LINE_LENGTH:
-            errors.append(f"Line 1 length incorrect: {len(line1)} != {MRZFieldLength.VISA_A_LINE_LENGTH}")
+            errors.append(
+                f"Line 1 length incorrect: {len(line1)} != {MRZFieldLength.VISA_A_LINE_LENGTH}"
+            )
         if len(line2) != MRZFieldLength.VISA_A_LINE_LENGTH:
-            errors.append(f"Line 2 length incorrect: {len(line2)} != {MRZFieldLength.VISA_A_LINE_LENGTH}")
+            errors.append(
+                f"Line 2 length incorrect: {len(line2)} != {MRZFieldLength.VISA_A_LINE_LENGTH}"
+            )
 
         return MRZCompositionResult(
             line1=line1,
@@ -311,7 +329,7 @@ class VisaTypeAMRZComposer(BaseMRZComposer):
             expiry_check=expiry_check,
             composite_check=composite_check,
             is_valid=len(errors) == 0,
-            validation_errors=errors
+            validation_errors=errors,
         )
 
 
@@ -321,8 +339,9 @@ class VisaTypeBMRZComposer(BaseMRZComposer):
     def get_document_type(self) -> MRZDocumentType:
         return MRZDocumentType.VISA_TYPE_B
 
-    def compose_mrz(self, personal_data: MRZPersonalData,
-                   document_data: MRZDocumentData) -> MRZCompositionResult:
+    def compose_mrz(
+        self, personal_data: MRZPersonalData, document_data: MRZDocumentData
+    ) -> MRZCompositionResult:
         """
         Compose Type B visa MRZ (3 lines, 36 characters each).
 
@@ -337,9 +356,7 @@ class VisaTypeBMRZComposer(BaseMRZComposer):
 
         # Document type + issuing country
         line1_parts.append("V<")
-        issuing_country = self.utils.clean_field_for_mrz(
-            document_data.issuing_country or ""
-        )
+        issuing_country = self.utils.clean_field_for_mrz(document_data.issuing_country or "")
         line1_parts.append(self.utils.pad_field(issuing_country, 3))
         line1_parts.append("<")
 
@@ -391,9 +408,7 @@ class VisaTypeBMRZComposer(BaseMRZComposer):
 
         # Name field
         name_field = self.utils.format_name_for_mrz(
-            personal_data.surname,
-            personal_data.given_names,
-            name_space
+            personal_data.surname, personal_data.given_names, name_space
         )
         line3_parts.append(name_field)
 
@@ -404,9 +419,12 @@ class VisaTypeBMRZComposer(BaseMRZComposer):
         # Composite check digit
         doc_check = self._compute_check_digit(doc_number.ljust(9, "<"))
         composite_data = (
-            doc_number.rstrip("<") + doc_check +
-            birth_date + birth_check +
-            expiry_date + expiry_check
+            doc_number.rstrip("<")
+            + doc_check
+            + birth_date
+            + birth_check
+            + expiry_date
+            + expiry_check
         )
         composite_check = self._compute_check_digit(composite_data)
         line3_parts.append(composite_check)
@@ -415,11 +433,17 @@ class VisaTypeBMRZComposer(BaseMRZComposer):
 
         # Validate line lengths
         if len(line1) != MRZFieldLength.VISA_B_LINE_LENGTH:
-            errors.append(f"Line 1 length incorrect: {len(line1)} != {MRZFieldLength.VISA_B_LINE_LENGTH}")
+            errors.append(
+                f"Line 1 length incorrect: {len(line1)} != {MRZFieldLength.VISA_B_LINE_LENGTH}"
+            )
         if len(line2) != MRZFieldLength.VISA_B_LINE_LENGTH:
-            errors.append(f"Line 2 length incorrect: {len(line2)} != {MRZFieldLength.VISA_B_LINE_LENGTH}")
+            errors.append(
+                f"Line 2 length incorrect: {len(line2)} != {MRZFieldLength.VISA_B_LINE_LENGTH}"
+            )
         if len(line3) != MRZFieldLength.VISA_B_LINE_LENGTH:
-            errors.append(f"Line 3 length incorrect: {len(line3)} != {MRZFieldLength.VISA_B_LINE_LENGTH}")
+            errors.append(
+                f"Line 3 length incorrect: {len(line3)} != {MRZFieldLength.VISA_B_LINE_LENGTH}"
+            )
 
         return MRZCompositionResult(
             line1=line1,
@@ -430,7 +454,7 @@ class VisaTypeBMRZComposer(BaseMRZComposer):
             expiry_check=expiry_check,
             composite_check=composite_check,
             is_valid=len(errors) == 0,
-            validation_errors=errors
+            validation_errors=errors,
         )
 
 
@@ -459,9 +483,9 @@ class MRZComposerFactory:
         return list(cls._composers.keys())
 
 
-def compose_mrz(document_type: MRZDocumentType,
-               personal_data: MRZPersonalData,
-               document_data: MRZDocumentData) -> MRZCompositionResult:
+def compose_mrz(
+    document_type: MRZDocumentType, personal_data: MRZPersonalData, document_data: MRZDocumentData
+) -> MRZCompositionResult:
     """
     Convenience function to compose MRZ for any supported document type.
 

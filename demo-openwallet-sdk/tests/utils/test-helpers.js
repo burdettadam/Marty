@@ -31,8 +31,8 @@ class DemoTestHelpers {
   }
 
   async waitForApiCall(urlPattern) {
-    return this.page.waitForResponse(response => 
-      response.url().includes(urlPattern) && 
+    return this.page.waitForResponse(response =>
+      response.url().includes(urlPattern) &&
       response.status() === 200
     );
   }
@@ -74,12 +74,12 @@ class DemoTestHelpers {
       this.page.waitForRequest(request => request.url().includes(urlPattern)),
       // Trigger action that makes the API call
     ]);
-    
+
     if (expectedPayload) {
       const payload = request.postDataJSON();
       expect(payload).toMatchObject(expectedPayload);
     }
-    
+
     return request;
   }
 
@@ -103,9 +103,9 @@ class DemoTestHelpers {
 
   // Screenshot helpers for visual testing
   async takeScreenshot(name) {
-    await this.page.screenshot({ 
+    await this.page.screenshot({
       path: `test-results/screenshots/${name}.png`,
-      fullPage: true 
+      fullPage: true
     });
   }
 
@@ -117,7 +117,7 @@ class DemoTestHelpers {
 // Mock data for testing
 const mockCredentialData = {
   given_name: 'Jane',
-  family_name: 'Doe', 
+  family_name: 'Doe',
   birth_date: '1990-01-01',
   document_number: 'DL123456789',
   issuing_country: 'XX',
@@ -147,7 +147,7 @@ const mockApiResponses = {
       created_at: new Date().toISOString()
     }
   },
-  
+
   verifierSuccess: {
     success: true,
     verified: true,
@@ -203,7 +203,7 @@ const mockApiResponses = {
         issuer: 'Demo Root CA'
       },
       {
-        certificate_id: 'dsc_002', 
+        certificate_id: 'dsc_002',
         common_name: 'Test Authority DSC',
         status: 'expiring_soon',
         days_until_expiry: 25,

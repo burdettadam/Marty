@@ -563,7 +563,6 @@ class EACSecureMessaging:
         return hmac.new(self.secure_channel.mac_key, data, hashlib.sha256).digest()
 
 
-
 class EACProtocol:
     """Main EAC Protocol coordinator"""
 
@@ -657,9 +656,11 @@ class EACProtocol:
         return {
             "current_step": self.protocol_step.name,
             "terminal_certificate": self.terminal_auth.terminal_certificate.get_certificate_fingerprint(),
-            "secure_channel_established": self.secure_messaging.secure_channel.is_established()
-            if self.secure_messaging
-            else False,
+            "secure_channel_established": (
+                self.secure_messaging.secure_channel.is_established()
+                if self.secure_messaging
+                else False
+            ),
             "session_log_entries": len(self.session_log),
             "algorithm": self.chip_auth.algorithm.value,
             "last_activity": self.session_log[-1]["timestamp"] if self.session_log else None,
@@ -730,7 +731,7 @@ if __name__ == "__main__":
         )
 
         # Test secure messaging
-        test_apdu = b"\x00\xA4\x02\x0C\x02\x01\x1E"  # SELECT FILE command
+        test_apdu = b"\x00\xa4\x02\x0c\x02\x01\x1e"  # SELECT FILE command
         encrypted_apdu = secure_messaging.encrypt_apdu(test_apdu)
         decrypted_apdu = secure_messaging.decrypt_apdu(encrypted_apdu)
 

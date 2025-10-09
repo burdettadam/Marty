@@ -36,9 +36,7 @@ def validate_passport_data(data: dict[str, Any]) -> None:
     ]
 
     errors.extend(
-        f"Missing required field: {field}"
-        for field in required_fields
-        if field not in data
+        f"Missing required field: {field}" for field in required_fields if field not in data
     )
 
     if errors:
@@ -111,9 +109,7 @@ def validate_certificate_data(data: dict[str, Any]) -> None:
     ]
 
     errors.extend(
-        f"Missing required field: {field}"
-        for field in required_fields
-        if field not in data
+        f"Missing required field: {field}" for field in required_fields if field not in data
     )
 
     if errors:

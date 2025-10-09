@@ -60,7 +60,7 @@ env:
   LOG_LEVEL: "INFO"
   SERVICE_NAME: "credential-ledger"
   SERVICE_VERSION: "1.0.0"
-  
+
   # Health check configuration
   HEALTH_CHECK_PORT: "8081"
   METRICS_PORT: "8081"
@@ -70,22 +70,22 @@ grpc:
   tls:
     # Enable TLS for gRPC connections
     enabled: true
-    
+
     # mTLS configuration
     mtls: true
     require_client_auth: true
-    
+
     # Server certificate configuration
     server_cert: "/etc/tls/server/tls.crt"
     server_key: "/etc/tls/server/tls.key"
-    
+
     # Client CA for mTLS (when require_client_auth or mtls is true)
     client_ca: "/etc/tls/ca/ca.crt"
-    
+
     # Client certificate configuration (for outbound connections)
     client_cert: "/etc/tls/client/tls.crt"
     client_key: "/etc/tls/client/tls.key"
-    
+
     # Secret names for TLS certificates
     secrets:
       server:
@@ -104,19 +104,19 @@ grpc:
 database:
   # Database connection string
   dsn: "postgresql://marty:password@postgres.marty.svc.cluster.local:5432/credential_ledger"
-  
+
   # Individual connection parameters (for services that need them separately)
   host: "postgres.marty.svc.cluster.local"
   port: 5432
   name: "credential_ledger"
   user: "marty"
   password: ""
-  
+
   # Database secret configuration
   passwordSecret:
     name: "credential-ledger-db-secret"
     key: "password"
-  
+
   # Connection pool settings
   pool:
     min_size: 1
@@ -130,11 +130,11 @@ objectStorage:
   bucket: "credential-ledger-storage"
   region: "us-east-1"
   use_ssl: false
-  
+
   # Credentials configuration
   access_key: ""
   secret_key: ""
-  
+
   # Secret configuration
   credentialsSecret:
     name: "credential-ledger-storage-secret"
@@ -144,10 +144,10 @@ objectStorage:
 # Key Vault configuration (HashiCorp Vault or Azure Key Vault)
 keyVault:
   enabled: false
-  
+
   # Vault type: "hashicorp" or "azure"
   type: "hashicorp"
-  
+
   # HashiCorp Vault configuration
   hashicorp:
     endpoint: "vault.marty.svc.cluster.local:8200"
@@ -155,14 +155,14 @@ keyVault:
     role: "credential-ledger"
     mount_path: "auth/kubernetes"
     secrets_path: "secret/credential-ledger"
-  
+
   # Azure Key Vault configuration
   azure:
     vault_url: "https://marty-keyvault.vault.azure.net/"
     tenant_id: ""
     client_id: ""
     client_secret: ""
-    
+
     # Secret configuration for Azure credentials
     credentialsSecret:
       name: "credential-ledger-keyvault-secret"
@@ -174,13 +174,13 @@ keyVault:
 eventBus:
   # Event bus type: "kafka", "nats", or "rabbitmq"
   type: "kafka"
-  
+
   # Kafka configuration
   kafka:
     brokers: "kafka.marty.svc.cluster.local:9092"
     topic_prefix: "credential-ledger."
     consumer_group: "credential-ledger-consumers"
-    
+
     # Security configuration
     security:
       enabled: false
@@ -188,41 +188,41 @@ eventBus:
       sasl_mechanism: "PLAIN"
       username: ""
       password: ""
-      
+
       # Secret configuration
       credentialsSecret:
         name: "credential-ledger-kafka-secret"
         username_key: "username"
         password_key: "password"
-  
+
   # NATS configuration
   nats:
     servers: "nats.marty.svc.cluster.local:4222"
     subject_prefix: "credential-ledger."
-    
+
     # Security configuration
     security:
       enabled: false
       username: ""
       password: ""
-      
+
       # Secret configuration
       credentialsSecret:
         name: "credential-ledger-nats-secret"
         username_key: "username"
         password_key: "password"
-  
+
   # RabbitMQ configuration
   rabbitmq:
     host: "rabbitmq.marty.svc.cluster.local"
     port: 5672
     vhost: "/"
     exchange_prefix: "credential-ledger."
-    
+
     # Security configuration
     username: ""
     password: ""
-    
+
     # Secret configuration
     credentialsSecret:
       name: "credential-ledger-rabbitmq-secret"
@@ -277,19 +277,19 @@ migration:
     repository: marty/credential-ledger
     tag: "latest"
     pullPolicy: IfNotPresent
-  
+
   # Alembic configuration
   alembic:
     command: ["python", "-m", "alembic", "upgrade", "head"]
     config_file: "/app/alembic.ini"
-  
+
   # Job configuration
   job:
     restartPolicy: Never
     backoffLimit: 3
     activeDeadlineSeconds: 600
     ttlSecondsAfterFinished: 86400
-  
+
   # Resources for migration job
   resources:
     limits:
@@ -308,7 +308,7 @@ monitoring:
     path: /metrics
     port: metrics
     labels: {}
-    
+
   # PodMonitor for metrics sidecars
   podMonitor:
     enabled: false
@@ -321,25 +321,25 @@ monitoring:
 serviceMesh:
   enabled: false
   type: "istio"  # "istio" or "linkerd"
-  
+
   # Istio configuration
   istio:
     # Automatically inject sidecar
     injection: enabled
-    
+
     # mTLS configuration
     mtls:
       mode: "STRICT"
-    
+
     # Traffic policy
     trafficPolicy:
       tls:
         mode: "ISTIO_MUTUAL"
-  
+
   # Linkerd configuration
   linkerd:
     # Automatically inject sidecar
     injection: enabled
-    
+
     # mTLS is always enabled in Linkerd
     # Additional configurations can be added here

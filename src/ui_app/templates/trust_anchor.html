@@ -5,22 +5,22 @@
     <header>
       <h2>Trust Anchor Management</h2>
     </header>
-    
+
     <!-- Certificate Validation Section -->
     <details open>
       <summary>Certificate Validation</summary>
-      
+
       <div class="validation-section">
         <h4>Validate Certificate</h4>
         <form method="post" action="/trust-anchor/validate" enctype="multipart/form-data">
           <div class="form-row">
             <div class="form-group">
               <label for="cert_file">Certificate File:</label>
-              <input type="file" id="cert_file" name="certificate_file" 
+              <input type="file" id="cert_file" name="certificate_file"
                      accept=".pem,.cer,.crt,.der" required>
               <small class="help-text">Supported formats: PEM, DER, CER, CRT</small>
             </div>
-            
+
             <div class="form-group">
               <label for="validation_context">Validation Context:</label>
               <select id="validation_context" name="validation_context">
@@ -32,7 +32,7 @@
               </select>
             </div>
           </div>
-          
+
           <div class="form-row">
             <div class="form-group">
               <label class="checkbox-label">
@@ -40,7 +40,7 @@
                 Check certificate revocation status
               </label>
             </div>
-            
+
             <div class="form-group">
               <label class="checkbox-label">
                 <input type="checkbox" name="validate_chain" value="true" checked>
@@ -48,10 +48,10 @@
               </label>
             </div>
           </div>
-          
+
           <button type="submit" class="button button-primary">Validate Certificate</button>
         </form>
-        
+
         {% if validation_result %}
           <div class="result-section">
             <h5>Validation Result</h5>
@@ -66,7 +66,7 @@
                   </span>
                 {% endif %}
               </div>
-              
+
               {% if validation_result.certificate_info %}
                 <div class="cert-info-grid">
                   <div class="info-section">
@@ -79,7 +79,7 @@
                       <dt>Valid To:</dt><dd>{{ validation_result.certificate_info.valid_to }}</dd>
                     </dl>
                   </div>
-                  
+
                   <div class="info-section">
                     <h6>Validation Details</h6>
                     <dl>
@@ -91,7 +91,7 @@
                   </div>
                 </div>
               {% endif %}
-              
+
               {% if validation_result.errors %}
                 <div class="validation-errors">
                   <h6>Validation Errors</h6>
@@ -102,7 +102,7 @@
                   </ul>
                 </div>
               {% endif %}
-              
+
               {% if validation_result.warnings %}
                 <div class="validation-warnings">
                   <h6>Warnings</h6>
@@ -118,11 +118,11 @@
         {% endif %}
       </div>
     </details>
-    
+
     <!-- Trust Store Management -->
     <details>
       <summary>Trust Store Management</summary>
-      
+
       <div class="trust-store-section">
         <!-- Add Trusted Certificate -->
         <div class="add-trust-section">
@@ -131,10 +131,10 @@
             <div class="form-row">
               <div class="form-group">
                 <label for="trusted_cert_file">Certificate File:</label>
-                <input type="file" id="trusted_cert_file" name="certificate_file" 
+                <input type="file" id="trusted_cert_file" name="certificate_file"
                        accept=".pem,.cer,.crt,.der" required>
               </div>
-              
+
               <div class="form-group">
                 <label for="trust_purpose">Trust Purpose:</label>
                 <select id="trust_purpose" name="trust_purpose" multiple>
@@ -146,7 +146,7 @@
                 </select>
                 <small class="help-text">Hold Ctrl/Cmd to select multiple purposes</small>
               </div>
-              
+
               <div class="form-group">
                 <label for="trust_level">Trust Level:</label>
                 <select id="trust_level" name="trust_level" required>
@@ -156,32 +156,32 @@
                 </select>
               </div>
             </div>
-            
+
             <div class="form-group">
               <label for="trust_notes">Notes (optional):</label>
-              <textarea id="trust_notes" name="notes" rows="2" 
+              <textarea id="trust_notes" name="notes" rows="2"
                         placeholder="Additional information about this trusted certificate..."></textarea>
             </div>
-            
+
             <button type="submit" class="button button-primary">Add to Trust Store</button>
           </form>
         </div>
-        
+
         <!-- Trust Store Browser -->
         <div class="trust-browser-section">
           <h4>Trusted Certificates</h4>
-          
+
           <!-- Filter and Search -->
           <div class="trust-filters">
             <form method="get" action="/trust-anchor" class="filter-form">
               <div class="form-row">
                 <div class="form-group">
                   <label for="trust_search">Search:</label>
-                  <input type="text" id="trust_search" name="search" 
-                         placeholder="Subject, issuer, or purpose..." 
+                  <input type="text" id="trust_search" name="search"
+                         placeholder="Subject, issuer, or purpose..."
                          value="{{ search_query }}">
                 </div>
-                
+
                 <div class="form-group">
                   <label for="trust_level_filter">Trust Level:</label>
                   <select id="trust_level_filter" name="trust_level">
@@ -191,7 +191,7 @@
                     <option value="LOW" {% if trust_level == 'LOW' %}selected{% endif %}>Low</option>
                   </select>
                 </div>
-                
+
                 <div class="form-group">
                   <label for="purpose_filter">Purpose:</label>
                   <select id="purpose_filter" name="purpose">
@@ -204,14 +204,14 @@
                   </select>
                 </div>
               </div>
-              
+
               <div class="filter-actions">
                 <button type="submit" class="button">Filter</button>
                 <button type="button" class="button" onclick="clearFilters()">Clear</button>
               </div>
             </form>
           </div>
-          
+
           {% if trusted_certificates %}
             <div class="trusted-certs-list">
               {% for cert in trusted_certificates %}
@@ -225,7 +225,7 @@
                       <span class="status status-{{ cert.status|lower }}">{{ cert.status }}</span>
                     </div>
                   </div>
-                  
+
                   <div class="cert-details">
                     <dl>
                       <dt>Issuer:</dt><dd>{{ cert.issuer_name }}</dd>
@@ -235,7 +235,7 @@
                       {% if cert.notes %}<dt>Notes:</dt><dd>{{ cert.notes }}</dd>{% endif %}
                     </dl>
                   </div>
-                  
+
                   <div class="cert-actions">
                     <button class="button button-small" onclick="viewTrustedCert('{{ cert.certificate_id }}')">View</button>
                     <button class="button button-small" onclick="downloadTrustedCert('{{ cert.certificate_id }}')">Download</button>
@@ -253,11 +253,11 @@
         </div>
       </div>
     </details>
-    
+
     <!-- Certificate Expiry Monitoring -->
     <details>
       <summary>Certificate Expiry Monitoring</summary>
-      
+
       <div class="expiry-section">
         <div class="expiry-controls">
           <h4>Expiry Monitoring Settings</h4>
@@ -265,37 +265,37 @@
             <div class="form-row">
               <div class="form-group">
                 <label for="notification_days">Notification Thresholds (days):</label>
-                <input type="text" id="notification_days" name="notification_days" 
-                       placeholder="30,15,7,3,1" 
+                <input type="text" id="notification_days" name="notification_days"
+                       placeholder="30,15,7,3,1"
                        value="{{ expiry_settings.notification_days|join(',') if expiry_settings else '30,15,7,3,1' }}">
                 <small class="help-text">Comma-separated list of days before expiry to send notifications</small>
               </div>
-              
+
               <div class="form-group">
                 <label class="checkbox-label">
-                  <input type="checkbox" name="enable_notifications" value="true" 
+                  <input type="checkbox" name="enable_notifications" value="true"
                          {% if expiry_settings and expiry_settings.notifications_enabled %}checked{% endif %}>
                   Enable email notifications
                 </label>
               </div>
             </div>
-            
+
             <div class="form-group">
               <label for="notification_email">Notification Email:</label>
-              <input type="email" id="notification_email" name="notification_email" 
+              <input type="email" id="notification_email" name="notification_email"
                      value="{{ expiry_settings.notification_email if expiry_settings else '' }}"
                      placeholder="admin@example.com">
             </div>
-            
+
             <button type="submit" class="button">Update Settings</button>
           </form>
         </div>
-        
+
         <!-- Expiring Certificates Alert -->
         <div class="expiry-alerts">
           <h4>Certificate Expiry Alerts</h4>
           <button class="button" onclick="checkExpiringCertificates()">Check for Expiring Certificates</button>
-          
+
           {% if expiring_certificates %}
             <div class="alert-summary">
               <div class="alert-stats">
@@ -313,7 +313,7 @@
                 </div>
               </div>
             </div>
-            
+
             {% if expiring_certificates.expired %}
               <div class="expired-certs">
                 <h5 class="alert-section-title critical">Expired Certificates</h5>
@@ -333,7 +333,7 @@
                 </div>
               </div>
             {% endif %}
-            
+
             {% if expiring_certificates.expiring_soon %}
               <div class="expiring-soon-certs">
                 <h5 class="alert-section-title urgent">Expiring Soon (≤7 days)</h5>
@@ -357,16 +357,16 @@
         </div>
       </div>
     </details>
-    
+
     <!-- Service Status -->
     <details>
       <summary>Service Status & Health</summary>
-      
+
       <div class="status-section">
         <div class="service-health">
           <h4>Service Health Status</h4>
           <button class="button" onclick="refreshServiceStatus()">Refresh Status</button>
-          
+
           {% if service_status %}
             <div class="health-grid">
               <div class="health-card">
@@ -382,7 +382,7 @@
                   </dl>
                 </div>
               </div>
-              
+
               <div class="health-card">
                 <h6>Certificate Store</h6>
                 <div class="health-status status-{{ service_status.certificate_store.status|lower }}">
@@ -396,7 +396,7 @@
                   </dl>
                 </div>
               </div>
-              
+
               <div class="health-card">
                 <h6>OpenXPKI Integration</h6>
                 <div class="health-status status-{{ service_status.openxpki.status|lower }}">
@@ -413,7 +413,7 @@
             </div>
           {% endif %}
         </div>
-        
+
         <!-- Configuration Information -->
         <div class="config-info">
           <h4>Configuration Information</h4>
@@ -428,7 +428,7 @@
                   <dt>Validation Mode:</dt><dd>{{ config_info.trust_store.validation_mode }}</dd>
                 </dl>
               </div>
-              
+
               <div class="config-section">
                 <h6>Notification Configuration</h6>
                 <dl>
@@ -468,12 +468,12 @@ function removeTrust(certId) {
     const form = document.createElement('form');
     form.method = 'POST';
     form.action = '/trust-anchor/remove-trusted';
-    
+
     const input = document.createElement('input');
     input.type = 'hidden';
     input.name = 'certificate_id';
     input.value = certId;
-    
+
     form.appendChild(input);
     document.body.appendChild(form);
     form.submit();

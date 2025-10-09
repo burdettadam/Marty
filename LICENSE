@@ -4,7 +4,7 @@ Copyright (c) 2024-2025 Adam Burdett
 
 EDUCATIONAL AND PORTFOLIO USE ONLY
 
-This software and associated documentation files (the "Software") are provided 
+This software and associated documentation files (the "Software") are provided
 for educational, learning, and portfolio demonstration purposes only.
 
 PERMITTED USES:
@@ -23,20 +23,20 @@ PROHIBITED USES:
 - Integration into production applications or services
 
 DISCLAIMER:
-This software is provided "as is" for educational purposes only. This 
-implementation is NOT suitable for production use and should NEVER be used 
-for actual document issuance, verification, or any other real-world 
-application. Real-world digital identity document systems require proper 
-certification, security audits, regulatory compliance, and validation that 
+This software is provided "as is" for educational purposes only. This
+implementation is NOT suitable for production use and should NEVER be used
+for actual document issuance, verification, or any other real-world
+application. Real-world digital identity document systems require proper
+certification, security audits, regulatory compliance, and validation that
 this educational implementation does not provide.
 
-The author makes no warranties, express or implied, regarding the fitness 
+The author makes no warranties, express or implied, regarding the fitness
 of this software for any purpose other than education and learning.
 
 LIABILITY:
-In no event shall the author be liable for any claim, damages, or other 
-liability arising from the use of this software, whether in contract, tort, 
+In no event shall the author be liable for any claim, damages, or other
+liability arising from the use of this software, whether in contract, tort,
 or otherwise.
 
-For questions regarding permitted educational use or portfolio review, 
+For questions regarding permitted educational use or portfolio review,
 contact the repository owner.

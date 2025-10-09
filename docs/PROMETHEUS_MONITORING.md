@@ -14,14 +14,18 @@ The Marty platform now includes full Prometheus monitoring capabilities with:
 ## 📊 Architecture
 
 ### Metrics Server
+
 Each microservice automatically starts a dedicated metrics HTTP server that provides:
+
 - **Prometheus metrics** at `/metrics`
 - **Health status** at `/health`
 - **Liveness probe** at `/health/live`
 - **Readiness probe** at `/health/ready`
 
 ### Port Allocation
+
 Each service uses a specific port layout:
+
 - **gRPC Service**: Base port (e.g., 8081)
 - **Health/Management**: Base port + 1 (e.g., 8082)
 - **Metrics**: Base port + 1000 (e.g., 9081)
@@ -40,20 +44,24 @@ Each service uses a specific port layout:
 ## 🚀 Implementation Details
 
 ### 1. Dependencies Added
+
 - `prometheus_client>=0.19.0` - Python Prometheus client library
 
 ### 2. Core Components
 
 #### Metrics Server (`src/marty_common/metrics_server.py`)
+
 - **ServiceMetrics**: Collects gRPC request metrics, error rates, resource usage
 - **HealthChecker**: Manages health status for different components
 - **MetricsServer**: FastAPI-based HTTP server for exposing metrics and health endpoints
 
 #### gRPC Interceptors (`src/marty_common/grpc_metrics.py`)
+
 - **AsyncMetricsInterceptor**: Automatically captures metrics for all gRPC calls
 - Tracks request duration, success/error rates, method-specific metrics
 
 #### Runtime Integration (`src/apps/runtime.py`)
+
 - Automatic metrics server startup for all services
 - Health check integration
 - Graceful shutdown handling
@@ -61,7 +69,9 @@ Each service uses a specific port layout:
 ### 3. Kubernetes Integration
 
 #### Service Annotations
+
 All services include Prometheus scraping annotations:
+
 ```yaml
 annotations:
   prometheus.io/scrape: "true"
@@ -70,7 +80,9 @@ annotations:
 ```
 
 #### Health Probes
+
 Kubernetes deployment templates include:
+
 ```yaml
 livenessProbe:
   httpGet:
@@ -88,7 +100,9 @@ readinessProbe:
 ```
 
 #### Service Discovery
+
 Prometheus automatically discovers services using Kubernetes service discovery:
+
 ```yaml
 - job_name: 'marty-microservices'
   kubernetes_sd_configs:
@@ -104,26 +118,31 @@ Prometheus automatically discovers services using Kubernetes service discovery:
 ## 📈 Available Metrics
 
 ### gRPC Metrics
+
 - `marty_grpc_requests_total` - Total gRPC requests by service, method, and status
 - `marty_grpc_request_duration_seconds` - Request duration histograms
 - `marty_grpc_errors_total` - Total errors by service, method, and error type
 - `marty_grpc_active_connections` - Number of active gRPC connections
 
 ### Health Metrics
+
 - `marty_service_health_status` - Service health status (1=healthy, 0=unhealthy)
 - `marty_last_successful_operation_timestamp` - Timestamp of last successful operation
 
 ### Resource Metrics
+
 - `marty_service_cpu_usage_percent` - CPU usage percentage
 - `marty_service_memory_usage_bytes` - Memory usage in bytes
 - `marty_database_connections_active` - Active database connections
 
 ### Service Information
+
 - `marty_service_info` - Service metadata (name, version, etc.)
 
 ## 🧪 Testing
 
 ### Automated Testing
+
 Use the provided test script to verify all metrics endpoints:
 
 ```bash
@@ -138,6 +157,7 @@ curl http://localhost:8082/health
 ### Expected Responses
 
 #### Metrics Endpoint (`/metrics`)
+
 ```
 # HELP marty_grpc_requests_total Total gRPC requests
 # TYPE marty_grpc_requests_total counter
@@ -149,6 +169,7 @@ marty_grpc_request_duration_seconds_bucket{service="csca-service",method="/csca.
 ```
 
 #### Health Endpoint (`/health`)
+
 ```json
 {
   "service": "csca-service",
@@ -167,17 +188,21 @@ marty_grpc_request_duration_seconds_bucket{service="csca-service",method="/csca.
 ## 🔧 Configuration
 
 ### Environment Variables
+
 - `MARTY_RESILIENCE_ENABLED` - Enable/disable resilience interceptors (default: true)
 - `MARTY_METRICS_ENABLED` - Enable/disable metrics collection (default: true)
 
 ### Prometheus Configuration
+
 The Prometheus configuration includes both:
+
 1. **Service discovery** for annotated services (preferred)
 2. **Static targets** for backward compatibility
 
 ## 📚 Usage Examples
 
 ### Adding Custom Metrics
+
 ```python
 from marty_common.metrics_server import get_metrics_server
 
@@ -186,12 +211,13 @@ metrics_server = get_metrics_server()
 if metrics_server:
     # Record a custom operation
     metrics_server.metrics.record_successful_operation("custom_operation")
-    
+
     # Update health status
     metrics_server.health.add_check("custom_check", True)
 ```
 
 ### Service-Specific Health Checks
+
 ```python
 # In your service implementation
 metrics_server = get_metrics_server()
@@ -207,16 +233,19 @@ if metrics_server:
 ## 🚀 Deployment
 
 ### Local Development
+
 1. Start a service: `python -m apps.csca_service`
 2. Check metrics: `curl http://localhost:9081/metrics`
 3. Check health: `curl http://localhost:8082/health`
 
 ### Kubernetes Deployment
+
 1. Deploy services: `helm install csca-service ./helm/charts/csca-service`
 2. Verify Prometheus scraping: Check Prometheus targets page
 3. Monitor in Grafana: Use the provided dashboards
 
 ### Production Considerations
+
 - **Resource Limits**: Metrics servers use minimal resources (~10MB RAM, <1% CPU)
 - **Network Policies**: Ensure Prometheus can reach metrics ports
 - **Security**: Consider TLS for metrics endpoints in production
@@ -242,6 +271,7 @@ if metrics_server:
    - Check resource availability
 
 ### Debug Commands
+
 ```bash
 # Check service status
 kubectl get pods -n marty
@@ -261,13 +291,16 @@ curl http://localhost:9081/metrics
 ## 📊 Monitoring Dashboard
 
 ### Key Metrics to Monitor
+
 - **Request Rate**: `rate(marty_grpc_requests_total[5m])`
 - **Error Rate**: `rate(marty_grpc_errors_total[5m])`
 - **Response Time**: `histogram_quantile(0.95, marty_grpc_request_duration_seconds)`
 - **Service Health**: `marty_service_health_status`
 
 ### Alerting Rules
+
 The platform includes predefined alert rules for:
+
 - High error rates
 - High response times
 - Service health failures
@@ -284,11 +317,13 @@ The platform includes predefined alert rules for:
 ## 📝 Files Modified/Added
 
 ### New Files
+
 - `src/marty_common/metrics_server.py` - Metrics server implementation
 - `src/marty_common/grpc_metrics.py` - gRPC metrics interceptors
 - `scripts/test_metrics.py` - Testing utilities
 
 ### Modified Files
+
 - `pyproject.toml` - Added prometheus_client dependency
 - `src/apps/runtime.py` - Integrated metrics server
 - `monitoring/prometheus/prometheus.yml` - Updated service discovery

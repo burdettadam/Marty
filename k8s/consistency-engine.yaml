@@ -178,27 +178,27 @@ data:
       version: "1.0.0"
       grpc_port: 50051
       http_port: 8080
-    
+
     logging:
       level: INFO
       format: json
       enable_audit: true
-    
+
     metrics:
       enabled: true
       prometheus_enabled: true
       collection_interval: 30
-    
+
     consistency_rules:
       default_fuzzy_threshold: 0.8
       enable_cross_validation: true
       enable_checksum_validation: true
-    
+
     field_mappings:
       strict_validation: true
       normalize_dates: true
       normalize_names: true
-    
+
     performance:
       max_concurrent_checks: 100
       processing_timeout_seconds: 30

@@ -170,17 +170,17 @@ services:
           - document:sign
         required_attributes:
           - signing_authority: true
-      
+
       VerifyDocument:
         required_permissions:
           - document:verify
-  
+
   trust_anchor:
     endpoints:
       GetTrustStore:
         required_permissions:
           - trust:read
-      
+
       UpdateTrustStore:
         required_permissions:
           - trust:manage
@@ -195,7 +195,7 @@ services:
           - certificate:issue
         required_attributes:
           - ca_authorized: true
-      
+
       RevokeCertificate:
         required_permissions:
           - certificate:revoke
@@ -208,7 +208,7 @@ services:
       InspectDocument:
         required_permissions:
           - document:inspect
-      
+
       VerifyBiometrics:
         required_permissions:
           - biometric:verify
@@ -226,7 +226,7 @@ environments:
     default_action: deny
     test_mode: true
     strict_mode: true
-    
+
   production:
     default_action: deny
     strict_mode: true

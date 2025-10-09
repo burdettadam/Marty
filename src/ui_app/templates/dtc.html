@@ -5,7 +5,7 @@
     <header>
       <h2>Digital Travel Credential (DTC) Engine</h2>
     </header>
-    
+
     <!-- Create DTC Section -->
     <details open>
       <summary>Create Digital Travel Credential</summary>
@@ -21,7 +21,7 @@
             </select>
             <small class="help-text" id="dtc-type-help">Choose the type of Digital Travel Credential</small>
           </div>
-          
+
           <div class="form-group">
             <label for="access_control">Access Control:</label>
             <select id="access_control" name="access_control" required>
@@ -33,30 +33,30 @@
             </select>
           </div>
         </div>
-        
+
         <!-- Passport Information -->
         <fieldset class="passport-info">
           <legend>Source Passport Information</legend>
           <div class="form-row">
             <div class="form-group">
               <label for="passport_number">Passport Number:</label>
-              <input type="text" id="passport_number" name="passport_number" 
+              <input type="text" id="passport_number" name="passport_number"
                      placeholder="P12345678" pattern="[A-Z][0-9]{8}" required>
             </div>
-            
+
             <div class="form-group">
               <label for="issuing_country">Issuing Country:</label>
-              <input type="text" id="issuing_country" name="issuing_country" 
+              <input type="text" id="issuing_country" name="issuing_country"
                      placeholder="NZL" pattern="[A-Z]{3}" title="3-letter country code" required>
             </div>
-            
+
             <div class="form-group">
               <label for="passport_expiry">Passport Expiry:</label>
               <input type="date" id="passport_expiry" name="passport_expiry" required>
             </div>
           </div>
         </fieldset>
-        
+
         <!-- Personal Information -->
         <fieldset class="personal-info">
           <legend>Personal Information</legend>
@@ -65,25 +65,25 @@
               <label for="given_name">Given Name:</label>
               <input type="text" id="given_name" name="given_name" required>
             </div>
-            
+
             <div class="form-group">
               <label for="family_name">Family Name:</label>
               <input type="text" id="family_name" name="family_name" required>
             </div>
-            
+
             <div class="form-group">
               <label for="date_of_birth">Date of Birth:</label>
               <input type="date" id="date_of_birth" name="date_of_birth" required>
             </div>
           </div>
-          
+
           <div class="form-row">
             <div class="form-group">
               <label for="nationality">Nationality:</label>
-              <input type="text" id="nationality" name="nationality" 
+              <input type="text" id="nationality" name="nationality"
                      placeholder="NZL" pattern="[A-Z]{3}" title="3-letter country code" required>
             </div>
-            
+
             <div class="form-group">
               <label for="sex">Sex:</label>
               <select id="sex" name="sex">
@@ -93,31 +93,31 @@
                 <option value="X">Other</option>
               </select>
             </div>
-            
+
             <div class="form-group">
               <label for="place_of_birth">Place of Birth:</label>
               <input type="text" id="place_of_birth" name="place_of_birth">
             </div>
           </div>
         </fieldset>
-        
+
         <!-- DTC Specific Settings -->
         <fieldset class="dtc-settings" id="dtc-settings">
           <legend>DTC Settings</legend>
-          
+
           <!-- Validity Period -->
           <div class="form-row">
             <div class="form-group">
               <label for="validity_start">Validity Start:</label>
               <input type="date" id="validity_start" name="validity_start" required>
             </div>
-            
+
             <div class="form-group">
               <label for="validity_end">Validity End:</label>
               <input type="date" id="validity_end" name="validity_end" required>
             </div>
           </div>
-          
+
           <!-- Travel Purpose (for temporary DTCs) -->
           <div class="form-group" id="travel-purpose-group" style="display: none;">
             <label for="travel_purpose">Travel Purpose:</label>
@@ -130,14 +130,14 @@
               <option value="MEDICAL">Medical</option>
             </select>
           </div>
-          
+
           <!-- Access Control Settings -->
           <div id="access-control-settings">
             <div class="form-group" id="password-group" style="display: none;">
               <label for="access_password">Access Password:</label>
               <input type="password" id="access_password" name="access_password">
             </div>
-            
+
             <div class="form-group" id="biometric-group" style="display: none;">
               <label for="biometric_type">Biometric Type:</label>
               <select id="biometric_type" name="biometric_type">
@@ -148,10 +148,10 @@
             </div>
           </div>
         </fieldset>
-        
+
         <button type="submit" class="button button-primary">Create DTC</button>
       </form>
-      
+
       {% if create_result %}
         <div class="result-section">
           <h4>Creation Result</h4>
@@ -173,7 +173,7 @@
         </div>
       {% endif %}
     </details>
-    
+
     <!-- Lookup DTC Section -->
     <details>
       <summary>Lookup Digital Travel Credential</summary>
@@ -181,20 +181,20 @@
         <div class="form-row">
           <div class="form-group">
             <label for="lookup_dtc_id">DTC ID:</label>
-            <input type="text" id="lookup_dtc_id" name="dtc_id" 
+            <input type="text" id="lookup_dtc_id" name="dtc_id"
                    placeholder="DTC-" required>
           </div>
-          
+
           <div class="form-group">
             <label for="lookup_passport_number">Or Passport Number:</label>
-            <input type="text" id="lookup_passport_number" name="passport_number" 
+            <input type="text" id="lookup_passport_number" name="passport_number"
                    placeholder="P12345678" pattern="[A-Z][0-9]{8}">
           </div>
         </div>
-        
+
         <button type="submit" class="button">Lookup DTC</button>
       </form>
-      
+
       {% if lookup_result %}
         <div class="result-section">
           <h4>Lookup Result</h4>
@@ -206,7 +206,7 @@
                 <h5>{{ lookup_result.dtc_type }} - {{ lookup_result.dtc_id }}</h5>
                 <span class="status status-{{ lookup_result.status|lower }}">{{ lookup_result.status }}</span>
               </div>
-              
+
               <div class="dtc-info-grid">
                 <div class="info-section">
                   <h6>DTC Information</h6>
@@ -219,7 +219,7 @@
                     {% if lookup_result.travel_purpose %}<dt>Travel Purpose:</dt><dd>{{ lookup_result.travel_purpose }}</dd>{% endif %}
                   </dl>
                 </div>
-                
+
                 <div class="info-section">
                   <h6>Source Passport</h6>
                   <dl>
@@ -229,7 +229,7 @@
                     {% if lookup_result.passport_status %}<dt>Passport Status:</dt><dd>{{ lookup_result.passport_status }}</dd>{% endif %}
                   </dl>
                 </div>
-                
+
                 <div class="info-section">
                   <h6>Personal Information</h6>
                   <dl>
@@ -240,7 +240,7 @@
                     {% if lookup_result.place_of_birth %}<dt>Place of Birth:</dt><dd>{{ lookup_result.place_of_birth }}</dd>{% endif %}
                   </dl>
                 </div>
-                
+
                 {% if lookup_result.signature_info %}
                 <div class="info-section">
                   <h6>Signature Information</h6>
@@ -252,7 +252,7 @@
                 </div>
                 {% endif %}
               </div>
-              
+
               <div class="dtc-actions">
                 <button class="button" onclick="generateQRCode('{{ lookup_result.dtc_id }}')">Generate QR Code</button>
                 <button class="button" onclick="transferToDevice('{{ lookup_result.dtc_id }}')">Transfer to Device</button>
@@ -266,11 +266,11 @@
         </div>
       {% endif %}
     </details>
-    
+
     <!-- DTC Management Section -->
     <details>
       <summary>DTC Management Operations</summary>
-      
+
       <!-- Link to Passport -->
       <div class="operation-section">
         <h4>Link DTC to Passport</h4>
@@ -285,7 +285,7 @@
           <button type="submit" class="button">Link to Passport</button>
         </form>
       </div>
-      
+
       <!-- Revoke DTC -->
       <div class="operation-section">
         <h4>Revoke DTC</h4>
@@ -302,7 +302,7 @@
           <button type="submit" class="button button-danger">Revoke DTC</button>
         </form>
       </div>
-      
+
       <!-- Verify DTC -->
       <div class="operation-section">
         <h4>Verify DTC</h4>
@@ -313,7 +313,7 @@
         </form>
       </div>
     </details>
-    
+
     <!-- QR Code Generation -->
     <details>
       <summary>QR Code & Sharing</summary>
@@ -324,7 +324,7 @@
               <label for="qr_dtc_id">DTC ID:</label>
               <input type="text" id="qr_dtc_id" name="dtc_id" required>
             </div>
-            
+
             <div class="form-group">
               <label for="qr_format">QR Code Format:</label>
               <select id="qr_format" name="format">
@@ -333,7 +333,7 @@
                 <option value="SECURE">Secure QR</option>
               </select>
             </div>
-            
+
             <div class="form-group">
               <label for="qr_size">Size:</label>
               <select id="qr_size" name="size">
@@ -343,10 +343,10 @@
               </select>
             </div>
           </div>
-          
+
           <button type="submit" class="button">Generate QR Code</button>
         </form>
-        
+
         {% if qr_result %}
           <div class="qr-result">
             <h5>Generated QR Code</h5>
@@ -375,7 +375,7 @@ function updateDTCFields() {
   const dtcType = document.getElementById('dtc_type').value;
   const helpText = document.getElementById('dtc-type-help');
   const travelPurposeGroup = document.getElementById('travel-purpose-group');
-  
+
   // Update help text
   switch (dtcType) {
     case 'VIRTUAL':
@@ -402,11 +402,11 @@ document.getElementById('access_control').addEventListener('change', function() 
   const accessControl = this.value;
   const passwordGroup = document.getElementById('password-group');
   const biometricGroup = document.getElementById('biometric-group');
-  
+
   // Hide all groups first
   passwordGroup.style.display = 'none';
   biometricGroup.style.display = 'none';
-  
+
   // Show relevant group
   switch (accessControl) {
     case 'PASSWORD':
@@ -488,9 +488,9 @@ document.getElementById('dtc_type').addEventListener('change', function() {
   const validityStart = document.getElementById('validity_start');
   const validityEnd = document.getElementById('validity_end');
   const today = new Date();
-  
+
   validityStart.value = today.toISOString().split('T')[0];
-  
+
   let endDate = new Date(today);
   switch (this.value) {
     case 'TEMPORARY':
@@ -503,7 +503,7 @@ document.getElementById('dtc_type').addEventListener('change', function() {
       endDate.setFullYear(today.getFullYear() + 10); // 10 years for physical
       break;
   }
-  
+
   validityEnd.value = endDate.toISOString().split('T')[0];
 });
 </script>

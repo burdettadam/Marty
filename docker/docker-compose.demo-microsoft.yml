@@ -14,7 +14,7 @@ volumes:
   microsoft_demo_vault_data:
   traefik-certificates:
   # === Infrastructure Services ===
-  
+
   # PostgreSQL with schemas for Microsoft demo
   postgres-microsoft:
     image: postgres:15

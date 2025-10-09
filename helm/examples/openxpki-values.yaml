@@ -14,12 +14,12 @@ openxpki:
     # kubectl create secret generic openxpki-credentials \
     #   --from-literal=username='your_admin_user' \
     #   --from-literal=password='your_secure_password'
-    
+
     # Option 2: Use secret files (for External Secrets Operator, Vault Agent, etc.)
     # useSecretFiles: true
     # usernameFile: "/run/secrets/openxpki_username"
     # passwordFile: "/run/secrets/openxpki_password"
-  
+
   localStorePath: "/data/trust/openxpki_sync"
 
 # Service-specific overrides (if needed)

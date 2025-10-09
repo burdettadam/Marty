@@ -1,6 +1,6 @@
 # ICAO Public Key Directory (PKD) Service
 
-This service implements a RESTful API that mimics the functionality of the ICAO PKD (Public Key Directory), 
+This service implements a RESTful API that mimics the functionality of the ICAO PKD (Public Key Directory),
 allowing for the management and distribution of certificates and other components needed for ePassport verification.
 
 ## Features
@@ -70,8 +70,9 @@ uvicorn app.main:app --reload
 ### API Documentation
 
 When running, Swagger documentation is available at:
-- http://localhost:8000/docs (development)
-- https://api.example.com/docs (production)
+
+- <http://localhost:8000/docs> (development)
+- <https://api.example.com/docs> (production)
 
 ## License
 

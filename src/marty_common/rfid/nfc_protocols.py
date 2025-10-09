@@ -290,7 +290,6 @@ class NFCProtocolHandler:
                 "atr": device.uid,
             }
 
-
         finally:
             self.interface.disconnect()
 

@@ -5,6 +5,7 @@ This directory contains Kubernetes configurations for setting up service mesh wi
 ## Prerequisites
 
 ### For Istio
+
 ```bash
 # Install Istio CLI
 curl -L https://istio.io/downloadIstio | sh -
@@ -19,6 +20,7 @@ kubectl apply -f k8s/istio/
 ```
 
 ### For Linkerd
+
 ```bash
 # Install Linkerd CLI
 curl -sL https://run.linkerd.io/install | sh
@@ -41,6 +43,7 @@ kubectl apply -f k8s/linkerd/
 ## Features
 
 ### Istio Features
+
 - **Automatic mTLS**: All inter-service communication is encrypted with mutual TLS
 - **Authorization Policies**: Fine-grained access control between services
 - **Traffic Management**: Gateway and VirtualService for external access
@@ -48,6 +51,7 @@ kubectl apply -f k8s/linkerd/
 - **Security**: Default deny-all policy with explicit allow rules
 
 ### Linkerd Features
+
 - **Automatic mTLS**: Built-in mTLS for all service-to-service communication
 - **Policy-based Authorization**: ServerAuthorization for access control
 - **Traffic Routing**: HTTPRoute for intelligent traffic management
@@ -64,7 +68,7 @@ In your Helm values files, you can enable service mesh:
 serviceMesh:
   enabled: true
   type: "istio"  # or "linkerd"
-  
+
   istio:
     injection: enabled
     mtls:
@@ -72,7 +76,7 @@ serviceMesh:
     trafficPolicy:
       tls:
         mode: "ISTIO_MUTUAL"
-  
+
   linkerd:
     injection: enabled
 ```
@@ -88,6 +92,7 @@ INTERNAL_TLS_DISABLED: "true"
 ```
 
 This reduces:
+
 - Certificate management overhead
 - Double encryption performance penalty
 - Configuration complexity
@@ -97,12 +102,14 @@ This reduces:
 Both service meshes integrate with the existing Prometheus setup:
 
 ### Istio Metrics
+
 - Connection metrics
 - Request metrics  
 - TCP metrics
 - Control plane metrics
 
 ### Linkerd Metrics
+
 - Success rates
 - Request latencies
 - Request volumes
@@ -111,11 +118,13 @@ Both service meshes integrate with the existing Prometheus setup:
 ## Security Policies
 
 ### Istio Security
+
 - PeerAuthentication enforces STRICT mTLS
 - AuthorizationPolicy provides fine-grained access control
 - Default deny-all with explicit allow rules
 
 ### Linkerd Security
+
 - mTLS is enabled by default
 - ServerAuthorization controls access to services
 - Traffic policies enforce secure communication
@@ -123,6 +132,7 @@ Both service meshes integrate with the existing Prometheus setup:
 ## Troubleshooting
 
 ### Istio
+
 ```bash
 # Check configuration
 istioctl analyze
@@ -135,6 +145,7 @@ istioctl proxy-config cluster <pod>
 ```
 
 ### Linkerd
+
 ```bash
 # Check cluster health
 linkerd check

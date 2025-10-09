@@ -5,6 +5,7 @@ Mock test for CSCA certificate lifecycle management.
 This script tests certificate lifecycle management without relying on proto files.
 It creates a mock implementation of both the service and the proto messages.
 """
+
 from __future__ import annotations
 
 import json
@@ -17,6 +18,7 @@ from datetime import datetime, timedelta, timezone
 # Configure logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
+
 
 # Mock proto message classes
 @dataclass
@@ -392,7 +394,9 @@ def test_certificate_lifecycle():
     # Step 4: Renew certificate
     logger.info("Step 4: Renewing certificate")
     renew_request = MockRenewCertificateRequest(
-        certificate_id=certificate_id, validity_days=730, reuse_key=True  # 2 years
+        certificate_id=certificate_id,
+        validity_days=730,
+        reuse_key=True,  # 2 years
     )
     renew_response = service.RenewCertificate(renew_request)
 

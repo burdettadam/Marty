@@ -18,12 +18,7 @@ from cryptography.hazmat.primitives.asymmetric import ec
 from cryptography.hazmat.primitives.asymmetric.ec import EllipticCurvePublicKey
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from marty_common.crypto.vds_nc_keys import (
-    KeyRole,
-    KeyStatus,
-    VDSNCKeyManager,
-    VDSNCKeyMetadata,
-)
+from marty_common.crypto.vds_nc_keys import KeyRole, KeyStatus, VDSNCKeyManager, VDSNCKeyMetadata
 from marty_common.infrastructure import TrustEntityRepository
 from src.proto.v1 import trust_anchor_pb2, trust_anchor_pb2_grpc
 
@@ -68,7 +63,7 @@ class EnhancedTrustAnchor(trust_anchor_pb2_grpc.TrustAnchorServicer):
             # Default to not trusted
             return trust_anchor_pb2.TrustResponse(is_trusted=False)
 
-        except Exception:
+        except Exception as e:
             self.logger.exception("Error verifying trust")
             context.set_code(grpc.StatusCode.INTERNAL)
             context.set_details(f"Trust verification failed: {e}")
@@ -143,7 +138,7 @@ class EnhancedTrustAnchor(trust_anchor_pb2_grpc.TrustAnchorServicer):
                     key_info=self._build_key_info(key_metadata),
                 )
 
-        except Exception:
+        except Exception as e:
             self.logger.exception("Error verifying VDS-NC signature")
             context.set_code(grpc.StatusCode.INTERNAL)
             context.set_details(f"VDS-NC verification failed: {e}")
@@ -241,8 +236,16 @@ class EnhancedTrustAnchor(trust_anchor_pb2_grpc.TrustAnchorServicer):
             # Create key metadata
             from datetime import datetime, timedelta, timezone
 
-            not_before = datetime.fromisoformat(request.not_before) if request.not_before else datetime.now(timezone.utc)
-            not_after = datetime.fromisoformat(request.not_after) if request.not_after else datetime.now(timezone.utc) + timedelta(days=730)
+            not_before = (
+                datetime.fromisoformat(request.not_before)
+                if request.not_before
+                else datetime.now(timezone.utc)
+            )
+            not_after = (
+                datetime.fromisoformat(request.not_after)
+                if request.not_after
+                else datetime.now(timezone.utc) + timedelta(days=730)
+            )
 
             # Register key (implementation depends on storage backend)
             success = await self._register_vds_nc_key(
@@ -458,10 +461,7 @@ class EnhancedTrustAnchor(trust_anchor_pb2_grpc.TrustAnchorServicer):
             len(vds_nc_keys)
 
             # Check for expiring VDS-NC keys
-            expiring_vds_nc = len([
-                k for k in vds_nc_keys
-                if k.needs_rotation(warning_days=30)
-            ])
+            expiring_vds_nc = len([k for k in vds_nc_keys if k.needs_rotation(warning_days=30)])
 
             stats = trust_anchor_pb2.ServiceStats(
                 total_certificates=0,  # Would include CSCA/DSC counts

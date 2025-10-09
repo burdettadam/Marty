@@ -14,17 +14,13 @@ Line 1: Document type (2) + Issuing state (3) + Document number (9) + Check digi
        Expiry date (6) + Check digit (1) + Nationality (3) + Optional data (11) + Check digit (1)
 Line 2: Name field (36)
 """
+
 from __future__ import annotations
 
 import re
 from datetime import date
 
-from src.shared.models.td2 import (
-    PersonalData,
-    TD2Document,
-    TD2DocumentData,
-    TD2MRZData,
-)
+from src.shared.models.td2 import PersonalData, TD2Document, TD2DocumentData, TD2MRZData
 
 
 class TD2MRZGenerator:
@@ -65,7 +61,6 @@ class TD2MRZGenerator:
 
         # Truncate or pad to required length
         return text[:max_length] if len(text) > max_length else text.ljust(max_length, filler)
-
 
     @classmethod
     def compute_check_digit(cls, data: str) -> str:
@@ -112,9 +107,7 @@ class TD2MRZGenerator:
 
     @classmethod
     def format_name_for_td2(
-        cls,
-        primary_identifier: str,
-        secondary_identifier: str | None = None
+        cls, primary_identifier: str, secondary_identifier: str | None = None
     ) -> str:
         """
         Format name for TD-2 MRZ with primary identifier precedence per ICAO Part 6.
@@ -143,7 +136,7 @@ class TD2MRZGenerator:
 
         # If primary identifier alone exceeds available space, truncate it
         if len(primary) > cls.TD2_LINE_LENGTH - 2:  # Reserve 2 chars for minimal secondary
-            primary = primary[:cls.TD2_LINE_LENGTH - 2]
+            primary = primary[: cls.TD2_LINE_LENGTH - 2]
 
         # Start building name field with primary identifier
         name_field = primary
@@ -164,9 +157,7 @@ class TD2MRZGenerator:
                 if secondary:
                     # Split into individual given names
                     given_names = [
-                        name.strip()
-                        for name in secondary.replace("<", " ").split()
-                        if name.strip()
+                        name.strip() for name in secondary.replace("<", " ").split() if name.strip()
                     ]
 
                     # Add given names one by one until space runs out
@@ -201,12 +192,9 @@ class TD2MRZGenerator:
         # Pad to exact field length with fillers
         return name_field.ljust(cls.TD2_LINE_LENGTH, "<")
 
-
     @classmethod
     def validate_td2_name_compliance(
-        cls,
-        primary_identifier: str,
-        secondary_identifier: str | None = None
+        cls, primary_identifier: str, secondary_identifier: str | None = None
     ) -> dict:
         """
         Validate TD-2 name formatting compliance with ICAO Part 6.
@@ -218,11 +206,7 @@ class TD2MRZGenerator:
         Returns:
             Dictionary with validation results and warnings
         """
-        result = {
-            "compliant": True,
-            "warnings": [],
-            "truncations": []
-        }
+        result = {"compliant": True, "warnings": [], "truncations": []}
 
         formatted_name = cls.format_name_for_td2(primary_identifier, secondary_identifier)
 
@@ -233,11 +217,13 @@ class TD2MRZGenerator:
             formatted_primary = name_parts[0].rstrip("<")
             if len(formatted_primary) < len(primary_clean):
                 result["warnings"].append("Primary identifier (surname) was truncated")
-                result["truncations"].append({
-                    "field": "primary_identifier",
-                    "original": primary_identifier,
-                    "truncated": formatted_primary
-                })
+                result["truncations"].append(
+                    {
+                        "field": "primary_identifier",
+                        "original": primary_identifier,
+                        "truncated": formatted_primary,
+                    }
+                )
 
         # Check if secondary identifier was truncated
         if secondary_identifier and "<<" in formatted_name:
@@ -245,22 +231,27 @@ class TD2MRZGenerator:
             if len(name_parts) > 1:
                 formatted_secondary = name_parts[1].rstrip("<").replace("<", " ")
                 original_secondary = secondary_identifier.strip()
-                if (len(formatted_secondary.replace(" ", "")) <
-                    len(original_secondary.replace(" ", ""))):
+                if len(formatted_secondary.replace(" ", "")) < len(
+                    original_secondary.replace(" ", "")
+                ):
                     result["warnings"].append("Secondary identifier (given names) was truncated")
-                    result["truncations"].append({
-                        "field": "secondary_identifier",
-                        "original": secondary_identifier,
-                        "truncated": formatted_secondary
-                    })
+                    result["truncations"].append(
+                        {
+                            "field": "secondary_identifier",
+                            "original": secondary_identifier,
+                            "truncated": formatted_secondary,
+                        }
+                    )
 
         # Check for non-standard characters
-        if (primary_identifier and
-            not all(c.isalpha() or c.isspace() or c in "-'" for c in primary_identifier)):
+        if primary_identifier and not all(
+            c.isalpha() or c.isspace() or c in "-'" for c in primary_identifier
+        ):
             result["warnings"].append("Primary identifier contains non-standard characters")
 
-        if (secondary_identifier and
-            not all(c.isalpha() or c.isspace() or c in "-'" for c in secondary_identifier)):
+        if secondary_identifier and not all(
+            c.isalpha() or c.isspace() or c in "-'" for c in secondary_identifier
+        ):
             result["warnings"].append("Secondary identifier contains non-standard characters")
 
         return result
@@ -321,18 +312,34 @@ class TD2MRZGenerator:
         optional_data = "<" * 2
 
         # Composite check digit (overall check for key fields)
-        composite_data = (doc_number + doc_check +
-                         birth_date + birth_check +
-                         expiry_date + expiry_check +
-                         optional_data)
+        composite_data = (
+            doc_number
+            + doc_check
+            + birth_date
+            + birth_check
+            + expiry_date
+            + expiry_check
+            + optional_data
+        )
         composite_check = cls.compute_check_digit(composite_data)
 
         # Construct Line 1 (36 characters total)
         # Format: Type(2) + State(3) + DocNum(9) + DocCheck(1) + Birth(6) + BirthCheck(1) +
         # Sex(1) + Expiry(6) + ExpiryCheck(1) + Nationality(3) + Optional(2) + CompositeCheck(1)
-        line1 = (doc_type + issuing_state + doc_number + doc_check +
-                birth_date + birth_check + sex + expiry_date + expiry_check +
-                nationality + optional_data + composite_check)
+        line1 = (
+            doc_type
+            + issuing_state
+            + doc_number
+            + doc_check
+            + birth_date
+            + birth_check
+            + sex
+            + expiry_date
+            + expiry_check
+            + nationality
+            + optional_data
+            + composite_check
+        )
 
         # Verify line 1 length
         if len(line1) != cls.TD2_LINE_LENGTH:
@@ -340,10 +347,7 @@ class TD2MRZGenerator:
             raise ValueError(msg)
 
         # Line 2: Name field
-        line2 = cls.format_name_for_td2(
-            personal.primary_identifier,
-            personal.secondary_identifier
-        )
+        line2 = cls.format_name_for_td2(personal.primary_identifier, personal.secondary_identifier)
 
         # Create MRZ data object
         return TD2MRZData(
@@ -352,15 +356,12 @@ class TD2MRZGenerator:
             check_digit_document=doc_check,
             check_digit_dob=birth_check,
             check_digit_expiry=expiry_check,
-            check_digit_composite=composite_check
+            check_digit_composite=composite_check,
         )
-
 
     @classmethod
     def generate_from_data(
-        cls,
-        personal_data: PersonalData,
-        document_data: TD2DocumentData
+        cls, personal_data: PersonalData, document_data: TD2DocumentData
     ) -> TD2MRZData:
         """
         Generate TD-2 MRZ from separate data components.
@@ -373,10 +374,7 @@ class TD2MRZGenerator:
             TD2MRZData with generated MRZ lines
         """
         # Create temporary document for generation
-        temp_document = TD2Document(
-            personal_data=personal_data,
-            document_data=document_data
-        )
+        temp_document = TD2Document(personal_data=personal_data, document_data=document_data)
 
         return cls.generate_td2_mrz(temp_document)
 
@@ -498,7 +496,7 @@ class TD2MRZParser:
             "primary_identifier": primary_identifier,
             "secondary_identifier": secondary_identifier,
             "raw_line1": line1,
-            "raw_line2": line2
+            "raw_line2": line2,
         }
 
     @classmethod
@@ -519,7 +517,7 @@ class TD2MRZParser:
             "birth_check_valid": False,
             "expiry_check_valid": False,
             "composite_check_valid": False,
-            "all_checks_valid": False
+            "all_checks_valid": False,
         }
 
         # Validate document number check digit
@@ -544,24 +542,29 @@ class TD2MRZParser:
         # Validate composite check digit
         # Reconstruct the composite data string
         optional_data_padded = parsed_data["optional_data"].ljust(2, "<")
-        composite_data = (doc_num_padded + parsed_data["check_digit_document"] +
-                         generator.format_date_for_mrz(parsed_data["birth_date"]) +
-                         parsed_data["check_digit_birth"] +
-                         generator.format_date_for_mrz(parsed_data["expiry_date"]) +
-                         parsed_data["check_digit_expiry"] +
-                         optional_data_padded)
+        composite_data = (
+            doc_num_padded
+            + parsed_data["check_digit_document"]
+            + generator.format_date_for_mrz(parsed_data["birth_date"])
+            + parsed_data["check_digit_birth"]
+            + generator.format_date_for_mrz(parsed_data["expiry_date"])
+            + parsed_data["check_digit_expiry"]
+            + optional_data_padded
+        )
         expected_composite_check = generator.compute_check_digit(composite_data)
         results["composite_check_valid"] = (
             expected_composite_check == parsed_data["check_digit_composite"]
         )
 
         # Overall validation
-        results["all_checks_valid"] = all([
-            results["document_check_valid"],
-            results["birth_check_valid"],
-            results["expiry_check_valid"],
-            results["composite_check_valid"]
-        ])
+        results["all_checks_valid"] = all(
+            [
+                results["document_check_valid"],
+                results["birth_check_valid"],
+                results["expiry_check_valid"],
+                results["composite_check_valid"],
+            ]
+        )
 
         return results
 

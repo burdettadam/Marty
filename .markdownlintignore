@@ -1,0 +1,14 @@
+# Ignore Python virtual environments
+**/.venv/**
+.venv/
+
+# Ignore site-packages or installed distributions copied into repo (if any)
+site-packages/
+**/site-packages/**
+
+# Ignore distribution metadata/license docs pulled in from packages
+**/*.dist-info/**
+**/licenses/**
+
+# Ignore generated proto/docs (adjust if needed)
+src/proto/
