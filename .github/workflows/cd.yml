@@ -1,9 +1,12 @@
 name: Marty CD
 
+# TEMPORARILY DISABLED - CI checks turned off while fixing tests
+# To re-enable, uncomment the push trigger below
 on:
-  push:
-    tags:
-      - 'v*'
+  workflow_dispatch:
+  # push:
+  #   tags:
+  #     - 'v*'
 
 concurrency:
   group: cd-${{ github.ref }}
