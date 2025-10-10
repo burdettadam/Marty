@@ -346,16 +346,68 @@ Access at <http://localhost:8090> when services are running.
 
 ### Configuration
 
-Configuration files are stored in the `/config/` directory and are environment-specific:
+Marty uses a **unified configuration system** based on the Marty Microservices Framework (MMF) that provides type-safe, validated configuration with environment variable expansion.
 
-- `development.yaml` - Used during local development
-- `testing.yaml` - Used during test runs
-- `production.yaml` - Used in production environments
+#### Modern Configuration Architecture
 
-You can set the environment by setting the `MARTY_ENV` environment variable:
+- **Service-specific configs**: `/config/services/{service_name}.yaml` - Individual service configurations
+- **Environment configs**: `/config/{environment}.yaml` - Environment-wide settings (development, testing, production)
+- **Type safety**: Configuration sections are validated using dataclasses with runtime validation
+- **Environment expansion**: Support for `${VAR:-default}` patterns in YAML files
+
+#### Configuration Structure
+
+```yaml
+# Example: config/services/trust_anchor.yaml
+database:
+  trust_anchor:
+    host: "${TRUST_ANCHOR_DB_HOST:-localhost}"
+    port: ${TRUST_ANCHOR_DB_PORT:-5432}
+    database: "${TRUST_ANCHOR_DB_NAME:-marty_trust_anchor}"
+
+security:
+  grpc_tls:
+    enabled: true
+    server_cert: "${TLS_SERVER_CERT:-/etc/tls/server/tls.crt}"
+  auth:
+    required: true
+    jwt_enabled: true
+
+trust_store:
+  trust_anchor:
+    certificate_store_path: "${CERT_STORE_PATH:-/app/data/trust}"
+    update_interval_hours: ${TRUST_UPDATE_INTERVAL:-24}
+
+service_discovery:
+  hosts:
+    trust_anchor: "${TRUST_ANCHOR_HOST:-trust-anchor}"
+  ports:
+    trust_anchor: ${TRUST_ANCHOR_PORT:-8080}
+```
+
+#### Creating New Services
+
+Use the modern service template system:
 
 ```bash
-export MARTY_ENV=development
+# Copy configuration template
+cp marty-microservices-framework/templates/service_config_template.yaml config/services/your_service.yaml
+
+# Copy service template
+cp marty-microservices-framework/templates/modern_service_template.py src/services/your_service/modern_your_service.py
+
+# Replace template variables with your service name
+```
+
+See the [Modern Service Guide](marty-microservices-framework/docs/modern_service_guide.md) for complete documentation.
+
+#### Environment Variables
+
+Set the environment using the `MARTY_ENV` variable:
+
+```bash
+export MARTY_ENV=development  # Uses config/development.yaml + service configs
+export MARTY_ENV=production   # Uses config/production.yaml + service configs
 ```
 
 ## Testing

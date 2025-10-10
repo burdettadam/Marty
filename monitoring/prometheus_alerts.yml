@@ -1,0 +1,52 @@
+groups:
+- name: marty.microservices.alerts
+  rules:
+  - alert: MartyServiceDown
+    expr: marty_service_health_status == 0
+    for: 1m
+    labels:
+      severity: critical
+      service: '{{ $labels.service_name }}'
+    annotations:
+      summary: Marty service {{ $labels.service_name }} is down
+      description: Service {{ $labels.service_name }} health check {{ $labels.check_name
+        }} has been failing for more than 1 minute.
+  - alert: MartyHighErrorRate
+    expr: rate(marty_service_requests_total{status_code!~"2.."}[5m]) > 0.05
+    for: 5m
+    labels:
+      severity: warning
+      service: '{{ $labels.service_name }}'
+    annotations:
+      summary: High error rate in {{ $labels.service_name }}
+      description: Service {{ $labels.service_name }} has error rate above 5% for
+        more than 5 minutes.
+  - alert: MartyHighLatency
+    expr: histogram_quantile(0.95, rate(marty_service_request_duration_seconds_bucket[5m]))
+      > 1.0
+    for: 10m
+    labels:
+      severity: warning
+      service: '{{ $labels.service_name }}'
+    annotations:
+      summary: High latency in {{ $labels.service_name }}
+      description: Service {{ $labels.service_name }} P95 latency is above 1 second
+        for more than 10 minutes.
+  - alert: MartyCertificateValidationFailures
+    expr: rate(marty_certificate_validations_total{result="error"}[5m]) > 0.01
+    for: 5m
+    labels:
+      severity: warning
+      team: security
+    annotations:
+      summary: High certificate validation failure rate
+      description: Certificate validation error rate is above 1% for more than 5 minutes.
+  - alert: MartyPKDSyncFailure
+    expr: increase(marty_pkd_sync_operations_total{result="error"}[1h]) > 0
+    for: 0m
+    labels:
+      severity: critical
+      team: platform
+    annotations:
+      summary: PKD synchronization failed
+      description: PKD sync operation has failed. Trust anchor data may be stale.

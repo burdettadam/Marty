@@ -1,0 +1,262 @@
+# DTC Engine Service Configuration with Unified Observability
+# Digital Travel Credential engine with comprehensive monitoring
+
+service_name: "dtc-engine"
+environment: "${ENVIRONMENT:-development}"
+
+# Database configuration
+database:
+  default:
+    host: "${DTC_DB_HOST:-localhost}"
+    port: ${DTC_DB_PORT:-5432}
+    name: "${DTC_DB_NAME:-marty_dtc}"
+    user: "${DTC_DB_USER:-marty_user}"
+    password: "${DTC_DB_PASSWORD:-marty_password}"
+    pool_size: ${DTC_DB_POOL_SIZE:-10}
+    max_overflow: ${DTC_DB_MAX_OVERFLOW:-20}
+    pool_timeout: ${DTC_DB_POOL_TIMEOUT:-30}
+    echo_sql: ${DTC_DB_ECHO_SQL:-false}
+
+# DTC-specific configuration
+dtc:
+  issuance:
+    default_validity_days: ${DTC_VALIDITY_DAYS:-365}
+    max_validity_days: ${DTC_MAX_VALIDITY_DAYS:-1095}
+    auto_renewal_enabled: ${DTC_AUTO_RENEWAL:-false}
+    batch_processing_enabled: ${DTC_BATCH_PROCESSING:-true}
+    
+  security:
+    signing_algorithm: "${DTC_SIGNING_ALGORITHM:-RS256}"
+    key_rotation_days: ${DTC_KEY_ROTATION_DAYS:-90}
+    certificate_validation_required: ${DTC_CERT_VALIDATION:-true}
+    revocation_check_enabled: ${DTC_REVOCATION_CHECK:-true}
+    
+  storage:
+    use_external_storage: ${DTC_EXTERNAL_STORAGE:-true}
+    compression_enabled: ${DTC_COMPRESSION:-true}
+    encryption_at_rest: ${DTC_ENCRYPTION_AT_REST:-true}
+    
+  qr_code:
+    format: "${DTC_QR_FORMAT:-PNG}"
+    size: ${DTC_QR_SIZE:-300}
+    error_correction: "${DTC_QR_ERROR_CORRECTION:-M}"
+    
+# gRPC server configuration
+grpc:
+  server:
+    host: "${DTC_GRPC_HOST:-0.0.0.0}"
+    port: ${DTC_GRPC_PORT:-50052}
+    max_workers: ${DTC_GRPC_MAX_WORKERS:-10}
+    reflection_enabled: ${DTC_GRPC_REFLECTION:-true}
+
+# Service discovery configuration
+service_discovery:
+  hosts:
+    dtc_engine: "${DTC_ENGINE_HOST:-dtc-engine}"
+    document_signer: "${DOCUMENT_SIGNER_HOST:-document-signer}"
+    trust_anchor: "${TRUST_ANCHOR_HOST:-trust-anchor}"
+    pkd_service: "${PKD_SERVICE_HOST:-pkd-service}"
+    key_vault: "${KEY_VAULT_HOST:-key-vault}"
+    object_storage: "${OBJECT_STORAGE_HOST:-object-storage}"
+    
+  ports:
+    dtc_engine: ${DTC_ENGINE_PORT:-50052}
+    document_signer: ${DOCUMENT_SIGNER_PORT:-50051}
+    trust_anchor: ${TRUST_ANCHOR_PORT:-50051}
+    pkd_service: ${PKD_SERVICE_PORT:-50051}
+    key_vault: ${KEY_VAULT_PORT:-8200}
+    object_storage: ${OBJECT_STORAGE_PORT:-9000}
+
+# Unified observability configuration
+monitoring:
+  metrics:
+    enabled: true
+    port: 8080
+    path: "/metrics"
+    business_metrics:
+      dtc_operations:
+        enabled: true
+        labels: ["operation", "result", "dtc_type", "country"]
+        description: "DTC lifecycle operations"
+        
+      signing_operations:
+        enabled: true
+        labels: ["algorithm", "key_type", "result"]
+        description: "DTC signing operations"
+        
+      verification_operations:
+        enabled: true
+        labels: ["result", "verification_type", "trust_level"]
+        description: "DTC verification operations"
+        
+      qr_generation:
+        enabled: true
+        labels: ["format", "size", "result"]
+        description: "QR code generation operations"
+        
+      storage_operations:
+        enabled: true
+        labels: ["operation", "storage_type", "result"]
+        description: "DTC storage operations"
+        
+  tracing:
+    enabled: true
+    service_name: "dtc-engine"
+    jaeger_endpoint: "${JAEGER_ENDPOINT:-http://jaeger:14268/api/traces}"
+    correlation_id:
+      enabled: true
+      header: "x-correlation-id"
+      
+  health_checks:
+    enabled: true
+    endpoint: "/health"
+    checks:
+      database:
+        interval: 30
+        timeout: 10
+      document_signer:
+        interval: 60
+        timeout: 15
+      trust_anchor:
+        interval: 60
+        timeout: 15
+      key_vault:
+        interval: 120
+        timeout: 30
+      object_storage:
+        interval: 60
+        timeout: 20
+        
+  logging:
+    structured: true
+    correlation_aware: true
+    level: "${LOG_LEVEL:-INFO}"
+    format: "json"
+
+# Business metrics configuration
+business_metrics:
+  dtc_lifecycle:
+    # Track complete DTC lifecycle
+    creation_metrics_enabled: true
+    signing_metrics_enabled: true
+    verification_metrics_enabled: true
+    revocation_metrics_enabled: true
+    
+  performance:
+    # Track performance characteristics
+    operation_duration_tracking: true
+    storage_performance_tracking: true
+    signing_performance_tracking: true
+    
+  security:
+    # Track security operations
+    certificate_validation_tracking: true
+    key_usage_tracking: true
+    revocation_check_tracking: true
+    
+  quality:
+    # Track quality metrics
+    verification_success_rate: true
+    storage_integrity_checks: true
+    error_categorization: true
+
+# Tracing configuration
+tracing:
+  spans:
+    dtc_creation:
+      enabled: true
+      include_payload_size: true
+      include_validity_period: true
+      
+    dtc_signing:
+      enabled: true
+      include_algorithm_details: true
+      include_key_information: true
+      
+    dtc_verification:
+      enabled: true
+      include_trust_chain_details: true
+      include_revocation_status: true
+      
+    qr_generation:
+      enabled: true
+      include_size_metrics: true
+      include_encoding_details: true
+
+# Integration configuration
+integrations:
+  document_signer:
+    timeout_seconds: ${DOCUMENT_SIGNER_TIMEOUT:-30}
+    retry_attempts: ${DOCUMENT_SIGNER_RETRIES:-3}
+    
+  trust_anchor:
+    validation_required: true
+    cache_ttl_minutes: ${TRUST_ANCHOR_CACHE_TTL:-60}
+    
+  key_vault:
+    key_rotation_check_interval: ${KEY_VAULT_CHECK_INTERVAL:-3600}
+    auto_key_rotation: ${KEY_VAULT_AUTO_ROTATION:-false}
+    
+  object_storage:
+    bucket_name: "${DTC_STORAGE_BUCKET:-marty-dtc-storage}"
+    encryption_enabled: true
+    versioning_enabled: true
+
+# Security configuration
+security:
+  dtc:
+    max_payload_size_mb: ${DTC_MAX_PAYLOAD_SIZE:-10}
+    allowed_countries: ["${DTC_ALLOWED_COUNTRIES:-*}"]
+    require_biometric_binding: ${DTC_REQUIRE_BIOMETRIC:-false}
+    
+  signing:
+    required_key_strength: ${DTC_MIN_KEY_STRENGTH:-2048}
+    allowed_algorithms: ["RS256", "ES256", "PS256"]
+    
+  access_control:
+    rate_limiting:
+      enabled: ${DTC_RATE_LIMITING:-true}
+      requests_per_minute: ${DTC_RATE_LIMIT:-50}
+      burst_limit: ${DTC_BURST_LIMIT:-100}
+
+# Environment-specific overrides
+development:
+  database:
+    default:
+      echo_sql: true
+  monitoring:
+    logging:
+      level: "DEBUG"
+  dtc:
+    security:
+      certificate_validation_required: false
+      
+testing:
+  database:
+    default:
+      name: "marty_dtc_test"
+  dtc:
+    issuance:
+      default_validity_days: 30
+    security:
+      revocation_check_enabled: false
+  monitoring:
+    tracing:
+      enabled: false  # Disable tracing in tests
+      
+production:
+  database:
+    default:
+      pool_size: 20
+      max_overflow: 40
+  monitoring:
+    tracing:
+      jaeger_endpoint: "https://jaeger.marty.example.com/api/traces"
+  dtc:
+    security:
+      key_rotation_days: 30
+  security:
+    access_control:
+      rate_limiting:
+        requests_per_minute: 500
+        burst_limit: 1000

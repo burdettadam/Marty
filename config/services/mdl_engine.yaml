@@ -1,0 +1,247 @@
+# MDL Engine Service Configuration
+service_name: "mdl-engine"
+environment: "${ENVIRONMENT:-development}"
+
+# Database configuration
+database:
+  default:
+    host: "${MDL_ENGINE_DB_HOST:-localhost}"
+    port: ${MDL_ENGINE_DB_PORT:-5432}
+    name: "${MDL_ENGINE_DB_NAME:-marty_mdl}"
+    user: "${MDL_ENGINE_DB_USER:-marty_user}"
+    password: "${MDL_ENGINE_DB_PASSWORD:-marty_password}"
+    pool_size: ${MDL_ENGINE_DB_POOL_SIZE:-15}
+    max_overflow: ${MDL_ENGINE_DB_MAX_OVERFLOW:-25}
+
+# MDL Engine specific configuration
+mdl_engine:
+  # Processing configuration
+  max_concurrent_operations: ${MDL_ENGINE_MAX_CONCURRENT:-20}
+  operation_timeout: ${MDL_ENGINE_TIMEOUT:-60}
+  
+  # Portrait storage configuration
+  portrait_max_size: ${MDL_ENGINE_PORTRAIT_MAX_SIZE:-5242880}  # 5MB
+  portrait_formats: ["JPEG", "PNG", "WEBP"]
+  
+  # QR code configuration
+  qr_code_size: ${MDL_ENGINE_QR_SIZE:-256}
+  qr_code_error_correction: "${MDL_ENGINE_QR_ERROR_CORRECTION:-M}"
+  
+  # License validation
+  license_number_pattern: "${MDL_ENGINE_LICENSE_PATTERN:-^[A-Z0-9]{8,12}$}"
+  
+  # Device engagement configuration (ISO 18013-5)
+  device_engagement:
+    version: "1.0"
+    supported_methods: ["QR", "NFC", "BLE"]
+    session_timeout: ${MDL_ENGINE_SESSION_TIMEOUT:-300}  # 5 minutes
+  
+  # Document signing integration
+  signing:
+    default_algorithm: "${MDL_ENGINE_SIGN_ALGORITHM:-ES256}"
+    key_rotation_enabled: ${MDL_ENGINE_KEY_ROTATION:-true}
+    signature_expiry: ${MDL_ENGINE_SIG_EXPIRY:-2592000}  # 30 days
+
+# Object storage configuration
+object_storage:
+  provider: "${OBJECT_STORAGE_PROVIDER:-minio}"
+  endpoint: "${OBJECT_STORAGE_ENDPOINT:-localhost:9000}"
+  access_key: "${OBJECT_STORAGE_ACCESS_KEY:-minioadmin}"
+  secret_key: "${OBJECT_STORAGE_SECRET_KEY:-minioadmin}"
+  bucket_name: "${MDL_ENGINE_BUCKET:-mdl-storage}"
+  secure: ${OBJECT_STORAGE_SECURE:-false}
+  region: "${OBJECT_STORAGE_REGION:-us-east-1}"
+
+# gRPC server configuration
+grpc:
+  server:
+    host: "${MDL_ENGINE_GRPC_HOST:-0.0.0.0}"
+    port: ${MDL_ENGINE_GRPC_PORT:-50051}
+    max_workers: ${MDL_ENGINE_GRPC_MAX_WORKERS:-15}
+    reflection_enabled: ${MDL_ENGINE_GRPC_REFLECTION:-true}
+    max_message_length: ${MDL_ENGINE_GRPC_MAX_MESSAGE:-10485760}  # 10MB for portraits
+
+# Service discovery configuration
+service_discovery:
+  hosts:
+    mdl_engine: "${MDL_ENGINE_HOST:-mdl-engine}"
+    document_signer: "${DOCUMENT_SIGNER_HOST:-document-signer}"
+    trust_anchor: "${TRUST_ANCHOR_HOST:-trust-anchor}"
+    object_storage: "${OBJECT_STORAGE_HOST:-minio}"
+    
+  ports:
+    mdl_engine: ${MDL_ENGINE_PORT:-50051}
+    document_signer: ${DOCUMENT_SIGNER_PORT:-50053}
+    trust_anchor: ${TRUST_ANCHOR_PORT:-50052}
+    object_storage: ${OBJECT_STORAGE_PORT:-9000}
+
+# Event bus configuration
+event_bus:
+  provider: "${EVENT_BUS_PROVIDER:-local}"
+  connection_string: "${EVENT_BUS_CONNECTION:-}"
+  topics:
+    mdl_created: "mdl.lifecycle.created"
+    mdl_signed: "mdl.lifecycle.signed"
+    mdl_verified: "mdl.lifecycle.verified"
+    mdl_transferred: "mdl.lifecycle.transferred"
+
+# CRITICAL: Unified observability configuration
+monitoring:
+  metrics:
+    enabled: true
+    port: 8080
+    path: "/metrics"
+    business_metrics:
+      # MDL lifecycle operations
+      mdl_operations:
+        enabled: true
+        labels: ["operation", "result", "license_type", "user_type"]
+        description: "MDL operation metrics by type and result"
+        
+      # Processing performance metrics
+      mdl_processing_duration:
+        enabled: true
+        labels: ["operation", "complexity", "portrait_size"]
+        description: "MDL processing time by operation complexity"
+        
+      # Storage operations
+      storage_operations:
+        enabled: true
+        labels: ["operation", "storage_type", "file_type", "size_category"]
+        description: "Storage operation metrics for MDL data"
+        
+      # QR code generation metrics
+      qr_generation:
+        enabled: true
+        labels: ["size", "error_correction", "content_type"]
+        description: "QR code generation performance metrics"
+        
+      # Device engagement metrics (ISO 18013-5)
+      device_engagement:
+        enabled: true
+        labels: ["method", "engagement_type", "session_status"]
+        description: "Device engagement operation metrics"
+        
+      # Signing integration metrics
+      signing_operations:
+        enabled: true
+        labels: ["algorithm", "key_type", "operation", "result"]
+        description: "Document signing integration metrics"
+        
+      # Verification metrics
+      verification_operations:
+        enabled: true
+        labels: ["verification_type", "trust_level", "result"]
+        description: "MDL verification operation metrics"
+        
+  tracing:
+    enabled: true
+    service_name: "mdl-engine"
+    jaeger_endpoint: "${JAEGER_ENDPOINT:-http://jaeger:14268/api/traces}"
+    correlation_id:
+      enabled: true
+      header: "x-correlation-id"
+    sampling:
+      type: "probabilistic"
+      rate: ${MDL_ENGINE_TRACE_SAMPLING:-0.1}  # 10% sampling for high-volume service
+      
+  health_checks:
+    enabled: true
+    endpoint: "/health"
+    checks:
+      database:
+        interval: 30
+        timeout: 10
+      object_storage:
+        interval: 60
+        timeout: 15
+      document_signer:
+        interval: 45
+        timeout: 20
+      trust_anchor:
+        interval: 45
+        timeout: 20
+        
+  logging:
+    structured: true
+    correlation_aware: true
+    level: "${LOG_LEVEL:-INFO}"
+    format: "json"
+    fields:
+      service: "mdl-engine"
+      component: "mobile_driving_license"
+
+# Business metrics configuration
+business_metrics:
+  # MDL lifecycle tracking
+  lifecycle:
+    track_creation: true
+    track_signing: true
+    track_verification: true
+    track_transfer: true
+    
+  # Performance monitoring
+  performance:
+    portrait_processing_time: true
+    qr_generation_time: true
+    signing_duration: true
+    verification_time: true
+    
+  # Quality metrics
+  quality:
+    portrait_validation_rate: true
+    license_validation_rate: true
+    signature_success_rate: true
+    verification_accuracy: true
+    
+  # Integration health
+  integration:
+    document_signer_availability: true
+    trust_anchor_connectivity: true
+    storage_performance: true
+    
+  # Security metrics
+  security:
+    invalid_license_attempts: true
+    signature_verification_failures: true
+    unauthorized_access_attempts: true
+
+# Environment-specific overrides
+development:
+  mdl_engine:
+    max_concurrent_operations: 5
+    operation_timeout: 120
+  monitoring:
+    logging:
+      level: "DEBUG"
+    tracing:
+      sampling:
+        rate: 1.0  # 100% sampling in development
+        
+testing:
+  database:
+    default:
+      name: "marty_mdl_test"
+  mdl_engine:
+    portrait_max_size: 1048576  # 1MB for testing
+    operation_timeout: 30
+  monitoring:
+    tracing:
+      enabled: false
+    logging:
+      level: "INFO"
+      
+production:
+  mdl_engine:
+    max_concurrent_operations: 50
+    operation_timeout: 45
+  monitoring:
+    tracing:
+      jaeger_endpoint: "https://jaeger.marty.example.com/api/traces"
+      sampling:
+        rate: 0.05  # 5% sampling in production
+    logging:
+      level: "WARN"
+  object_storage:
+    secure: true
+    endpoint: "s3.amazonaws.com"

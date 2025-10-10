@@ -1,0 +1,299 @@
+# Inspection System Service Configuration
+service_name: "inspection-system"
+environment: "${ENVIRONMENT:-development}"
+
+# Database configuration
+database:
+  default:
+    host: "${INSPECTION_SYSTEM_DB_HOST:-localhost}"
+    port: ${INSPECTION_SYSTEM_DB_PORT:-5432}
+    name: "${INSPECTION_SYSTEM_DB_NAME:-marty_inspection}"
+    user: "${INSPECTION_SYSTEM_DB_USER:-marty_user}"
+    password: "${INSPECTION_SYSTEM_DB_PASSWORD:-marty_password}"
+    pool_size: ${INSPECTION_SYSTEM_DB_POOL_SIZE:-15}
+    max_overflow: ${INSPECTION_SYSTEM_DB_MAX_OVERFLOW:-25}
+
+# Inspection System specific configuration
+inspection_system:
+  # Verification configuration
+  max_concurrent_inspections: ${INSPECTION_SYSTEM_MAX_CONCURRENT:-30}
+  inspection_timeout: ${INSPECTION_SYSTEM_TIMEOUT:-45}
+  
+  # Data directories
+  data_dir: "${INSPECTION_DATA_DIR:-/app/data}"
+  passport_data_dir: "${PASSPORT_DATA_DIR:-/app/passport_data}"
+  config_dir: "${INSPECTION_CONFIG_DIR:-/app/config}"
+  
+  # Verification settings
+  verification:
+    passport_verification_enabled: ${PASSPORT_VERIFICATION_ENABLED:-true}
+    sd_jwt_verification_enabled: ${SD_JWT_VERIFICATION_ENABLED:-true}
+    oid4vp_verification_enabled: ${OID4VP_VERIFICATION_ENABLED:-true}
+    
+    # Crypto validation settings
+    crypto_validation:
+      mrz_validation_enabled: ${MRZ_VALIDATION_ENABLED:-true}
+      sod_validation_enabled: ${SOD_VALIDATION_ENABLED:-true}
+      certificate_chain_validation: ${CERT_CHAIN_VALIDATION:-true}
+      
+    # Trust verification
+    trust_verification:
+      issuer_trust_check: ${ISSUER_TRUST_CHECK:-true}
+      wallet_attestation_check: ${WALLET_ATTESTATION_CHECK:-true}
+      revocation_check: ${REVOCATION_CHECK:-true}
+    
+    # Presentation definition compliance
+    presentation_definition:
+      strict_compliance: ${PD_STRICT_COMPLIANCE:-true}
+      field_validation: ${PD_FIELD_VALIDATION:-true}
+      type_checking: ${PD_TYPE_CHECKING:-true}
+  
+  # Security settings
+  security:
+    sensitive_data_masking: ${INSPECTION_MASK_SENSITIVE:-true}
+    audit_all_inspections: ${INSPECTION_AUDIT_ALL:-true}
+    max_payload_size: ${INSPECTION_MAX_PAYLOAD:-10485760}  # 10MB
+    
+  # Performance settings
+  performance:
+    cache_trust_anchors: ${CACHE_TRUST_ANCHORS:-true}
+    cache_presentation_definitions: ${CACHE_PDS:-true}
+    cache_ttl: ${INSPECTION_CACHE_TTL:-3600}  # 1 hour
+
+# Key Vault configuration
+key_vault:
+  provider: "${KEY_VAULT_PROVIDER:-local}"
+  endpoint: "${KEY_VAULT_ENDPOINT:-}"
+  default_signing_key_id: "${DEFAULT_SIGNING_KEY_ID:-document-signer-default}"
+  
+  # Local key vault settings
+  local:
+    keys_directory: "${LOCAL_KEYS_DIR:-/app/keys}"
+    
+  # HashiCorp Vault settings
+  vault:
+    address: "${VAULT_ADDRESS:-}"
+    token: "${VAULT_TOKEN:-}"
+    mount_path: "${VAULT_MOUNT_PATH:-secret}"
+
+# Object storage configuration
+object_storage:
+  provider: "${OBJECT_STORAGE_PROVIDER:-minio}"
+  endpoint: "${OBJECT_STORAGE_ENDPOINT:-localhost:9000}"
+  access_key: "${OBJECT_STORAGE_ACCESS_KEY:-minioadmin}"
+  secret_key: "${OBJECT_STORAGE_SECRET_KEY:-minioadmin}"
+  bucket_name: "${INSPECTION_SYSTEM_BUCKET:-inspection-storage}"
+  secure: ${OBJECT_STORAGE_SECURE:-false}
+  region: "${OBJECT_STORAGE_REGION:-us-east-1}"
+
+# gRPC server configuration
+grpc:
+  server:
+    host: "${INSPECTION_SYSTEM_GRPC_HOST:-0.0.0.0}"
+    port: ${INSPECTION_SYSTEM_GRPC_PORT:-50083}
+    max_workers: ${INSPECTION_SYSTEM_GRPC_MAX_WORKERS:-15}
+    reflection_enabled: ${INSPECTION_SYSTEM_GRPC_REFLECTION:-true}
+    max_message_length: ${INSPECTION_SYSTEM_GRPC_MAX_MESSAGE:-20971520}  # 20MB for large documents
+
+# Service discovery configuration
+service_discovery:
+  hosts:
+    inspection_system: "${INSPECTION_SYSTEM_HOST:-inspection-system}"
+    trust_anchor: "${TRUST_ANCHOR_HOST:-trust-anchor}"
+    document_signer: "${DOCUMENT_SIGNER_HOST:-document-signer}"
+    key_vault: "${KEY_VAULT_HOST:-key-vault}"
+    object_storage: "${OBJECT_STORAGE_HOST:-minio}"
+    
+  ports:
+    inspection_system: ${INSPECTION_SYSTEM_PORT:-50083}
+    trust_anchor: ${TRUST_ANCHOR_PORT:-50052}
+    document_signer: ${DOCUMENT_SIGNER_PORT:-50053}
+    key_vault: ${KEY_VAULT_PORT:-8200}
+    object_storage: ${OBJECT_STORAGE_PORT:-9000}
+
+# CRITICAL: Unified observability configuration
+monitoring:
+  metrics:
+    enabled: true
+    port: 8080
+    path: "/metrics"
+    business_metrics:
+      # Inspection operations
+      inspection_operations:
+        enabled: true
+        labels: ["operation", "document_type", "result", "verification_type"]
+        description: "Document inspection operation metrics"
+        
+      # Verification workflow metrics
+      verification_workflow:
+        enabled: true
+        labels: ["workflow_type", "step", "result", "complexity"]
+        description: "Verification workflow step metrics"
+        
+      # Passport verification metrics
+      passport_verification:
+        enabled: true
+        labels: ["verification_component", "result", "issuing_country", "document_type"]
+        description: "Passport verification component metrics"
+        
+      # SD-JWT verification metrics
+      sd_jwt_verification:
+        enabled: true
+        labels: ["verification_step", "result", "issuer_type", "disclosure_count"]
+        description: "SD-JWT verification step metrics"
+        
+      # OID4VP presentation metrics
+      oid4vp_presentation:
+        enabled: true
+        labels: ["presentation_type", "validation_step", "result", "compliance_level"]
+        description: "OID4VP presentation verification metrics"
+        
+      # Trust verification metrics
+      trust_verification:
+        enabled: true
+        labels: ["trust_type", "entity_type", "result", "verification_source"]
+        description: "Trust verification operation metrics"
+        
+      # Compliance checking metrics
+      compliance_checking:
+        enabled: true
+        labels: ["compliance_type", "rule_set", "result", "severity"]
+        description: "Compliance and policy checking metrics"
+        
+      # Certificate validation metrics
+      certificate_validation:
+        enabled: true
+        labels: ["validation_type", "certificate_type", "result", "chain_length"]
+        description: "Certificate validation metrics"
+        
+      # Integration health metrics
+      integration_health:
+        enabled: true
+        labels: ["service", "operation", "result", "response_time_category"]
+        description: "External service integration health metrics"
+        
+  tracing:
+    enabled: true
+    service_name: "inspection-system"
+    jaeger_endpoint: "${JAEGER_ENDPOINT:-http://jaeger:14268/api/traces}"
+    correlation_id:
+      enabled: true
+      header: "x-correlation-id"
+    sampling:
+      type: "probabilistic"
+      rate: ${INSPECTION_SYSTEM_TRACE_SAMPLING:-0.3}  # 30% sampling for verification workflows
+      
+  health_checks:
+    enabled: true
+    endpoint: "/health"
+    checks:
+      database:
+        interval: 30
+        timeout: 10
+      object_storage:
+        interval: 60
+        timeout: 15
+      key_vault:
+        interval: 45
+        timeout: 20
+      trust_anchor_service:
+        interval: 60
+        timeout: 25
+      data_directories:
+        interval: 120
+        timeout: 10
+        
+  logging:
+    structured: true
+    correlation_aware: true
+    level: "${LOG_LEVEL:-INFO}"
+    format: "json"
+    fields:
+      service: "inspection-system"
+      component: "document_verification"
+
+# Business metrics configuration
+business_metrics:
+  # Verification tracking
+  verification:
+    track_inspection_time: true
+    track_verification_accuracy: true
+    track_document_types: true
+    track_failure_modes: true
+    
+  # Security monitoring
+  security:
+    track_trust_violations: true
+    track_certificate_issues: true
+    track_forgery_attempts: true
+    track_compliance_violations: true
+    
+  # Performance monitoring
+  performance:
+    track_processing_time: true
+    track_throughput: true
+    track_resource_usage: true
+    track_integration_latency: true
+    
+  # Quality metrics
+  quality:
+    track_verification_confidence: true
+    track_false_positive_rate: true
+    track_false_negative_rate: true
+    track_manual_review_rate: true
+    
+  # Integration monitoring
+  integration:
+    trust_anchor_performance: true
+    document_signer_availability: true
+    key_vault_connectivity: true
+    storage_performance: true
+
+# Environment-specific overrides
+development:
+  inspection_system:
+    max_concurrent_inspections: 10
+    inspection_timeout: 120
+    verification:
+      trust_verification:
+        issuer_trust_check: false  # Relaxed for development
+  monitoring:
+    logging:
+      level: "DEBUG"
+    tracing:
+      sampling:
+        rate: 1.0  # 100% sampling in development
+        
+testing:
+  database:
+    default:
+      name: "marty_inspection_test"
+  inspection_system:
+    max_concurrent_inspections: 5
+    inspection_timeout: 60
+    verification:
+      trust_verification:
+        revocation_check: false  # Disabled for testing
+  monitoring:
+    tracing:
+      enabled: false
+    logging:
+      level: "INFO"
+      
+production:
+  inspection_system:
+    max_concurrent_inspections: 100
+    inspection_timeout: 30
+    verification:
+      presentation_definition:
+        strict_compliance: true
+  monitoring:
+    tracing:
+      jaeger_endpoint: "https://jaeger.marty.example.com/api/traces"
+      sampling:
+        rate: 0.1  # 10% sampling in production
+    logging:
+      level: "WARN"
+  object_storage:
+    secure: true
+    endpoint: "s3.amazonaws.com"

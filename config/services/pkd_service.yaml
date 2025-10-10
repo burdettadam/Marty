@@ -1,0 +1,201 @@
+# PKD Service Configuration with Unified Observability
+# This demonstrates migration to the unified configuration and observability system
+
+service_name: "pkd-service"
+environment: "${ENVIRONMENT:-development}"
+
+# Database configuration
+database:
+  default:
+    host: "${PKD_DB_HOST:-localhost}"
+    port: ${PKD_DB_PORT:-5432}
+    name: "${PKD_DB_NAME:-marty_pkd}"
+    user: "${PKD_DB_USER:-marty_user}"
+    password: "${PKD_DB_PASSWORD:-marty_password}"
+    pool_size: ${PKD_DB_POOL_SIZE:-10}
+    max_overflow: ${PKD_DB_MAX_OVERFLOW:-20}
+    pool_timeout: ${PKD_DB_POOL_TIMEOUT:-30}
+    echo_sql: ${PKD_DB_ECHO_SQL:-false}
+
+# PKD-specific configuration
+pkd:
+  data:
+    directory: "${PKD_DATA_DIR:-/app/data/pkd}"
+    auto_sync_interval: ${PKD_AUTO_SYNC_INTERVAL:-0}
+    cache_ttl_hours: ${PKD_CACHE_TTL:-24}
+    
+  ingestion:
+    batch_size: ${PKD_BATCH_SIZE:-1000}
+    max_retries: ${PKD_MAX_RETRIES:-3}
+    retry_delay_seconds: ${PKD_RETRY_DELAY:-60}
+    validation_enabled: ${PKD_VALIDATION_ENABLED:-true}
+    
+  sync:
+    enabled: ${PKD_SYNC_ENABLED:-true}
+    interval_hours: ${PKD_SYNC_INTERVAL:-24}
+    timeout_seconds: ${PKD_SYNC_TIMEOUT:-300}
+    concurrent_downloads: ${PKD_CONCURRENT_DOWNLOADS:-5}
+
+# gRPC server configuration
+grpc:
+  server:
+    host: "${PKD_GRPC_HOST:-0.0.0.0}"
+    port: ${PKD_GRPC_PORT:-50051}
+    max_workers: ${PKD_GRPC_MAX_WORKERS:-10}
+    reflection_enabled: ${PKD_GRPC_REFLECTION:-true}
+    
+# Service discovery configuration  
+service_discovery:
+  hosts:
+    pkd_service: "${PKD_SERVICE_HOST:-pkd-service}"
+    trust_anchor: "${TRUST_ANCHOR_HOST:-trust-anchor}"
+    database: "${PKD_DB_HOST:-database}"
+    
+  ports:
+    pkd_service: ${PKD_SERVICE_PORT:-50051}
+    trust_anchor: ${TRUST_ANCHOR_PORT:-50051}
+    database: ${PKD_DB_PORT:-5432}
+
+# Unified observability configuration
+monitoring:
+  metrics:
+    enabled: true
+    port: 8080
+    path: "/metrics"
+    business_metrics:
+      trust_anchor_operations:
+        enabled: true
+        labels: ["operation", "result", "country_code"]
+        description: "PKD trust anchor operations"
+      
+      sync_operations:
+        enabled: true 
+        labels: ["result", "dataset_type", "source"]
+        description: "PKD synchronization operations"
+        
+      ingestion_operations:
+        enabled: true
+        labels: ["result", "batch_size", "validation_result"]
+        description: "PKD data ingestion operations"
+        
+      certificate_queries:
+        enabled: true
+        labels: ["query_type", "result", "country_code"]
+        description: "Certificate query operations"
+        
+  tracing:
+    enabled: true
+    service_name: "pkd-service"
+    jaeger_endpoint: "${JAEGER_ENDPOINT:-http://jaeger:14268/api/traces}"
+    correlation_id:
+      enabled: true
+      header: "x-correlation-id"
+      
+  health_checks:
+    enabled: true
+    endpoint: "/health"
+    checks:
+      database:
+        interval: 30
+        timeout: 10
+      data_directory:
+        interval: 60
+        timeout: 5
+      trust_anchor_connectivity:
+        interval: 120
+        timeout: 30
+        
+  logging:
+    structured: true
+    correlation_aware: true
+    level: "${LOG_LEVEL:-INFO}"
+    format: "json"
+
+# Business metrics configuration
+business_metrics:
+  trust_anchors:
+    # Track trust anchor listing operations
+    list_operations_enabled: true
+    certificate_validation_enabled: true
+    country_breakdown_enabled: true
+    
+  synchronization:
+    # Track PKD sync operations
+    sync_duration_tracking: true
+    records_processed_tracking: true
+    error_categorization: true
+    
+  data_quality:
+    # Track data validation and quality
+    validation_metrics_enabled: true
+    duplicate_detection_enabled: true
+    corruption_detection_enabled: true
+
+# Tracing configuration
+tracing:
+  spans:
+    # Detailed span configuration for PKD operations
+    trust_anchor_listing:
+      enabled: true
+      include_result_count: true
+      include_filter_criteria: true
+      
+    data_ingestion:
+      enabled: true
+      include_batch_details: true
+      include_validation_results: true
+      
+    certificate_queries:
+      enabled: true
+      include_query_criteria: true
+      include_cache_hits: true
+
+# Security configuration
+security:
+  certificates:
+    validation_required: true
+    allowed_algorithms: ["RSA", "ECDSA"]
+    min_key_size: 2048
+    
+  access_control:
+    rate_limiting:
+      enabled: ${PKD_RATE_LIMITING:-true}
+      requests_per_minute: ${PKD_RATE_LIMIT:-100}
+      
+# Environment-specific overrides
+development:
+  database:
+    default:
+      echo_sql: true
+  monitoring:
+    logging:
+      level: "DEBUG"
+  pkd:
+    sync:
+      interval_hours: 1  # More frequent sync in dev
+      
+testing:
+  database:
+    default:
+      name: "marty_pkd_test"
+  pkd:
+    data:
+      directory: "/tmp/pkd_test_data"
+    sync:
+      enabled: false  # No auto-sync in tests
+      
+production:
+  database:
+    default:
+      pool_size: 20
+      max_overflow: 40
+  monitoring:
+    tracing:
+      jaeger_endpoint: "https://jaeger.marty.example.com/api/traces"
+  pkd:
+    sync:
+      concurrent_downloads: 10
+  security:
+    access_control:
+      rate_limiting:
+        requests_per_minute: 1000

@@ -1,13 +1,30 @@
 """
-Configuration loading utilities for Marty services.
+DEPRECATED: Legacy configuration loading utilities.
 
-This module provides functionality to load and parse configuration files
-based on environment (development, testing, production).
+This module is DEPRECATED. Use the unified configuration system instead:
+
+    # Instead of:
+    from marty_common.config import Config
+    config = Config()
+    
+    # Use:
+    from framework.config_factory import create_service_config
+    config = create_service_config("config/services/your_service.yaml")
+
+The unified configuration system provides:
+- Type safety with dataclasses
+- Environment variable expansion  
+- Service-specific configuration files
+- Validation and error handling
+- Modern configuration patterns
+
+For migration guide, see: marty-microservices-framework/docs/modern_service_guide.md
 """
 
 from __future__ import annotations
 
 import os
+import warnings
 from pathlib import Path
 from typing import Any
 
@@ -20,20 +37,34 @@ from marty_common.infrastructure import (
     ObjectStorageConfig,
 )
 
+# Issue deprecation warning
+warnings.warn(
+    "marty_common.config is deprecated. Use the unified configuration system: "
+    "framework.config_factory.create_service_config()",
+    DeprecationWarning,
+    stacklevel=2
+)
+
 
 class ConfigurationError(Exception):
     """Raised when there's an error loading configuration."""
 
 
 class Config:
-    """Minimal configuration object used by several services and tests.
-
-    This wrapper provides attribute-style access to service configuration
-    sections from the loaded YAML. Only the behavior that tests rely on is
-    implemented; new fields can be added as needed.
+    """
+    DEPRECATED: Legacy configuration object.
+    
+    Use the unified configuration system instead:
+        from framework.config_factory import create_service_config
+        config = create_service_config("config/services/your_service.yaml")
     """
 
     def __init__(self, environment: str | None = None) -> None:
+        warnings.warn(
+            "Config class is deprecated. Use framework.config_factory.create_service_config()",
+            DeprecationWarning,
+            stacklevel=2
+        )
         self._environment = (environment or get_environment()).lower()
         self._config = load_config(self._environment)
 
