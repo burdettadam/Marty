@@ -1,0 +1,44 @@
+# Trust Service Configuration for Marty Framework
+# This configuration enables the trust service to be run with the unified framework launcher
+
+service:
+  name: "trust-svc"
+  version: "1.0.0"
+  description: "Trust Service for Marty Document Verification Platform"
+
+# Server configuration
+host: "0.0.0.0"
+port: 8001
+
+# gRPC configuration
+grpc_enabled: true
+grpc_port: 50051
+grpc_module: "grpc_server:serve_grpc"
+
+# Application modules
+app_module: "app:app"
+
+# Development settings
+debug: false
+reload: true
+log_level: "info"
+access_log: true
+
+# Performance
+workers: 1
+
+# Monitoring
+metrics_enabled: true
+metrics_port: 9090
+
+# Database configuration
+database:
+  url: "${DATABASE_URL:-postgresql://trust_user:trust_pass@localhost:5432/trust_db}"
+  pool_size: 10
+  max_overflow: 20
+
+# Security settings
+security:
+  secret_key: "${SECRET_KEY:-change-me-in-production}"
+  algorithm: "HS256"
+  access_token_expire_minutes: 30

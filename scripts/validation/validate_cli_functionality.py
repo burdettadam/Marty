@@ -14,6 +14,19 @@ import sys
 from pathlib import Path
 from typing import List
 
+# Ensure framework root (containing marty_cli and src) is on sys.path for import resolution
+REPO_ROOT = Path(__file__).resolve().parent.parent.parent
+if str(REPO_ROOT) not in sys.path:
+    sys.path.insert(0, str(REPO_ROOT))
+
+# Workaround: Some third-party libs (older versions) attempt 'from typing import list, tuple' under Python 3.13.
+# Patch import machinery to tolerate this by creating aliases if missing.
+import typing  # pragma: no cover
+if not hasattr(typing, "list"):
+    setattr(typing, "list", list)  # type: ignore[attr-defined]
+if not hasattr(typing, "tuple"):
+    setattr(typing, "tuple", tuple)  # type: ignore[attr-defined]
+
 
 def check_cli_commands() -> list[str]:
     """Check that CLI commands are properly defined."""
@@ -42,7 +55,7 @@ def check_cli_commands() -> list[str]:
                 if "try:" not in content and "except" not in content:
                     issues.append(f"{cli_file}: Main function missing error handling")
 
-        except Exception as e:
+        except (OSError, UnicodeDecodeError) as e:
             issues.append(f"{cli_file}: Error reading CLI file: {e}")
 
     return issues
@@ -73,7 +86,7 @@ def check_generator_functionality() -> list[str]:
                 if "Path(" not in content and "os.path" not in content:
                     issues.append(f"{gen_file}: Generator should use proper path handling")
 
-        except Exception as e:
+        except (OSError, UnicodeDecodeError) as e:
             issues.append(f"{gen_file}: Error reading generator file: {e}")
 
     return issues
@@ -109,8 +122,7 @@ def check_framework_imports() -> list[str]:
 
         except ImportError as e:
             issues.append(f"{module_path}: Import error: {e}")
-        except Exception as e:
-            issues.append(f"{module_path}: Error checking module: {e}")
+        # If importlib can't find a spec we already handled via spec None branch
 
     return issues
 
@@ -139,7 +151,7 @@ def check_template_integration() -> list[str]:
             if "templates/" in content:
                 cli_template_refs.append(cli_file)
 
-        except Exception:
+        except (OSError, UnicodeDecodeError):
             continue
 
     if not cli_template_refs:
@@ -181,7 +193,7 @@ def check_plugin_system() -> list[str]:
                         if f"def {method}" not in content:
                             issues.append(f"{plugin_file}: Plugin missing {method} method")
 
-            except Exception:
+            except (OSError, UnicodeDecodeError):
                 continue
 
         if plugin_files and not has_interface:
