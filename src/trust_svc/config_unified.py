@@ -17,7 +17,7 @@ framework_path = Path(__file__).parent.parent.parent / "marty-microservices-fram
 sys.path.append(str(framework_path))
 
 try:
-    from framework.config import ServiceConfig, Environment
+    from framework.config import BaseServiceConfig, Environment
     from framework.marty_config_adapter import create_unified_config
     UNIFIED_CONFIG_AVAILABLE = True
 except ImportError:
@@ -46,7 +46,7 @@ class TrustServiceUnifiedConfig:
         # Load unified configuration
         self._config = self._load_unified_config()
         
-    def _load_unified_config(self) -> Optional[ServiceConfig]:
+    def _load_unified_config(self) -> Optional[BaseServiceConfig]:
         """Load configuration using the unified system."""
         if not UNIFIED_CONFIG_AVAILABLE:
             return None
@@ -62,7 +62,7 @@ class TrustServiceUnifiedConfig:
             print(f"Failed to load unified config: {e}")
             try:
                 # Fallback to direct MMF ServiceConfig
-                return ServiceConfig(
+                return BaseServiceConfig(
                     service_name=self.service_name,
                     environment=Environment(self.environment),
                     config_path=self.config_path

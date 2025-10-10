@@ -1,6 +1,0 @@
-apiVersion: v2
-name: marty-service
-description: A Helm chart for Marty microservices
-type: application
-version: 0.1.0
-appVersion: "1.0.0"

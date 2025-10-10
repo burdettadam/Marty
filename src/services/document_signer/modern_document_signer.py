@@ -17,7 +17,7 @@ from typing import TYPE_CHECKING, Any, Optional
 framework_path = Path(__file__).parent.parent.parent.parent / "marty-microservices-framework" / "src"
 sys.path.append(str(framework_path))
 
-from framework.config import ServiceConfig, Environment
+from framework.config import BaseServiceConfig, Environment
 from framework.config_factory import create_service_config
 from framework.observability.unified_observability import (
     MartyMetrics,

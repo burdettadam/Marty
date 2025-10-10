@@ -1,6 +1,0 @@
-apiVersion: v2
-name: pkd-service
-description: A Helm chart for pkd-service
-type: application
-version: 0.1.0
-appVersion: "1.0.0"
